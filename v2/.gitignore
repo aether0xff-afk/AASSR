@@ -51,14 +51,6 @@ coverage.xml
 .pytest_cache/
 cover/
 runs/
-/v1/
-/artifacts/
-/v2/runs/
-/v2/artifacts/
-/v2/.pytest_cache/
-/v2/.mypy_cache/
-/v2/.ruff_cache/
-/v2/**/__pycache__/
 
 # Translations
 *.mo
