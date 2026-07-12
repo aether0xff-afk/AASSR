@@ -1,0 +1,267 @@
+﻿{
+  "episodes": [
+    {
+      "episode": 0,
+      "success": false,
+      "steps": 20,
+      "solved_count": 0,
+      "solved_challenges": [],
+      "total_reward": 35.199999999999996,
+      "novelty_bonus": 0.0
+    },
+    {
+      "episode": 1,
+      "success": false,
+      "steps": 20,
+      "solved_count": 0,
+      "solved_challenges": [],
+      "total_reward": 53.0,
+      "novelty_bonus": 0.0
+    }
+  ],
+  "policy": {
+    "what": {
+      "HTTP_GET": 0.8808757662322455,
+      "FORM_POST": 0.01985403896129239,
+      "AUTHENTICATED_GET": 0.01985403896129239,
+      "PORT_SCAN": 0.01985403896129239,
+      "WEB_FINGERPRINT": 0.01985403896129239,
+      "HTTP_METADATA": 0.01985403896129239,
+      "QUERY_PROBE": 0.01985403896129239
+    },
+    "how": {
+      "NORMAL": 0.8360691399116389,
+      "PARAMETERIZED": 0.02487122003009329,
+      "AUTH_ATTEMPT": 0.01986566286546682,
+      "AUTHENTICATED": 0.01986566286546682,
+      "SHALLOW_SCAN": 0.01986566286546682,
+      "PASSIVE_FINGERPRINT": 0.01986566286546682,
+      "HEADER_ONLY": 0.01986566286546682,
+      "METHOD_DISCOVERY": 0.01986566286546682,
+      "PROBE_VALUE": 0.01986566286546682
+    },
+    "where": {
+      "KK_PATH": 0.8759580489292599,
+      "KK_ENDPOINT": 0.024663346655733463,
+      "KK_USERNAME": 0.01987572088300134,
+      "KK_AUTH_PATH": 0.01987572088300134,
+      "KK_BASE_URL": 0.01987572088300134,
+      "KK_HOST": 0.01987572088300134,
+      "KK_PARAM_NAME": 0.01987572088300134
+    }
+  },
+  "experience": {
+    "stat_count": 85,
+    "top_reward": [
+      {
+        "key": "exact:GET:/",
+        "count": 2,
+        "reward_mean": 5.1,
+        "knowledge_mean": 27.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:GET:/ftp",
+        "count": 1,
+        "reward_mean": 5.1,
+        "knowledge_mean": 13.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:GET:/api/Feedbacks",
+        "count": 1,
+        "reward_mean": 5.1,
+        "knowledge_mean": 24.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "template_endpoint:HTTP_GET_API:/api/Feedbacks",
+        "count": 1,
+        "reward_mean": 5.1,
+        "knowledge_mean": 24.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:GET:chunk-DYXK4NW4.js",
+        "count": 2,
+        "reward_mean": 5.1,
+        "knowledge_mean": 12.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:GET:chunk-NWDAIMF4.js",
+        "count": 2,
+        "reward_mean": 5.1,
+        "knowledge_mean": 10.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "path:chunk-NWDAIMF4.js",
+        "count": 2,
+        "reward_mean": 5.1,
+        "knowledge_mean": 10.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:GET:chunk-OKA37M7B.js",
+        "count": 2,
+        "reward_mean": 5.1,
+        "knowledge_mean": 18.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:GET:chunk-UNFVUBM2.js",
+        "count": 1,
+        "reward_mean": 5.1,
+        "knowledge_mean": 12.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "path:chunk-UNFVUBM2.js",
+        "count": 1,
+        "reward_mean": 5.1,
+        "knowledge_mean": 12.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      }
+    ],
+    "top_solved": [
+      {
+        "key": "exact:GET:/",
+        "count": 2,
+        "reward_mean": 5.1,
+        "knowledge_mean": 27.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "template:HTTP_GET_PATH",
+        "count": 23,
+        "reward_mean": 3.4043478260869553,
+        "knowledge_mean": 10.608695652173912,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "what:HTTP_GET",
+        "count": 26,
+        "reward_mean": 3.319230769230768,
+        "knowledge_mean": 10.423076923076923,
+        "solved_rate": 0.0,
+        "error_rate": 0.038461538461538464
+      },
+      {
+        "key": "how:NORMAL",
+        "count": 23,
+        "reward_mean": 3.4043478260869553,
+        "knowledge_mean": 10.608695652173912,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "where:KK_PATH",
+        "count": 34,
+        "reward_mean": 2.3352941176470576,
+        "knowledge_mean": 7.176470588235294,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "path:/",
+        "count": 6,
+        "reward_mean": 1.7666666666666664,
+        "knowledge_mean": 9.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:HEAD:/",
+        "count": 2,
+        "reward_mean": 0.1,
+        "knowledge_mean": 0.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "template:HTTP_HEAD_PATH",
+        "count": 5,
+        "reward_mean": 0.1,
+        "knowledge_mean": 0.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "what:HTTP_METADATA",
+        "count": 11,
+        "reward_mean": 0.09999999999999999,
+        "knowledge_mean": 0.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "how:HEADER_ONLY",
+        "count": 5,
+        "reward_mean": 0.1,
+        "knowledge_mean": 0.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      }
+    ]
+  },
+  "novelty": {
+    "signature_count": 34,
+    "chain_count": 38,
+    "response_count": 12,
+    "top_signatures": [
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=/|param=",
+        2
+      ],
+      [
+        "HTTP_HEAD_PATH|HTTP_METADATA|HEADER_ONLY|KK_PATH|tool=CURL_HEAD|endpoint=|path=/|param=",
+        2
+      ],
+      [
+        "HTTP_OPTIONS_PATH|HTTP_METADATA|METHOD_DISCOVERY|KK_PATH|tool=CURL_OPTIONS|endpoint=|path=/|param=",
+        2
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=chunk-DYXK4NW4.js|param=",
+        2
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=chunk-NWDAIMF4.js|param=",
+        2
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=chunk-OKA37M7B.js|param=",
+        2
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=/robots.txt|param=",
+        1
+      ],
+      [
+        "NMAP_SCAN_HOST|PORT_SCAN|SHALLOW_SCAN|KK_HOST|tool=NMAP_SCAN|endpoint=|path=|param=",
+        1
+      ],
+      [
+        "WEB_FINGERPRINT|WEB_FINGERPRINT|PASSIVE_FINGERPRINT|KK_BASE_URL|tool=WHATWEB_SCAN|endpoint=|path=|param=",
+        1
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=/ftp|param=",
+        1
+      ]
+    ]
+  }
+}

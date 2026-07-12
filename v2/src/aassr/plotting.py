@@ -12,6 +12,7 @@ CONDITION_COLORS = {
     "C2": "#7c3aed",
     "C3": "#16a34a",
     "C4": "#14b8a6",
+    "C5": "#0f766e",
     "QLEARN": "#0ea5e9",
     "DQN_PARTIAL": "#ef4444",
     "ORACLE_MDP": "#111827",

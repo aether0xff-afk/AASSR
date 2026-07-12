@@ -1,0 +1,294 @@
+﻿{
+  "episodes": [
+    {
+      "episode": 0,
+      "success": false,
+      "steps": 40,
+      "solved_count": 0,
+      "solved_challenges": [],
+      "total_reward": 71.46761904761905,
+      "novelty_bonus": 69.36761904761904
+    },
+    {
+      "episode": 1,
+      "success": false,
+      "steps": 40,
+      "solved_count": 0,
+      "solved_challenges": [],
+      "total_reward": 59.07513708513709,
+      "novelty_bonus": 57.57513708513709
+    },
+    {
+      "episode": 2,
+      "success": false,
+      "steps": 40,
+      "solved_count": 0,
+      "solved_challenges": [],
+      "total_reward": 55.02882933887578,
+      "novelty_bonus": 52.82882933887578
+    },
+    {
+      "episode": 3,
+      "success": false,
+      "steps": 40,
+      "solved_count": 0,
+      "solved_challenges": [],
+      "total_reward": 52.49627476710086,
+      "novelty_bonus": 52.09627476710085
+    },
+    {
+      "episode": 4,
+      "success": false,
+      "steps": 40,
+      "solved_count": 0,
+      "solved_challenges": [],
+      "total_reward": 49.091834385826495,
+      "novelty_bonus": 46.29183438582649
+    }
+  ],
+  "policy": {
+    "what": {
+      "HTTP_GET": 0.1990811576967238,
+      "FORM_POST": 0.11485983618345276,
+      "AUTHENTICATED_GET": 0.13080564154973237,
+      "PORT_SCAN": 0.13614392105010883,
+      "WEB_FINGERPRINT": 0.10187153606908905,
+      "HTTP_METADATA": 0.17834369675907538,
+      "QUERY_PROBE": 0.13889421069181787
+    },
+    "how": {
+      "NORMAL": 0.1691035541344855,
+      "PARAMETERIZED": 0.09659348285066717,
+      "AUTH_ATTEMPT": 0.10359730061317945,
+      "AUTHENTICATED": 0.10359730061317945,
+      "SHALLOW_SCAN": 0.10782518665544462,
+      "PASSIVE_FINGERPRINT": 0.08068165884162774,
+      "HEADER_ONLY": 0.11797954637410137,
+      "METHOD_DISCOVERY": 0.12402848706664751,
+      "PROBE_VALUE": 0.09659348285066714
+    },
+    "where": {
+      "KK_PATH": 0.28136002209404776,
+      "KK_ENDPOINT": 0.11787621715265241,
+      "KK_USERNAME": 0.1264232072715183,
+      "KK_AUTH_PATH": 0.1264232072715183,
+      "KK_BASE_URL": 0.09845849282145701,
+      "KK_HOST": 0.13158263623615377,
+      "KK_PARAM_NAME": 0.11787621715265247
+    }
+  },
+  "experience": {
+    "stat_count": 352,
+    "top_reward": [
+      {
+        "key": "exact:GET:/api/Feedbacks",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 24.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "template_endpoint:HTTP_GET_API:/api/Feedbacks",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 24.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:PROBE:/api/Recycles:background:1",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 1.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "endpoint:/api/Recycles",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 1.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "template_endpoint:HTTP_QUERY_PROBE:/api/Recycles",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 1.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:POST_PROBE:/api/Users:background:1",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 13.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:PROBE:/api/Challenges/:content:1",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 454.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:PROBE:/api/Quantitys:content:0",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 3.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "template_endpoint:HTTP_QUERY_PROBE:/api/Quantitys",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 3.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:GET:/api/SecurityQuestions?email=",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 1.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      }
+    ],
+    "top_solved": [
+      {
+        "key": "exact:GET:/",
+        "count": 3,
+        "reward_mean": 1.5853535353535353,
+        "knowledge_mean": 27.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "template:HTTP_GET_PATH",
+        "count": 52,
+        "reward_mean": 1.502892191690715,
+        "knowledge_mean": 8.692307692307692,
+        "solved_rate": 0.0,
+        "error_rate": 0.11538461538461539
+      },
+      {
+        "key": "what:HTTP_GET",
+        "count": 68,
+        "reward_mean": 1.5044315639539645,
+        "knowledge_mean": 18.485294117647058,
+        "solved_rate": 0.0,
+        "error_rate": 0.2647058823529412
+      },
+      {
+        "key": "how:NORMAL",
+        "count": 52,
+        "reward_mean": 1.502892191690715,
+        "knowledge_mean": 8.692307692307692,
+        "solved_rate": 0.0,
+        "error_rate": 0.11538461538461539
+      },
+      {
+        "key": "where:KK_PATH",
+        "count": 123,
+        "reward_mean": 1.4353943426696636,
+        "knowledge_mean": 3.6747967479674797,
+        "solved_rate": 0.0,
+        "error_rate": 0.07317073170731707
+      },
+      {
+        "key": "path:/",
+        "count": 7,
+        "reward_mean": 1.5595188620902902,
+        "knowledge_mean": 11.571428571428571,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:HEAD:/",
+        "count": 2,
+        "reward_mean": 1.541,
+        "knowledge_mean": 0.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "template:HTTP_HEAD_PATH",
+        "count": 35,
+        "reward_mean": 1.388956080657597,
+        "knowledge_mean": 0.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.08571428571428572
+      },
+      {
+        "key": "what:HTTP_METADATA",
+        "count": 71,
+        "reward_mean": 1.38595929831622,
+        "knowledge_mean": 0.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.04225352112676056
+      },
+      {
+        "key": "how:HEADER_ONLY",
+        "count": 35,
+        "reward_mean": 1.388956080657597,
+        "knowledge_mean": 0.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.08571428571428572
+      }
+    ]
+  },
+  "novelty": {
+    "signature_count": 172,
+    "chain_count": 200,
+    "response_count": 28,
+    "top_signatures": [
+      [
+        "NMAP_SCAN_HOST|PORT_SCAN|SHALLOW_SCAN|KK_HOST|tool=NMAP_SCAN|endpoint=|path=|param=",
+        6
+      ],
+      [
+        "WEB_FINGERPRINT|WEB_FINGERPRINT|PASSIVE_FINGERPRINT|KK_BASE_URL|tool=WHATWEB_SCAN|endpoint=|path=|param=",
+        5
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=/|param=",
+        3
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=/robots.txt|param=",
+        3
+      ],
+      [
+        "HTTP_HEAD_PATH|HTTP_METADATA|HEADER_ONLY|KK_PATH|tool=CURL_HEAD|endpoint=|path=/|param=",
+        2
+      ],
+      [
+        "HTTP_OPTIONS_PATH|HTTP_METADATA|METHOD_DISCOVERY|KK_PATH|tool=CURL_OPTIONS|endpoint=|path=/|param=",
+        2
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=chunk-OKA37M7B.js|param=",
+        2
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=chunk-VJL3IV3O.js|param=",
+        2
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=chunk-VS3A3LTT.js|param=",
+        2
+      ],
+      [
+        "HTTP_HEAD_PATH|HTTP_METADATA|HEADER_ONLY|KK_PATH|tool=CURL_HEAD|endpoint=|path=main.js|param=",
+        2
+      ]
+    ]
+  }
+}

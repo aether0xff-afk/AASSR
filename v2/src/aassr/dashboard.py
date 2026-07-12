@@ -112,7 +112,7 @@ def paper_project_comparison_rows() -> list[dict[str, str]]:
         {
             "axis": "Experiment conditions",
             "Original APASSR / prior setting": "Baseline, policy, prophecy, and imagination ablations.",
-            "This project": "C0 Random, C1 PolicyABC, C2 PolicyABC + Prophecy, C3 main framework with Prophecy + Imagination, C4 optional sequence-prophecy variant.",
+            "This project": "C0 Random, C1 PolicyABC, C2 PolicyABC + Prophecy, C3 vanilla framework, C4 optional sequence-prophecy variant, C5 improved APASSR.",
         },
     ]
 
@@ -124,7 +124,7 @@ def implementation_status_rows() -> list[dict[str, str]]:
         {"module": "PolicyABC", "status": "Implemented", "evidence": "WHAT/HOW/WHERE probability tables with reward update and min-prob floor"},
         {"module": "Prophecy", "status": "Implemented", "evidence": "ProphecyModule interface with TableProphecyModel as lightweight implementation and SequenceProphecyModel as optional variant"},
         {"module": "Imagination", "status": "Implemented", "evidence": "Depth-limited Prophecy-based candidate rollout before execution"},
-        {"module": "ExperimentRunner", "status": "Implemented", "evidence": "C0/C1/C2/C3/C4 runner, randomized worlds, combined summary CSV"},
+        {"module": "ExperimentRunner", "status": "Implemented", "evidence": "C0/C1/C2/C3/C4/C5 runner, randomized worlds, combined summary CSV"},
         {"module": "Analysis", "status": "Implemented", "evidence": "Seed-level bootstrap CI, paper-facing plots, report.md"},
         {"module": "Full paper result", "status": "Pending run", "evidence": "Requires medium/paper-candidate experiment execution and interpretation"},
     ]

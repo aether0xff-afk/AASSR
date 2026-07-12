@@ -1,0 +1,2 @@
+condition,seeds,episodes,success_rate,steps_to_flag_mean,total_reward_mean,external_reward_mean,semantic_gain_mean,prophecy_error_mean,repeat_count_mean,error_count_mean,knowledge_reuse_mean,unique_action_count_mean
+A1_TRANSFORMER_C3,10,300,0.68,79.46333333333334,13.830561992681305,0.68,123.09333333333333,0.13714970890731712,27.186666666666667,4.8566666666666665,10.0,52.053333333333335

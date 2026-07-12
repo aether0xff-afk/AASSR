@@ -9,6 +9,7 @@ from aassr.experiment import (
     ExperimentCondition,
     ExperimentSpec,
     ProphecyKind,
+    c5_imagination_config,
     default_output_dir,
     run_all_conditions,
     run_experiment,
@@ -78,6 +79,29 @@ class ExperimentRunnerTests(unittest.TestCase):
         self.assertIsInstance(c4.prophecy, SequenceProphecyModel)
         self.assertTrue(c3.use_imagination)
         self.assertTrue(c4.use_imagination)
+
+    def test_c5_is_improved_apassr_condition_without_replacing_c3(self) -> None:
+        c3 = ExperimentComponents.for_condition(ExperimentCondition.C3, seed=0)
+        c5 = ExperimentComponents.for_condition(ExperimentCondition.C5, seed=0)
+
+        self.assertIsInstance(c3.prophecy, TableProphecyModel)
+        self.assertIsInstance(c5.prophecy, TableProphecyModel)
+        self.assertTrue(c3.use_imagination)
+        self.assertTrue(c5.use_imagination)
+        self.assertEqual(c3.imagination_config.knowledge_weight, 2.0)
+        self.assertEqual(c3.imagination_config.policy_prior_weight, 0.2)
+        self.assertEqual(c5.imagination_config.knowledge_weight, 0.0)
+        self.assertEqual(c5.imagination_config.policy_prior_weight, c3.imagination_config.policy_prior_weight)
+        self.assertEqual(c5.imagination_config.repeat_weight, c3.imagination_config.repeat_weight)
+        self.assertEqual(c5.imagination_config.error_weight, c3.imagination_config.error_weight)
+
+    def test_c5_imagination_config_matches_ablation_improvement(self) -> None:
+        config = c5_imagination_config()
+
+        self.assertEqual(config.knowledge_weight, 0.0)
+        self.assertGreater(config.policy_prior_weight, 0.0)
+        self.assertGreater(config.repeat_weight, 0.0)
+        self.assertGreater(config.error_weight, 0.0)
 
     def test_experiment_writes_required_csv_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -156,14 +180,14 @@ class ExperimentRunnerTests(unittest.TestCase):
 
             output = Path(tmpdir)
             self.assertTrue((output / "combined_summary.csv").exists())
-            for condition in ("C0", "C1", "C2", "C3", "C4"):
+            for condition in ("C0", "C1", "C2", "C3", "C4", "C5"):
                 self.assertTrue((output / condition / "gridworld_summary.csv").exists())
 
             with (output / "combined_summary.csv").open(newline="", encoding="utf-8") as handle:
                 rows = list(csv.DictReader(handle))
 
-        self.assertEqual(len(summaries), 5)
-        self.assertEqual({row["condition"] for row in rows}, {"C0", "C1", "C2", "C3", "C4"})
+        self.assertEqual(len(summaries), 6)
+        self.assertEqual({row["condition"] for row in rows}, {"C0", "C1", "C2", "C3", "C4", "C5"})
 
     def test_custom_experiment_spec_writes_ablation_condition(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

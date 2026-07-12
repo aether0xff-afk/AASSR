@@ -54,6 +54,11 @@ implementation of the general Prophecy Module. `C4` uses `SequenceProphecyModel`
 as an optional sequence-based implementation variant. C4 does not replace the
 framework and should not be described as the central contribution.
 
+`C5` is an improved APASSR condition derived from later ablation findings. It
+keeps the C3 loop but disables unconditional knowledge-gain scoring inside the
+Imagination score. C5 is reported as an improved variant, not as the vanilla
+paper framework.
+
 ## Scope Notes
 
 The GridWorld benchmark is not intended to replace the original nmap-based
@@ -345,7 +350,7 @@ This repository includes a small Python prototype for the design above.
 | `src/aassr/imagination.py` | Depth-limited C3 candidate rollout using Prophecy predictions |
 | `src/aassr/worlds.py` | Fixed and randomized GridWorld builders for experiment generality checks |
 | `src/aassr/metrics.py` | Step, episode, and summary metric rows for experiments |
-| `src/aassr/experiment.py` | C0/C1/C2/C3/C4 GridWorld experiment runner and CSV writer |
+| `src/aassr/experiment.py` | C0/C1/C2/C3/C4/C5 GridWorld experiment runner and CSV writer |
 | `src/aassr/ablation.py` | Paper-facing ablation suites for Prophecy implementation, Prophecy reward, and Imagination depth/branching |
 | `src/aassr/analysis.py` | Experiment result analysis, seed-level bootstrap CI, report generation |
 | `src/aassr/plotting.py` | Matplotlib figures for paper-facing result plots |
@@ -393,6 +398,7 @@ Current development conditions are:
 | `C2` | PolicyABC + Prophecy Module reward |
 | `C3` | Main framework: PolicyABC + Prophecy Module + Imagination |
 | `C4` | Optional ablation: PolicyABC + sequence-based Prophecy implementation + Imagination |
+| `C5` | Improved APASSR: C3 loop with ablation-derived Imagination weights |
 
 Run experiment conditions with:
 
@@ -402,6 +408,7 @@ $env:PYTHONPATH='src'; python -m aassr.experiment --condition C1 --episodes 100 
 $env:PYTHONPATH='src'; python -m aassr.experiment --condition C2 --episodes 100 --seeds 10
 $env:PYTHONPATH='src'; python -m aassr.experiment --condition C3 --episodes 100 --seeds 10
 $env:PYTHONPATH='src'; python -m aassr.experiment --condition C4 --episodes 100 --seeds 10
+$env:PYTHONPATH='src'; python -m aassr.experiment --condition C5 --episodes 100 --seeds 10
 ```
 
 By default, each condition writes to a condition-safe folder:
@@ -426,6 +433,7 @@ runs/gridworld/all/C1/gridworld_summary.csv
 runs/gridworld/all/C2/gridworld_summary.csv
 runs/gridworld/all/C3/gridworld_summary.csv
 runs/gridworld/all/C4/gridworld_summary.csv
+runs/gridworld/all/C5/gridworld_summary.csv
 runs/gridworld/all/combined_summary.csv
 ```
 
@@ -448,6 +456,8 @@ factor around that loop:
 | `ablation_1` | Does Prophecy implementation complexity matter? | `A1_TABLE_C3` vs `A1_TRANSFORMER_C3` |
 | `ablation_2` | Does prediction-error reward help? | `A2_REWARD_ON` vs `A2_REWARD_OFF` |
 | `ablation_3` | How do Imagination rollout depth and branch count affect performance? | `A3_D{depth}_B{branch}` |
+| `ablation_4` | Which Imagination mechanism matters? | full C3 vs no dependency/repeat/prior/rollout terms |
+| `ablation_5` | Which Prophecy score component matters? | full C3 vs no knowledge/flag/error score terms |
 
 Run all ablations on one environment:
 

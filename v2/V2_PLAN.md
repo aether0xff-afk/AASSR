@@ -13,13 +13,15 @@ environment.
 - 2 door cells
 - 2 hint cells pointing to the flag
 - 1 far flag cell
-- C0/C1/C2/C3/C4 comparison
+- C0/C1/C2/C3/C4/C5 comparison
 - QLEARN, DQN_PARTIAL, and ORACLE_MDP baseline comparison
 - Automated analysis and plots
 - Paper-facing ablation suites:
   - ablation_1: TableProphecyModel vs TransformerProphecyModel
   - ablation_2: Prophecy prediction-error reward on vs off
   - ablation_3: Imagination rollout depth and branching-factor sweep
+  - ablation_4: Imagination mechanism terms on/off
+  - ablation_5: Prophecy score components on/off
 - Paper-facing Korean summary: `docs/research_summary_ko.md`
 
 `ORACLE_MDP` is a full-map shortest-path oracle upper bound. It is useful as a
@@ -50,6 +52,19 @@ The framework should not be renamed around C4. `TableProphecyModel`,
 `SequenceProphecyModel`, `TransformerProphecyModel`, and future neural
 implementations are alternatives for the Prophecy Module, not replacements for
 the KK/KV-DMP-Imagination framework.
+
+C5 is an improved APASSR condition derived from A4/A5 ablation findings:
+
+```text
+C5 = C3 loop
+   + TableProphecyModel
+   + prediction-error reward retained
+   + knowledge_weight = 0.0
+   + repeat/error terms retained
+```
+
+C5 is intended for improved-performance comparison. It does not replace C3 as
+the vanilla paper-aligned condition.
 
 Environment changes such as `v2_complex` and `locked_bottleneck` are not
 ablations. They are controlled environment sweeps used to check whether the

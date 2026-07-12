@@ -1,0 +1,2 @@
+condition,seeds,episodes,success_rate,steps_to_flag_mean,total_reward_mean,external_reward_mean,semantic_gain_mean,prophecy_error_mean,repeat_count_mean,error_count_mean,knowledge_reuse_mean,unique_action_count_mean
+DQN_PARTIAL,10,300,0.5533333333333333,116.53666666666666,11.467666666666668,0.5533333333333333,146.27666666666667,0.0,52.21333333333333,5.513333333333334,9.743333333333334,64.32333333333334

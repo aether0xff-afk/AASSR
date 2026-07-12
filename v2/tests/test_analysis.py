@@ -83,7 +83,7 @@ class AnalysisTests(unittest.TestCase):
 
         self.assertEqual(
             {row["condition"] for row in rows},
-            {"C0", "C1", "C2", "C3", "C4", "QLEARN", "DQN_PARTIAL", "ORACLE_MDP"},
+            {"C0", "C1", "C2", "C3", "C4", "C5", "QLEARN", "DQN_PARTIAL", "ORACLE_MDP"},
         )
 
     def test_report_displays_baseline_condition_labels(self) -> None:
@@ -105,6 +105,7 @@ class AnalysisTests(unittest.TestCase):
         self.assertIn("DQN partial-observation baseline", report)
         self.assertIn("Oracle MDP, full-map upper bound", report)
         self.assertIn("C4 PolicyABC + Sequence Prophecy variant + Imagination", report)
+        self.assertIn("C5 Improved APASSR", report)
 
 
 def episode(
@@ -138,7 +139,7 @@ def episode(
 
 
 def write_fake_experiment(input_dir: Path) -> None:
-    conditions = ("C0", "C1", "C2", "C3", "C4", "QLEARN", "DQN_PARTIAL", "ORACLE_MDP")
+    conditions = ("C0", "C1", "C2", "C3", "C4", "C5", "QLEARN", "DQN_PARTIAL", "ORACLE_MDP")
     for index, condition in enumerate(conditions):
         condition_dir = input_dir / condition
         condition_dir.mkdir(parents=True)

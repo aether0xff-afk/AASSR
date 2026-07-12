@@ -30,6 +30,7 @@ class ExperimentCondition(StrEnum):
     C2 = "C2"
     C3 = "C3"
     C4 = "C4"
+    C5 = "C5"
 
 
 class ProphecyKind(StrEnum):
@@ -55,6 +56,7 @@ ALL_CONDITIONS = (
     ExperimentCondition.C2,
     ExperimentCondition.C3,
     ExperimentCondition.C4,
+    ExperimentCondition.C5,
 )
 
 
@@ -218,6 +220,9 @@ class ExperimentComponents:
             prophecy = SequenceProphecyModel(seed=seed)
         else:
             prophecy = TableProphecyModel()
+        imagination_config = ImaginationConfig()
+        if condition == ExperimentCondition.C5:
+            imagination_config = c5_imagination_config()
         return cls(
             scorer=PolicyABC.uniform_gridworld(seed=seed),
             prophecy=prophecy,
@@ -225,7 +230,9 @@ class ExperimentComponents:
             use_imagination=condition in {
                 ExperimentCondition.C3,
                 ExperimentCondition.C4,
+                ExperimentCondition.C5,
             },
+            imagination_config=imagination_config,
         )
 
     @classmethod
@@ -279,6 +286,14 @@ def make_prophecy(kind: str | ProphecyKind, *, seed: int) -> Any:
     if kind == ProphecyKind.TRANSFORMER:
         return TransformerProphecyModel(seed=seed)
     raise ValueError(f"unknown prophecy kind: {kind}")
+
+
+def c5_imagination_config() -> ImaginationConfig:
+    """Improved APASSR setting derived from A4/A5 ablation findings."""
+
+    return ImaginationConfig(
+        knowledge_weight=0.0,
+    )
 
 
 def _run_condition_seed(args: tuple[str, int, int, int, str]) -> tuple[list[StepMetric], list[EpisodeMetric]]:
@@ -389,7 +404,7 @@ def _write_csv(path: Path, rows: list[Any], row_type: type[Any]) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run AASSR GridWorld C0/C1/C2/C3/C4 experiments.")
+    parser = argparse.ArgumentParser(description="Run AASSR GridWorld C0/C1/C2/C3/C4/C5 experiments.")
     parser.add_argument("--condition", choices=[condition.value for condition in ExperimentCondition] + ["all"], required=True)
     parser.add_argument("--world", choices=[world.value for world in WorldKind], default=WorldKind.FIXED.value)
     parser.add_argument("--episodes", type=int, default=100)

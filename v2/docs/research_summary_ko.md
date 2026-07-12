@@ -65,6 +65,7 @@ FOLLOW_HINT {KK_HINT_VALUE}
 | C2 | PolicyABC + Prophecy reward | Prophecy 예측 오차를 보상에 반영 |
 | C3 | PolicyABC + Prophecy Module + Imagination Cycle | 메인 APASSR 조건 |
 | C4 | PolicyABC + sequence-based Prophecy + Imagination | 선택적 구현 변형/ablation |
+| C5 | Improved APASSR | ablation 결과를 반영한 개선형 |
 | QLEARN | Tabular Q-learning baseline | 동일 정보 조건 baseline |
 | DQN_PARTIAL | Partial-observation DQN baseline | Knowledge/candidate feature 기반 DQN |
 | ORACLE_MDP | Full-map shortest-path oracle | 전체 지도를 아는 상한선, 공정 baseline 아님 |
@@ -79,6 +80,17 @@ C3는 TableProphecyModel을 사용하지만, 프레임워크 자체가 table tri
 뜻은 아니다. TableProphecyModel은 현재 Prophecy Module의 경량 구현이다.
 TransformerProphecyModel과 SequenceProphecyModel은 구현 변형이다.
 
+C5는 C3를 대체하는 vanilla 조건이 아니라, A4/A5 ablation 결과를 반영한
+개선형 조건이다.
+
+```text
+C5 = C3 loop
+   + knowledge_weight = 0.0
+   + repeat penalty 유지
+   + error avoidance 유지
+   + prediction-error reward 유지
+```
+
 ## 3. 구현 현황
 
 주요 구현 파일은 다음과 같다.
@@ -90,7 +102,7 @@ TransformerProphecyModel과 SequenceProphecyModel은 구현 변형이다.
 | `src/aassr/policy.py` | C0 RandomScorer, C1 PolicyABC |
 | `src/aassr/prophecy.py` | ProphecyModule, Table/Sequence/Transformer 구현 |
 | `src/aassr/imagination.py` | Prophecy 기반 depth-limited Imagination Cycle |
-| `src/aassr/experiment.py` | C0-C4 실험 러너 |
+| `src/aassr/experiment.py` | C0-C5 실험 러너 |
 | `src/aassr/v2_compare.py` | APASSR 조건과 baseline 비교 |
 | `src/aassr/ablation.py` | 논문용 ablation suite |
 | `src/aassr/analysis.py` | summary table, CI, report, plot 생성 |
@@ -238,6 +250,38 @@ Rollout 있음 = 의미 있음
 branch 많이 늘림 = 일관된 도움 없음
 ```
 
+### 추가 ablation: mechanism/component 분석
+
+더 풍부한 분석을 위해 다음 suite가 추가되었다.
+
+`ablation_4_imagination_mechanisms`:
+
+| Condition | 제거/변경 요소 | 질문 |
+| --- | --- | --- |
+| `A4_FULL_C3` | 없음 | 기준 C3 |
+| `A4_NO_DEPENDENCY` | dependency bonus 제거 | 미래 KK 슬롯 enablement가 중요한가? |
+| `A4_NO_REPEAT_PENALTY` | repeat penalty 제거 | 반복 감소가 penalty 때문인가? |
+| `A4_NO_POLICY_PRIOR` | policy prior 제거 | Imagination 효과가 policy prior 때문인가? |
+| `A4_NO_ROLLOUT_VALUE` | rollout value 제거 | depth-limited rollout 자체가 중요한가? |
+| `A4_ONE_STEP_NO_DEP` | one-step, no dependency | 단순 one-step scoring과 비교 |
+
+`ablation_5_prophecy_score_components`:
+
+| Condition | 제거 요소 | 질문 |
+| --- | --- | --- |
+| `A5_FULL_C3` | 없음 | 기준 C3 |
+| `A5_NO_KNOWLEDGE_GAIN` | predicted ΔK gain score 제거 | 지식 획득 예측이 중요한가? |
+| `A5_NO_FLAG_PROB` | flag probability score 제거 | 목표 관련성 예측이 중요한가? |
+| `A5_NO_ERROR_AVOIDANCE` | error avoidance score 제거 | 오류 회피 예측이 중요한가? |
+
+이 추가 ablation들은 필수 최소 실험은 아니지만, 다음 질문에 방어적으로 답하기
+위해 유용하다.
+
+```text
+성능 향상이 단순 점수 함수 때문인가,
+아니면 knowledge-action dependency를 보는 구조 때문인가?
+```
+
 ## 7. 논문에 넣을 수 있는 해석
 
 ### 영어 버전
@@ -308,7 +352,7 @@ evaluation이며, hidden map을 읽거나 실제 미래 행동을 실행하지 �
 
 ```text
 프레임워크 구현: 완료
-C0-C4 조건 분리: 완료
+C0-C5 조건 분리: 완료
 QLEARN/DQN/ORACLE baseline: 완료
 분석/그래프/보고서 자동화: 완료
 ablation_1/2/3: 완료

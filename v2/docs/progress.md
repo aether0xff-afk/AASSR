@@ -24,7 +24,7 @@ Knowledge Storage는 단순 관측 기록이 아니라, 행동 템플릿의 `KK`
 | `src/aassr/imagination.py` | Implemented | depth-limited candidate rollout using Prophecy predictions |
 | `src/aassr/worlds.py` | Implemented | fixed and randomized GridWorld builders |
 | `src/aassr/metrics.py` | Implemented | step, episode, and summary experiment metrics |
-| `src/aassr/experiment.py` | Implemented | C0/C1/C2/C3/C4 runner and CSV output |
+| `src/aassr/experiment.py` | Implemented | C0/C1/C2/C3/C4/C5 runner and CSV output |
 | `src/aassr/analysis.py` | Implemented | result aggregation, bootstrap CI, report generation |
 | `src/aassr/plotting.py` | Implemented | matplotlib figures for result analysis |
 | `src/aassr/visualization.py` | Implemented | ASCII visualization and Mermaid loop renderer |
@@ -294,6 +294,7 @@ C1 = PolicyABC.
 C2 = PolicyABC + Prophecy.
 C3 = PolicyABC + Prophecy + Imagination.
 C4 = PolicyABC + optional sequence-based Prophecy implementation + Imagination.
+C5 = improved APASSR with C3 loop plus ablation-derived Imagination weights.
 ```
 
 Recommended experiment naming:
@@ -323,6 +324,12 @@ C3: PolicyABC + Prophecy + Imagination
 C4: PolicyABC + sequence Prophecy implementation + Imagination
 - optional Prophecy implementation variant
 - not a replacement for C3 or the paper framework
+
+C5: improved APASSR
+- C3 loop with TableProphecyModel
+- knowledge_weight = 0.0
+- repeat penalty and error avoidance retained
+- not a replacement for vanilla C3
 ```
 
 ## Prophecy Module
@@ -549,6 +556,7 @@ C1 = PolicyABC
 C2 = PolicyABC + Prophecy reward
 C3 = PolicyABC + Prophecy + Imagination
 C4 = PolicyABC + optional sequence-based Prophecy implementation + Imagination
+C5 = improved APASSR with ablation-derived Imagination weights
 ```
 
 Execution model:
@@ -577,6 +585,7 @@ $env:PYTHONPATH='src'; python -m aassr.experiment --condition C1 --episodes 100 
 $env:PYTHONPATH='src'; python -m aassr.experiment --condition C2 --episodes 100 --seeds 10 --workers 6
 $env:PYTHONPATH='src'; python -m aassr.experiment --condition C3 --episodes 100 --seeds 10 --workers 6
 $env:PYTHONPATH='src'; python -m aassr.experiment --condition C4 --episodes 100 --seeds 10 --workers 6
+$env:PYTHONPATH='src'; python -m aassr.experiment --condition C5 --episodes 100 --seeds 10 --workers 6
 $env:PYTHONPATH='src'; python -m aassr.experiment --condition all --episodes 100 --seeds 10 --workers 6
 ```
 
@@ -600,6 +609,7 @@ The default output directory is condition-safe:
 --condition C2 -> runs/gridworld/C2
 --condition C3 -> runs/gridworld/C3
 --condition C4 -> runs/gridworld/C4
+--condition C5 -> runs/gridworld/C5
 --condition all -> runs/gridworld/all
 ```
 
@@ -813,7 +823,7 @@ Paper vs Project
 Original APASSR / prior setting vs this GridWorld implementation
 module-by-module comparison
 implementation status
-C0/C1/C2/C3/C4 condition mapping
+C0/C1/C2/C3/C4/C5 condition mapping
 ```
 
 Run command:
@@ -931,7 +941,7 @@ bound.
 `DQN_PARTIAL` has been added as the deep reinforcement learning baseline under
 the same partial-information condition. It uses only Knowledge Storage masks and
 candidate-action features, not the full hidden map, so it can be compared
-directly against C0/C1/C2/C3/C4 and QLEARN.
+directly against C0/C1/C2/C3/C4/C5 and QLEARN.
 
 `LOCKED_BOTTLENECK` has been added as a structured dependency stress
 environment.

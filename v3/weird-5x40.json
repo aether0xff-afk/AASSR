@@ -1,0 +1,294 @@
+﻿{
+  "episodes": [
+    {
+      "episode": 0,
+      "success": false,
+      "steps": 40,
+      "solved_count": 0,
+      "solved_challenges": [],
+      "total_reward": 69.25746031746031,
+      "novelty_bonus": 64.55746031746031
+    },
+    {
+      "episode": 1,
+      "success": false,
+      "steps": 40,
+      "solved_count": 0,
+      "solved_challenges": [],
+      "total_reward": 54.44635762929881,
+      "novelty_bonus": 49.24635762929881
+    },
+    {
+      "episode": 2,
+      "success": false,
+      "steps": 40,
+      "solved_count": 0,
+      "solved_challenges": [],
+      "total_reward": 48.10267764813222,
+      "novelty_bonus": 41.90267764813222
+    },
+    {
+      "episode": 3,
+      "success": false,
+      "steps": 40,
+      "solved_count": 0,
+      "solved_challenges": [],
+      "total_reward": 46.71626540732236,
+      "novelty_bonus": 40.416265407322356
+    },
+    {
+      "episode": 4,
+      "success": false,
+      "steps": 40,
+      "solved_count": 0,
+      "solved_challenges": [],
+      "total_reward": 43.88289565771487,
+      "novelty_bonus": 38.782895657714874
+    }
+  ],
+  "policy": {
+    "what": {
+      "HTTP_GET": 0.8872222216663589,
+      "FORM_POST": 0.018796296388940165,
+      "AUTHENTICATED_GET": 0.018796296388940165,
+      "PORT_SCAN": 0.018796296388940165,
+      "WEB_FINGERPRINT": 0.018796296388940165,
+      "HTTP_METADATA": 0.018796296388940165,
+      "QUERY_PROBE": 0.018796296388940165
+    },
+    "how": {
+      "NORMAL": 0.8192853617465438,
+      "PARAMETERIZED": 0.0418776032827688,
+      "AUTH_ATTEMPT": 0.01983386213866963,
+      "AUTHENTICATED": 0.01983386213866963,
+      "SHALLOW_SCAN": 0.01983386213866963,
+      "PASSIVE_FINGERPRINT": 0.01983386213866963,
+      "HEADER_ONLY": 0.01983386213866963,
+      "METHOD_DISCOVERY": 0.01983386213866963,
+      "PROBE_VALUE": 0.01983386213866963
+    },
+    "where": {
+      "KK_PATH": 0.8773939237486112,
+      "KK_ENDPOINT": 0.02318757214023645,
+      "KK_USERNAME": 0.01988370082223044,
+      "KK_AUTH_PATH": 0.01988370082223044,
+      "KK_BASE_URL": 0.01988370082223044,
+      "KK_HOST": 0.01988370082223044,
+      "KK_PARAM_NAME": 0.01988370082223044
+    }
+  },
+  "experience": {
+    "stat_count": 228,
+    "top_reward": [
+      {
+        "key": "exact:GET:/api/Feedbacks",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 24.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "template_endpoint:HTTP_GET_API:/api/Feedbacks",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 24.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:PROBE:/api/Recycles:background:1",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 1.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "endpoint:/api/Recycles",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 1.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "template_endpoint:HTTP_QUERY_PROBE:/api/Recycles",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 1.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:GET:/api/Challenges?id=0",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 2.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "endpoint:/api/Challenges",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 2.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "template_endpoint:HTTP_GET_API:/api/Challenges",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 2.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:GET:/api/Quantitys?current=",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 3.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "endpoint:/api/Quantitys",
+        "count": 1,
+        "reward_mean": 2.3,
+        "knowledge_mean": 3.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      }
+    ],
+    "top_solved": [
+      {
+        "key": "exact:GET:/",
+        "count": 5,
+        "reward_mean": 1.337110647972717,
+        "knowledge_mean": 27.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "template:HTTP_GET_PATH",
+        "count": 96,
+        "reward_mean": 1.261263360208102,
+        "knowledge_mean": 8.645833333333334,
+        "solved_rate": 0.0,
+        "error_rate": 0.0625
+      },
+      {
+        "key": "what:HTTP_GET",
+        "count": 125,
+        "reward_mean": 1.329366451116013,
+        "knowledge_mean": 23.8,
+        "solved_rate": 0.0,
+        "error_rate": 0.168
+      },
+      {
+        "key": "how:NORMAL",
+        "count": 96,
+        "reward_mean": 1.261263360208102,
+        "knowledge_mean": 8.645833333333334,
+        "solved_rate": 0.0,
+        "error_rate": 0.0625
+      },
+      {
+        "key": "where:KK_PATH",
+        "count": 166,
+        "reward_mean": 1.2543140533156902,
+        "knowledge_mean": 5.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.03614457831325301
+      },
+      {
+        "key": "path:/",
+        "count": 9,
+        "reward_mean": 1.429294275328758,
+        "knowledge_mean": 15.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "exact:HEAD:/",
+        "count": 2,
+        "reward_mean": 1.545,
+        "knowledge_mean": 0.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "template:HTTP_HEAD_PATH",
+        "count": 35,
+        "reward_mean": 1.2447835752918144,
+        "knowledge_mean": 0.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "what:HTTP_METADATA",
+        "count": 70,
+        "reward_mean": 1.2447835752918126,
+        "knowledge_mean": 0.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      },
+      {
+        "key": "how:HEADER_ONLY",
+        "count": 35,
+        "reward_mean": 1.2447835752918144,
+        "knowledge_mean": 0.0,
+        "solved_rate": 0.0,
+        "error_rate": 0.0
+      }
+    ]
+  },
+  "novelty": {
+    "signature_count": 106,
+    "chain_count": 200,
+    "response_count": 18,
+    "top_signatures": [
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=/|param=",
+        5
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=chunk-OKA37M7B.js|param=",
+        5
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=chunk-VS3A3LTT.js|param=",
+        5
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=main.js|param=",
+        5
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=scripts.js|param=",
+        5
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=/robots.txt|param=",
+        4
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=assets/public/favicon_js.ico|param=",
+        4
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=chunk-5K74DZ2F.js|param=",
+        4
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=chunk-PX7UKXVL.js|param=",
+        4
+      ],
+      [
+        "HTTP_GET_PATH|HTTP_GET|NORMAL|KK_PATH|tool=CURL_GET|endpoint=|path=chunk-QBYXNN7Z.js|param=",
+        4
+      ]
+    ]
+  }
+}

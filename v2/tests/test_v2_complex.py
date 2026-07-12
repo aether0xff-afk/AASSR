@@ -39,7 +39,7 @@ class V2ComplexTests(unittest.TestCase):
                 output_dir=tmpdir,
             )
 
-            for condition in ("C0", "C1", "C2", "C3", "C4", "QLEARN", "DQN_PARTIAL", "ORACLE_MDP"):
+            for condition in ("C0", "C1", "C2", "C3", "C4", "C5", "QLEARN", "DQN_PARTIAL", "ORACLE_MDP"):
                 self.assertTrue((output / condition / "gridworld_episodes.csv").exists(), condition)
                 self.assertTrue((output / condition / "gridworld_summary.csv").exists(), condition)
             self.assertTrue((output / "analysis" / "summary_table.csv").exists())
