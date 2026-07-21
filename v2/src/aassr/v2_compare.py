@@ -5,7 +5,9 @@ from pathlib import Path
 
 from .analysis import analyze_results
 from .dqn_baseline import run_dqn_partial_baseline
-from .experiment import run_all_conditions
+from .experiment import ExperimentCondition, run_all_conditions, run_experiment
+from .experiment import _write_csv
+from .metrics import SummaryMetric
 from .mdp_baseline import run_mdp_baseline
 from .traditional_baselines import run_q_learning_baseline
 from .worlds import WorldKind
@@ -21,11 +23,13 @@ def run_v2_comparison(
     analyze: bool = True,
     workers: int = 1,
     progress: bool = False,
+    include_apassr_full: bool = False,
+    include_apassr_full_cal: bool = False,
 ) -> Path:
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    run_all_conditions(
+    _, _, all_summaries = run_all_conditions(
         episodes=episodes,
         seeds=seeds,
         step_limit=step_limit,
@@ -34,7 +38,33 @@ def run_v2_comparison(
         workers=workers,
         progress=progress,
     )
-    run_q_learning_baseline(
+    if include_apassr_full:
+        _, _, summaries = run_experiment(
+            condition=ExperimentCondition.APASSR_FULL,
+            episodes=episodes,
+            seeds=seeds,
+            step_limit=step_limit,
+            world=world,
+            output_dir=output_path / ExperimentCondition.APASSR_FULL.value,
+            workers=workers,
+            progress=progress,
+            progress_label=f"{WorldKind(world).value}/APASSR_FULL",
+        )
+        all_summaries.extend(summaries)
+    if include_apassr_full_cal:
+        _, _, summaries = run_experiment(
+            condition=ExperimentCondition.APASSR_FULL_CAL,
+            episodes=episodes,
+            seeds=seeds,
+            step_limit=step_limit,
+            world=world,
+            output_dir=output_path / ExperimentCondition.APASSR_FULL_CAL.value,
+            workers=workers,
+            progress=progress,
+            progress_label=f"{WorldKind(world).value}/APASSR_FULL_CAL",
+        )
+        all_summaries.extend(summaries)
+    _, _, summaries = run_q_learning_baseline(
         episodes=episodes,
         seeds=seeds,
         step_limit=step_limit,
@@ -44,7 +74,8 @@ def run_v2_comparison(
         progress=progress,
         progress_label=f"{WorldKind(world).value}/QLEARN",
     )
-    run_dqn_partial_baseline(
+    all_summaries.extend(summaries)
+    _, _, summaries = run_dqn_partial_baseline(
         episodes=episodes,
         seeds=seeds,
         step_limit=step_limit,
@@ -54,7 +85,8 @@ def run_v2_comparison(
         progress=progress,
         progress_label=f"{WorldKind(world).value}/DQN_PARTIAL",
     )
-    run_mdp_baseline(
+    all_summaries.extend(summaries)
+    _, _, summaries = run_mdp_baseline(
         episodes=episodes,
         seeds=seeds,
         step_limit=step_limit,
@@ -64,6 +96,8 @@ def run_v2_comparison(
         progress=progress,
         progress_label=f"{WorldKind(world).value}/ORACLE_MDP",
     )
+    all_summaries.extend(summaries)
+    _write_csv(output_path / "combined_summary.csv", all_summaries, SummaryMetric)
     if analyze:
         analyze_results(
             input_dir=output_path,
@@ -82,6 +116,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", default="runs/v2_complex_compare")
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--no-analysis", action="store_true")
+    parser.add_argument("--include-apassr-full", action="store_true")
+    parser.add_argument("--include-apassr-full-cal", action="store_true")
     return parser.parse_args()
 
 
@@ -96,6 +132,8 @@ def main() -> None:
         analyze=not args.no_analysis,
         workers=args.workers,
         progress=True,
+        include_apassr_full=args.include_apassr_full,
+        include_apassr_full_cal=args.include_apassr_full_cal,
     )
     print(f"wrote {output_path.resolve()}")
 

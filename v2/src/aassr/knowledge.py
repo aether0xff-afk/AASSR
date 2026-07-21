@@ -194,6 +194,11 @@ class KnowledgeStore:
     def has_active(self, kk: KK) -> bool:
         return bool(self.values(kk))
 
+    def clone(self) -> KnowledgeStore:
+        copied = KnowledgeStore()
+        copied._values = {kk: list(values) for kk, values in self._values.items()}
+        return copied
+
     def mark(
         self,
         kk: KK,

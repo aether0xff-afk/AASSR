@@ -27,6 +27,8 @@ def train_juice_shop(
     prefer_curl: bool = True,
     backend: str = "local",
     wsl_distro: str = "kali-linux",
+    tool_timeout_s: float = 5.0,
+    candidate_eval_limit: int = 25000,
     plugin: str = "web",
     include_records: bool = False,
     checkpoint_every: int = 1,
@@ -51,7 +53,13 @@ def train_juice_shop(
     started_at = time.time()
 
     for episode in range(episodes):
-        executor = ToolExecutor(prefer_curl=prefer_curl, backend=backend, wsl_distro=wsl_distro)
+        executor = ToolExecutor(
+            prefer_curl=prefer_curl,
+            backend=backend,
+            wsl_distro=wsl_distro,
+            timeout_s=tool_timeout_s,
+        )
+        step_logger = _StepJsonlLogger(records_path, episode) if include_records else None
         dmp = APASSRToolDMP(
             base_url=base_url,
             plugin=target_plugin,
@@ -65,6 +73,8 @@ def train_juice_shop(
             knowledge_reward_cap=int(objective_config["knowledge_reward_cap"]),
             knowledge_reward_scale=objective_config["knowledge_reward_scale"],
             step_limit=step_limit,
+            candidate_eval_limit=candidate_eval_limit,
+            observer=step_logger,
         )
         result = dmp.run()
         row = _episode_row(
@@ -79,7 +89,7 @@ def train_juice_shop(
         )
         episode_rows.append(row)
         _append_jsonl(episodes_path, row)
-        if include_records:
+        if include_records and step_logger is None:
             for record in result.records:
                 _append_jsonl(records_path, {"episode": episode, **asdict(record)})
 
@@ -101,6 +111,8 @@ def train_juice_shop(
         "backend": backend,
         "plugin": plugin,
         "prefer_curl": prefer_curl,
+        "tool_timeout_s": tool_timeout_s,
+        "candidate_eval_limit": candidate_eval_limit,
         "elapsed_s": round(time.time() - started_at, 3),
     }
     _write_json(summary_path, summary)
@@ -181,6 +193,15 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
+class _StepJsonlLogger:
+    def __init__(self, path: Path, episode: int) -> None:
+        self.path = path
+        self.episode = episode
+
+    def on_step(self, *, record: StepRecord, **_: Any) -> None:
+        _append_jsonl(self.path, {"episode": self.episode, **asdict(record)})
+
+
 def _print_progress(row: dict[str, Any], *, episode: int, episodes: int, started_at: float) -> None:
     elapsed = time.time() - started_at
     completed = episode + 1
@@ -214,6 +235,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--backend", choices=["local", "wsl"], default="local")
     parser.add_argument("--wsl-distro", default="kali-linux")
     parser.add_argument("--plugin", choices=available_plugins(), default="web")
+    parser.add_argument("--tool-timeout", type=float, default=5.0)
+    parser.add_argument("--candidate-eval-limit", type=int, default=25000)
     parser.add_argument("--checkpoint-every", type=int, default=1)
     parser.add_argument("--include-records", action="store_true")
     parser.add_argument("--stop-when-all-solved", action="store_true")
@@ -228,6 +251,8 @@ def main(argv: list[str] | None = None) -> None:
         prefer_curl=not args.no_curl,
         backend=args.backend,
         wsl_distro=args.wsl_distro,
+        tool_timeout_s=args.tool_timeout,
+        candidate_eval_limit=args.candidate_eval_limit,
         plugin=args.plugin,
         include_records=args.include_records,
         checkpoint_every=args.checkpoint_every,

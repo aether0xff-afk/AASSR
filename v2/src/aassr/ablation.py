@@ -336,7 +336,7 @@ def _write_suite_readme(
         f"- Seeds: `{seeds}`",
         f"- Step limit: `{step_limit}`",
         "",
-        "These ablations preserve C3 as the main paper-aligned APASSR loop and vary only the stated experimental factor.",
+        "These ablations preserve the legacy C3 lightweight APASSR prototype and vary only the stated experimental factor.",
         "",
         "Conditions:",
     ]

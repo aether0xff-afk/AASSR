@@ -14,8 +14,15 @@ from .knowledge import (
     ValueType,
     seed_gridworld_knowledge,
 )
-from .imagination import ImaginationCycle, ImaginationTrace
+from .imagination import (
+    ImaginationCycle,
+    ImaginationTrace,
+    candidate_diagnostic_signature,
+    candidate_has_placeholder,
+    trace_diagnostics,
+)
 from .policy import CandidateScorer, RandomScorer
+from .policy import candidate_axes
 from .prophecy import (
     ProphecyModule,
     ProphecyPrediction,
@@ -53,10 +60,187 @@ class ActionCandidate:
 
 
 @dataclass(frozen=True)
+class GridKnowledgeState:
+    position: Cell
+    width: int
+    height: int
+    opened_doors: frozenset[Cell] = frozenset()
+    step_depth: int = 0
+
+
+class CandidateGenerator:
+    """Binds GridWorld action templates from a knowledge/state view.
+
+    Reachability is knowledge-map only: known cells and frontier cells may be
+    used, while hidden cell kinds are never inspected here.
+    """
+
+    MOVE_HOW = ("nearest", "least_tried", "high_uncertainty", "random")
+    INSPECT_HOW = ("least_tried", "high_uncertainty", "random")
+
+    def __init__(self, *, top_k: int = 5, independent_how: bool = False) -> None:
+        self.top_k = top_k
+        self.independent_how = independent_how
+        self.attempted_bindings = 0
+        self.valid_bindings = 0
+
+    def generate(self, store: KnowledgeStore, state: GridKnowledgeState) -> list[ActionCandidate]:
+        self.attempted_bindings = 0
+        self.valid_bindings = 0
+        candidates: list[ActionCandidate] = []
+        candidates.extend(self._inspect_candidates(store, state, KK.UNKNOWN_NEIGHBOR))
+        candidates.extend(self._inspect_candidates(store, state, KK.FRONTIER_CELL))
+        candidates.extend(self._move_candidates(store, state, KK.FLAG_CELL))
+        candidates.extend(self._move_candidates(store, state, KK.KEY_CELL))
+        candidates.extend(self._move_candidates(store, state, KK.DOOR_CELL))
+        candidates.extend(self._move_candidates(store, state, KK.HINT_CELL))
+        candidates.extend(self._move_candidates(store, state, KK.FRONTIER_CELL))
+        candidates.extend(self._use_object_candidates(store, state))
+        candidates.extend(self._hint_candidates(store))
+        return candidates
+
+    def _inspect_candidates(self, store: KnowledgeStore, state: GridKnowledgeState, kk: KK) -> list[ActionCandidate]:
+        candidates: list[ActionCandidate] = []
+        for kv in store.values(kk, top_k=self.top_k):
+            self.attempted_bindings += 1
+            cell = kv.value
+            if self._is_adjacent(state, cell):
+                self.valid_bindings += 1
+                for strategy in self._how_values(self.INSPECT_HOW, "least_tried"):
+                    candidates.append(
+                        ActionCandidate(
+                            name=ActionName.INSPECT_CELL,
+                            template=f"INSPECT_CELL {{{kk.value}}}",
+                            required_kk_slots=(KK.CURRENT_POS, kk),
+                            bindings={KK.CURRENT_POS: state.position, kk: cell},
+                            strategy=strategy,
+                        )
+                    )
+        return candidates
+
+    def _move_candidates(self, store: KnowledgeStore, state: GridKnowledgeState, kk: KK) -> list[ActionCandidate]:
+        candidates: list[ActionCandidate] = []
+        for kv in store.values(kk, top_k=self.top_k):
+            self.attempted_bindings += 1
+            target = kv.value
+            if kk == KK.DOOR_CELL and self._is_adjacent(state, target) and target not in state.opened_doors:
+                continue
+            if target != state.position and self._reachable(store, state, target):
+                self.valid_bindings += 1
+                for strategy in self._how_values(self.MOVE_HOW, "nearest"):
+                    candidates.append(
+                        ActionCandidate(
+                            name=ActionName.MOVE_TOWARD,
+                            template=f"MOVE_TOWARD {{{kk.value}}}",
+                            required_kk_slots=(KK.CURRENT_POS, kk),
+                            bindings={KK.CURRENT_POS: state.position, kk: target},
+                            strategy=strategy,
+                        )
+                    )
+        return candidates
+
+    def _use_object_candidates(self, store: KnowledgeStore, state: GridKnowledgeState) -> list[ActionCandidate]:
+        if not store.has_active(KK.KEY_OBJECT):
+            return []
+        candidates: list[ActionCandidate] = []
+        keys = store.values(KK.KEY_OBJECT, top_k=self.top_k)
+        for key in keys:
+            for door in store.values(KK.DOOR_CELL, top_k=self.top_k):
+                self.attempted_bindings += 1
+                if not self._is_adjacent(state, door.value):
+                    continue
+                self.valid_bindings += 1
+                for strategy in self._how_values(("normal", "least_tried", "random"), "normal"):
+                    candidates.append(
+                        ActionCandidate(
+                            name=ActionName.USE_OBJECT,
+                            template="USE_OBJECT {KK_KEY_OBJECT} ON {KK_DOOR_CELL}",
+                            required_kk_slots=(KK.KEY_OBJECT, KK.DOOR_CELL),
+                            bindings={KK.KEY_OBJECT: key.value, KK.DOOR_CELL: door.value},
+                            strategy=strategy,
+                        )
+                    )
+        return candidates
+
+    def _hint_candidates(self, store: KnowledgeStore) -> list[ActionCandidate]:
+        candidates: list[ActionCandidate] = []
+        for kv in store.values(KK.HINT_VALUE, top_k=self.top_k):
+            self.attempted_bindings += 1
+            self.valid_bindings += 1
+            for strategy in self._how_values(("prophecy_best", "least_tried", "random"), "prophecy_best"):
+                candidates.append(
+                    ActionCandidate(
+                        name=ActionName.FOLLOW_HINT,
+                        template="FOLLOW_HINT {KK_HINT_VALUE}",
+                        required_kk_slots=(KK.HINT_VALUE,),
+                        bindings={KK.HINT_VALUE: kv.value},
+                        strategy=strategy,
+                    )
+                )
+        return candidates
+
+    def _how_values(self, values: tuple[str, ...], legacy: str) -> tuple[str, ...]:
+        return values if self.independent_how else (legacy,)
+
+    def _path_to(self, store: KnowledgeStore, state: GridKnowledgeState, target: Cell) -> list[Cell]:
+        queue: deque[Cell] = deque([state.position])
+        parents: dict[Cell, Cell | None] = {state.position: None}
+        while queue:
+            cell = queue.popleft()
+            if cell == target:
+                break
+            for neighbor in self._neighbors(cell):
+                if neighbor in parents or not self._in_bounds(state, neighbor) or self._blocked(store, neighbor):
+                    continue
+                if neighbor != target and not self._known_or_frontier(store, neighbor):
+                    continue
+                parents[neighbor] = cell
+                queue.append(neighbor)
+        if target not in parents:
+            return []
+        path = [target]
+        while parents[path[-1]] is not None:
+            path.append(parents[path[-1]])
+        return list(reversed(path))
+
+    def _reachable(self, store: KnowledgeStore, state: GridKnowledgeState, target: Cell) -> bool:
+        return bool(self._path_to(store, state, target))
+
+    def _known_or_frontier(self, store: KnowledgeStore, cell: Cell) -> bool:
+        return self._active_value(store, KK.KNOWN_CELL, cell) or self._active_value(store, KK.FRONTIER_CELL, cell)
+
+    def _blocked(self, store: KnowledgeStore, cell: Cell) -> bool:
+        return self._active_value(store, KK.WALL_CELL, cell, include_inactive=True)
+
+    def _active_value(self, store: KnowledgeStore, kk: KK, value: Any, *, include_inactive: bool = False) -> bool:
+        return any(kv.value == value for kv in store.values(kk, include_inactive=include_inactive))
+
+    def _is_adjacent(self, state: GridKnowledgeState, cell: Cell) -> bool:
+        return cell in set(self._neighbors(state.position))
+
+    def _in_bounds(self, state: GridKnowledgeState, cell: Cell) -> bool:
+        x, y = cell
+        return 0 <= x < state.width and 0 <= y < state.height
+
+    def _neighbors(self, cell: Cell) -> Iterable[Cell]:
+        x, y = cell
+        yield (x, y - 1)
+        yield (x, y + 1)
+        yield (x - 1, y)
+        yield (x + 1, y)
+
+
+@dataclass(frozen=True)
 class DMPConfig:
     use_prophecy: bool = False
     use_imagination: bool = False
     prophecy_beta: float = 0.3
+    prediction_error_mode: str = "curiosity"
+    independent_policy_axes: bool = False
+    consumable_key: bool = True
+    kk_prediction_threshold: float = 0.5
+    error_prediction_threshold: float = 0.5
+    flag_prediction_threshold: float = 0.5
 
 
 @dataclass(frozen=True)
@@ -75,6 +259,12 @@ class StepResult:
     prophecy_error: float = 0.0
     prophecy_loss: float = 0.0
     imagination_trace: ImaginationTrace | None = None
+    prediction_thresholds: tuple[float, float, float] = (0.5, 0.5, 0.5)
+    imagined_next_action_match: bool | None = None
+    imagined_next_action_what_match: bool | None = None
+    imagined_next_action_where_match: bool | None = None
+    imagined_next_action_template_match: bool | None = None
+    placeholder_execution_attempt: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         predicted_kk_count = 0.0
@@ -90,6 +280,7 @@ class StepResult:
         imagination_best_error_prob = 0.0
         imagination_rollout_value = 0.0
         imagination_rollout_depth = 0
+        diagnostics = trace_diagnostics(self.imagination_trace)
         if self.imagination_trace is not None:
             selected_score = self.imagination_trace.selected_score
             imagination_selected_score = selected_score.score
@@ -98,6 +289,13 @@ class StepResult:
             imagination_best_error_prob = selected_score.predicted_error_prob
             imagination_rollout_value = selected_score.rollout_value
             imagination_rollout_depth = selected_score.rollout_depth
+        alignment = _prediction_alignment(
+            self.prophecy_prediction,
+            self.delta_k.semantic_changed_kk(),
+            actual_error=self.error,
+            actual_flag=self.flag_found,
+            thresholds=self.prediction_thresholds,
+        )
         return {
             "step": self.step,
             "action": self.action.name.value,
@@ -129,6 +327,50 @@ class StepResult:
             "imagination_best_error_prob": imagination_best_error_prob,
             "imagination_rollout_value": imagination_rollout_value,
             "imagination_rollout_depth": imagination_rollout_depth,
+            "imagination_rollout_count": diagnostics.rollout_count,
+            "imagined_state_transition_count": diagnostics.imagined_state_transition_count,
+            "imagined_step_count": diagnostics.imagined_step_count,
+            "imagined_trajectory_count": diagnostics.imagined_trajectory_count,
+            "imagined_trajectory_depth": diagnostics.selected_trajectory_depth,
+            "imagined_trajectory_depth_mean": diagnostics.trajectory_depth_mean,
+            "imagined_trajectory_depth_max": diagnostics.trajectory_depth_max,
+            "future_candidate_generation_count": diagnostics.future_candidate_generation_count,
+            "future_candidate_count": diagnostics.future_candidate_count,
+            "future_candidate_count_by_depth": diagnostics.future_candidate_count_by_depth,
+            "newly_unlocked_action_count": diagnostics.newly_unlocked_action_count,
+            "raw_future_candidate_count": diagnostics.raw_future_candidate_count,
+            "unique_future_candidate_count": diagnostics.unique_future_candidate_count,
+            "duplicate_future_candidate_count": diagnostics.duplicate_future_candidate_count,
+            "future_candidate_dedup_ratio": diagnostics.future_candidate_dedup_ratio,
+            "raw_newly_unlocked_action_count": diagnostics.raw_newly_unlocked_action_count,
+            "unique_newly_unlocked_action_count": diagnostics.unique_newly_unlocked_action_count,
+            "unique_unlock_ratio": diagnostics.unique_unlock_ratio,
+            "selected_action_newly_unlocked_count": diagnostics.selected_action_newly_unlocked_count,
+            "selected_action_has_future_dependency": diagnostics.selected_action_has_future_dependency,
+            "selected_action_immediate_value": diagnostics.selected_action_immediate_value,
+            "selected_action_future_value": diagnostics.selected_action_future_value,
+            "selected_action_future_value_ratio": diagnostics.selected_action_future_value_ratio,
+            "mean_transition_confidence": diagnostics.mean_transition_confidence,
+            "mean_selected_path_confidence": diagnostics.mean_selected_path_confidence,
+            "mean_placeholder_grounding_factor": diagnostics.mean_placeholder_grounding_factor,
+            "mean_selected_effective_confidence": diagnostics.mean_selected_effective_confidence,
+            "uncalibrated_selected_future_value": diagnostics.uncalibrated_selected_future_value,
+            "calibrated_selected_future_value": diagnostics.calibrated_selected_future_value,
+            "future_value_discount_ratio": diagnostics.future_value_discount_ratio,
+            "placeholder_dependent_transition_count": diagnostics.placeholder_dependent_transition_count,
+            "concrete_transition_count": diagnostics.concrete_transition_count,
+            "mixed_grounding_transition_count": diagnostics.mixed_grounding_transition_count,
+            "setup_action_selected": diagnostics.setup_action_selected,
+            "predicted_placeholder_kv_count": diagnostics.predicted_placeholder_kv_count,
+            "placeholder_generated_candidate_count": diagnostics.placeholder_generated_candidate_count,
+            "placeholder_selected_candidate_count": diagnostics.placeholder_selected_candidate_count,
+            "placeholder_execution_attempt_count": int(self.placeholder_execution_attempt),
+            "unlocked_by_kk_counts": diagnostics.unlocked_by_kk_counts,
+            "imagined_next_action_match": self.imagined_next_action_match,
+            "imagined_next_action_what_match": self.imagined_next_action_what_match,
+            "imagined_next_action_where_match": self.imagined_next_action_where_match,
+            "imagined_next_action_template_match": self.imagined_next_action_template_match,
+            **alignment,
         }
 
 
@@ -217,21 +459,27 @@ class GridWorldDMP:
         self.step_limit = step_limit
         self.done = False
         self._executed_signatures: set[tuple[str, tuple[tuple[str, str], ...]]] = set()
+        self._last_candidate_generator = CandidateGenerator(top_k=top_k, independent_how=self.config.independent_policy_axes)
+        self.recent_transitions: deque[Any] = deque(maxlen=8)
+        self._pending_imagined_next_action: ActionCandidate | None = None
         self._record_known_position(world.start)
         self._refresh_unknown_neighbors()
 
     def generate_candidates(self) -> list[ActionCandidate]:
-        candidates: list[ActionCandidate] = []
-        candidates.extend(self._inspect_candidates(KK.UNKNOWN_NEIGHBOR))
-        candidates.extend(self._inspect_candidates(KK.FRONTIER_CELL))
-        candidates.extend(self._move_candidates(KK.FLAG_CELL))
-        candidates.extend(self._move_candidates(KK.KEY_CELL))
-        candidates.extend(self._move_candidates(KK.DOOR_CELL))
-        candidates.extend(self._move_candidates(KK.HINT_CELL))
-        candidates.extend(self._move_candidates(KK.FRONTIER_CELL))
-        candidates.extend(self._use_object_candidates())
-        candidates.extend(self._hint_candidates())
-        return candidates
+        self._last_candidate_generator = CandidateGenerator(
+            top_k=self.top_k,
+            independent_how=self.config.independent_policy_axes,
+        )
+        return self._last_candidate_generator.generate(self.store, self.state_view())
+
+    def state_view(self) -> GridKnowledgeState:
+        return GridKnowledgeState(
+            position=self.position,
+            width=self.world.width,
+            height=self.world.height,
+            opened_doors=frozenset(self.world.opened_doors),
+            step_depth=self.step_index,
+        )
 
     def choose_candidate(self, strategy: str = "nearest") -> ActionCandidate | None:
         candidates = self.generate_candidates()
@@ -254,6 +502,7 @@ class GridWorldDMP:
         return self.scorer.choose(candidates, self)
 
     def execute(self, candidate: ActionCandidate) -> StepResult:
+        imagined_match = _candidate_match_payload(self._pending_imagined_next_action, candidate)
         state_signature = gridworld_state_signature(self)
         prophecy_prediction = self._predict_prophecy(state_signature, candidate)
         before = self.store.snapshot_items()
@@ -284,6 +533,8 @@ class GridWorldDMP:
             opened = self.world.open_door(door, has_key=self._has_key())
             if opened:
                 self.store.mark(KK.DOOR_CELL, door, KnowledgeStatus.CONSUMED, step=self.step_index)
+                if self.config.consumable_key:
+                    self.store.mark(KK.KEY_OBJECT, candidate.bindings[KK.KEY_OBJECT], KnowledgeStatus.CONSUMED, step=self.step_index)
             self._mark_bound_slots_used(candidate, success=opened)
             error = not opened
             observation = {"door": door, "opened": opened}
@@ -324,6 +575,19 @@ class GridWorldDMP:
             if self.last_imagination_trace is not None
             and self.last_imagination_trace.selected == candidate
             else None,
+            imagined_next_action_match=imagined_match,
+        )
+        self._pending_imagined_next_action = trace_diagnostics(result.imagination_trace).imagined_next_action
+        self.recent_transitions.append(
+            {
+                "state_signature": state_signature,
+                "action_axes": (candidate.name.value, candidate.strategy),
+                "binding_features": self._binding_signature(candidate),
+                "semantic_delta": tuple(sorted(kk.value for kk in delta_k.semantic_changed_kk())),
+                "error": error,
+                "flag_found": flag_found,
+                "reward": result.total_reward,
+            }
         )
         self.last_imagination_trace = None
         self._update_selector(candidate, result.total_reward)
@@ -359,17 +623,32 @@ class GridWorldDMP:
         self._refresh_unknown_neighbors(anchor=cell)
 
     def metrics(self) -> dict[str, float]:
-        all_templates = 10
         candidates = self.generate_candidates()
         bound_templates = {candidate.template for candidate in candidates}
+        all_templates = max(1, len(self._registered_action_templates()))
         reused = 0
         for kk in KK:
             reused += sum(kv.used_count > 0 for kv in self.store.values(kk, include_inactive=True))
+        attempted = max(1, self._last_candidate_generator.attempted_bindings)
         return {
             "slot_binding_success_rate": len(bound_templates) / all_templates,
-            "valid_action_candidate_ratio": 1.0 if candidates else 0.0,
+            "valid_action_candidate_ratio": self._last_candidate_generator.valid_bindings / attempted,
+            "has_valid_candidate": 1.0 if candidates else 0.0,
             "knowledge_reuse_count": float(reused),
         }
+
+    def _registered_action_templates(self) -> tuple[str, ...]:
+        return (
+            "INSPECT_CELL {KK_UNKNOWN_NEIGHBOR}",
+            "INSPECT_CELL {KK_FRONTIER_CELL}",
+            "MOVE_TOWARD {KK_FLAG_CELL}",
+            "MOVE_TOWARD {KK_KEY_CELL}",
+            "MOVE_TOWARD {KK_DOOR_CELL}",
+            "MOVE_TOWARD {KK_HINT_CELL}",
+            "MOVE_TOWARD {KK_FRONTIER_CELL}",
+            "USE_OBJECT {KK_KEY_OBJECT} ON {KK_DOOR_CELL}",
+            "FOLLOW_HINT {KK_HINT_VALUE}",
+        )
 
     def _inspect_candidates(self, kk: KK) -> list[ActionCandidate]:
         candidates: list[ActionCandidate] = []
@@ -468,7 +747,7 @@ class GridWorldDMP:
         kind = self.world.kind_at(cell)
         if kind == CellKind.KEY:
             self.store.mark(KK.KEY_CELL, cell, KnowledgeStatus.CONSUMED, step=self.step_index)
-            self.store.add(KK.KEY_OBJECT, "key#1", ValueType.OBJECT_INSTANCE, step=self.step_index)
+            self.store.add(KK.KEY_OBJECT, f"key@{cell}", ValueType.OBJECT_INSTANCE, step=self.step_index)
         elif kind == CellKind.DOOR and cell in self.world.opened_doors:
             self.store.mark(KK.DOOR_CELL, cell, KnowledgeStatus.CONSUMED, step=self.step_index)
         elif kind == CellKind.FLAG:
@@ -629,10 +908,17 @@ class GridWorldDMP:
         prophecy_prediction: ProphecyPrediction | None = None,
         prophecy_update: ProphecyUpdate | None = None,
         imagination_trace: ImaginationTrace | None = None,
+        imagined_next_action_match: dict[str, bool | None] | None = None,
     ) -> StepResult:
         prophecy_error = prophecy_update.prediction_error if prophecy_update is not None else 0.0
         prophecy_loss = prophecy_update.loss if prophecy_update is not None else 0.0
-        total_reward = reward.total_reward + self.config.prophecy_beta * prophecy_error
+        if self.config.prediction_error_mode == "accuracy":
+            prophecy_adjustment = -self.config.prophecy_beta * prophecy_error
+        elif self.config.prediction_error_mode == "disabled":
+            prophecy_adjustment = 0.0
+        else:
+            prophecy_adjustment = self.config.prophecy_beta * prophecy_error
+        total_reward = reward.total_reward + prophecy_adjustment
         return StepResult(
             step=self.step_index,
             action=candidate,
@@ -648,12 +934,37 @@ class GridWorldDMP:
             prophecy_error=prophecy_error,
             prophecy_loss=prophecy_loss,
             imagination_trace=imagination_trace,
+            prediction_thresholds=(
+                self.config.kk_prediction_threshold,
+                self.config.error_prediction_threshold,
+                self.config.flag_prediction_threshold,
+            ),
+            imagined_next_action_match=(imagined_next_action_match or {}).get("exact"),
+            imagined_next_action_what_match=(imagined_next_action_match or {}).get("what"),
+            imagined_next_action_where_match=(imagined_next_action_match or {}).get("where"),
+            imagined_next_action_template_match=(imagined_next_action_match or {}).get("template"),
+            placeholder_execution_attempt=candidate_has_placeholder(candidate),
         )
 
     def _update_selector(self, candidate: ActionCandidate, reward: float) -> None:
         update = getattr(self.scorer, "update", None)
         if callable(update):
             update(candidate, reward)
+        trace = self.last_imagination_trace
+        if trace is not None and getattr(trace, "imagined_updates", None):
+            imagined_update = getattr(self.scorer, "update_weighted", None)
+            if callable(imagined_update):
+                for imagined_candidate, imagined_reward, weight in trace.imagined_updates:
+                    imagined_update(imagined_candidate, imagined_reward, weight)
+
+    def _binding_signature(self, candidate: ActionCandidate) -> tuple[tuple[str, str], ...]:
+        return tuple(
+            sorted(
+                (kk.value, repr(value))
+                for kk, value in candidate.bindings.items()
+                if kk != KK.CURRENT_POS
+            )
+        )
 
     def _predict_prophecy(
         self,
@@ -682,3 +993,61 @@ class GridWorldDMP:
             error,
             flag_found,
         )
+
+
+def _prediction_alignment(
+    prediction: ProphecyPrediction | None,
+    actual_kk: set[KK],
+    *,
+    actual_error: bool,
+    actual_flag: bool,
+    thresholds: tuple[float, float, float],
+) -> dict[str, float]:
+    kk_threshold, error_threshold, flag_threshold = thresholds
+    if prediction is None:
+        return {
+            "predicted_kk_precision": 0.0,
+            "predicted_kk_recall": 0.0,
+            "predicted_kk_f1": 0.0,
+            "predicted_error_accuracy": 0.0,
+            "predicted_flag_accuracy": 0.0,
+            "predicted_semantic_gain": 0.0,
+            "actual_semantic_gain": float(len(actual_kk)),
+            "kk_brier_score": 0.0,
+            "error_brier_score": 0.0,
+            "flag_brier_score": 0.0,
+        }
+    predicted_kk = {kk for kk, probability in prediction.kk_probs.items() if probability >= kk_threshold}
+    true_positive = len(predicted_kk & actual_kk)
+    precision = true_positive / len(predicted_kk) if predicted_kk else 0.0
+    recall = true_positive / len(actual_kk) if actual_kk else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+    kk_brier = sum(
+        (prediction.kk_probs.get(kk, 0.0) - (1.0 if kk in actual_kk else 0.0)) ** 2
+        for kk in KK
+    ) / len(KK)
+    return {
+        "predicted_kk_precision": precision,
+        "predicted_kk_recall": recall,
+        "predicted_kk_f1": f1,
+        "predicted_error_accuracy": float((prediction.error_prob >= error_threshold) == actual_error),
+        "predicted_flag_accuracy": float((prediction.flag_prob >= flag_threshold) == actual_flag),
+        "predicted_semantic_gain": float(len(predicted_kk)),
+        "actual_semantic_gain": float(len(actual_kk)),
+        "kk_brier_score": kk_brier,
+        "error_brier_score": (prediction.error_prob - float(actual_error)) ** 2,
+        "flag_brier_score": (prediction.flag_prob - float(actual_flag)) ** 2,
+    }
+
+
+def _candidate_match_payload(predicted: ActionCandidate | None, actual: ActionCandidate) -> dict[str, bool | None]:
+    if predicted is None:
+        return {"exact": None, "what": None, "where": None, "template": None}
+    predicted_axes = candidate_axes(predicted)
+    actual_axes = candidate_axes(actual)
+    return {
+        "exact": candidate_diagnostic_signature(predicted) == candidate_diagnostic_signature(actual),
+        "what": predicted_axes[0] == actual_axes[0],
+        "where": predicted_axes[2] == actual_axes[2],
+        "template": predicted.template == actual.template,
+    }

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .gridworld import DMPConfig, GridWorld, GridWorldDMP
-from .imagination import ImaginationConfig, ImaginationCycle
+from .imagination import ImaginationConfig, ImaginationCycle, PredictedStateImaginationCycle
 from .metrics import (
     EpisodeMetric,
     StepMetric,
@@ -31,6 +31,8 @@ class ExperimentCondition(StrEnum):
     C3 = "C3"
     C4 = "C4"
     C5 = "C5"
+    APASSR_FULL = "APASSR_FULL"
+    APASSR_FULL_CAL = "APASSR_FULL_CAL"
 
 
 class ProphecyKind(StrEnum):
@@ -192,6 +194,8 @@ class ExperimentComponents:
         use_imagination: bool,
         prophecy_beta: float = 0.3,
         imagination_config: ImaginationConfig | None = None,
+        full_imagination: bool = False,
+        independent_policy_axes: bool = False,
     ) -> None:
         self.scorer = scorer
         self.prophecy = prophecy
@@ -199,6 +203,8 @@ class ExperimentComponents:
         self.use_imagination = use_imagination
         self.prophecy_beta = prophecy_beta
         self.imagination_config = imagination_config or ImaginationConfig()
+        self.full_imagination = full_imagination
+        self.independent_policy_axes = independent_policy_axes
 
     @classmethod
     def for_condition(cls, condition: ExperimentCondition, *, seed: int) -> ExperimentComponents:
@@ -223,6 +229,10 @@ class ExperimentComponents:
         imagination_config = ImaginationConfig()
         if condition == ExperimentCondition.C5:
             imagination_config = c5_imagination_config()
+        full = condition in {ExperimentCondition.APASSR_FULL, ExperimentCondition.APASSR_FULL_CAL}
+        calibrated = condition == ExperimentCondition.APASSR_FULL_CAL
+        if full:
+            imagination_config = apassr_full_imagination_config(seed=seed, calibrated=calibrated)
         return cls(
             scorer=PolicyABC.uniform_gridworld(seed=seed),
             prophecy=prophecy,
@@ -231,8 +241,12 @@ class ExperimentComponents:
                 ExperimentCondition.C3,
                 ExperimentCondition.C4,
                 ExperimentCondition.C5,
+                ExperimentCondition.APASSR_FULL,
+                ExperimentCondition.APASSR_FULL_CAL,
             },
             imagination_config=imagination_config,
+            full_imagination=full,
+            independent_policy_axes=full,
         )
 
     @classmethod
@@ -258,11 +272,14 @@ class ExperimentComponents:
         )
 
     def make_dmp(self, world: GridWorld, *, step_limit: int) -> GridWorldDMP:
-        imagination = (
-            ImaginationCycle(self.prophecy, self.imagination_config)
-            if self.use_imagination and self.prophecy is not None
-            else None
-        )
+        if self.use_imagination and self.prophecy is not None:
+            imagination_type = PredictedStateImaginationCycle if self.full_imagination else ImaginationCycle
+            imagination = imagination_type(self.prophecy, self.imagination_config)
+        else:
+            imagination = None
+        reset_context = getattr(self.prophecy, "reset_context", None)
+        if callable(reset_context):
+            reset_context()
         return GridWorldDMP(
             world,
             scorer=self.scorer,
@@ -272,6 +289,7 @@ class ExperimentComponents:
                 use_prophecy=self.use_prophecy,
                 use_imagination=self.use_imagination,
                 prophecy_beta=self.prophecy_beta,
+                independent_policy_axes=self.independent_policy_axes,
             ),
             step_limit=step_limit,
         )
@@ -293,6 +311,23 @@ def c5_imagination_config() -> ImaginationConfig:
 
     return ImaginationConfig(
         knowledge_weight=0.0,
+    )
+
+
+def apassr_full_imagination_config(*, seed: int | None = None, calibrated: bool = False) -> ImaginationConfig:
+    return ImaginationConfig(
+        rollout_depth=3,
+        rollout_branching=3,
+        predicted_delta_threshold=0.5,
+        imagined_policy_update=True,
+        imagined_weight=0.05,
+        imagined_discount=0.65,
+        minimum_confidence=0.25,
+        seed=seed,
+        calibrated_imagination_enabled=calibrated,
+        candidate_dedup_enabled=calibrated,
+        placeholder_confidence_scale=0.35,
+        mixed_grounding_confidence_scale=0.65,
     )
 
 

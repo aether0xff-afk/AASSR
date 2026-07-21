@@ -4,7 +4,7 @@ import threading
 import unittest
 
 from apassr_tool.actions import ActionTemplate, generate_candidates
-from apassr_tool.dmp import APASSRToolDMP
+from apassr_tool.dmp import APASSRToolDMP, candidate_syntax_penalty
 from apassr_tool.knowledge import KK
 from apassr_tool.sandbox_server import make_server
 from apassr_tool.tools import ToolExecutor
@@ -137,6 +137,27 @@ class DmpSmokeTests(unittest.TestCase):
         self.assertGreater(observer.candidates, 0)
         self.assertEqual(observer.steps, 1)
         self.assertTrue(observer.top_label)
+
+    def test_syntax_penalty_suppresses_directory_append_to_file(self) -> None:
+        base_url = f"http://127.0.0.1:{self.port}"
+        dmp = APASSRToolDMP(base_url=base_url, executor=ToolExecutor(prefer_curl=False), step_limit=1)
+        dmp.store.add(KK.PATH, "styles.css/package.json", source="test")
+        candidates = generate_candidates(dmp.store)
+        bad = next(candidate for candidate in candidates if candidate.label == "GET styles.css/package.json")
+
+        score = dmp._candidate_score_details(bad)
+
+        self.assertGreaterEqual(candidate_syntax_penalty(bad), 0.9)
+        self.assertLessEqual(float(score["syntax_multiplier"]), 0.1)
+
+    def test_syntax_penalty_does_not_hit_valid_file_fetch(self) -> None:
+        base_url = f"http://127.0.0.1:{self.port}"
+        dmp = APASSRToolDMP(base_url=base_url, executor=ToolExecutor(prefer_curl=False), step_limit=1)
+        dmp.store.add(KK.PATH, "styles.css", source="test")
+        candidates = generate_candidates(dmp.store)
+        good = next(candidate for candidate in candidates if candidate.label == "GET styles.css")
+
+        self.assertEqual(candidate_syntax_penalty(good), 0.0)
 
 
 if __name__ == "__main__":

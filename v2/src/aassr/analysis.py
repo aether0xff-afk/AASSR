@@ -9,10 +9,10 @@ from statistics import mean
 from typing import Any, Iterable
 
 from .labels import condition_label
-from .plotting import write_analysis_plots
+from .plotting import write_analysis_plots, write_diagnostic_plots
 
 
-CONDITIONS = ("C0", "C1", "C2", "C3", "C4", "C5")
+CONDITIONS = ("C0", "C1", "C2", "C3", "C4", "C5", "APASSR_FULL", "APASSR_FULL_CAL")
 
 
 @dataclass(frozen=True)
@@ -70,14 +70,24 @@ def analyze_results(
     seed_stats = condition_seed_stats(episodes)
     summary = summary_table(seed_stats, bootstrap_samples=bootstrap_samples)
     learning = learning_curve_rows(episodes, window_size=learning_window)
+    diagnostics = diagnostic_tables(episodes)
 
     write_csv(output_path / "summary_table.csv", summary)
     write_csv(output_path / "condition_stats.csv", seed_stats)
     write_csv(output_path / "learning_curve.csv", learning)
+    write_dict_csv(output_path / "diagnostic_summary.csv", diagnostics["diagnostic_summary"])
+    write_dict_csv(output_path / "imagination_depth_stats.csv", diagnostics["imagination_depth_stats"])
+    write_dict_csv(output_path / "future_candidate_stats.csv", diagnostics["future_candidate_stats"])
+    write_dict_csv(output_path / "prophecy_alignment_stats.csv", diagnostics["prophecy_alignment_stats"])
+    write_dict_csv(output_path / "imagination_action_match_stats.csv", diagnostics["imagination_action_match_stats"])
     write_analysis_plots(
         summary_rows=summary,
         condition_stats=seed_stats,
         learning_curve=learning,
+        output_dir=output_path,
+    )
+    write_diagnostic_plots(
+        diagnostic_rows=diagnostics["diagnostic_summary"],
         output_dir=output_path,
     )
     write_report(
@@ -90,6 +100,7 @@ def analyze_results(
         "summary": summary,
         "condition_stats": seed_stats,
         "learning_curve": learning,
+        **diagnostics,
     }
 
 
@@ -172,6 +183,98 @@ def summary_table(seed_stats: list[ConditionStatRow], *, bootstrap_samples: int 
             )
         )
     return summary
+
+
+def diagnostic_tables(episodes: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for row in episodes:
+        grouped.setdefault(str(row["condition"]), []).append(row)
+    diagnostic_summary = []
+    depth_stats = []
+    future_stats = []
+    prophecy_stats = []
+    match_stats = []
+    for condition, rows in sorted(grouped.items()):
+        diagnostic_summary.append(
+            {
+                "condition": condition,
+                "episode_count": len(rows),
+                "imagined_state_transition_mean": _safe_mean(_float(row.get("imagined_state_transition_total")) for row in rows),
+                "newly_unlocked_action_mean": _safe_mean(_float(row.get("newly_unlocked_action_total")) for row in rows),
+                "unique_newly_unlocked_action_mean": _safe_mean(_float(row.get("unique_newly_unlocked_action_total")) for row in rows),
+                "duplicate_future_candidate_mean": _safe_mean(_float(row.get("duplicate_future_candidate_total")) for row in rows),
+                "future_candidate_dedup_ratio_mean": _safe_mean(_float(row.get("future_candidate_dedup_ratio_mean")) for row in rows),
+                "unique_unlock_ratio_mean": _safe_mean(_float(row.get("unique_unlock_ratio_mean")) for row in rows),
+                "setup_action_selected_mean": _safe_mean(_float(row.get("setup_action_selected_count")) for row in rows),
+                "future_dependency_selection_rate_mean": _safe_mean(_float(row.get("future_dependency_selection_rate")) for row in rows),
+                "imagined_trajectory_depth_mean": _safe_mean(_float(row.get("imagined_trajectory_depth_mean")) for row in rows),
+                "imagined_trajectory_depth_max_mean": _safe_mean(_float(row.get("imagined_trajectory_depth_max")) for row in rows),
+                "predicted_kk_precision_mean": _safe_mean(_float(row.get("predicted_kk_precision_mean")) for row in rows),
+                "predicted_kk_recall_mean": _safe_mean(_float(row.get("predicted_kk_recall_mean")) for row in rows),
+                "predicted_kk_f1_mean": _safe_mean(_float(row.get("predicted_kk_f1_mean")) for row in rows),
+                "imagined_action_execution_match_rate_mean": _safe_mean(_float(row.get("imagined_action_execution_match_rate")) for row in rows),
+                "mean_transition_confidence_mean": _safe_mean(_float(row.get("mean_transition_confidence")) for row in rows),
+                "mean_selected_path_confidence_mean": _safe_mean(_float(row.get("mean_selected_path_confidence")) for row in rows),
+                "mean_placeholder_grounding_factor_mean": _safe_mean(_float(row.get("mean_placeholder_grounding_factor")) for row in rows),
+                "mean_selected_effective_confidence_mean": _safe_mean(_float(row.get("mean_selected_effective_confidence")) for row in rows),
+                "uncalibrated_selected_future_value_mean": _safe_mean(_float(row.get("uncalibrated_selected_future_value_mean")) for row in rows),
+                "calibrated_selected_future_value_mean": _safe_mean(_float(row.get("calibrated_selected_future_value_mean")) for row in rows),
+                "future_value_discount_ratio_mean": _safe_mean(_float(row.get("future_value_discount_ratio_mean")) for row in rows),
+                "placeholder_dependent_transition_mean": _safe_mean(_float(row.get("placeholder_dependent_transition_total")) for row in rows),
+                "concrete_transition_mean": _safe_mean(_float(row.get("concrete_transition_total")) for row in rows),
+                "mixed_grounding_transition_mean": _safe_mean(_float(row.get("mixed_grounding_transition_total")) for row in rows),
+                "placeholder_generated_candidate_mean": _safe_mean(_float(row.get("placeholder_generated_candidate_total")) for row in rows),
+                "placeholder_execution_attempt_mean": _safe_mean(_float(row.get("placeholder_execution_attempt_total")) for row in rows),
+            }
+        )
+        depth_stats.append(
+            {
+                "condition": condition,
+                "imagined_state_transition_total": sum(_float(row.get("imagined_state_transition_total")) for row in rows),
+                "imagined_trajectory_depth_mean": _safe_mean(_float(row.get("imagined_trajectory_depth_mean")) for row in rows),
+                "imagined_trajectory_depth_max": max((_float(row.get("imagined_trajectory_depth_max")) for row in rows), default=0.0),
+            }
+        )
+        future_stats.append(
+            {
+                "condition": condition,
+                "newly_unlocked_action_total": sum(_float(row.get("newly_unlocked_action_total")) for row in rows),
+                "unique_newly_unlocked_action_total": sum(_float(row.get("unique_newly_unlocked_action_total")) for row in rows),
+                "newly_unlocked_action_mean": _safe_mean(_float(row.get("newly_unlocked_action_total")) for row in rows),
+                "future_dependency_selection_rate_mean": _safe_mean(_float(row.get("future_dependency_selection_rate")) for row in rows),
+                "setup_action_selected_total": sum(_float(row.get("setup_action_selected_count")) for row in rows),
+                "duplicate_future_candidate_total": sum(_float(row.get("duplicate_future_candidate_total")) for row in rows),
+                "future_candidate_dedup_ratio_mean": _safe_mean(_float(row.get("future_candidate_dedup_ratio_mean")) for row in rows),
+                "unique_unlock_ratio_mean": _safe_mean(_float(row.get("unique_unlock_ratio_mean")) for row in rows),
+                "mean_selected_path_confidence_mean": _safe_mean(_float(row.get("mean_selected_path_confidence")) for row in rows),
+                "future_value_discount_ratio_mean": _safe_mean(_float(row.get("future_value_discount_ratio_mean")) for row in rows),
+                "placeholder_generated_candidate_total": sum(_float(row.get("placeholder_generated_candidate_total")) for row in rows),
+            }
+        )
+        prophecy_stats.append(
+            {
+                "condition": condition,
+                "predicted_kk_precision_mean": _safe_mean(_float(row.get("predicted_kk_precision_mean")) for row in rows),
+                "predicted_kk_recall_mean": _safe_mean(_float(row.get("predicted_kk_recall_mean")) for row in rows),
+                "predicted_kk_f1_mean": _safe_mean(_float(row.get("predicted_kk_f1_mean")) for row in rows),
+            }
+        )
+        match_stats.append(
+            {
+                "condition": condition,
+                "imagined_action_execution_match_rate_mean": _safe_mean(_float(row.get("imagined_action_execution_match_rate")) for row in rows),
+                "imagined_action_what_match_rate_mean": _safe_mean(_float(row.get("imagined_action_what_match_rate")) for row in rows),
+                "imagined_action_where_match_rate_mean": _safe_mean(_float(row.get("imagined_action_where_match_rate")) for row in rows),
+                "imagined_action_template_match_rate_mean": _safe_mean(_float(row.get("imagined_action_template_match_rate")) for row in rows),
+            }
+        )
+    return {
+        "diagnostic_summary": diagnostic_summary,
+        "imagination_depth_stats": depth_stats,
+        "future_candidate_stats": future_stats,
+        "prophecy_alignment_stats": prophecy_stats,
+        "imagination_action_match_stats": match_stats,
+    }
 
 
 def learning_curve_rows(
@@ -264,11 +367,13 @@ def write_report(
             "",
             "## Interpretation Notes",
             "",
-            "C3 is the main paper-aligned framework condition: PolicyABC + Prophecy Module + Imagination Cycle. "
-            "The current C3 run uses TableProphecyModel as a lightweight Prophecy implementation, not as the framework contribution itself. "
+            "C3 is the legacy lightweight paper-facing prototype: PolicyABC + Prophecy Module + Imagination Cycle. "
+            "The current C3 run uses TableProphecyModel and lightweight dependency lookahead, not full predicted-state rollout. "
             "C4 is an optional sequence-based Prophecy implementation variant and should not be interpreted as replacing the original framework. "
             "C5 is an improved APASSR condition derived from ablation findings; it should be reported separately from the vanilla C3 framework condition. "
-            "The Imagination Cycle performs depth-limited rollout over candidate branches using Prophecy predictions; it does not execute future actions or read the hidden map.",
+            "C3/C5 use Prophecy-guided candidate scoring with lightweight dependency lookahead. "
+            "APASSR_FULL uses predicted-state multi-step imagination with virtual Knowledge Store transitions and future action regeneration. "
+            "All imagination variants avoid executing future actions or reading the hidden map.",
             "",
             "DQN_PARTIAL is a strong partial-observation baseline and may outperform C3 in some settings. "
             "ORACLE_MDP is a full-map upper bound and is not a same-information-condition baseline.",
@@ -297,6 +402,17 @@ def write_csv(path: Path, rows: list[Any]) -> None:
             writer.writerow(asdict(row))
 
 
+def write_dict_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    if not rows:
+        path.write_text("", encoding="utf-8")
+        return
+    fieldnames = list(rows[0].keys())
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def _read_csv(path: Path) -> list[dict[str, Any]]:
     with path.open(newline="", encoding="utf-8") as handle:
         return list(csv.DictReader(handle))
@@ -318,7 +434,10 @@ def _bool(value: Any) -> bool:
 def _float(value: Any) -> float:
     if value in {"", None}:
         return 0.0
-    return float(value)
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def parse_args() -> argparse.Namespace:

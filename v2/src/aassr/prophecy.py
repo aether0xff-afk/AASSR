@@ -14,6 +14,9 @@ class ProphecyPrediction:
     kk_probs: dict[KK, float]
     error_prob: float
     flag_prob: float
+    status_change_probs: dict[KK, float] = field(default_factory=dict)
+    confidence: float = 1.0
+    predicted_position_change: Any = None
 
     def expected_knowledge_gain(self) -> float:
         return sum(self.kk_probs.values())
@@ -55,7 +58,7 @@ class TableProphecyModel:
 
     def __init__(self, *, prior: float = 0.05) -> None:
         self.prior = prior
-        self._stats: dict[tuple[Any, str, str], ProphecyStats] = {}
+        self._stats: dict[tuple[Any, str, str, str, Any, Any], ProphecyStats] = {}
 
     def predict(self, state_signature: Any, candidate: Any) -> ProphecyPrediction:
         stats = self._stats.get(self._key(state_signature, candidate), ProphecyStats())
@@ -100,9 +103,16 @@ class TableProphecyModel:
             loss=prediction_error,
         )
 
-    def _key(self, state_signature: Any, candidate: Any) -> tuple[Any, str, str]:
-        what, _, where = candidate_axes(candidate)
-        return state_signature, what, where
+    def _key(self, state_signature: Any, candidate: Any) -> tuple[Any, str, str, str, Any, Any]:
+        what, how, where = candidate_axes(candidate)
+        return (
+            state_signature,
+            what,
+            how,
+            where,
+            binding_signature(candidate),
+            recent_transition_summary(state_signature),
+        )
 
     def _prediction_error(
         self,
@@ -247,7 +257,125 @@ class SequenceProphecyModel:
         return (kk_error + other_error) / 2.0
 
 
-def gridworld_state_signature(dmp: Any) -> tuple[bool, bool, bool, bool, str, int]:
+def gridworld_state_signature(dmp: Any) -> tuple[Any, ...]:
+    return gridworld_knowledge_state_signature(
+        dmp.store,
+        position=dmp.position,
+        width=dmp.world.width,
+        height=dmp.world.height,
+        last_action=None,
+        last_semantic_delta=(),
+        last_error=0.0,
+        recent_transitions=getattr(dmp, "recent_transitions", ()),
+    )
+
+
+def gridworld_knowledge_state_signature(
+    store: Any,
+    *,
+    position: Any,
+    width: int,
+    height: int,
+    last_action: Any = None,
+    last_semantic_delta: tuple[str, ...] = (),
+    last_error: float = 0.0,
+    recent_transitions: Any = (),
+) -> tuple[Any, ...]:
+    frontier_count = len(store.values(KK.FRONTIER_CELL))
+    unknown_neighbors = len(store.values(KK.UNKNOWN_NEIGHBOR))
+    known_count = len(store.values(KK.KNOWN_CELL, include_inactive=True))
+    total_cells = max(1, width * height)
+    last_axes = candidate_axes(last_action) if last_action is not None else ("none", "none", "none")
+    opened_door_count = sum(kv.status.value == "consumed" for kv in store.values(KK.DOOR_CELL, include_inactive=True))
+    return (
+        ("has_key", store.has_active(KK.KEY_OBJECT)),
+        ("known_key_count", _count_bucket(len(store.values(KK.KEY_CELL, include_inactive=True)))),
+        ("known_door_count", _count_bucket(len(store.values(KK.DOOR_CELL, include_inactive=True)))),
+        ("opened_door_count", _count_bucket(opened_door_count)),
+        ("known_hint_count", _count_bucket(len(store.values(KK.HINT_VALUE, include_inactive=True)))),
+        ("known_flag_count", _count_bucket(len(store.values(KK.FLAG_CELL, include_inactive=True)))),
+        ("frontier_count", _bucket(frontier_count)),
+        ("unknown_neighbors", _bucket(unknown_neighbors)),
+        ("visited_ratio", _ratio_bucket(len(store.values(KK.VISITED_CELL, include_inactive=True)) / total_cells)),
+        ("position_region", _position_region(position, width, height)),
+        ("last_axes", last_axes),
+        ("last_semantic_delta", tuple(last_semantic_delta)),
+        ("last_error", _ratio_bucket(last_error)),
+        ("recent", recent_transition_summary(recent_transitions)),
+    )
+
+
+def binding_signature(candidate: Any) -> tuple[tuple[str, Any], ...]:
+    features = []
+    for kk, value in candidate.bindings.items():
+        if kk == KK.CURRENT_POS:
+            continue
+        features.append((kk.value, _binding_value_features(value)))
+    return tuple(sorted(features))
+
+
+def recent_transition_summary(value: Any) -> tuple[Any, ...]:
+    if isinstance(value, tuple) and value and isinstance(value[-1], tuple) and value[-1][0] == "recent":
+        return value[-1]
+    records = list(value or ())[-3:]
+    summary = []
+    for record in records:
+        if isinstance(record, dict):
+            summary.append(
+                (
+                    tuple(record.get("action_axes", ()))[:2],
+                    tuple(record.get("semantic_delta", ())),
+                    bool(record.get("error", False)),
+                    bool(record.get("flag_found", False)),
+                )
+            )
+    return tuple(summary)
+
+
+def _binding_value_features(value: Any) -> tuple[Any, ...]:
+    if isinstance(value, tuple) and len(value) == 2:
+        x, y = value
+        return ("cell", _count_bucket(abs(x) + abs(y)), _direction_bucket(x, y))
+    text = repr(value)
+    return ("object", text.split("#")[0].split("@")[0], _count_bucket(len(text)))
+
+
+def _count_bucket(value: int) -> str:
+    if value == 0:
+        return "none"
+    if value == 1:
+        return "one"
+    if value <= 3:
+        return "few"
+    return "many"
+
+
+def _ratio_bucket(value: float) -> str:
+    if value <= 0:
+        return "none"
+    if value < 0.25:
+        return "low"
+    if value < 0.60:
+        return "medium"
+    return "high"
+
+
+def _position_region(position: Any, width: int, height: int) -> str:
+    if not isinstance(position, tuple):
+        return "unknown"
+    x, y = position
+    horizontal = "left" if x < width / 3 else "right" if x >= 2 * width / 3 else "center"
+    vertical = "top" if y < height / 3 else "bottom" if y >= 2 * height / 3 else "middle"
+    return f"{vertical}-{horizontal}"
+
+
+def _direction_bucket(x: int, y: int) -> str:
+    if abs(x) >= abs(y):
+        return "east" if x >= 0 else "west"
+    return "south" if y >= 0 else "north"
+
+
+def _legacy_gridworld_state_signature(dmp: Any) -> tuple[bool, bool, bool, bool, str, int]:
     frontier_count = len(dmp.store.values(KK.FRONTIER_CELL))
     unknown_neighbors = len(dmp.store.values(KK.UNKNOWN_NEIGHBOR))
     return (
@@ -289,7 +417,7 @@ def _stable_index(value: Any, width: int) -> int:
 def _flatten_feature_items(value: Any) -> list[Any]:
     if isinstance(value, (tuple, list)):
         return list(value)
-        return [value]
+    return [value]
 
 
 class TransformerProphecyModel:

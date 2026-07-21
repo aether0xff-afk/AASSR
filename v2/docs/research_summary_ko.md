@@ -63,14 +63,16 @@ FOLLOW_HINT {KK_HINT_VALUE}
 | C0 | RandomScorer | 실행 가능한 후보 중 무작위 선택 |
 | C1 | PolicyABC | WHAT/HOW/WHERE 확률표 기반 정책 학습 |
 | C2 | PolicyABC + Prophecy reward | Prophecy 예측 오차를 보상에 반영 |
-| C3 | PolicyABC + Prophecy Module + Imagination Cycle | 메인 APASSR 조건 |
+| C3 | PolicyABC + Prophecy Module + Imagination Cycle | legacy lightweight prototype |
 | C4 | PolicyABC + sequence-based Prophecy + Imagination | 선택적 구현 변형/ablation |
 | C5 | Improved APASSR | ablation 결과를 반영한 개선형 |
+| APASSR_FULL | full predicted-state imagination | 논문 정렬형 구현 |
+| APASSR_FULL_CAL | calibrated APASSR_FULL | FULL의 미래가치 과신을 보정한 비교 조건 |
 | QLEARN | Tabular Q-learning baseline | 동일 정보 조건 baseline |
 | DQN_PARTIAL | Partial-observation DQN baseline | Knowledge/candidate feature 기반 DQN |
 | ORACLE_MDP | Full-map shortest-path oracle | 전체 지도를 아는 상한선, 공정 baseline 아님 |
 
-논문/발표에서 가장 중요한 조건은 C3이다.
+C3/C5는 기존 실험 재현성을 위해 유지되는 legacy 조건이다.
 
 ```text
 C3 = PolicyABC + Prophecy Module + Imagination Cycle
@@ -89,6 +91,73 @@ C5 = C3 loop
    + repeat penalty 유지
    + error avoidance 유지
    + prediction-error reward 유지
+```
+
+새 논문 정렬형 구현은 `APASSR_FULL`로 분리한다.
+
+```text
+APASSR_FULL
+= independent Policy A/B/C
++ richer Prophecy state/action/history
++ virtual Knowledge Store transition
++ future candidate regeneration
++ predicted-state multi-step imagination
+```
+
+정확한 구분은 다음과 같다.
+
+```text
+C3/C5:
+Prophecy-guided candidate scoring with lightweight dependency lookahead
+
+APASSR_FULL:
+Predicted-state multi-step imagination with virtual Knowledge Store transitions
+and future action regeneration
+
+APASSR_FULL_CAL:
+APASSR_FULL + candidate signature deduplication + confidence-discounted future
+rollout value + placeholder grounding discount
+```
+
+`APASSR_FULL`의 rollout도 실제 hidden map을 시뮬레이션하는 것이 아니라
+Knowledge Store와 Prophecy 예측에 기반한 belief/knowledge-state rollout이다.
+`APASSR_FULL_CAL` 역시 같은 경계를 유지하며, 보상/환경/rollout 깊이/branching을
+튜닝하지 않는다. 이 조건은 기존 FULL을 대체하지 않고, 과도하게 많은 imagined
+future candidate가 미래 가치를 부풀리는지 확인하기 위한 보정 비교 조건이다.
+
+진단 지표와 30x10 결과는 다음 문서에 정리했다.
+
+```text
+docs/apassr_full_diagnostic_metrics.md
+docs/apassr_full_diagnostic_results.md
+```
+
+핵심 결과는 다음과 같다.
+
+```text
+v2_complex:
+APASSR_FULL success = 0.647
+C3 success = 0.717
+DQN_PARTIAL success = 0.643
+
+locked_bottleneck:
+APASSR_FULL success = 0.197
+C3 success = 0.400
+DQN_PARTIAL success = 0.397
+```
+
+APASSR_FULL은 episode당 수천 개의 imagined state transition과 수만 개의
+newly unlocked action을 생성하므로 구조가 비활성인 것은 아니다. 그러나
+imagined next action의 exact match가 약 0.18-0.19 수준이어서, 상상한
+미래 행동이 실제 다음 행동으로 이어지는 정도는 아직 낮다.
+
+따라서 `APASSR_FULL_CAL`은 다음 네 가지 진단적 보정을 추가했다.
+
+```text
+1. placeholder candidate signature deduplication
+2. raw/unique future candidate expansion metrics
+3. confidence-discounted future rollout value
+4. placeholder grounding discount
 ```
 
 ## 3. 구현 현황
@@ -353,6 +422,7 @@ evaluation이며, hidden map을 읽거나 실제 미래 행동을 실행하지 �
 ```text
 프레임워크 구현: 완료
 C0-C5 조건 분리: 완료
+APASSR_FULL/APASSR_FULL_CAL 조건 분리: 완료
 QLEARN/DQN/ORACLE baseline: 완료
 분석/그래프/보고서 자동화: 완료
 ablation_1/2/3: 완료

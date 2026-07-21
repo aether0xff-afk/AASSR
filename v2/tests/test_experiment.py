@@ -18,6 +18,7 @@ from aassr.experiment import (
 from aassr.gridworld import ActionCandidate, ActionName
 from aassr.metrics import action_signature
 from aassr.prophecy import SequenceProphecyModel, TableProphecyModel, TransformerProphecyModel
+from aassr.v2_compare import run_v2_comparison
 from aassr.worlds import WorldKind, make_world
 
 
@@ -221,6 +222,26 @@ class ExperimentRunnerTests(unittest.TestCase):
 
         self.assertIsInstance(components.prophecy, TransformerProphecyModel)
         self.assertTrue(components.use_imagination)
+
+    def test_v2_compare_can_include_full_and_calibrated_full_in_combined_summary(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = run_v2_comparison(
+                episodes=1,
+                seeds=1,
+                step_limit=4,
+                output_dir=tmpdir,
+                world=WorldKind.V2_COMPLEX,
+                analyze=False,
+                include_apassr_full=True,
+                include_apassr_full_cal=True,
+            )
+
+            with (output / "combined_summary.csv").open(newline="", encoding="utf-8") as handle:
+                rows = list(csv.DictReader(handle))
+
+        conditions = {row["condition"] for row in rows}
+        self.assertIn("APASSR_FULL", conditions)
+        self.assertIn("APASSR_FULL_CAL", conditions)
 
 
 if __name__ == "__main__":

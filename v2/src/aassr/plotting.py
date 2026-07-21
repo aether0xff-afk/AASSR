@@ -13,6 +13,8 @@ CONDITION_COLORS = {
     "C3": "#16a34a",
     "C4": "#14b8a6",
     "C5": "#0f766e",
+    "APASSR_FULL": "#db2777",
+    "APASSR_FULL_CAL": "#9333ea",
     "QLEARN": "#0ea5e9",
     "DQN_PARTIAL": "#ef4444",
     "ORACLE_MDP": "#111827",
@@ -66,12 +68,74 @@ def write_analysis_plots(
     )
 
 
+def write_diagnostic_plots(*, diagnostic_rows: list[dict[str, Any]], output_dir: str | Path) -> None:
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    plt = _pyplot()
+    _dict_bar_chart(
+        plt,
+        diagnostic_rows,
+        field="imagined_trajectory_depth_mean",
+        title="Mean Imagined Trajectory Depth",
+        ylabel="Depth",
+        path=output_path / "figure_imagined_depth.png",
+    )
+    _dict_bar_chart(
+        plt,
+        diagnostic_rows,
+        field="newly_unlocked_action_mean",
+        title="Newly Unlocked Actions per Episode",
+        ylabel="Actions",
+        path=output_path / "figure_unlocked_actions.png",
+    )
+    _dict_bar_chart(
+        plt,
+        diagnostic_rows,
+        field="future_dependency_selection_rate_mean",
+        title="Future Dependency Selection Rate",
+        ylabel="Rate",
+        path=output_path / "figure_future_dependency_rate.png",
+    )
+    _dict_bar_chart(
+        plt,
+        diagnostic_rows,
+        field="predicted_kk_f1_mean",
+        title="Predicted KK F1 by Condition",
+        ylabel="F1",
+        path=output_path / "figure_prophecy_kk_alignment.png",
+    )
+    _dict_bar_chart(
+        plt,
+        diagnostic_rows,
+        field="imagined_action_execution_match_rate_mean",
+        title="Imagined Next-Action Exact Match",
+        ylabel="Rate",
+        path=output_path / "figure_imagined_action_match.png",
+    )
+
+
 def _bar_chart(plt: Any, rows: list[Any], *, field: str, title: str, ylabel: str, path: Path) -> None:
     conditions = [row.condition for row in rows]
     labels = [condition_label(condition) for condition in conditions]
     values = [getattr(row, field) for row in rows]
     colors = [CONDITION_COLORS.get(condition, "#475569") for condition in conditions]
     fig, ax = plt.subplots(figsize=(6.4, 4.0))
+    ax.bar(labels, values, color=colors)
+    ax.set_title(title)
+    ax.set_ylabel(ylabel)
+    ax.set_xlabel("Condition")
+    ax.grid(axis="y", alpha=0.25)
+    fig.tight_layout()
+    fig.savefig(path, dpi=160)
+    plt.close(fig)
+
+
+def _dict_bar_chart(plt: Any, rows: list[dict[str, Any]], *, field: str, title: str, ylabel: str, path: Path) -> None:
+    conditions = [str(row["condition"]) for row in rows]
+    labels = [condition_label(condition) for condition in conditions]
+    values = [_safe_float(row.get(field)) for row in rows]
+    colors = [CONDITION_COLORS.get(condition, "#475569") for condition in conditions]
+    fig, ax = plt.subplots(figsize=(7.2, 4.0))
     ax.bar(labels, values, color=colors)
     ax.set_title(title)
     ax.set_ylabel(ylabel)
@@ -137,3 +201,12 @@ def _pyplot() -> Any:
     import matplotlib.pyplot as plt
 
     return plt
+
+
+def _safe_float(value: Any) -> float:
+    try:
+        if value in {"", None}:
+            return 0.0
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0

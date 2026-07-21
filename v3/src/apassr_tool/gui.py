@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from pathlib import Path
 import queue
 import threading
 import time
@@ -10,11 +11,13 @@ from typing import Any
 
 from .dmp import APASSRToolDMP, StepRecord
 from .experiment import _objective_settings, _top_prophecy
+from .juice_train import _append_jsonl, _checkpoint, _episode_row, _write_json
 from .novelty import NoveltyMemory
 from .plugins import available_plugins, get_plugin, plugin_manifest_rows
 from .policy import PolicyABC
 from .prophecy import TableProphecyModel
 from .reward import JuiceShopChallengeObserver
+from .targets import ensure_local_target
 from .tools import ToolExecutor
 
 
@@ -77,6 +80,9 @@ class TrainerThread(threading.Thread):
         prefer_curl: bool,
         backend: str,
         reward_observer_name: str,
+        save_records: bool,
+        output_root: str,
+        auto_start_target: bool,
         pause_event: threading.Event,
         stop_event: threading.Event,
     ) -> None:
@@ -90,11 +96,22 @@ class TrainerThread(threading.Thread):
         self.prefer_curl = prefer_curl
         self.backend = backend
         self.reward_observer_name = reward_observer_name
+        self.save_records = save_records
+        self.output_root = output_root
+        self.auto_start_target = auto_start_target
         self.pause_event = pause_event
         self.stop_event = stop_event
 
     def run(self) -> None:
         started_at = time.time()
+        if self.auto_start_target:
+            self.events.put(("target_status", {"message": f"starting/checking target {self.base_url}"}))
+            status = ensure_local_target(self.base_url, plugin=self.plugin_name)
+            self.events.put(("target_status", {"message": status.message, "ok": status.ok}))
+            if not status.ok:
+                self.events.put(("error", status.message))
+                self.events.put(("done", {"elapsed_s": time.time() - started_at}))
+                return
         policy = PolicyABC()
         prophecy = TableProphecyModel()
         novelty = NoveltyMemory()
@@ -102,6 +119,25 @@ class TrainerThread(threading.Thread):
         reward_observer = plugin.reward_observer(self.reward_observer_name, self.base_url)
         config = _objective_settings(self.objective)
         observer = GuiObserver(self.events)
+        episode_rows: list[dict[str, Any]] = []
+        log_paths = _prepare_log_paths(self.output_root) if self.save_records else None
+        if log_paths is not None:
+            self.events.put(("log_dir", {"path": str(log_paths["dir"])}))
+            _write_json(
+                log_paths["config"],
+                {
+                    "base_url": self.base_url,
+                    "plugin": self.plugin_name,
+                    "objective": self.objective,
+                    "episodes": self.episodes,
+                    "step_limit": self.step_limit,
+                    "prefer_curl": self.prefer_curl,
+                    "backend": self.backend,
+                    "reward_observer": self.reward_observer_name,
+                    "auto_start_target": self.auto_start_target,
+                    "started_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                },
+            )
 
         try:
             for episode in range(self.episodes):
@@ -134,6 +170,31 @@ class TrainerThread(threading.Thread):
                         break
                     record, _ = dmp.execute_candidate(step, candidate)
                     dmp.records.append(record)
+                    if log_paths is not None:
+                        _append_jsonl(log_paths["records"], {"episode": episode, **asdict(record)})
+                    completed_steps = episode * self.step_limit + step + 1
+                    total_steps = max(self.episodes * self.step_limit, 1)
+                    elapsed_s = time.time() - started_at
+                    eta_s = elapsed_s / max(completed_steps, 1) * max(total_steps - completed_steps, 0)
+                    self.events.put(
+                        (
+                            "progress_tick",
+                            {
+                                "episode": episode,
+                                "episodes": self.episodes,
+                                "step": step + 1,
+                                "step_limit": self.step_limit,
+                                "completed_steps": completed_steps,
+                                "total_steps": total_steps,
+                                "elapsed_s": elapsed_s,
+                                "eta_s": eta_s,
+                                "reward": sum(item.reward for item in dmp.records),
+                                "new_kv": sum(item.new_kv for item in dmp.records),
+                                "errors": sum(1 for item in dmp.records if item.status == 0 or item.status >= 400),
+                                "solved_total": record.solved_total,
+                            },
+                        )
+                    )
                 solved_count = 0
                 challenge_total = 0
                 solved_items: list[str] = []
@@ -141,6 +202,47 @@ class TrainerThread(threading.Thread):
                     solved_count = len(reward_observer.solved_keys)
                     challenge_total = reward_observer.challenge_total
                     solved_items = list(reward_observer.solved_keys)
+                    row = _episode_row(
+                        episode=episode,
+                        result_records=dmp.records,
+                        success=bool(dmp.solved_challenges),
+                        steps=len(dmp.records),
+                        new_solved=dmp.solved_challenges,
+                        observer=reward_observer,
+                        prophecy=prophecy,
+                        novelty=novelty,
+                    )
+                else:
+                    row = _generic_episode_row(
+                        episode=episode,
+                        records=dmp.records,
+                        prophecy=prophecy,
+                        novelty=novelty,
+                    )
+                episode_rows.append(row)
+                if log_paths is not None:
+                    _append_jsonl(log_paths["episodes"], row)
+                    _write_gui_summary(
+                        log_paths,
+                        policy=policy,
+                        prophecy=prophecy,
+                        novelty=novelty,
+                        reward_observer=reward_observer,
+                        episode_rows=episode_rows,
+                        started_at=started_at,
+                        run_config={
+                            "base_url": self.base_url,
+                            "episodes_requested": self.episodes,
+                            "episodes_completed": len(episode_rows),
+                            "step_limit": self.step_limit,
+                            "objective": self.objective,
+                            "backend": self.backend,
+                            "plugin": self.plugin_name,
+                            "prefer_curl": self.prefer_curl,
+                            "reward_observer": self.reward_observer_name,
+                            "auto_start_target": self.auto_start_target,
+                        },
+                    )
                 self.events.put(
                     (
                         "episode_end",
@@ -161,6 +263,29 @@ class TrainerThread(threading.Thread):
         except Exception as exc:  # pragma: no cover - GUI safety net
             self.events.put(("error", str(exc)))
         finally:
+            if log_paths is not None:
+                _write_gui_summary(
+                    log_paths,
+                    policy=policy,
+                    prophecy=prophecy,
+                    novelty=novelty,
+                    reward_observer=reward_observer,
+                    episode_rows=episode_rows,
+                    started_at=started_at,
+                    run_config={
+                        "base_url": self.base_url,
+                        "episodes_requested": self.episodes,
+                        "episodes_completed": len(episode_rows),
+                        "step_limit": self.step_limit,
+                        "objective": self.objective,
+                        "backend": self.backend,
+                        "plugin": self.plugin_name,
+                        "prefer_curl": self.prefer_curl,
+                        "reward_observer": self.reward_observer_name,
+                        "auto_start_target": self.auto_start_target,
+                        "stopped": self.stop_event.is_set(),
+                    },
+                )
             self.events.put(("done", {"elapsed_s": time.time() - started_at}))
 
 
@@ -176,6 +301,7 @@ class App(tk.Tk):
         self.stop_event = threading.Event()
         self.episode_count = 0
         self.started_at = 0.0
+        self.had_error = False
         self._configure_style()
         self._build_ui()
         self.after(100, self._poll_events)
@@ -260,6 +386,9 @@ class App(tk.Tk):
         self.reward_observer = tk.StringVar(value="juice-shop")
         self.prefer_curl = tk.BooleanVar(value=False)
         self.backend = tk.StringVar(value="local")
+        self.save_records = tk.BooleanVar(value=True)
+        self.output_root = tk.StringVar(value="runs/gui_train")
+        self.auto_start_target = tk.BooleanVar(value=True)
 
         _entry(box, "Target URL", self.base_url)
         _combo(box, "Plugin", self.plugin, available_plugins())
@@ -268,7 +397,10 @@ class App(tk.Tk):
         _entry(box, "Episodes", self.episodes)
         _entry(box, "Step limit", self.step_limit)
         _combo(box, "Backend", self.backend, ("local", "wsl"))
+        ttk.Checkbutton(box, text="Auto start local target", variable=self.auto_start_target).pack(anchor="w")
         ttk.Checkbutton(box, text="Prefer curl", variable=self.prefer_curl).pack(anchor="w")
+        ttk.Checkbutton(box, text="Save detailed logs", variable=self.save_records).pack(anchor="w")
+        _entry(box, "Output root", self.output_root)
         row = ttk.Frame(box)
         row.pack(fill="x", pady=(8, 0))
         ttk.Button(row, text="▶ Start", command=self._start, style="Primary.TButton").pack(side="left", padx=(0, 4))
@@ -284,6 +416,7 @@ class App(tk.Tk):
         self.progress_reward = tk.StringVar(value="-")
         self.progress_kv = tk.StringVar(value="-")
         self.progress_eta = tk.StringVar(value="-")
+        self.progress_log_dir = tk.StringVar(value="-")
         for label, variable in [
             ("Status", self.progress_text),
             ("Episode", self.progress_episode),
@@ -291,6 +424,7 @@ class App(tk.Tk):
             ("Reward", self.progress_reward),
             ("New KV", self.progress_kv),
             ("ETA", self.progress_eta),
+            ("Log dir", self.progress_log_dir),
         ]:
             row = ttk.Frame(box)
             row.pack(fill="x", pady=1)
@@ -345,10 +479,10 @@ class App(tk.Tk):
         for column in columns:
             self.candidate_tree.heading(column, text=headings[column])
             self.candidate_tree.column(column, width=widths[column], anchor="w")
-        self.candidate_tree.tag_configure("selected", background="#d1e7dd", foreground="#0f5132")
-        self.candidate_tree.tag_configure("explore", background="#e8f0fe", foreground="#174ea6")
-        self.candidate_tree.tag_configure("risk", background="#fce8e6", foreground="#a50e0e")
-        self.candidate_tree.tag_configure("repeat", background="#fff4ce", foreground="#7a4d00")
+        self.candidate_tree.tag_configure("selected", background="#eef2f7", foreground="#1b2a41")
+        self.candidate_tree.tag_configure("explore", background="#f7f9fc", foreground="#344054")
+        self.candidate_tree.tag_configure("risk", background="#f6f6f6", foreground="#4b5563")
+        self.candidate_tree.tag_configure("repeat", background="#f6f6f6", foreground="#4b5563")
         self.candidate_tree.pack(fill="both", expand=True)
 
     def _build_timeline(self, parent: ttk.Frame) -> None:
@@ -368,9 +502,9 @@ class App(tk.Tk):
         }.items():
             self.timeline.heading(column, text=column)
             self.timeline.column(column, width=width, anchor="w")
-        self.timeline.tag_configure("success", background="#d1e7dd", foreground="#0f5132")
-        self.timeline.tag_configure("knowledge", background="#e8f0fe", foreground="#174ea6")
-        self.timeline.tag_configure("error", background="#fce8e6", foreground="#a50e0e")
+        self.timeline.tag_configure("success", background="#eef2f7", foreground="#1b2a41")
+        self.timeline.tag_configure("knowledge", background="#f7f9fc", foreground="#344054")
+        self.timeline.tag_configure("error", background="#f6f6f6", foreground="#4b5563")
         self.timeline.tag_configure("neutral", background="#ffffff", foreground="#1b2a41")
         self.timeline.pack(fill="both", expand=True)
 
@@ -389,10 +523,10 @@ class App(tk.Tk):
         self.breakdown_tree.heading("value", text="value")
         self.breakdown_tree.column("factor", width=170, anchor="w")
         self.breakdown_tree.column("value", width=110, anchor="w")
-        self.breakdown_tree.tag_configure("strong", background="#d1e7dd", foreground="#0f5132")
-        self.breakdown_tree.tag_configure("medium", background="#e8f0fe", foreground="#174ea6")
-        self.breakdown_tree.tag_configure("warning", background="#fff4ce", foreground="#7a4d00")
-        self.breakdown_tree.tag_configure("danger", background="#fce8e6", foreground="#a50e0e")
+        self.breakdown_tree.tag_configure("strong", background="#eef2f7", foreground="#1b2a41")
+        self.breakdown_tree.tag_configure("medium", background="#f7f9fc", foreground="#344054")
+        self.breakdown_tree.tag_configure("warning", background="#f6f6f6", foreground="#4b5563")
+        self.breakdown_tree.tag_configure("danger", background="#f6f6f6", foreground="#4b5563")
         self.breakdown_tree.pack(fill="x")
 
     def _build_knowledge_view(self, parent: ttk.Frame) -> None:
@@ -403,8 +537,8 @@ class App(tk.Tk):
         for column in columns:
             self.knowledge_tree.heading(column, text=column)
             self.knowledge_tree.column(column, width=120 if column != "latest" else 230, anchor="w")
-        self.knowledge_tree.tag_configure("rich", background="#d1e7dd", foreground="#0f5132")
-        self.knowledge_tree.tag_configure("new", background="#e8f0fe", foreground="#174ea6")
+        self.knowledge_tree.tag_configure("rich", background="#eef2f7", foreground="#1b2a41")
+        self.knowledge_tree.tag_configure("new", background="#f7f9fc", foreground="#344054")
         self.knowledge_tree.pack(fill="both", expand=True)
 
     def _build_policy_table(self, parent: ttk.Frame) -> None:
@@ -415,8 +549,8 @@ class App(tk.Tk):
         for column, width in {"axis": 70, "key": 190, "probability": 95}.items():
             self.policy_tree.heading(column, text=column)
             self.policy_tree.column(column, width=width, anchor="w")
-        self.policy_tree.tag_configure("high", background="#d1e7dd", foreground="#0f5132")
-        self.policy_tree.tag_configure("mid", background="#e8f0fe", foreground="#174ea6")
+        self.policy_tree.tag_configure("high", background="#eef2f7", foreground="#1b2a41")
+        self.policy_tree.tag_configure("mid", background="#f7f9fc", foreground="#344054")
         self.policy_tree.tag_configure("low", background="#f8f9fa", foreground="#5f6b7a")
         self.policy_tree.pack(fill="both", expand=True)
 
@@ -431,6 +565,7 @@ class App(tk.Tk):
             return
         self.stop_event.clear()
         self.pause_event.clear()
+        self.had_error = False
         self.episode_count = 0
         self._clear_tree(self.candidate_tree)
         self._clear_tree(self.timeline)
@@ -444,6 +579,9 @@ class App(tk.Tk):
             prefer_curl=bool(self.prefer_curl.get()),
             backend=self.backend.get(),
             reward_observer_name=self.reward_observer.get(),
+            save_records=bool(self.save_records.get()),
+            output_root=self.output_root.get(),
+            auto_start_target=bool(self.auto_start_target.get()),
             pause_event=self.pause_event,
             stop_event=self.stop_event,
         )
@@ -455,6 +593,7 @@ class App(tk.Tk):
         self.progress_reward.set("0.00")
         self.progress_kv.set("0")
         self.progress_eta.set("calculating")
+        self.progress_log_dir.set("creating..." if self.save_records.get() else "disabled")
 
     def _toggle_pause(self) -> None:
         if self.pause_event.is_set():
@@ -492,6 +631,29 @@ class App(tk.Tk):
             data = payload  # type: ignore[assignment]
             self.module_message.set(str(data["message"]))  # type: ignore[index]
             self._draw_module_flow(active=str(data["active"]))  # type: ignore[index]
+        elif kind == "log_dir":
+            data = payload  # type: ignore[assignment]
+            self.progress_log_dir.set(str(data["path"]))  # type: ignore[index]
+        elif kind == "target_status":
+            data = payload  # type: ignore[assignment]
+            self.progress_text.set(str(data["message"]))  # type: ignore[index]
+        elif kind == "progress_tick":
+            data = payload  # type: ignore[assignment]
+            self.progress_text.set(
+                "episode {episode}/{episodes} step {step}/{step_limit} "
+                "({completed_steps}/{total_steps})".format(
+                    episode=int(data["episode"]) + 1,  # type: ignore[index]
+                    episodes=data["episodes"],  # type: ignore[index]
+                    step=data["step"],  # type: ignore[index]
+                    step_limit=data["step_limit"],  # type: ignore[index]
+                    completed_steps=data["completed_steps"],  # type: ignore[index]
+                    total_steps=data["total_steps"],  # type: ignore[index]
+                )
+            )
+            self.progress_episode.set(f"{int(data['episode']) + 1}/{data['episodes']}")  # type: ignore[index]
+            self.progress_reward.set(f"{float(data['reward']):.2f}")  # type: ignore[index]
+            self.progress_kv.set(str(data["new_kv"]))  # type: ignore[index]
+            self.progress_eta.set(_format_duration(float(data["eta_s"])))  # type: ignore[index]
         elif kind == "episode_end":
             data = payload  # type: ignore[assignment]
             self.progress_text.set(
@@ -507,11 +669,13 @@ class App(tk.Tk):
             elapsed = max(float(data["elapsed_s"]), 0.001)  # type: ignore[index]
             completed = int(data["episode"]) + 1  # type: ignore[index]
             eta = elapsed / completed * remaining
-            self.progress_eta.set(f"{eta:.1f}s")
+            self.progress_eta.set(_format_duration(eta))
         elif kind == "error":
+            self.had_error = True
             self.progress_text.set(f"error: {payload}")
         elif kind == "done":
-            self.progress_text.set(f"done elapsed={payload['elapsed_s']:.1f}s")  # type: ignore[index]
+            if not self.had_error:
+                self.progress_text.set(f"done elapsed={payload['elapsed_s']:.1f}s")  # type: ignore[index]
             self._draw_module_flow(active="")
 
     def _update_candidates(self, rows: list[dict[str, Any]]) -> None:
@@ -736,20 +900,110 @@ def _prophecy_snapshot(prophecy: TableProphecyModel) -> dict[str, Any]:
 
 
 def _module_color(module: str, is_active: bool) -> tuple[str, str]:
-    palette = {
-        "Knowledge": ("#e8f0fe", "#174ea6"),
-        "Candidate Binding": ("#e6f4ea", "#137333"),
-        "PolicyABC": ("#fef7e0", "#b06000"),
-        "Prophecy": ("#f3e8fd", "#8430ce"),
-        "Imagination": ("#e0f2f1", "#00796b"),
-        "Execution": ("#fce8e6", "#a50e0e"),
-        "Observation": ("#e8f0fe", "#0b57d0"),
-        "Knowledge Update": ("#d1e7dd", "#0f5132"),
-    }
-    fill, outline = palette.get(module, ("#f8f9fa", "#5f6b7a"))
     if is_active:
-        return fill, outline
-    return "#ffffff", outline
+        return "#eef2f7", "#344054"
+    return "#ffffff", "#98a2b3"
+
+
+def _format_duration(seconds: float) -> str:
+    seconds = max(float(seconds), 0.0)
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    minutes, remaining_seconds = divmod(int(round(seconds)), 60)
+    if minutes < 60:
+        return f"{minutes}m {remaining_seconds:02d}s"
+    hours, remaining_minutes = divmod(minutes, 60)
+    return f"{hours}h {remaining_minutes:02d}m"
+
+
+def _prepare_log_paths(output_root: str) -> dict[str, Path]:
+    root = Path(output_root or "runs/gui_train")
+    run_dir = root / time.strftime("gui_%Y%m%d_%H%M%S")
+    suffix = 1
+    while run_dir.exists():
+        suffix += 1
+        run_dir = root / f"{time.strftime('gui_%Y%m%d_%H%M%S')}_{suffix}"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    return {
+        "dir": run_dir,
+        "config": run_dir / "run_config.json",
+        "episodes": run_dir / "juice_train_episodes.jsonl",
+        "records": run_dir / "juice_train_records.jsonl",
+        "summary": run_dir / "juice_train_summary.json",
+        "checkpoint": run_dir / "checkpoint_latest.json",
+    }
+
+
+def _generic_episode_row(
+    *,
+    episode: int,
+    records: list[StepRecord],
+    prophecy: TableProphecyModel,
+    novelty: NoveltyMemory,
+) -> dict[str, Any]:
+    return {
+        "episode": episode,
+        "success": bool(sum(record.solved_delta for record in records)),
+        "steps": len(records),
+        "new_solved_count": sum(record.solved_delta for record in records),
+        "new_solved": [],
+        "cumulative_solved": records[-1].solved_total if records else 0,
+        "challenge_total": 0,
+        "total_reward": sum(record.reward for record in records),
+        "policy_reward": sum(record.policy_reward for record in records),
+        "novelty_bonus": sum(record.novelty_bonus for record in records),
+        "new_kv_total": sum(record.new_kv for record in records),
+        "error_count": sum(1 for record in records if record.status >= 400 or record.status == 0),
+        "prophecy_stat_count": len(prophecy.stats),
+        "novelty_signature_count": len(novelty.signature_counts),
+        "last_action": records[-1].action if records else "",
+    }
+
+
+def _write_gui_summary(
+    log_paths: dict[str, Path],
+    *,
+    policy: PolicyABC,
+    prophecy: TableProphecyModel,
+    novelty: NoveltyMemory,
+    reward_observer: Any,
+    episode_rows: list[dict[str, Any]],
+    started_at: float,
+    run_config: dict[str, Any],
+) -> None:
+    if isinstance(reward_observer, JuiceShopChallengeObserver):
+        summary = _checkpoint(policy, prophecy, novelty, reward_observer, episode_rows)
+    else:
+        summary = {
+            "solved": {
+                "count": episode_rows[-1]["cumulative_solved"] if episode_rows else 0,
+                "challenge_total": 0,
+                "keys": [],
+            },
+            "episodes": episode_rows,
+            "policy": {
+                "what": {key.value: value for key, value in policy.what_probs.items()},
+                "how": {key.value: value for key, value in policy.how_probs.items()},
+                "where": {key.value: value for key, value in policy.where_probs.items()},
+            },
+            "prophecy": {
+                "implementation": "TableProphecyModel",
+                "stat_count": len(prophecy.stats),
+                "top_reward": _top_prophecy(prophecy, by="reward"),
+                "top_solved": _top_prophecy(prophecy, by="solved"),
+            },
+            "novelty": {
+                "signature_count": len(novelty.signature_counts),
+                "chain_count": len(novelty.chain_counts),
+                "response_count": len(novelty.response_counts),
+                "top_signatures": sorted(novelty.signature_counts.items(), key=lambda row: row[1], reverse=True)[:10],
+            },
+        }
+    summary["run"] = dict(run_config)
+    summary["run"]["elapsed_s"] = round(time.time() - started_at, 3)
+    summary["run"]["source"] = "gui"
+    _write_json(log_paths["summary"], summary)
+    _write_json(log_paths["checkpoint"], summary)
 
 
 def _entry(parent: ttk.Frame, label: str, variable: tk.Variable) -> None:

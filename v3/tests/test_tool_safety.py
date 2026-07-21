@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import subprocess
 import unittest
+from unittest.mock import patch
 
 from apassr_tool.tools import SafetyError, ToolCall, ToolExecutor, ToolName
 from apassr_tool.sandbox_server import make_server
@@ -87,6 +89,18 @@ class ToolSafetyTests(unittest.TestCase):
 
         self.assertEqual(result.status, 0)
         self.assertTrue(result.blocked)
+
+    def test_curl_timeout_returns_blocked_result_instead_of_crashing(self) -> None:
+        executor = ToolExecutor(prefer_curl=True, timeout_s=0.01)
+        executor.curl_path = "curl"
+        with patch("apassr_tool.tools.subprocess.run") as run:
+            run.side_effect = subprocess.TimeoutExpired(["curl"], timeout=1.01)
+
+            result = executor.execute(ToolCall(ToolName.CURL_GET, url=f"http://127.0.0.1:{self.port}/"))
+
+        self.assertEqual(result.status, 0)
+        self.assertTrue(result.blocked)
+        self.assertIn("timed out", result.stderr)
 
     def test_python_requests_fallback_preserves_session_cookies(self) -> None:
         executor = ToolExecutor(prefer_curl=False)

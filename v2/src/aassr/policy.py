@@ -107,6 +107,11 @@ class PolicyABC:
         self._update_axis(self.policy_b, how, reward)
         self._update_axis(self.policy_c, where, reward)
 
+    def update_weighted(self, candidate: CandidateT, reward: float, weight: float) -> None:
+        if weight <= 0.0:
+            return
+        self.update(candidate, reward * weight)
+
     def candidate_probability(self, candidate: CandidateT) -> float:
         what, how, where = candidate_axes(candidate)
         return (

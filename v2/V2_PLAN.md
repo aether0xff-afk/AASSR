@@ -13,7 +13,8 @@ environment.
 - 2 door cells
 - 2 hint cells pointing to the flag
 - 1 far flag cell
-- C0/C1/C2/C3/C4/C5 comparison
+- C0/C1/C2/C3/C4/C5 comparison preserved
+- APASSR_FULL condition for paper-aligned predicted-state imagination
 - QLEARN, DQN_PARTIAL, and ORACLE_MDP baseline comparison
 - Automated analysis and plots
 - Paper-facing ablation suites:
@@ -36,7 +37,7 @@ it does not receive the hidden full map.
 behind mandatory door bottlenecks, so agents must discover and reuse key/door
 knowledge rather than only wander toward local frontier cells.
 
-C3 remains the main paper-aligned framework condition:
+C3 remains the legacy paper-facing prototype condition:
 
 ```text
 C3 = PolicyABC + Prophecy Module + Imagination Cycle
@@ -65,6 +66,31 @@ C5 = C3 loop
 
 C5 is intended for improved-performance comparison. It does not replace C3 as
 the vanilla paper-aligned condition.
+
+APASSR_FULL is the new paper-aligned full structure:
+
+```text
+APASSR_FULL =
+  independent Policy A/B/C
+  + richer Prophecy state/action/history features
+  + virtual Knowledge Store transition
+  + future candidate regeneration
+  + predicted-state multi-step imagination
+```
+
+Legacy and full imagination should be described differently:
+
+```text
+C3/C5:
+Prophecy-guided candidate scoring with lightweight dependency lookahead
+
+APASSR_FULL:
+Predicted-state multi-step imagination with virtual Knowledge Store transitions
+and future action regeneration
+```
+
+The APASSR_FULL rollout is a belief/knowledge-state rollout. It does not read
+hidden GridWorld map cells or execute future actions.
 
 Environment changes such as `v2_complex` and `locked_bottleneck` are not
 ablations. They are controlled environment sweeps used to check whether the

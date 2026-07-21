@@ -102,12 +102,12 @@ def paper_project_comparison_rows() -> list[dict[str, str]]:
         {
             "axis": "Imagination",
             "Original APASSR / prior setting": "Evaluates candidate actions before execution using predicted outcomes.",
-            "This project": "ImaginationCycle performs depth-limited candidate rollout from ProphecyPrediction without reading hidden GridWorld map state.",
+            "This project": "C3/C5 use lightweight dependency lookahead; APASSR_FULL uses predicted-state Knowledge Store rollout without reading hidden GridWorld map state.",
         },
         {
             "axis": "Reward target",
             "Original APASSR / prior setting": "Task success plus useful knowledge gain and prediction quality.",
-            "This project": "Sparse flag reward, semantic knowledge gain, error/repeat penalties, and optional prophecy prediction error reward.",
+            "This project": "Sparse flag reward, semantic knowledge gain, error/repeat penalties, and optional prophecy surprise/curiosity reward from prediction error.",
         },
         {
             "axis": "Experiment conditions",
@@ -124,7 +124,7 @@ def implementation_status_rows() -> list[dict[str, str]]:
         {"module": "PolicyABC", "status": "Implemented", "evidence": "WHAT/HOW/WHERE probability tables with reward update and min-prob floor"},
         {"module": "Prophecy", "status": "Implemented", "evidence": "ProphecyModule interface with TableProphecyModel as lightweight implementation and SequenceProphecyModel as optional variant"},
         {"module": "Imagination", "status": "Implemented", "evidence": "Depth-limited Prophecy-based candidate rollout before execution"},
-        {"module": "ExperimentRunner", "status": "Implemented", "evidence": "C0/C1/C2/C3/C4/C5 runner, randomized worlds, combined summary CSV"},
+        {"module": "ExperimentRunner", "status": "Implemented", "evidence": "C0/C1/C2/C3/C4/C5 runner plus explicit APASSR_FULL condition, randomized worlds, combined summary CSV"},
         {"module": "Analysis", "status": "Implemented", "evidence": "Seed-level bootstrap CI, paper-facing plots, report.md"},
         {"module": "Full paper result", "status": "Pending run", "evidence": "Requires medium/paper-candidate experiment execution and interpretation"},
     ]

@@ -8,6 +8,10 @@ Current implementation progress is summarized in `docs/progress.md`.
 The current paper-facing Korean research summary is available at
 `docs/research_summary_ko.md`.
 
+APASSR_FULL diagnostic metric definitions and the first 30x10 diagnostic
+results are documented in `docs/apassr_full_diagnostic_metrics.md` and
+`docs/apassr_full_diagnostic_results.md`.
+
 The central idea is:
 
 ```text
@@ -43,7 +47,7 @@ candidate actions using those predictions before execution. The DMP then closes
 the loop through observation, knowledge update, action parameter binding, and
 execution.
 
-`C3` is the main paper-aligned framework condition:
+`C3` is the legacy paper-facing prototype condition:
 
 ```text
 C3 = PolicyABC + Prophecy Module + Imagination Cycle
@@ -59,15 +63,80 @@ keeps the C3 loop but disables unconditional knowledge-gain scoring inside the
 Imagination score. C5 is reported as an improved variant, not as the vanilla
 paper framework.
 
+`APASSR_FULL` is the new paper-aligned full structure:
+
+```text
+APASSR_FULL =
+  independent Policy A/B/C
+  + richer Prophecy state/action/history features
+  + virtual Knowledge Store transition
+  + future candidate regeneration
+  + predicted-state multi-step imagination
+```
+
+In short:
+
+```text
+C3/C5:
+Prophecy-guided candidate scoring with lightweight dependency lookahead
+
+APASSR_FULL:
+Predicted-state multi-step imagination with virtual Knowledge Store transitions
+and future action regeneration
+```
+
+## Calibrated APASSR_FULL (APASSR_FULL_CAL)
+
+`APASSR_FULL_CAL` is a separate comparison condition, not a replacement for
+`APASSR_FULL`. It keeps the same predicted-state rollout structure and adds
+calibration diagnostics/discounts for the failure mode observed in the first
+30x10 diagnostic runs: many imagined future candidates were generated, but the
+imagined next action often did not match the next real action.
+
+Implemented changes:
+
+1. Candidate signature deduplication: placeholder values such as
+   `imagined-key#1` and `imagined-key#2` canonicalize to the same placeholder
+   identity for the same KK slot, while different concrete targets remain
+   distinct.
+2. Unique future expansion metrics: raw and unique future candidate counts,
+   duplicate counts, raw and unique newly unlocked action counts, and ratio
+   fields are written to step, episode, summary, and analysis CSVs.
+3. Confidence-discounted rollout value: the selected real action's immediate
+   value is preserved, while future rollout value is multiplied by cumulative
+   predicted-transition confidence.
+4. Placeholder grounding discount: future value that depends only on imagined
+   placeholder KVs is discounted more strongly than concrete-grounded value;
+   mixed concrete/placeholder grounding uses a separate intermediate factor.
+
+The future-step value is:
+
+```text
+V_t = gamma^t * immediate_t * path_confidence_t, for t > 0
+path_confidence_t = product_i<=t clamp(transition_confidence_i * grounding_factor_i)
+```
+
+The first action's immediate value is intentionally not confidence-discounted,
+so a zero grounding confidence removes future value without suppressing the
+currently executable action. This follows the APASSR idea that imagination
+should evaluate predicted future enablement, not execute or replace the real
+DMP action.
+
+`APASSR_FULL_CAL` does not change the environment, reward function, prophecy
+learning rule, rollout depth, rollout branching, or hidden-map access boundary.
+It should be reported beside `APASSR_FULL`, C0-C5, QLEARN, DQN_PARTIAL, and
+ORACLE_MDP.
+
 ## Scope Notes
 
 The GridWorld benchmark is not intended to replace the original nmap-based
 pentesting experiment. It is an abstract environment used to test the
 knowledge-action dependency mechanism under controlled conditions.
 
-The current Imagination Cycle performs depth-limited candidate rollout using
-Prophecy predictions. It should not be described as environment-simulated
-rollout because it does not execute future actions or read the hidden map.
+C3/C5 Imagination performs lightweight dependency lookahead over current
+candidates. `APASSR_FULL` performs belief/knowledge-state rollout using virtual
+Knowledge Store transitions. Neither path executes future actions or reads the
+hidden map.
 
 ## Core Concepts
 
@@ -347,10 +416,10 @@ This repository includes a small Python prototype for the design above.
 | `src/aassr/reward.py` | Sparse external reward and knowledge-change intrinsic signal |
 | `src/aassr/policy.py` | C0/C1-ready selectors plus Policy A/B/C probability table scaffold |
 | `src/aassr/prophecy.py` | Prophecy Module interface plus table, optional sequence, and optional Transformer implementations |
-| `src/aassr/imagination.py` | Depth-limited C3 candidate rollout using Prophecy predictions |
+| `src/aassr/imagination.py` | Legacy C3/C5 lookahead plus APASSR_FULL predicted-state Knowledge rollout |
 | `src/aassr/worlds.py` | Fixed and randomized GridWorld builders for experiment generality checks |
 | `src/aassr/metrics.py` | Step, episode, and summary metric rows for experiments |
-| `src/aassr/experiment.py` | C0/C1/C2/C3/C4/C5 GridWorld experiment runner and CSV writer |
+| `src/aassr/experiment.py` | C0/C1/C2/C3/C4/C5 runner plus explicit APASSR_FULL condition and CSV writer |
 | `src/aassr/ablation.py` | Paper-facing ablation suites for Prophecy implementation, Prophecy reward, and Imagination depth/branching |
 | `src/aassr/analysis.py` | Experiment result analysis, seed-level bootstrap CI, report generation |
 | `src/aassr/plotting.py` | Matplotlib figures for paper-facing result plots |
@@ -396,9 +465,11 @@ Current development conditions are:
 | `C0` | RandomScorer |
 | `C1` | PolicyABC |
 | `C2` | PolicyABC + Prophecy Module reward |
-| `C3` | Main framework: PolicyABC + Prophecy Module + Imagination |
+| `C3` | Legacy prototype: Prophecy-guided candidate scoring with lightweight dependency lookahead |
 | `C4` | Optional ablation: PolicyABC + sequence-based Prophecy implementation + Imagination |
 | `C5` | Improved APASSR: C3 loop with ablation-derived Imagination weights |
+| `APASSR_FULL` | Full predicted-state imagination with future action regeneration |
+| `APASSR_FULL_CAL` | APASSR_FULL plus candidate deduplication and confidence-calibrated future value |
 
 Run experiment conditions with:
 
@@ -409,6 +480,22 @@ $env:PYTHONPATH='src'; python -m aassr.experiment --condition C2 --episodes 100 
 $env:PYTHONPATH='src'; python -m aassr.experiment --condition C3 --episodes 100 --seeds 10
 $env:PYTHONPATH='src'; python -m aassr.experiment --condition C4 --episodes 100 --seeds 10
 $env:PYTHONPATH='src'; python -m aassr.experiment --condition C5 --episodes 100 --seeds 10
+$env:PYTHONPATH='src'; python -m aassr.experiment --condition APASSR_FULL --episodes 100 --seeds 10
+$env:PYTHONPATH='src'; python -m aassr.experiment --condition APASSR_FULL_CAL --episodes 100 --seeds 10
+```
+
+Run the APASSR_FULL diagnostic comparison with:
+
+```powershell
+$env:PYTHONPATH='src'; python -m aassr.v2_compare --world v2_complex --episodes 30 --seeds 10 --step-limit 120 --workers 6 --include-apassr-full --output-dir runs\apassr_full_diagnostic_v2_complex_30x10
+$env:PYTHONPATH='src'; python -m aassr.v2_compare --world locked_bottleneck --episodes 30 --seeds 10 --step-limit 120 --workers 6 --include-apassr-full --output-dir runs\apassr_full_diagnostic_locked_bottleneck_30x10
+```
+
+Run the calibrated comparison with both full conditions:
+
+```powershell
+$env:PYTHONPATH='src'; python -m aassr.v2_compare --world v2_complex --episodes 30 --seeds 10 --step-limit 120 --workers 6 --include-apassr-full --include-apassr-full-cal --output-dir runs\apassr_full_cal_v2_complex_30x10
+$env:PYTHONPATH='src'; python -m aassr.v2_compare --world locked_bottleneck --episodes 30 --seeds 10 --step-limit 120 --workers 6 --include-apassr-full --include-apassr-full-cal --output-dir runs\apassr_full_cal_locked_bottleneck_30x10
 ```
 
 By default, each condition writes to a condition-safe folder:
@@ -424,6 +511,10 @@ Run all conditions and write a combined summary with:
 ```powershell
 $env:PYTHONPATH='src'; python -m aassr.experiment --condition all --episodes 100 --seeds 10 --workers 6
 ```
+
+`all` intentionally preserves the legacy C0-C5 comparison set. Run
+`APASSR_FULL` and `APASSR_FULL_CAL` explicitly when evaluating the full
+predicted-state architecture.
 
 This writes:
 
@@ -448,8 +539,8 @@ Available worlds are `fixed`, `random_flag`, `random_wall_flag`,
 
 ## Paper Ablations
 
-C3 remains the vanilla paper-aligned APASSR condition. Ablations vary one
-factor around that loop:
+C3 remains the legacy lightweight paper-facing prototype for historical
+comparison. Ablations vary one factor around that loop:
 
 | Suite | Question | Conditions |
 | --- | --- | --- |

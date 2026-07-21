@@ -159,14 +159,26 @@ class ToolExecutor:
 
     def _run_curl_command(self, call: ToolCall, command: list[str]) -> ToolResult:
         start = time.perf_counter()
-        proc = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            errors="replace",
-            timeout=self.timeout_s + 1.0,
-            check=False,
-        )
+        try:
+            proc = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                errors="replace",
+                timeout=self.timeout_s + 1.0,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            duration = time.perf_counter() - start
+            return ToolResult(
+                tool=call.tool.value,
+                command=command,
+                status=0,
+                stdout=exc.stdout or "",
+                stderr=f"command timed out after {self.timeout_s + 1.0:.1f}s",
+                duration_s=duration,
+                blocked=True,
+            )
         duration = time.perf_counter() - start
         stdout = proc.stdout or ""
         stderr = proc.stderr or ""
@@ -253,16 +265,28 @@ class ToolExecutor:
                 stdout="",
                 stderr="nmap is not installed",
                 unavailable=True,
-            )
-        start = time.perf_counter()
-        proc = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            errors="replace",
-            timeout=max(self.timeout_s, 10.0),
-            check=False,
         )
+        start = time.perf_counter()
+        try:
+            proc = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                errors="replace",
+                timeout=max(self.timeout_s, 10.0),
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            duration = time.perf_counter() - start
+            return ToolResult(
+                tool=call.tool.value,
+                command=command,
+                status=0,
+                stdout=exc.stdout or "",
+                stderr=f"command timed out after {max(self.timeout_s, 10.0):.1f}s",
+                duration_s=duration,
+                blocked=True,
+            )
         duration = time.perf_counter() - start
         return ToolResult(
             tool=call.tool.value,
@@ -292,16 +316,28 @@ class ToolExecutor:
                 stdout="",
                 stderr="wsl is not installed",
                 unavailable=True,
-            )
-        start = time.perf_counter()
-        proc = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            errors="replace",
-            timeout=max(self.timeout_s, 10.0),
-            check=False,
         )
+        start = time.perf_counter()
+        try:
+            proc = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                errors="replace",
+                timeout=max(self.timeout_s, 10.0),
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            duration = time.perf_counter() - start
+            return ToolResult(
+                tool=call.tool.value,
+                command=command,
+                status=0,
+                stdout=exc.stdout or "",
+                stderr=f"command timed out after {max(self.timeout_s, 10.0):.1f}s",
+                duration_s=duration,
+                blocked=True,
+            )
         duration = time.perf_counter() - start
         return ToolResult(
             tool=call.tool.value,
@@ -342,14 +378,26 @@ class ToolExecutor:
 
     def _run_external(self, call: ToolCall, command: list[str], *, timeout: float) -> ToolResult:
         start = time.perf_counter()
-        proc = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            errors="replace",
-            timeout=timeout,
-            check=False,
-        )
+        try:
+            proc = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                errors="replace",
+                timeout=timeout,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            duration = time.perf_counter() - start
+            return ToolResult(
+                tool=call.tool.value,
+                command=command,
+                status=0,
+                stdout=exc.stdout or "",
+                stderr=f"command timed out after {timeout:.1f}s",
+                duration_s=duration,
+                blocked=True,
+            )
         duration = time.perf_counter() - start
         return ToolResult(
             tool=call.tool.value,

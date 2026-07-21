@@ -8,6 +8,8 @@ CONDITION_LABELS = {
     "C3": "C3 PolicyABC + Prophecy + Imagination",
     "C4": "C4 PolicyABC + Sequence Prophecy variant + Imagination",
     "C5": "C5 Improved APASSR",
+    "APASSR_FULL": "APASSR_FULL Predicted-state Imagination",
+    "APASSR_FULL_CAL": "APASSR_FULL_CAL Calibrated Imagination",
     "QLEARN": "Q-learning baseline",
     "DQN_PARTIAL": "DQN partial-observation baseline",
     "ORACLE_MDP": "Oracle MDP, full-map upper bound",

@@ -21,16 +21,19 @@ Knowledge Storage는 단순 관측 기록이 아니라, 행동 템플릿의 `KK`
 | `src/aassr/reward.py` | Implemented | sparse external reward + knowledge-change intrinsic reward |
 | `src/aassr/policy.py` | Implemented | `RandomScorer`, `PolicyABC` scaffold |
 | `src/aassr/prophecy.py` | Implemented | `ProphecyModule` interface with `TableProphecyModel` and optional `SequenceProphecyModel` implementations |
-| `src/aassr/imagination.py` | Implemented | depth-limited candidate rollout using Prophecy predictions |
+| `src/aassr/imagination.py` | Implemented | Legacy ImaginationCycle plus PredictedStateImaginationCycle for APASSR_FULL/APASSR_FULL_CAL |
 | `src/aassr/worlds.py` | Implemented | fixed and randomized GridWorld builders |
 | `src/aassr/metrics.py` | Implemented | step, episode, and summary experiment metrics |
-| `src/aassr/experiment.py` | Implemented | C0/C1/C2/C3/C4/C5 runner and CSV output |
+| `src/aassr/experiment.py` | Implemented | C0/C1/C2/C3/C4/C5 runner, explicit APASSR_FULL/APASSR_FULL_CAL conditions, and CSV output |
 | `src/aassr/analysis.py` | Implemented | result aggregation, bootstrap CI, report generation |
 | `src/aassr/plotting.py` | Implemented | matplotlib figures for result analysis |
 | `src/aassr/visualization.py` | Implemented | ASCII visualization and Mermaid loop renderer |
 | `app.py` | Implemented | Streamlit dashboard for GridWorld/DMP visualization |
 | `tests/` | Implemented | Unit tests for Knowledge, DMP behavior, PolicyABC, Prophecy, Imagination, visualization, dashboard helpers |
 | `README.md` | Updated | Design explanation, run commands, prototype description |
+| `docs/apassr_full_diagnostic_metrics.md` | Added | APASSR_FULL diagnostic metric definitions |
+| `docs/apassr_full_diagnostic_results.md` | Added | APASSR_FULL 30x10 diagnostic comparison results |
+| `docs/apassr_full_calibrated_design.md` | Added | APASSR_FULL_CAL calibration design |
 
 ## Knowledge Storage Changes
 
@@ -295,6 +298,11 @@ C2 = PolicyABC + Prophecy.
 C3 = PolicyABC + Prophecy + Imagination.
 C4 = PolicyABC + optional sequence-based Prophecy implementation + Imagination.
 C5 = improved APASSR with C3 loop plus ablation-derived Imagination weights.
+APASSR_FULL = independent Policy A/B/C + richer Prophecy features + virtual
+Knowledge Store transition + future candidate regeneration + predicted-state
+multi-step imagination.
+APASSR_FULL_CAL = APASSR_FULL + candidate signature deduplication +
+confidence-discounted future rollout value + placeholder grounding discount.
 ```
 
 Recommended experiment naming:
@@ -318,8 +326,8 @@ C2: PolicyABC + Prophecy
 - no imagination
 
 C3: PolicyABC + Prophecy + Imagination
-- main paper-aligned framework condition
-- C2 plus pre-execution candidate evaluation
+- legacy lightweight prototype
+- Prophecy-guided candidate scoring with lightweight dependency lookahead
 
 C4: PolicyABC + sequence Prophecy implementation + Imagination
 - optional Prophecy implementation variant
@@ -330,6 +338,24 @@ C5: improved APASSR
 - knowledge_weight = 0.0
 - repeat penalty and error avoidance retained
 - not a replacement for vanilla C3
+
+APASSR_FULL: full paper-aligned APASSR
+- independent WHAT / HOW / WHERE policy axes
+- richer Prophecy state/action/history key
+- virtual Knowledge Store transition
+- future candidate regeneration at each rollout depth
+- belief/knowledge-state rollout, not hidden-map simulation
+- structure diagnostics for transition count, unlocked future actions, setup
+  action selection, Prophecy alignment, imagined-next-action match, and
+  placeholder usage
+
+APASSR_FULL_CAL: calibrated full APASSR comparison
+- preserves APASSR_FULL environment, reward, Prophecy update, depth, and
+  branching settings
+- deduplicates placeholder-equivalent future candidates
+- reports raw/unique future expansion metrics
+- discounts future rollout value by cumulative transition confidence
+- discounts placeholder-grounded future value separately from concrete value
 ```
 
 ## Prophecy Module
@@ -574,8 +600,9 @@ for each condition:
 
 This keeps environment state episode-local while allowing C1/C2/C3 learning
 state to accumulate within a seed. C4 is available as an optional Prophecy
-implementation variant, but C3 remains the main paper-aligned framework
-condition.
+implementation variant. APASSR_FULL is the explicit full predicted-state
+architecture condition, and APASSR_FULL_CAL is its calibrated comparison
+variant.
 
 Required commands:
 
@@ -586,11 +613,14 @@ $env:PYTHONPATH='src'; python -m aassr.experiment --condition C2 --episodes 100 
 $env:PYTHONPATH='src'; python -m aassr.experiment --condition C3 --episodes 100 --seeds 10 --workers 6
 $env:PYTHONPATH='src'; python -m aassr.experiment --condition C4 --episodes 100 --seeds 10 --workers 6
 $env:PYTHONPATH='src'; python -m aassr.experiment --condition C5 --episodes 100 --seeds 10 --workers 6
+$env:PYTHONPATH='src'; python -m aassr.experiment --condition APASSR_FULL --episodes 100 --seeds 10 --workers 6
+$env:PYTHONPATH='src'; python -m aassr.experiment --condition APASSR_FULL_CAL --episodes 100 --seeds 10 --workers 6
 $env:PYTHONPATH='src'; python -m aassr.experiment --condition all --episodes 100 --seeds 10 --workers 6
 ```
 
-`--workers` parallelizes independent seeds while preserving sequential learning
-within each seed.
+`all` intentionally preserves the legacy C0-C5 comparison set. `--workers`
+parallelizes independent seeds while preserving sequential learning within each
+seed.
 
 CSV outputs:
 
@@ -952,7 +982,7 @@ dependency tasks, even if a neural baseline is competitive on generic maps.
 
 ## Framework Positioning
 
-C3 remains the main paper-aligned framework condition:
+C3 remains the legacy lightweight paper-facing prototype:
 
 ```text
 PolicyABC + Prophecy Module + Imagination Cycle
@@ -963,21 +993,20 @@ Storage, action parameter binding, Prophecy prediction, Imagination candidate
 evaluation, execution, and observation-based knowledge update. The specific
 Prophecy implementation is an implementation choice. `TableProphecyModel` is
 the current lightweight implementation used for C3, while `SequenceProphecyModel`
-is an optional C4 implementation variant. The repository should not describe
-the whole method as a specific sequence model, and it should not claim
-Transformer usage unless a Transformer implementation is actually added.
+is an optional C4 implementation variant.
 
 The GridWorld benchmark is not intended to replace the original nmap-based
 pentesting experiment. It is an abstract environment used to test the
 knowledge-action dependency mechanism under controlled conditions.
 
-The current Imagination Cycle performs depth-limited candidate rollout using
-Prophecy predictions. It should not be described as environment-simulated
-rollout because it does not execute future actions or read the hidden map.
+C3/C5 use Prophecy-guided candidate scoring with lightweight dependency
+lookahead. APASSR_FULL uses predicted-state multi-step imagination with virtual
+Knowledge Store transitions and future action regeneration. Neither should be
+described as hidden-map environment simulation.
 
 ## Paper Ablation Plan
 
-The vanilla paper condition remains C3:
+The historical vanilla/prototype condition remains C3:
 
 ```text
 C3 = PolicyABC + Prophecy Module + Imagination Cycle

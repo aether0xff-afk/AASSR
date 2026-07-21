@@ -2,10 +2,15 @@
 
 from .gridworld import CellKind, DMPConfig, GridWorld, GridWorldDMP, StepResult
 from .imagination import (
+    ImaginedState,
+    ImaginedStep,
+    ImaginedTrajectory,
     ImaginationConfig,
     ImaginationCycle,
     ImaginationScore,
     ImaginationTrace,
+    PredictedKnowledgeDelta,
+    PredictedStateImaginationCycle,
 )
 from .knowledge import (
     KK,
@@ -39,6 +44,11 @@ __all__ = [
     "ImaginationCycle",
     "ImaginationScore",
     "ImaginationTrace",
+    "ImaginedState",
+    "ImaginedStep",
+    "ImaginedTrajectory",
+    "PredictedKnowledgeDelta",
+    "PredictedStateImaginationCycle",
     "StepResult",
     "StepMetric",
     "SummaryMetric",
