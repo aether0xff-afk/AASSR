@@ -1,0 +1,32 @@
+name: GPT-1 v2 tests
+
+on:
+  push:
+    branches:
+      - GPT-1
+  workflow_dispatch:
+
+jobs:
+  test-v2:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v2
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: v2/pyproject.toml
+
+      - name: Install package
+        run: python -m pip install -e .
+
+      - name: Run v2 unit tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -v
