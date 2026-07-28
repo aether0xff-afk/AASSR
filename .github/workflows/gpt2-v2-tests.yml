@@ -1,0 +1,62 @@
+name: GPT-2 v2 tests
+
+on:
+  push:
+    branches: [GPT-2]
+  pull_request:
+    paths:
+      - "v2/**"
+      - ".github/workflows/gpt2-v2-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package
+        run: python -m pip install -e v2
+
+      - name: Run full v2 unit tests
+        working-directory: v2
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -v
+
+      - name: Run GPT-2 reward smoke experiment
+        working-directory: v2
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m aassr.gpt2_experiment
+          --mode reward
+          --world random_flag
+          --episodes 2
+          --seeds 1
+          --step-limit 30
+          --output-dir runs/ci/gpt2_reward
+
+      - name: Run GPT-2 academy smoke experiment
+        working-directory: v2
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m aassr.gpt2_experiment
+          --mode academy
+          --world random_flag
+          --pretrain-episodes 4
+          --episodes 2
+          --seeds 1
+          --step-limit 30
+          --prophecy-kind table
+          --transfer-mode model_only
+          --output-dir runs/ci/gpt2_academy
