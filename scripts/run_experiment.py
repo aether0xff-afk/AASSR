@@ -8,6 +8,7 @@ from aassr_v2.experiment_runner import (
     planned_run_count,
     run_experiment,
 )
+from aassr_v2.experiment_statistics import regenerate_seed_level_summary
 
 
 def parse_args() -> argparse.Namespace:
@@ -84,11 +85,15 @@ def main() -> int:
         suite_filter=args.suite,
         seed_override=seeds,
     )
+    seed_summary, summary, report = regenerate_seed_level_summary(
+        artifacts.output_dir
+    )
     print(f"Completed rows: {artifacts.row_count}")
     print(f"Output: {artifacts.output_dir.resolve()}")
     print(f"Episodes: {artifacts.episodes_csv.resolve()}")
-    print(f"Summary: {artifacts.summary_csv.resolve()}")
-    print(f"Report: {artifacts.report_md.resolve()}")
+    print(f"Seed summary: {seed_summary.resolve()}")
+    print(f"Summary: {summary.resolve()}")
+    print(f"Report: {report.resolve()}")
     return 0
 
 
