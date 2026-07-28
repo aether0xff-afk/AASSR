@@ -1,0 +1,13 @@
+{
+  "name": "information_value_noise",
+  "output_dir": "runs/information_value",
+  "seeds": [7, 13, 21, 42, 100],
+  "suites": [
+    {
+      "kind": "information_value",
+      "noise_levels": [0, 8, 32],
+      "steps": 200,
+      "samples": 8
+    }
+  ]
+}
