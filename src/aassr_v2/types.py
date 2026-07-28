@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import json
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from types import MappingProxyType
 from typing import Any, Mapping
 
 
 class ActionVerb(str, Enum):
-    """Environment-independent primitive action families."""
+    """Legacy primitive families retained for GridWorld compatibility."""
 
     MOVE = "move"
     OBSERVE = "observe"
@@ -18,36 +19,66 @@ class ActionVerb(str, Enum):
     COMBINE = "combine"
 
 
+def action_verb_name(verb: ActionVerb | str) -> str:
+    return verb.value if isinstance(verb, ActionVerb) else str(verb)
+
+
+def _stable_value(value: Any) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+
+
 @dataclass(frozen=True, slots=True)
 class Action:
-    verb: ActionVerb
+    """One structured action.
+
+    The old target/tool/destination fields remain for the first GridWorld.
+    Plugins may instead use any opaque verb string and arbitrary parameters.
+    The core never assumes what those names mean.
+    """
+
+    verb: ActionVerb | str
     target: str | None = None
     tool: str | None = None
     destination: str | None = None
     metadata: Mapping[str, Any] = field(default_factory=dict)
+    parameters: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "metadata", MappingProxyType(dict(self.metadata)))
+        object.__setattr__(self, "parameters", MappingProxyType(dict(self.parameters)))
+
+    @property
+    def verb_name(self) -> str:
+        return action_verb_name(self.verb)
 
     @property
     def signature(self) -> str:
-        parts = [self.verb.value, self.target, self.tool, self.destination]
-        return "|".join(part or "_" for part in parts)
+        parts = [self.verb_name, self.target, self.tool, self.destination]
+        legacy = "|".join(part or "_" for part in parts)
+        if not self.parameters:
+            return legacy
+        encoded = ",".join(
+            f"{key}={_stable_value(value)}"
+            for key, value in sorted(self.parameters.items())
+        )
+        return f"{legacy}|{encoded}"
 
 
 @dataclass(frozen=True, slots=True)
 class StateSnapshot:
-    """A comparable state representation used by Prophecy and Imagination.
-
-    The numerical vector is for similarity metrics. Facts and available actions
-    remain explicit so the research code does not hide causal structure inside
-    an embedding.
-    """
+    """Comparable explicit state used by Prophecy and Imagination."""
 
     vector: tuple[float, ...]
     facts: frozenset[str] = frozenset()
     available_actions: tuple[Action, ...] = ()
     goal_progress: float = 0.0
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "metadata", MappingProxyType(dict(self.metadata)))
+
+    def with_actions(self, actions: tuple[Action, ...]) -> StateSnapshot:
+        return replace(self, available_actions=actions)
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,3 +103,5 @@ class TransitionTrace:
     removed_facts: frozenset[str] = frozenset()
     unlocked_actions: tuple[Action, ...] = ()
     error: bool = False
+    real_reward: float = 0.0
+    goal_ids: tuple[str, ...] = ()
