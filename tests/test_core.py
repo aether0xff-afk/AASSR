@@ -1,3 +1,5 @@
+import pytest
+
 from aassr_v2.information_value import information_value_from_measurements
 from aassr_v2.knowledge import KnowledgeEntry, KnowledgeStore
 from aassr_v2.metrics import imagination_uncertainty, prediction_similarity
@@ -5,7 +7,7 @@ from aassr_v2.metrics import imagination_uncertainty, prediction_similarity
 
 def test_identical_imaginations_have_zero_uncertainty() -> None:
     uncertainty = imagination_uncertainty(((1.0, 0.0), (1.0, 0.0), (1.0, 0.0)))
-    assert uncertainty == 0.0
+    assert uncertainty == pytest.approx(0.0)
 
 
 def test_disagreeing_imaginations_have_more_uncertainty() -> None:
@@ -17,7 +19,7 @@ def test_disagreeing_imaginations_have_more_uncertainty() -> None:
 def test_prediction_similarity_matches_reality() -> None:
     exact = prediction_similarity((1.0, 2.0), (1.0, 2.0))
     different = prediction_similarity((1.0, 0.0), (0.0, 1.0))
-    assert exact == 1.0
+    assert exact == pytest.approx(1.0)
     assert exact > different
 
 
@@ -31,9 +33,9 @@ def test_information_value_uses_improvement_not_raw_novelty() -> None:
         goal_progress_before=0.0,
         goal_progress_after=0.1,
     )
-    assert value.uncertainty_reduction == 0.5
-    assert value.prediction_gain == 0.5
-    assert value.total() == 1.5
+    assert value.uncertainty_reduction == pytest.approx(0.5)
+    assert value.prediction_gain == pytest.approx(0.5)
+    assert value.total() == pytest.approx(1.5)
 
 
 def test_knowledge_store_tracks_provenance() -> None:
