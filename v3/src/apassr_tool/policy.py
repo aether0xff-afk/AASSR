@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 import math
+import random
 
 from .knowledge import KK
 
@@ -50,11 +51,13 @@ class PolicyView:
 class PolicyABC:
     lr: float = 0.05
     min_prob: float = 0.02
+    seed: int | None = None
     what_probs: dict[What, float] = field(default_factory=dict)
     how_probs: dict[How, float] = field(default_factory=dict)
     where_probs: dict[Where, float] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        self.random = random.Random(self.seed)
         if not self.what_probs:
             self.what_probs = _uniform(What)
         if not self.how_probs:
@@ -75,9 +78,31 @@ class PolicyABC:
         self._boost(self.how_probs, policy.how, reward)
         self._boost(self.where_probs, policy.where, reward)
 
+    def sample_view(self) -> PolicyView:
+        """Sample WHAT/HOW/WHERE before action-template binding."""
+        return PolicyView(
+            what=self._sample_axis(self.what_probs),
+            how=self._sample_axis(self.how_probs),
+            where=self._sample_axis(self.where_probs),
+        )
+
     def _boost(self, table: dict, key: object, reward: float) -> None:
         table[key] *= math.exp(self.lr * reward)
         _normalize_with_floor(table, self.min_prob)
+
+    def _sample_axis(self, table: dict) -> object:
+        if not table:
+            raise ValueError("PolicyABC cannot sample from an empty axis table")
+        total = sum(max(value, 0.0) for value in table.values())
+        if total <= 0:
+            return self.random.choice(list(table))
+        threshold = self.random.random() * total
+        cumulative = 0.0
+        for key, value in table.items():
+            cumulative += max(value, 0.0)
+            if cumulative >= threshold:
+                return key
+        return next(reversed(table))
 
 
 def where_from_kk(kk: KK) -> Where:

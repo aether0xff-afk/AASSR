@@ -99,14 +99,49 @@ class CandidateGenerator:
         candidates.extend(self._hint_candidates(store))
         return candidates
 
-    def _inspect_candidates(self, store: KnowledgeStore, state: GridKnowledgeState, kk: KK) -> list[ActionCandidate]:
+    def generate_for_policy(
+        self,
+        store: KnowledgeStore,
+        state: GridKnowledgeState,
+        axes: tuple[str, str, str],
+    ) -> list[ActionCandidate]:
+        """Bind candidates only for a sampled WHAT/HOW/WHERE policy tuple."""
+        self.attempted_bindings = 0
+        self.valid_bindings = 0
+        what, how, where = axes
+        where_kk = _kk_from_value(where)
+        candidates: list[ActionCandidate] = []
+        if what == ActionName.INSPECT_CELL.value and where_kk in {KK.UNKNOWN_NEIGHBOR, KK.FRONTIER_CELL}:
+            candidates.extend(self._inspect_candidates(store, state, where_kk, only_how=how))
+        elif what == ActionName.MOVE_TOWARD.value and where_kk in {
+            KK.FLAG_CELL,
+            KK.KEY_CELL,
+            KK.DOOR_CELL,
+            KK.HINT_CELL,
+            KK.FRONTIER_CELL,
+        }:
+            candidates.extend(self._move_candidates(store, state, where_kk, only_how=how))
+        elif what == ActionName.USE_OBJECT.value:
+            candidates.extend(self._use_object_candidates(store, state, only_how=how))
+        elif what == ActionName.FOLLOW_HINT.value and where_kk == KK.HINT_VALUE:
+            candidates.extend(self._hint_candidates(store, only_how=how))
+        return [candidate for candidate in candidates if candidate_axes(candidate) == axes]
+
+    def _inspect_candidates(
+        self,
+        store: KnowledgeStore,
+        state: GridKnowledgeState,
+        kk: KK,
+        *,
+        only_how: str | None = None,
+    ) -> list[ActionCandidate]:
         candidates: list[ActionCandidate] = []
         for kv in store.values(kk, top_k=self.top_k):
             self.attempted_bindings += 1
             cell = kv.value
             if self._is_adjacent(state, cell):
                 self.valid_bindings += 1
-                for strategy in self._how_values(self.INSPECT_HOW, "least_tried"):
+                for strategy in self._how_values(self.INSPECT_HOW, "least_tried", only_how=only_how):
                     candidates.append(
                         ActionCandidate(
                             name=ActionName.INSPECT_CELL,
@@ -118,7 +153,14 @@ class CandidateGenerator:
                     )
         return candidates
 
-    def _move_candidates(self, store: KnowledgeStore, state: GridKnowledgeState, kk: KK) -> list[ActionCandidate]:
+    def _move_candidates(
+        self,
+        store: KnowledgeStore,
+        state: GridKnowledgeState,
+        kk: KK,
+        *,
+        only_how: str | None = None,
+    ) -> list[ActionCandidate]:
         candidates: list[ActionCandidate] = []
         for kv in store.values(kk, top_k=self.top_k):
             self.attempted_bindings += 1
@@ -127,7 +169,7 @@ class CandidateGenerator:
                 continue
             if target != state.position and self._reachable(store, state, target):
                 self.valid_bindings += 1
-                for strategy in self._how_values(self.MOVE_HOW, "nearest"):
+                for strategy in self._how_values(self.MOVE_HOW, "nearest", only_how=only_how):
                     candidates.append(
                         ActionCandidate(
                             name=ActionName.MOVE_TOWARD,
@@ -139,7 +181,13 @@ class CandidateGenerator:
                     )
         return candidates
 
-    def _use_object_candidates(self, store: KnowledgeStore, state: GridKnowledgeState) -> list[ActionCandidate]:
+    def _use_object_candidates(
+        self,
+        store: KnowledgeStore,
+        state: GridKnowledgeState,
+        *,
+        only_how: str | None = None,
+    ) -> list[ActionCandidate]:
         if not store.has_active(KK.KEY_OBJECT):
             return []
         candidates: list[ActionCandidate] = []
@@ -150,7 +198,7 @@ class CandidateGenerator:
                 if not self._is_adjacent(state, door.value):
                     continue
                 self.valid_bindings += 1
-                for strategy in self._how_values(("normal", "least_tried", "random"), "normal"):
+                for strategy in self._how_values(("normal", "least_tried", "random"), "normal", only_how=only_how):
                     candidates.append(
                         ActionCandidate(
                             name=ActionName.USE_OBJECT,
@@ -162,12 +210,12 @@ class CandidateGenerator:
                     )
         return candidates
 
-    def _hint_candidates(self, store: KnowledgeStore) -> list[ActionCandidate]:
+    def _hint_candidates(self, store: KnowledgeStore, *, only_how: str | None = None) -> list[ActionCandidate]:
         candidates: list[ActionCandidate] = []
         for kv in store.values(KK.HINT_VALUE, top_k=self.top_k):
             self.attempted_bindings += 1
             self.valid_bindings += 1
-            for strategy in self._how_values(("prophecy_best", "least_tried", "random"), "prophecy_best"):
+            for strategy in self._how_values(("prophecy_best", "least_tried", "random"), "prophecy_best", only_how=only_how):
                 candidates.append(
                     ActionCandidate(
                         name=ActionName.FOLLOW_HINT,
@@ -179,7 +227,9 @@ class CandidateGenerator:
                 )
         return candidates
 
-    def _how_values(self, values: tuple[str, ...], legacy: str) -> tuple[str, ...]:
+    def _how_values(self, values: tuple[str, ...], legacy: str, *, only_how: str | None = None) -> tuple[str, ...]:
+        if only_how is not None:
+            return (only_how,) if only_how in values else ()
         return values if self.independent_how else (legacy,)
 
     def _path_to(self, store: KnowledgeStore, state: GridKnowledgeState, target: Cell) -> list[Cell]:
@@ -241,6 +291,7 @@ class DMPConfig:
     kk_prediction_threshold: float = 0.5
     error_prediction_threshold: float = 0.5
     flag_prediction_threshold: float = 0.5
+    policy_sampling_attempts: int = 16
 
 
 @dataclass(frozen=True)
@@ -460,6 +511,7 @@ class GridWorldDMP:
         self.done = False
         self._executed_signatures: set[tuple[str, tuple[tuple[str, str], ...]]] = set()
         self._last_candidate_generator = CandidateGenerator(top_k=top_k, independent_how=self.config.independent_policy_axes)
+        self.last_sampled_policy_axes: tuple[str, str, str] | None = None
         self.recent_transitions: deque[Any] = deque(maxlen=8)
         self._pending_imagined_next_action: ActionCandidate | None = None
         self._record_known_position(world.start)
@@ -472,6 +524,13 @@ class GridWorldDMP:
         )
         return self._last_candidate_generator.generate(self.store, self.state_view())
 
+    def generate_candidates_for_policy(self, axes: tuple[str, str, str]) -> list[ActionCandidate]:
+        self._last_candidate_generator = CandidateGenerator(
+            top_k=self.top_k,
+            independent_how=True,
+        )
+        return self._last_candidate_generator.generate_for_policy(self.store, self.state_view(), axes)
+
     def state_view(self) -> GridKnowledgeState:
         return GridKnowledgeState(
             position=self.position,
@@ -482,7 +541,7 @@ class GridWorldDMP:
         )
 
     def choose_candidate(self, strategy: str = "nearest") -> ActionCandidate | None:
-        candidates = self.generate_candidates()
+        candidates = self._candidate_pool_for_selection(strategy)
         if not candidates:
             return None
         if self.config.use_imagination and self.imagination is not None:
@@ -499,7 +558,22 @@ class GridWorldDMP:
             return RandomScorer().choose(candidates, self)
         if strategy in {"nearest", "least_tried", "high_uncertainty"}:
             return self._choose_by_strategy(candidates, strategy)
+        if self.last_sampled_policy_axes is not None:
+            return self._choose_by_strategy(candidates, self.last_sampled_policy_axes[1])
         return self.scorer.choose(candidates, self)
+
+    def _candidate_pool_for_selection(self, strategy: str) -> list[ActionCandidate]:
+        self.last_sampled_policy_axes = None
+        sampler = getattr(self.scorer, "sample_axes", None)
+        if callable(sampler) and (strategy == "scorer" or self.config.use_imagination):
+            attempts = max(1, self.config.policy_sampling_attempts)
+            for _ in range(attempts):
+                axes = sampler()
+                candidates = self.generate_candidates_for_policy(axes)
+                if candidates:
+                    self.last_sampled_policy_axes = axes
+                    return candidates
+        return self.generate_candidates()
 
     def execute(self, candidate: ActionCandidate) -> StepResult:
         imagined_match = _candidate_match_payload(self._pending_imagined_next_action, candidate)
@@ -879,6 +953,11 @@ class GridWorldDMP:
         return min(confidences or [1.0])
 
     def _choose_by_strategy(self, candidates: list[ActionCandidate], strategy: str) -> ActionCandidate:
+        if strategy == "random":
+            rng = getattr(self.scorer, "random", None)
+            if rng is not None:
+                return rng.choice(candidates)
+            return RandomScorer().choose(candidates, self)
         if strategy == "least_tried":
             return min(candidates, key=self._used_count)
         if strategy == "high_uncertainty":
@@ -1051,3 +1130,10 @@ def _candidate_match_payload(predicted: ActionCandidate | None, actual: ActionCa
         "where": predicted_axes[2] == actual_axes[2],
         "template": predicted.template == actual.template,
     }
+
+
+def _kk_from_value(value: str) -> KK | None:
+    for kk in KK:
+        if kk.value == value:
+            return kk
+    return None

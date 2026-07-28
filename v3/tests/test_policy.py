@@ -23,6 +23,20 @@ class PolicyABCTests(unittest.TestCase):
         self.assertTrue(all(value > 0.0 for value in policy.how_probs.values()))
         self.assertTrue(all(value > 0.0 for value in policy.where_probs.values()))
 
+    def test_policyabc_samples_policy_view_before_binding(self) -> None:
+        policy = PolicyABC(
+            min_prob=0.0,
+            seed=0,
+            what_probs={What.QUERY_PROBE: 1.0},
+            how_probs={How.PROBE_VALUE: 1.0},
+            where_probs={Where.KK_PARAM_NAME: 1.0},
+        )
+
+        self.assertEqual(
+            policy.sample_view(),
+            PolicyView(What.QUERY_PROBE, How.PROBE_VALUE, Where.KK_PARAM_NAME),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

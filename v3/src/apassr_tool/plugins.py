@@ -8,12 +8,17 @@ from typing import Protocol
 from .actions import (
     ActionCandidate,
     generate_candidates,
+    generate_candidates_for_policy,
     generate_file_surface_candidates,
+    generate_file_surface_candidates_for_policy,
     generate_input_mutation_candidates,
+    generate_input_mutation_candidates_for_policy,
     generate_json_api_candidates,
+    generate_json_api_candidates_for_policy,
 )
 from .knowledge import KK, KnowledgeStore, seed_knowledge
 from .parser import parse_tool_result
+from .policy import PolicyView
 from .reward import JuiceShopChallengeObserver, RewardObserver
 from .tools import ToolResult
 
@@ -39,6 +44,9 @@ class TargetPlugin(Protocol):
         ...
 
     def candidates(self, store: KnowledgeStore) -> list[ActionCandidate]:
+        ...
+
+    def candidates_for_policy(self, store: KnowledgeStore, policy: PolicyView) -> list[ActionCandidate]:
         ...
 
     def parse(self, result: ToolResult) -> list[tuple[KK, str]]:
@@ -88,6 +96,9 @@ class WebPentestPlugin:
 
     def candidates(self, store: KnowledgeStore) -> list[ActionCandidate]:
         return generate_candidates(store)
+
+    def candidates_for_policy(self, store: KnowledgeStore, policy: PolicyView) -> list[ActionCandidate]:
+        return generate_candidates_for_policy(store, policy)
 
     def parse(self, result: ToolResult) -> list[tuple[KK, str]]:
         return parse_tool_result(result)
@@ -148,6 +159,9 @@ class JuiceShopPlugin(WebPentestPlugin):
     def candidates(self, store: KnowledgeStore) -> list[ActionCandidate]:
         return [*generate_candidates(store), *generate_json_api_candidates(store)]
 
+    def candidates_for_policy(self, store: KnowledgeStore, policy: PolicyView) -> list[ActionCandidate]:
+        return [*generate_candidates_for_policy(store, policy), *generate_json_api_candidates_for_policy(store, policy)]
+
 
 @dataclass(frozen=True)
 class JsonApiActionsPlugin(WebPentestPlugin):
@@ -183,6 +197,9 @@ class JsonApiActionsPlugin(WebPentestPlugin):
 
     def candidates(self, store: KnowledgeStore) -> list[ActionCandidate]:
         return [*generate_candidates(store), *generate_json_api_candidates(store)]
+
+    def candidates_for_policy(self, store: KnowledgeStore, policy: PolicyView) -> list[ActionCandidate]:
+        return [*generate_candidates_for_policy(store, policy), *generate_json_api_candidates_for_policy(store, policy)]
 
 
 @dataclass(frozen=True)
@@ -223,6 +240,13 @@ class InputMutationPlugin(WebPentestPlugin):
             *generate_input_mutation_candidates(store),
         ]
 
+    def candidates_for_policy(self, store: KnowledgeStore, policy: PolicyView) -> list[ActionCandidate]:
+        return [
+            *generate_candidates_for_policy(store, policy),
+            *generate_json_api_candidates_for_policy(store, policy),
+            *generate_input_mutation_candidates_for_policy(store, policy),
+        ]
+
 
 @dataclass(frozen=True)
 class FileSurfacePlugin(WebPentestPlugin):
@@ -255,6 +279,9 @@ class FileSurfacePlugin(WebPentestPlugin):
 
     def candidates(self, store: KnowledgeStore) -> list[ActionCandidate]:
         return [*generate_candidates(store), *generate_file_surface_candidates(store)]
+
+    def candidates_for_policy(self, store: KnowledgeStore, policy: PolicyView) -> list[ActionCandidate]:
+        return [*generate_candidates_for_policy(store, policy), *generate_file_surface_candidates_for_policy(store, policy)]
 
 
 @dataclass(frozen=True)
@@ -376,6 +403,16 @@ class JuiceShopFullPlugin(WebPentestPlugin):
                 *generate_json_api_candidates(store),
                 *generate_input_mutation_candidates(store),
                 *generate_file_surface_candidates(store),
+            ]
+        )
+
+    def candidates_for_policy(self, store: KnowledgeStore, policy: PolicyView) -> list[ActionCandidate]:
+        return _dedupe_plugin_candidates(
+            [
+                *generate_candidates_for_policy(store, policy),
+                *generate_json_api_candidates_for_policy(store, policy),
+                *generate_input_mutation_candidates_for_policy(store, policy),
+                *generate_file_surface_candidates_for_policy(store, policy),
             ]
         )
 

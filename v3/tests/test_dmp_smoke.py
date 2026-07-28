@@ -6,6 +6,7 @@ import unittest
 from apassr_tool.actions import ActionTemplate, generate_candidates
 from apassr_tool.dmp import APASSRToolDMP, candidate_syntax_penalty
 from apassr_tool.knowledge import KK
+from apassr_tool.policy import How, PolicyABC, PolicyView, What, Where
 from apassr_tool.sandbox_server import make_server
 from apassr_tool.tools import ToolExecutor
 from apassr_tool.tools import ToolCall, ToolName, ToolResult
@@ -137,6 +138,35 @@ class DmpSmokeTests(unittest.TestCase):
         self.assertGreater(observer.candidates, 0)
         self.assertEqual(observer.steps, 1)
         self.assertTrue(observer.top_label)
+
+    def test_dmp_uses_policy_sample_before_candidate_binding(self) -> None:
+        base_url = f"http://127.0.0.1:{self.port}"
+        policy_view = PolicyView(What.QUERY_PROBE, How.PROBE_VALUE, Where.KK_PARAM_NAME)
+        policy = PolicyABC(
+            min_prob=0.0,
+            seed=0,
+            what_probs={policy_view.what: 1.0},
+            how_probs={policy_view.how: 1.0},
+            where_probs={policy_view.where: 1.0},
+        )
+        dmp = APASSRToolDMP(
+            base_url=base_url,
+            executor=ToolExecutor(prefer_curl=False),
+            policy=policy,
+            step_limit=1,
+            policy_sampling_attempts=1,
+        )
+        dmp.store.add(KK.ENDPOINT, "/api/users", source="test")
+        dmp.store.add(KK.PARAM_NAME, "id", source="test")
+        dmp.store.add(KK.PROBE_VALUE, "7", source="test")
+        all_candidates = generate_candidates(dmp.store)
+
+        selected = dmp.choose_candidate()
+
+        self.assertIsNotNone(selected)
+        self.assertEqual(dmp.last_sampled_policy, policy_view)
+        self.assertEqual(selected.policy, policy_view)
+        self.assertLess(dmp.last_candidate_count, len(all_candidates))
 
     def test_syntax_penalty_suppresses_directory_append_to_file(self) -> None:
         base_url = f"http://127.0.0.1:{self.port}"

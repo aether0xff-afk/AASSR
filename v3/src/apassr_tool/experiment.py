@@ -67,10 +67,16 @@ def run_many(
     objective: str = "balanced",
     plugin: str = "web",
     include_records: bool = False,
+    novelty_store: str | None = None,
+    run_id: str = "default",
+    reset_novelty: bool = False,
+    seed: int = 0,
 ) -> dict[str, object]:
-    policy = PolicyABC()
-    prophecy = TableProphecyModel()
-    novelty = NoveltyMemory()
+    policy = PolicyABC(seed=seed)
+    prophecy = TableProphecyModel(seed=seed)
+    novelty = NoveltyMemory(persistence_path=novelty_store, run_id=run_id)
+    if reset_novelty:
+        novelty.reset(delete_persisted=True)
     episode_rows: list[dict[str, object]] = []
     for episode in range(episodes):
         output = run_once(
@@ -94,6 +100,12 @@ def run_many(
             "solved_challenges": output["solved_challenges"],
             "total_reward": sum(float(record["reward"]) for record in output["records"]),  # type: ignore[index]
             "novelty_bonus": sum(float(record.get("novelty_bonus", 0.0)) for record in output["records"]),  # type: ignore[union-attr]
+            "challenge_progress_events": sum(1 for record in output["records"] if float(record.get("challenge_progress", 0.0)) > 0),  # type: ignore[union-attr]
+            "semantic_novelty": sum(int(record.get("semantic_novelty", 0)) for record in output["records"]),  # type: ignore[union-attr]
+            "repeated_action_rate": _record_rate(output["records"], "repeated_action"),  # type: ignore[arg-type]
+            "repeated_response_rate": _record_rate(output["records"], "repeated_response"),  # type: ignore[arg-type]
+            "no_progress_rate": _record_rate(output["records"], "penalty_no_progress"),  # type: ignore[arg-type]
+            "predicted_progress_mean": _record_mean(output["records"], "predicted_progress_probability"),  # type: ignore[arg-type]
         }
         if include_records:
             row["records"] = output["records"]
@@ -127,7 +139,17 @@ def run_many(
             )[:10],
         },
         "plugin": plugin,
+        "run_id": run_id,
+        "seed": seed,
     }
+
+
+def _record_rate(records: list[dict[str, object]], field: str) -> float:
+    return sum(1 for row in records if row.get(field)) / len(records) if records else 0.0
+
+
+def _record_mean(records: list[dict[str, object]], field: str) -> float:
+    return sum(float(row.get(field, 0.0)) for row in records) / len(records) if records else 0.0
 
 
 def _objective_settings(objective: str) -> dict[str, float]:
@@ -186,6 +208,10 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--objective", choices=["balanced", "novelty", "weird"], default="balanced")
     parser.add_argument("--plugin", choices=available_plugins(), default="web")
     parser.add_argument("--include-records", action="store_true", help="Include per-step records in multi-episode JSON.")
+    parser.add_argument("--novelty-store", help="Optional directory/file for persistent run-scoped novelty.")
+    parser.add_argument("--run-id", default="default", help="Experiment id used to isolate persisted novelty.")
+    parser.add_argument("--reset-novelty", action="store_true", help="Reset the selected persisted novelty ledger.")
+    parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--no-curl", action="store_true", help="Use Python requests fallback instead of curl.")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
@@ -201,6 +227,10 @@ def main(argv: list[str] | None = None) -> None:
             objective=args.objective,
             plugin=args.plugin,
             include_records=args.include_records,
+            novelty_store=args.novelty_store,
+            run_id=args.run_id,
+            reset_novelty=args.reset_novelty,
+            seed=args.seed,
         )
         if args.json:
             print(json.dumps(output, indent=2, ensure_ascii=False))

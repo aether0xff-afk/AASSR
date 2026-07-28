@@ -1,7 +1,19 @@
 import unittest
 
-from aassr import CellKind, GridWorld, GridWorldDMP, KK, KnowledgeSource, KnowledgeStatus
+from aassr import CellKind, DMPConfig, GridWorld, GridWorldDMP, KK, KnowledgeSource, KnowledgeStatus
 from aassr.gridworld import ActionName
+from aassr.imagination import ImaginationCycle
+from aassr.policy import PolicyABC, candidate_axes
+from aassr.prophecy import ProphecyPrediction
+
+
+class NeutralProphecy:
+    def predict(self, state_signature, candidate):
+        return ProphecyPrediction(
+            kk_probs={kk: 0.0 for kk in KK},
+            error_prob=0.0,
+            flag_prob=0.0,
+        )
 
 
 class GridWorldDMPTests(unittest.TestCase):
@@ -203,6 +215,53 @@ class GridWorldDMPTests(unittest.TestCase):
         )
 
         self.assertEqual(dmp._signature(first), dmp._signature(second))
+
+    def test_policy_sampled_axes_gate_candidate_binding(self) -> None:
+        policy = PolicyABC(
+            policy_a={"INSPECT_CELL": 1.0},
+            policy_b={"random": 1.0},
+            policy_c={"KK_UNKNOWN_NEIGHBOR": 1.0},
+            min_prob=0.0,
+            seed=0,
+        )
+        dmp = GridWorldDMP(
+            GridWorld(width=3, height=3, start=(1, 1)),
+            scorer=policy,
+            config=DMPConfig(policy_sampling_attempts=1),
+        )
+
+        candidates = dmp.generate_candidates_for_policy(policy.sample_axes())
+
+        self.assertTrue(candidates)
+        self.assertTrue(all(candidate_axes(candidate) == ("INSPECT_CELL", "random", "KK_UNKNOWN_NEIGHBOR") for candidate in candidates))
+
+    def test_imagination_receives_policy_gated_candidate_pool(self) -> None:
+        policy = PolicyABC(
+            policy_a={"INSPECT_CELL": 1.0},
+            policy_b={"random": 1.0},
+            policy_c={"KK_UNKNOWN_NEIGHBOR": 1.0},
+            min_prob=0.0,
+            seed=0,
+        )
+        prophecy = NeutralProphecy()
+        dmp = GridWorldDMP(
+            GridWorld(width=3, height=3, start=(1, 1)),
+            scorer=policy,
+            prophecy=prophecy,
+            imagination=ImaginationCycle(prophecy),
+            config=DMPConfig(use_prophecy=True, use_imagination=True, policy_sampling_attempts=1),
+        )
+
+        selected = dmp.choose_candidate("scorer")
+
+        self.assertIsNotNone(selected)
+        self.assertIsNotNone(dmp.last_imagination_trace)
+        self.assertTrue(
+            all(
+                candidate_axes(score.candidate) == ("INSPECT_CELL", "random", "KK_UNKNOWN_NEIGHBOR")
+                for score in dmp.last_imagination_trace.scores
+            )
+        )
 
 
 if __name__ == "__main__":

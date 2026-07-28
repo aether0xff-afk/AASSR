@@ -8,6 +8,44 @@ import requests
 
 
 @dataclass(frozen=True)
+class RewardConfig:
+    """Bounded reward terms; solving dominates any single observation."""
+
+    challenge_solved: float = 50.0
+    challenge_progress: float = 4.0
+    semantic_novelty_unit: float = 0.35
+    semantic_novelty_cap: float = 2.0
+    useful_observation: float = 0.1
+    repeated_action: float = 0.25
+    repeated_response: float = 0.5
+    invalid_action: float = 1.0
+    no_progress: float = 0.1
+    repeated_failure_growth: float = 0.15
+    repeated_failure_cap: float = 1.5
+
+
+@dataclass(frozen=True)
+class RewardBreakdown:
+    reward_challenge_solved: float = 0.0
+    reward_challenge_progress: float = 0.0
+    reward_semantic_novelty: float = 0.0
+    reward_useful_observation: float = 0.0
+    penalty_repeated_action: float = 0.0
+    penalty_repeated_response: float = 0.0
+    penalty_invalid_action: float = 0.0
+    penalty_no_progress: float = 0.0
+
+    @property
+    def total(self) -> float:
+        return (
+            self.reward_challenge_solved + self.reward_challenge_progress
+            + self.reward_semantic_novelty + self.reward_useful_observation
+            - self.penalty_repeated_action - self.penalty_repeated_response
+            - self.penalty_invalid_action - self.penalty_no_progress
+        )
+
+
+@dataclass(frozen=True)
 class RewardSignal:
     new_solved: tuple[str, ...] = ()
     solved_total: int = 0

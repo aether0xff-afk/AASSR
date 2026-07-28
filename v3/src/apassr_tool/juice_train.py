@@ -29,10 +29,15 @@ def train_juice_shop(
     wsl_distro: str = "kali-linux",
     tool_timeout_s: float = 5.0,
     candidate_eval_limit: int = 25000,
+    policy_sampling_attempts: int = 512,
     plugin: str = "web",
     include_records: bool = False,
     checkpoint_every: int = 1,
     stop_when_all_solved: bool = False,
+    novelty_store: str | Path | None = None,
+    run_id: str = "default",
+    reset_novelty: bool = False,
+    seed: int = 0,
 ) -> dict[str, Any]:
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -41,9 +46,11 @@ def train_juice_shop(
     summary_path = output_path / "juice_train_summary.json"
     checkpoint_path = output_path / "checkpoint_latest.json"
 
-    policy = PolicyABC()
-    prophecy = TableProphecyModel()
-    novelty = NoveltyMemory()
+    policy = PolicyABC(seed=seed)
+    prophecy = TableProphecyModel(seed=seed)
+    novelty = NoveltyMemory(persistence_path=novelty_store, run_id=run_id)
+    if reset_novelty:
+        novelty.reset(delete_persisted=True)
     target_plugin = get_plugin(plugin)
     observer = target_plugin.reward_observer("juice-shop", base_url)
     if observer is None:
@@ -74,6 +81,7 @@ def train_juice_shop(
             knowledge_reward_scale=objective_config["knowledge_reward_scale"],
             step_limit=step_limit,
             candidate_eval_limit=candidate_eval_limit,
+            policy_sampling_attempts=policy_sampling_attempts,
             observer=step_logger,
         )
         result = dmp.run()
@@ -113,6 +121,8 @@ def train_juice_shop(
         "prefer_curl": prefer_curl,
         "tool_timeout_s": tool_timeout_s,
         "candidate_eval_limit": candidate_eval_limit,
+        "policy_sampling_attempts": policy_sampling_attempts,
+        "seed": seed,
         "elapsed_s": round(time.time() - started_at, 3),
     }
     _write_json(summary_path, summary)
@@ -144,6 +154,12 @@ def _episode_row(
         "novelty_bonus": sum(record.novelty_bonus for record in result_records),
         "new_kv_total": sum(record.new_kv for record in result_records),
         "error_count": sum(1 for record in result_records if record.status >= 400 or record.status == 0),
+        "challenge_progress_events": sum(1 for record in result_records if record.challenge_progress > 0),
+        "semantic_novelty": sum(record.semantic_novelty for record in result_records),
+        "repeated_action_rate": sum(record.repeated_action for record in result_records) / len(result_records) if result_records else 0.0,
+        "repeated_response_rate": sum(record.repeated_response for record in result_records) / len(result_records) if result_records else 0.0,
+        "no_progress_rate": sum(record.penalty_no_progress > 0 for record in result_records) / len(result_records) if result_records else 0.0,
+        "predicted_progress_mean": sum(record.predicted_progress_probability for record in result_records) / len(result_records) if result_records else 0.0,
         "prophecy_stat_count": len(prophecy.stats),
         "novelty_signature_count": len(novelty.signature_counts),
         "last_action": result_records[-1].action if result_records else "",
@@ -179,6 +195,7 @@ def _checkpoint(
             "signature_count": len(novelty.signature_counts),
             "chain_count": len(novelty.chain_counts),
             "response_count": len(novelty.response_counts),
+            "semantic_fact_count": len(novelty.semantic_facts),
             "top_signatures": sorted(novelty.signature_counts.items(), key=lambda row: row[1], reverse=True)[:10],
         },
     }
@@ -237,9 +254,14 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--plugin", choices=available_plugins(), default="web")
     parser.add_argument("--tool-timeout", type=float, default=5.0)
     parser.add_argument("--candidate-eval-limit", type=int, default=25000)
+    parser.add_argument("--policy-sampling-attempts", type=int, default=512)
     parser.add_argument("--checkpoint-every", type=int, default=1)
     parser.add_argument("--include-records", action="store_true")
     parser.add_argument("--stop-when-all-solved", action="store_true")
+    parser.add_argument("--novelty-store", help="Optional directory/file for persistent run-scoped novelty.")
+    parser.add_argument("--run-id", default="default")
+    parser.add_argument("--reset-novelty", action="store_true")
+    parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--no-curl", action="store_true", help="Use Python requests fallback instead of curl.")
     args = parser.parse_args(argv)
     train_juice_shop(
@@ -253,10 +275,15 @@ def main(argv: list[str] | None = None) -> None:
         wsl_distro=args.wsl_distro,
         tool_timeout_s=args.tool_timeout,
         candidate_eval_limit=args.candidate_eval_limit,
+        policy_sampling_attempts=args.policy_sampling_attempts,
         plugin=args.plugin,
         include_records=args.include_records,
         checkpoint_every=args.checkpoint_every,
         stop_when_all_solved=args.stop_when_all_solved,
+        novelty_store=args.novelty_store,
+        run_id=args.run_id,
+        reset_novelty=args.reset_novelty,
+        seed=args.seed,
     )
 
 

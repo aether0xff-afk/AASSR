@@ -5,12 +5,13 @@ import unittest
 from apassr_tool.actions import (
     ActionTemplate,
     generate_candidates,
+    generate_candidates_for_policy,
     generate_file_surface_candidates,
     generate_input_mutation_candidates,
     generate_json_api_candidates,
 )
 from apassr_tool.knowledge import KK, seed_knowledge
-from apassr_tool.policy import What
+from apassr_tool.policy import How, PolicyView, What, Where
 from apassr_tool.tools import ToolName
 
 
@@ -148,6 +149,19 @@ class ActionGenerationTests(unittest.TestCase):
     def test_seed_does_not_include_probe_values(self) -> None:
         store = seed_knowledge("http://127.0.0.1:8088")
         self.assertFalse(store.values(KK.PROBE_VALUE))
+
+    def test_policy_gated_generation_binds_only_sampled_axes(self) -> None:
+        store = seed_knowledge("http://127.0.0.1:8088")
+        store.add(KK.ENDPOINT, "/api/users", source="test")
+        store.add(KK.PARAM_NAME, "id", source="test")
+        store.add(KK.PROBE_VALUE, "7", source="observed:test")
+        policy = PolicyView(What.QUERY_PROBE, How.PROBE_VALUE, Where.KK_PARAM_NAME)
+
+        candidates = generate_candidates_for_policy(store, policy)
+
+        self.assertTrue(candidates)
+        self.assertTrue(all(candidate.policy == policy for candidate in candidates))
+        self.assertTrue(all(candidate.template == ActionTemplate.HTTP_QUERY_PROBE for candidate in candidates))
 
     def test_auth_get_requires_observed_auth_path(self) -> None:
         store = seed_knowledge("http://127.0.0.1:8088")

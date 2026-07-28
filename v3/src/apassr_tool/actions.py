@@ -240,6 +240,211 @@ def generate_candidates(store: KnowledgeStore) -> list[ActionCandidate]:
     return _dedupe_candidates(candidates)
 
 
+def generate_candidates_for_policy(store: KnowledgeStore, policy: PolicyView) -> list[ActionCandidate]:
+    base_url = store.first(KK.BASE_URL)
+    if not base_url:
+        return []
+    candidates: list[ActionCandidate] = []
+
+    if policy == PolicyView(What.PORT_SCAN, How.SHALLOW_SCAN, Where.KK_HOST):
+        for host in store.values(KK.HOST):
+            ports = store.values(KK.PORT) or ["1-1024"]
+            for port in ports:
+                candidates.append(
+                    ActionCandidate(
+                        template=ActionTemplate.NMAP_SCAN_HOST,
+                        bindings={KK.HOST: host, KK.PORT: port},
+                        policy=policy,
+                        label=f"NMAP {host}:{port}",
+                        tool_call=ToolCall(ToolName.NMAP_SCAN, target_host=host, port_range=port),
+                        required_slots=(KK.HOST,),
+                        tried_key=f"NMAP:{host}:{port}",
+                    )
+                )
+
+    if policy == PolicyView(What.WEB_FINGERPRINT, How.PASSIVE_FINGERPRINT, Where.KK_BASE_URL):
+        candidates.append(
+            ActionCandidate(
+                template=ActionTemplate.WEB_FINGERPRINT,
+                bindings={KK.BASE_URL: base_url},
+                policy=policy,
+                label=f"WHATWEB {base_url}",
+                tool_call=ToolCall(ToolName.WHATWEB_SCAN, url=base_url),
+                required_slots=(KK.BASE_URL,),
+                tried_key=f"WHATWEB:{base_url}",
+            )
+        )
+
+    if policy in {
+        PolicyView(What.HTTP_GET, How.NORMAL, Where.KK_PATH),
+        PolicyView(What.HTTP_METADATA, How.HEADER_ONLY, Where.KK_PATH),
+        PolicyView(What.HTTP_METADATA, How.METHOD_DISCOVERY, Where.KK_PATH),
+    }:
+        for path in store.values(KK.PATH):
+            url = urljoin(base_url, path)
+            if policy == PolicyView(What.HTTP_GET, How.NORMAL, Where.KK_PATH):
+                candidates.append(
+                    ActionCandidate(
+                        template=ActionTemplate.HTTP_GET_PATH,
+                        bindings={KK.PATH: path},
+                        policy=policy,
+                        label=f"GET {path}",
+                        tool_call=ToolCall(ToolName.CURL_GET, url=url),
+                        required_slots=(KK.BASE_URL, KK.PATH),
+                        tried_key=f"GET:{path}",
+                    )
+                )
+            elif policy == PolicyView(What.HTTP_METADATA, How.HEADER_ONLY, Where.KK_PATH):
+                candidates.append(
+                    ActionCandidate(
+                        template=ActionTemplate.HTTP_HEAD_PATH,
+                        bindings={KK.PATH: path},
+                        policy=policy,
+                        label=f"HEAD {path}",
+                        tool_call=ToolCall(ToolName.CURL_HEAD, url=url),
+                        required_slots=(KK.BASE_URL, KK.PATH),
+                        tried_key=f"HEAD:{path}",
+                    )
+                )
+            else:
+                candidates.append(
+                    ActionCandidate(
+                        template=ActionTemplate.HTTP_OPTIONS_PATH,
+                        bindings={KK.PATH: path},
+                        policy=policy,
+                        label=f"OPTIONS {path}",
+                        tool_call=ToolCall(ToolName.CURL_OPTIONS, url=url),
+                        required_slots=(KK.BASE_URL, KK.PATH),
+                        tried_key=f"OPTIONS:{path}",
+                    )
+                )
+
+    if policy in {
+        PolicyView(What.HTTP_GET, How.PARAMETERIZED, Where.KK_ENDPOINT),
+        PolicyView(What.QUERY_PROBE, How.PROBE_VALUE, Where.KK_PARAM_NAME),
+        PolicyView(What.FORM_POST, How.PROBE_VALUE, Where.KK_PARAM_NAME),
+    }:
+        for endpoint in store.values(KK.ENDPOINT):
+            if policy == PolicyView(What.HTTP_GET, How.PARAMETERIZED, Where.KK_ENDPOINT):
+                params = _limited(store.values(KK.QUERY_PARAM), MAX_QUERY_PARAMS_PER_ENDPOINT) or [""]
+                for query in params:
+                    suffix = f"{endpoint}?{query}" if query else endpoint
+                    url = urljoin(base_url, suffix)
+                    candidates.append(
+                        ActionCandidate(
+                            template=ActionTemplate.HTTP_GET_API,
+                            bindings={KK.ENDPOINT: endpoint, KK.QUERY_PARAM: query},
+                            policy=policy,
+                            label=f"GET {suffix}",
+                            tool_call=ToolCall(ToolName.CURL_GET, url=url),
+                            required_slots=(KK.BASE_URL, KK.ENDPOINT),
+                            tried_key=f"GET:{suffix}",
+                        )
+                    )
+                continue
+
+            param_candidates = _limited(store.values(KK.PARAM_NAME), MAX_PARAM_NAMES_PER_ENDPOINT)
+            probe_candidates = _limited(store.values(KK.PROBE_VALUE), MAX_PROBE_VALUES_PER_ENDPOINT)
+            if policy == PolicyView(What.QUERY_PROBE, How.PROBE_VALUE, Where.KK_PARAM_NAME):
+                for param_name in param_candidates:
+                    for probe_value in probe_candidates:
+                        suffix = f"{endpoint}?{param_name}={probe_value}"
+                        candidates.append(
+                            ActionCandidate(
+                                template=ActionTemplate.HTTP_QUERY_PROBE,
+                                bindings={
+                                    KK.ENDPOINT: endpoint,
+                                    KK.PARAM_NAME: param_name,
+                                    KK.PROBE_VALUE: probe_value,
+                                },
+                                policy=policy,
+                                label=f"PROBE {endpoint}?{param_name}={probe_value}",
+                                tool_call=ToolCall(ToolName.CURL_GET, url=urljoin(base_url, suffix)),
+                                required_slots=(KK.BASE_URL, KK.ENDPOINT, KK.PARAM_NAME, KK.PROBE_VALUE),
+                                tried_key=f"PROBE:{endpoint}:{param_name}:{probe_value}",
+                            )
+                        )
+            else:
+                for param_name in param_candidates:
+                    for probe_value in probe_candidates:
+                        candidates.append(
+                            ActionCandidate(
+                                template=ActionTemplate.HTTP_POST_PROBE,
+                                bindings={
+                                    KK.ENDPOINT: endpoint,
+                                    KK.PARAM_NAME: param_name,
+                                    KK.PROBE_VALUE: probe_value,
+                                },
+                                policy=policy,
+                                label=f"POST_PROBE {endpoint} {param_name}={probe_value}",
+                                tool_call=ToolCall(
+                                    ToolName.CURL_POST,
+                                    url=urljoin(base_url, endpoint),
+                                    data={param_name: probe_value},
+                                ),
+                                required_slots=(KK.BASE_URL, KK.ENDPOINT, KK.PARAM_NAME, KK.PROBE_VALUE),
+                                tried_key=f"POST_PROBE:{endpoint}:{param_name}:{probe_value}",
+                            )
+                        )
+                for index, body in enumerate(_combo_bodies(param_candidates, probe_candidates)):
+                    candidates.append(
+                        ActionCandidate(
+                            template=ActionTemplate.HTTP_POST_COMBO,
+                            bindings={
+                                KK.ENDPOINT: endpoint,
+                                KK.PARAM_NAME: ",".join(body),
+                                KK.PROBE_VALUE: ",".join(body.values()),
+                            },
+                            policy=policy,
+                            label=f"POST_COMBO {endpoint} fields={','.join(body)}",
+                            tool_call=ToolCall(
+                                ToolName.CURL_POST,
+                                url=urljoin(base_url, endpoint),
+                                data=body,
+                            ),
+                            required_slots=(KK.BASE_URL, KK.ENDPOINT, KK.PARAM_NAME, KK.PROBE_VALUE),
+                            tried_key=f"POST_COMBO:{endpoint}:{index}:{tuple(body.items())}",
+                        )
+                    )
+
+    if policy == PolicyView(What.FORM_POST, How.AUTH_ATTEMPT, Where.KK_USERNAME):
+        for username in store.values(KK.USERNAME):
+            for password in store.values(KK.PASSWORD_CANDIDATE):
+                for login_path in _limited(store.values(KK.PATH), MAX_LOGIN_PATHS):
+                    candidates.append(
+                        ActionCandidate(
+                            template=ActionTemplate.HTTP_POST_LOGIN,
+                            bindings={KK.USERNAME: username, KK.PASSWORD_CANDIDATE: password, KK.PATH: login_path},
+                            policy=policy,
+                            label=f"POST {login_path} as {username}",
+                            tool_call=ToolCall(
+                                ToolName.CURL_POST,
+                                url=urljoin(base_url, login_path),
+                                data={"username": username, "password": password},
+                            ),
+                            required_slots=(KK.BASE_URL, KK.USERNAME, KK.PASSWORD_CANDIDATE, KK.PATH),
+                            tried_key=f"POST:{login_path}:{username}:{password}",
+                        )
+                    )
+
+    if policy == PolicyView(What.AUTHENTICATED_GET, How.AUTHENTICATED, Where.KK_AUTH_PATH):
+        for auth_path in store.values(KK.AUTH_PATH):
+            for cookie in store.values(KK.SESSION_COOKIE):
+                candidates.append(
+                    ActionCandidate(
+                        template=ActionTemplate.HTTP_AUTH_GET,
+                        bindings={KK.AUTH_PATH: auth_path, KK.SESSION_COOKIE: cookie},
+                        policy=policy,
+                        label=f"AUTH GET {auth_path}",
+                        tool_call=ToolCall(ToolName.CURL_GET, url=urljoin(base_url, auth_path), headers={"Cookie": cookie}),
+                        required_slots=(KK.BASE_URL, KK.AUTH_PATH, KK.SESSION_COOKIE),
+                        tried_key=f"AUTH_GET:{auth_path}:{cookie}",
+                    )
+                )
+
+    return _dedupe_candidates(candidates)
+
+
 def generate_json_api_candidates(store: KnowledgeStore) -> list[ActionCandidate]:
     base_url = store.first(KK.BASE_URL)
     if not base_url:
@@ -288,6 +493,63 @@ def generate_json_api_candidates(store: KnowledgeStore) -> list[ActionCandidate]
             )
         )
 
+    return _dedupe_candidates(candidates)
+
+
+def generate_json_api_candidates_for_policy(store: KnowledgeStore, policy: PolicyView) -> list[ActionCandidate]:
+    base_url = store.first(KK.BASE_URL)
+    if not base_url:
+        return []
+    candidates: list[ActionCandidate] = []
+    if policy not in {
+        PolicyView(What.FORM_POST, How.PROBE_VALUE, Where.KK_PARAM_NAME),
+        PolicyView(What.FORM_POST, How.PROBE_VALUE, Where.KK_ENDPOINT),
+    }:
+        return candidates
+    param_candidates = _limited(store.values(KK.PARAM_NAME), MAX_PARAM_NAMES_PER_ENDPOINT)
+    probe_candidates = _limited(store.values(KK.PROBE_VALUE), MAX_PROBE_VALUES_PER_ENDPOINT)
+
+    for endpoint in store.values(KK.ENDPOINT):
+        url = urljoin(base_url, endpoint)
+        if policy == PolicyView(What.FORM_POST, How.PROBE_VALUE, Where.KK_PARAM_NAME):
+            for method, template in [
+                ("POST", ActionTemplate.HTTP_JSON_POST),
+                ("PUT", ActionTemplate.HTTP_JSON_PUT),
+                ("PATCH", ActionTemplate.HTTP_JSON_PATCH),
+            ]:
+                for index, body in enumerate(_json_bodies(param_candidates, probe_candidates)):
+                    candidates.append(
+                        ActionCandidate(
+                            template=template,
+                            bindings={
+                                KK.ENDPOINT: endpoint,
+                                KK.PARAM_NAME: ",".join(body),
+                                KK.PROBE_VALUE: ",".join(body.values()),
+                            },
+                            policy=policy,
+                            label=f"JSON_{method} {endpoint} fields={','.join(body)}",
+                            tool_call=ToolCall(
+                                ToolName.CURL_JSON,
+                                url=url,
+                                data=body,
+                                method=method,
+                            ),
+                            required_slots=(KK.BASE_URL, KK.ENDPOINT, KK.PARAM_NAME, KK.PROBE_VALUE),
+                            tried_key=f"JSON_{method}:{endpoint}:{index}:{tuple(body.items())}",
+                        )
+                    )
+        else:
+            candidates.append(
+                ActionCandidate(
+                    template=ActionTemplate.HTTP_JSON_DELETE,
+                    bindings={KK.ENDPOINT: endpoint},
+                    policy=policy,
+                    label=f"JSON_DELETE {endpoint}",
+                    tool_call=ToolCall(ToolName.CURL_JSON, url=url, method="DELETE"),
+                    required_slots=(KK.BASE_URL, KK.ENDPOINT),
+                    tried_key=f"JSON_DELETE:{endpoint}",
+                )
+            )
     return _dedupe_candidates(candidates)
 
 
@@ -349,6 +611,72 @@ def generate_input_mutation_candidates(store: KnowledgeStore) -> list[ActionCand
     return _dedupe_candidates(candidates)
 
 
+def generate_input_mutation_candidates_for_policy(store: KnowledgeStore, policy: PolicyView) -> list[ActionCandidate]:
+    base_url = store.first(KK.BASE_URL)
+    if not base_url:
+        return []
+    if policy not in {
+        PolicyView(What.QUERY_PROBE, How.PROBE_VALUE, Where.KK_PARAM_NAME),
+        PolicyView(What.FORM_POST, How.PROBE_VALUE, Where.KK_PARAM_NAME),
+    }:
+        return []
+    candidates: list[ActionCandidate] = []
+    param_candidates = _limited(store.values(KK.PARAM_NAME), MAX_PARAM_NAMES_PER_ENDPOINT)
+    mutation_values = _mutated_values(store.values(KK.PROBE_VALUE))[:MAX_MUTATED_VALUES]
+
+    for endpoint in store.values(KK.ENDPOINT):
+        endpoint_count = 0
+        for param_name in param_candidates:
+            for value in mutation_values:
+                if endpoint_count >= MAX_MUTATION_CANDIDATES_PER_ENDPOINT:
+                    break
+                if policy == PolicyView(What.QUERY_PROBE, How.PROBE_VALUE, Where.KK_PARAM_NAME):
+                    suffix = f"{endpoint}?{param_name}={value}"
+                    candidates.append(
+                        ActionCandidate(
+                            template=ActionTemplate.HTTP_MUTATION_QUERY,
+                            bindings={KK.ENDPOINT: endpoint, KK.PARAM_NAME: param_name, KK.PROBE_VALUE: value},
+                            policy=policy,
+                            label=f"MUTATE_QUERY {endpoint}?{param_name}={value}",
+                            tool_call=ToolCall(ToolName.CURL_GET, url=urljoin(base_url, suffix)),
+                            required_slots=(KK.BASE_URL, KK.ENDPOINT, KK.PARAM_NAME),
+                            tried_key=f"MUTATE_QUERY:{endpoint}:{param_name}:{value}",
+                        )
+                    )
+                    endpoint_count += 1
+                    continue
+                candidates.append(
+                    ActionCandidate(
+                        template=ActionTemplate.HTTP_MUTATION_POST,
+                        bindings={KK.ENDPOINT: endpoint, KK.PARAM_NAME: param_name, KK.PROBE_VALUE: value},
+                        policy=policy,
+                        label=f"MUTATE_POST {endpoint} {param_name}={value}",
+                        tool_call=ToolCall(ToolName.CURL_POST, url=urljoin(base_url, endpoint), data={param_name: value}),
+                        required_slots=(KK.BASE_URL, KK.ENDPOINT, KK.PARAM_NAME),
+                        tried_key=f"MUTATE_POST:{endpoint}:{param_name}:{value}",
+                    )
+                )
+                candidates.append(
+                    ActionCandidate(
+                        template=ActionTemplate.HTTP_MUTATION_JSON,
+                        bindings={KK.ENDPOINT: endpoint, KK.PARAM_NAME: param_name, KK.PROBE_VALUE: value},
+                        policy=policy,
+                        label=f"MUTATE_JSON {endpoint} {param_name}={value}",
+                        tool_call=ToolCall(
+                            ToolName.CURL_JSON,
+                            url=urljoin(base_url, endpoint),
+                            data={param_name: value},
+                            method="POST",
+                        ),
+                        required_slots=(KK.BASE_URL, KK.ENDPOINT, KK.PARAM_NAME),
+                        tried_key=f"MUTATE_JSON:{endpoint}:{param_name}:{value}",
+                    )
+                )
+                endpoint_count += 2
+
+    return _dedupe_candidates(candidates)
+
+
 def generate_file_surface_candidates(store: KnowledgeStore) -> list[ActionCandidate]:
     base_url = store.first(KK.BASE_URL)
     if not base_url:
@@ -362,6 +690,32 @@ def generate_file_surface_candidates(store: KnowledgeStore) -> list[ActionCandid
                     template=ActionTemplate.HTTP_FILE_SURFACE_GET,
                     bindings={KK.PATH: candidate_path},
                     policy=PolicyView(What.HTTP_GET, How.NORMAL, Where.KK_PATH),
+                    label=f"FILE_GET {candidate_path}",
+                    tool_call=ToolCall(ToolName.CURL_GET, url=urljoin(base_url, candidate_path)),
+                    required_slots=(KK.BASE_URL, KK.PATH),
+                    tried_key=f"FILE_GET:{candidate_path}",
+                )
+            )
+            if len(candidates) >= MAX_FILE_SURFACE_CANDIDATES:
+                return _dedupe_candidates(candidates)
+    return _dedupe_candidates(candidates)
+
+
+def generate_file_surface_candidates_for_policy(store: KnowledgeStore, policy: PolicyView) -> list[ActionCandidate]:
+    if policy != PolicyView(What.HTTP_GET, How.NORMAL, Where.KK_PATH):
+        return []
+    base_url = store.first(KK.BASE_URL)
+    if not base_url:
+        return []
+    candidates: list[ActionCandidate] = []
+    paths = [path for path in store.values(KK.PATH) if _looks_file_surface_path(path)]
+    for path in paths:
+        for candidate_path in _file_surface_paths(path):
+            candidates.append(
+                ActionCandidate(
+                    template=ActionTemplate.HTTP_FILE_SURFACE_GET,
+                    bindings={KK.PATH: candidate_path},
+                    policy=policy,
                     label=f"FILE_GET {candidate_path}",
                     tool_call=ToolCall(ToolName.CURL_GET, url=urljoin(base_url, candidate_path)),
                     required_slots=(KK.BASE_URL, KK.PATH),

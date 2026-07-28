@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import heapq
 import math
 import time
@@ -11,9 +11,9 @@ from .imagination import ImaginationCycle
 from .knowledge import KK, KnowledgeStore
 from .novelty import NoveltyMemory
 from .plugins import TargetPlugin, get_plugin
-from .policy import PolicyABC
+from .policy import PolicyABC, PolicyView
 from .prophecy import TableProphecyModel
-from .reward import RewardObserver
+from .reward import RewardBreakdown, RewardConfig, RewardObserver
 from .tools import SafetyError, ToolExecutor, ToolResult
 
 
@@ -46,6 +46,27 @@ class StepRecord:
     evaluated_candidate_count: int = 0
     score_duration_s: float = 0.0
     tool_duration_s: float = 0.0
+    policy_sampled: bool = False
+    sampled_policy: str = ""
+    reward_total: float = 0.0
+    reward_challenge_solved: float = 0.0
+    reward_challenge_progress: float = 0.0
+    reward_semantic_novelty: float = 0.0
+    reward_useful_observation: float = 0.0
+    penalty_repeated_action: float = 0.0
+    penalty_repeated_response: float = 0.0
+    penalty_invalid_action: float = 0.0
+    penalty_no_progress: float = 0.0
+    challenge_progress: float = 0.0
+    semantic_novelty: int = 0
+    repeated_action: bool = False
+    repeated_response: bool = False
+    raw_response_hash: str = ""
+    normalized_response_hash: str = ""
+    predicted_immediate_solve_probability: float = 0.0
+    predicted_progress_probability: float = 0.0
+    predicted_eventual_solve_probability: float = 0.0
+    predicted_expected_progress: float = 0.0
 
 
 @dataclass
@@ -75,9 +96,11 @@ class APASSRToolDMP:
         novelty_score_weight: float = 0.0,
         knowledge_reward_cap: int = 5,
         knowledge_reward_scale: float = 1.0,
-        solved_reward: float = 20.0,
+        solved_reward: float = 50.0,
         step_limit: int = 30,
         candidate_eval_limit: int = 25000,
+        policy_sampling_attempts: int = 512,
+        reward_config: RewardConfig | None = None,
         observer: Any | None = None,
     ) -> None:
         self.plugin = get_plugin(plugin) if isinstance(plugin, str) else plugin or get_plugin("web")
@@ -94,8 +117,10 @@ class APASSRToolDMP:
         self.knowledge_reward_cap = knowledge_reward_cap
         self.knowledge_reward_scale = knowledge_reward_scale
         self.solved_reward = solved_reward
+        self.reward_config = reward_config or replace(RewardConfig(), challenge_solved=solved_reward)
         self.step_limit = step_limit
         self.candidate_eval_limit = candidate_eval_limit
+        self.policy_sampling_attempts = policy_sampling_attempts
         self.observer = observer
         self.tried_counts: dict[str, int] = {}
         self.template_counts: dict[str, int] = {}
@@ -107,6 +132,10 @@ class APASSRToolDMP:
         self.last_candidate_count = 0
         self.last_evaluated_candidate_count = 0
         self.last_score_duration_s = 0.0
+        self.last_sampled_policy: PolicyView | None = None
+        self.failure_counts: dict[str, int] = {}
+        self._replay_start = len(self.prophecy_model.replay)
+        self._trajectory_finalized = False
         if self.reward_observer is not None:
             self.reward_observer.reset()
 
@@ -126,11 +155,7 @@ class APASSRToolDMP:
 
     def choose_candidate(self) -> ActionCandidate | None:
         started_at = time.perf_counter()
-        candidates = [
-            candidate
-            for candidate in self.plugin.candidates(self.store)
-            if candidate.tool_call.tool.value not in self.unavailable_tools
-        ]
+        candidates = self._candidate_pool_for_selection()
         self.last_candidate_count = len(candidates)
         if not candidates:
             self.last_evaluated_candidate_count = 0
@@ -149,7 +174,39 @@ class APASSRToolDMP:
             prophecy=self.prophecy_model,
             dmp=self,
         )
-        return scored[0][0]
+        selected = scored[0][0]
+        if self.last_sampled_policy is not None:
+            self.last_sampled_policy = selected.policy
+        return selected
+
+    def _candidate_pool_for_selection(self) -> list[ActionCandidate]:
+        self.last_sampled_policy = None
+        sampled_candidates: dict[str, ActionCandidate] = {}
+        for _ in range(max(1, self.policy_sampling_attempts)):
+            policy_view = self.policy.sample_view()
+            candidates = self._plugin_candidates_for_policy(policy_view)
+            if candidates:
+                self.last_sampled_policy = policy_view
+                for candidate in candidates:
+                    key = candidate.tried_key or candidate.label
+                    sampled_candidates.setdefault(key, candidate)
+        if sampled_candidates:
+            return list(sampled_candidates.values())
+        return [
+            candidate
+            for candidate in self.plugin.candidates(self.store)
+            if candidate.tool_call.tool.value not in self.unavailable_tools
+        ]
+
+    def _plugin_candidates_for_policy(self, policy_view: PolicyView) -> list[ActionCandidate]:
+        generator = getattr(self.plugin, "candidates_for_policy", None)
+        if not callable(generator):
+            return []
+        return [
+            candidate
+            for candidate in generator(self.store, policy_view)
+            if candidate.tool_call.tool.value not in self.unavailable_tools
+        ]
 
     def _candidate_eval_pool(self, candidates: list[ActionCandidate]) -> list[ActionCandidate]:
         limit = self.candidate_eval_limit
@@ -204,6 +261,10 @@ class APASSRToolDMP:
             "predicted_reward": prediction.expected_reward,
             "predicted_knowledge": prediction.expected_knowledge,
             "predicted_solved_rate": prediction.solved_rate,
+            "predicted_immediate_solve_probability": prediction.immediate_solve_probability,
+            "predicted_progress_probability": prediction.progress_probability,
+            "predicted_eventual_solve_probability": prediction.eventual_solve_probability,
+            "predicted_expected_progress": prediction.expected_progress,
             "predicted_error_rate": prediction.error_rate,
             "novelty_score": novelty_prediction.score,
             "novelty_multiplier": novelty_multiplier,
@@ -231,8 +292,12 @@ class APASSRToolDMP:
                 new_kv=0,
                 solved_delta=0,
             )
-            policy_reward = -1.0
-            reward = policy_reward + self.novelty_reward * novelty_update.bonus
+            breakdown = RewardBreakdown(
+                penalty_invalid_action=self.reward_config.invalid_action,
+                penalty_no_progress=self.reward_config.no_progress,
+            )
+            reward = breakdown.total
+            policy_reward = reward
             record = StepRecord(
                 step=step,
                 action=candidate.label,
@@ -249,7 +314,7 @@ class APASSRToolDMP:
                 predicted_reward=prediction.expected_reward,
                 predicted_solved_rate=prediction.solved_rate,
                 novelty_score=novelty_prediction.score,
-                novelty_bonus=self.novelty_reward * novelty_update.bonus,
+                novelty_bonus=0.0,
                 novelty_signature=novelty_update.signature,
                 policy_reward=policy_reward,
                 blocked=True,
@@ -257,6 +322,17 @@ class APASSRToolDMP:
                 candidate_count=self.last_candidate_count,
                 evaluated_candidate_count=self.last_evaluated_candidate_count,
                 score_duration_s=self.last_score_duration_s,
+                policy_sampled=self.last_sampled_policy is not None,
+                sampled_policy=_policy_label(self.last_sampled_policy),
+                reward_total=reward,
+                penalty_invalid_action=breakdown.penalty_invalid_action,
+                penalty_no_progress=breakdown.penalty_no_progress,
+                repeated_action=novelty_update.repeated_action,
+                repeated_response=novelty_update.repeated_response,
+                predicted_immediate_solve_probability=prediction.immediate_solve_probability,
+                predicted_progress_probability=prediction.progress_probability,
+                predicted_eventual_solve_probability=prediction.eventual_solve_probability,
+                predicted_expected_progress=prediction.expected_progress,
             )
             self.policy.update(candidate.policy, policy_reward)
             self.prophecy_model.update(
@@ -265,6 +341,7 @@ class APASSRToolDMP:
                 new_kv=0,
                 solved_delta=0,
                 status=0,
+                progress=0.0,
             )
             self._notify("on_step", record=record, result=None, store=self.store, policy=self.policy, prophecy=self.prophecy_model, dmp=self)
             return record, None
@@ -272,7 +349,6 @@ class APASSRToolDMP:
         new_kv = self.store.add_many(parsed, source=candidate.label)
         new_kv += self.store.derive()
         flag_found = bool(self.store.values(KK.FLAG))
-        reward = self._reward(candidate, result, new_kv, flag_found)
         solved_delta = 0
         solved_total = len(self.solved_challenges)
         if self.reward_observer is not None:
@@ -282,25 +358,42 @@ class APASSRToolDMP:
                     self.solved_challenges.append(key)
             solved_delta = len(signal.new_solved)
             solved_total = signal.solved_total
-            reward += self.solved_reward * solved_delta
-        if solved_delta == 0 and syntax_penalty > 0:
-            reward -= syntax_penalty
-        policy_reward = reward
+        had_flag_evidence = any(fact.startswith(f"{KK.FLAG.value}:") for fact in self.novelty_memory.semantic_facts)
+        new_flag_solve = flag_found and not had_flag_evidence
+        learning_solved_delta = solved_delta if solved_delta > 0 else int(new_flag_solve)
+        challenge_keys = tuple(signal.new_solved) if self.reward_observer is not None else ()
+        if new_flag_solve:
+            challenge_keys += ("flag-evidence",)
         novelty_update = self.novelty_memory.update(
             candidate,
             status=result.status,
             new_kv=new_kv,
-            solved_delta=solved_delta,
+            solved_delta=learning_solved_delta,
+            response_body=result.stdout,
+            semantic_items=parsed,
+            challenge_keys=challenge_keys,
         )
-        novelty_bonus = self.novelty_reward * novelty_update.bonus
-        reward += novelty_bonus
-        self.policy.update(candidate.policy, policy_reward)
+        challenge_progress = self._challenge_progress(
+            parsed=parsed, flag_found=flag_found, solved_delta=learning_solved_delta,
+            meaningful_transition=novelty_update.meaningful_transition,
+            semantic_novelty=novelty_update.semantic_novelty,
+        )
+        breakdown = self._reward_breakdown(
+            candidate=candidate, result=result, solved_delta=learning_solved_delta,
+            challenge_progress=challenge_progress, novelty_update=novelty_update,
+            syntax_penalty=syntax_penalty,
+        )
+        reward = breakdown.total
+        novelty_bonus = breakdown.reward_semantic_novelty
+        policy_reward = reward - novelty_bonus
+        self.policy.update(candidate.policy, reward)
         self.prophecy_model.update(
             candidate,
             reward=reward,
             new_kv=new_kv,
-            solved_delta=solved_delta,
+            solved_delta=learning_solved_delta,
             status=result.status,
+            progress=challenge_progress,
         )
         if result.unavailable:
             self.unavailable_tools.add(candidate.tool_call.tool.value)
@@ -315,7 +408,7 @@ class APASSRToolDMP:
             new_kv=new_kv,
             reward=reward,
             flag_found=flag_found,
-            solved_delta=solved_delta,
+            solved_delta=learning_solved_delta,
             solved_total=solved_total,
             imagination_score=imagination_score,
             imagination_support=prediction.support,
@@ -332,31 +425,86 @@ class APASSRToolDMP:
             evaluated_candidate_count=self.last_evaluated_candidate_count,
             score_duration_s=self.last_score_duration_s,
             tool_duration_s=result.duration_s,
+            policy_sampled=self.last_sampled_policy is not None,
+            sampled_policy=_policy_label(self.last_sampled_policy),
+            reward_total=reward,
+            reward_challenge_solved=breakdown.reward_challenge_solved,
+            reward_challenge_progress=breakdown.reward_challenge_progress,
+            reward_semantic_novelty=breakdown.reward_semantic_novelty,
+            reward_useful_observation=breakdown.reward_useful_observation,
+            penalty_repeated_action=breakdown.penalty_repeated_action,
+            penalty_repeated_response=breakdown.penalty_repeated_response,
+            penalty_invalid_action=breakdown.penalty_invalid_action,
+            penalty_no_progress=breakdown.penalty_no_progress,
+            challenge_progress=challenge_progress,
+            semantic_novelty=novelty_update.semantic_novelty,
+            repeated_action=novelty_update.repeated_action,
+            repeated_response=novelty_update.repeated_response,
+            raw_response_hash=novelty_update.raw_response_hash,
+            normalized_response_hash=novelty_update.normalized_response_hash,
+            predicted_immediate_solve_probability=prediction.immediate_solve_probability,
+            predicted_progress_probability=prediction.progress_probability,
+            predicted_eventual_solve_probability=prediction.eventual_solve_probability,
+            predicted_expected_progress=prediction.expected_progress,
         )
         self._notify("on_step", record=record, result=result, store=self.store, policy=self.policy, prophecy=self.prophecy_model, dmp=self)
         return record, result
 
-    def _reward(
-        self,
-        candidate: ActionCandidate,
-        result: ToolResult,
-        new_kv: int,
-        flag_found: bool,
+    def _challenge_progress(
+        self, *, parsed: list[tuple[KK, str]], flag_found: bool, solved_delta: int,
+        meaningful_transition: bool, semantic_novelty: int,
     ) -> float:
-        reward = self.knowledge_reward_scale * float(min(new_kv, self.knowledge_reward_cap))
-        if 200 <= result.status < 400:
-            reward += 0.1
-        if result.status >= 400:
-            reward -= 0.2
-        if result.unavailable:
-            reward -= 1.0
-        if self.tried_counts.get(candidate.tried_key, 0) > 1:
-            reward -= 0.2
-        if flag_found:
-            reward += 10.0
-        return reward
+        if solved_delta > 0 or flag_found:
+            return 1.0
+        progress_kinds = {KK.ENDPOINT, KK.AUTH_PATH, KK.SESSION_COOKIE, KK.FLAG, KK.HTTP_METHOD, KK.PARAM_NAME}
+        relevant = sum(1 for kk, _ in parsed if kk in progress_kinds)
+        if meaningful_transition and relevant:
+            return min(0.8, 0.35 + 0.1 * relevant)
+        if semantic_novelty > 0 and relevant:
+            return min(0.6, 0.15 + 0.08 * relevant)
+        return 0.0
+
+    def _reward_breakdown(
+        self, *, candidate: ActionCandidate, result: ToolResult, solved_delta: int,
+        challenge_progress: float, novelty_update, syntax_penalty: float,
+    ) -> RewardBreakdown:
+        config = self.reward_config
+        failure = result.status == 0 or result.status >= 400 or result.blocked or result.unavailable
+        failure_key = f"{novelty_update.signature}:status={result.status}"
+        failure_count = self.failure_counts.get(failure_key, 0)
+        if failure:
+            self.failure_counts[failure_key] = failure_count + 1
+        invalid = 0.0
+        if result.blocked or result.unavailable or result.status == 0:
+            invalid = config.invalid_action
+        elif result.status >= 500:
+            invalid = 0.2 + min(config.repeated_failure_cap, config.repeated_failure_growth * failure_count)
+        elif result.status >= 400:
+            invalid = 0.35 + min(config.repeated_failure_cap, config.repeated_failure_growth * failure_count)
+        invalid += syntax_penalty if solved_delta == 0 else 0.0
+        semantic_reward = min(
+            config.semantic_novelty_cap,
+            novelty_update.semantic_novelty * (config.semantic_novelty_unit + 0.1 * self.novelty_reward),
+        )
+        useful = config.useful_observation if (
+            not failure and (novelty_update.semantic_novelty > 0 or novelty_update.meaningful_transition)
+        ) else 0.0
+        no_progress = config.no_progress if solved_delta == 0 and challenge_progress == 0 and novelty_update.semantic_novelty == 0 else 0.0
+        return RewardBreakdown(
+            reward_challenge_solved=config.challenge_solved * solved_delta,
+            reward_challenge_progress=config.challenge_progress * challenge_progress if solved_delta == 0 else 0.0,
+            reward_semantic_novelty=semantic_reward,
+            reward_useful_observation=useful,
+            penalty_repeated_action=config.repeated_action if novelty_update.repeated_action else 0.0,
+            penalty_repeated_response=config.repeated_response if novelty_update.repeated_response else 0.0,
+            penalty_invalid_action=invalid,
+            penalty_no_progress=no_progress,
+        )
 
     def _result(self, success: bool, steps: int, flag: str | None) -> RunResult:
+        if not self._trajectory_finalized:
+            self.prophecy_model.finalize_episode(self._replay_start)
+            self._trajectory_finalized = True
         return RunResult(
             success=success,
             steps=steps,
@@ -402,3 +550,9 @@ def _path_appends_directory_to_file(path: str) -> bool:
         if "." in name and not name.endswith(".well-known"):
             return True
     return False
+
+
+def _policy_label(policy: PolicyView | None) -> str:
+    if policy is None:
+        return ""
+    return f"{policy.what.value}/{policy.how.value}/{policy.where.value}"

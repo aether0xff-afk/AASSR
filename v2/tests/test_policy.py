@@ -78,6 +78,20 @@ class PolicyABCTests(unittest.TestCase):
         self.assertGreaterEqual(min(policy.policy_b.values()), 0.02 / 1.12)
         self.assertGreaterEqual(min(policy.policy_c.values()), 0.02 / 1.16)
 
+    def test_policyabc_samples_what_how_where_before_binding(self) -> None:
+        policy = PolicyABC(
+            policy_a={"INSPECT_CELL": 1.0},
+            policy_b={"random": 1.0},
+            policy_c={"KK_UNKNOWN_NEIGHBOR": 1.0},
+            min_prob=0.0,
+            seed=0,
+        )
+
+        self.assertEqual(
+            policy.sample_axes(),
+            ("INSPECT_CELL", "random", "KK_UNKNOWN_NEIGHBOR"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

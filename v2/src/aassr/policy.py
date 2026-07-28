@@ -101,6 +101,19 @@ class PolicyABC:
     def select_candidate(self, candidates: list[CandidateT]) -> CandidateT:
         return self.choose(candidates, None)
 
+    def sample_axes(self) -> tuple[str, str, str]:
+        """Sample WHAT/HOW/WHERE before candidate binding.
+
+        This is the paper-aligned PolicyABC role: the policy tables provide a
+        stochastic action-generation prior, while candidate binding and
+        imagination remain separate stages.
+        """
+        return (
+            self._sample_axis(self.policy_a),
+            self._sample_axis(self.policy_b),
+            self._sample_axis(self.policy_c),
+        )
+
     def update(self, candidate: CandidateT, reward: float) -> None:
         what, how, where = candidate_axes(candidate)
         self._update_axis(self.policy_a, what, reward)
@@ -160,6 +173,20 @@ class PolicyABC:
         total = sum(floored.values())
         for key in table:
             table[key] = floored[key] / total
+
+    def _sample_axis(self, table: dict[str, float]) -> str:
+        if not table:
+            raise ValueError("PolicyABC cannot sample from an empty axis table")
+        total = sum(max(value, 0.0) for value in table.values())
+        if total <= 0:
+            return self.random.choice(list(table))
+        threshold = self.random.random() * total
+        cumulative = 0.0
+        for key, value in table.items():
+            cumulative += max(value, 0.0)
+            if cumulative >= threshold:
+                return key
+        return next(reversed(table))
 
 
 def candidate_axes(candidate: Any) -> tuple[str, str, str]:
