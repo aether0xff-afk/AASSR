@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .confidence import AdaptiveDepthController
 from .imagination import ImaginationBatch
+from .imagination_tree import ImaginationResult, ImaginationTree
 from .information_value import (
     InformationValueBreakdown,
     information_value_from_measurements,
@@ -21,6 +23,14 @@ class EvaluatedTransition:
     uncertainty_after: float
     prediction_score_before: float
     prediction_score_after: float
+
+
+@dataclass(frozen=True, slots=True)
+class PlannedTransition:
+    plan: ImaginationResult
+    evaluated: EvaluatedTransition
+    depth_before: int
+    depth_after: int
 
 
 class TransitionEvaluator:
@@ -122,4 +132,54 @@ class TransitionEvaluator:
             uncertainty_after=uncertainty_after,
             prediction_score_before=prediction_score_before,
             prediction_score_after=prediction_score_after,
+        )
+
+
+class ImaginationTransitionEvaluator:
+    """Plan in Prophecy universes, execute only the chosen root action in reality."""
+
+    def __init__(
+        self,
+        planner: ImaginationTree,
+        evaluator: TransitionEvaluator,
+        *,
+        depth_controller: AdaptiveDepthController | None = None,
+    ) -> None:
+        self.planner = planner
+        self.evaluator = evaluator
+        self.depth_controller = depth_controller
+
+    def execute(
+        self,
+        environment: object,
+        knowledge: KnowledgeStore,
+        ledger: TraceLedger,
+    ) -> PlannedTransition:
+        depth_before = (
+            self.depth_controller.depth
+            if self.depth_controller is not None
+            else self.planner.config.maximum_depth
+        )
+        plan = self.planner.plan(
+            environment.snapshot(),
+            maximum_depth=depth_before,
+        )
+        evaluated = self.evaluator.execute(
+            environment,
+            plan.chosen_action,
+            knowledge,
+            ledger,
+        )
+
+        depth_after = depth_before
+        if self.depth_controller is not None:
+            depth_after = self.depth_controller.observe(
+                evaluated.prediction_score_before
+            )
+
+        return PlannedTransition(
+            plan=plan,
+            evaluated=evaluated,
+            depth_before=depth_before,
+            depth_after=depth_after,
         )
