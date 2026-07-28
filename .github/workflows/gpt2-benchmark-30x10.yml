@@ -1,0 +1,103 @@
+name: GPT-2 v2_complex 30x10 benchmark
+
+on:
+  push:
+    branches: [GPT-2]
+    paths:
+      - ".github/workflows/gpt2-benchmark-30x10.yml"
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        condition:
+          - C5
+          - GPT2_REWARD
+          - GPT2_ACADEMY_MODEL
+          - GPT2_ACADEMY_FULL
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package
+        run: python -m pip install -e v2
+
+      - name: Run benchmark
+        working-directory: v2
+        env:
+          PYTHONPATH: src
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p runs/gpt2_v2_complex_30x10
+          case "${{ matrix.condition }}" in
+            C5)
+              python -m aassr.experiment \
+                --condition C5 \
+                --world v2_complex \
+                --episodes 30 \
+                --seeds 10 \
+                --step-limit 120 \
+                --workers 2 \
+                --output-dir runs/gpt2_v2_complex_30x10/C5
+              ;;
+            GPT2_REWARD)
+              python -m aassr.gpt2_experiment \
+                --mode reward \
+                --world v2_complex \
+                --episodes 30 \
+                --seeds 10 \
+                --step-limit 120 \
+                --output-dir runs/gpt2_v2_complex_30x10/GPT2_REWARD
+              ;;
+            GPT2_ACADEMY_MODEL)
+              python -m aassr.gpt2_experiment \
+                --mode academy \
+                --world v2_complex \
+                --pretrain-episodes 100 \
+                --episodes 30 \
+                --seeds 10 \
+                --step-limit 120 \
+                --prophecy-kind sequence \
+                --transfer-mode model_only \
+                --output-dir runs/gpt2_v2_complex_30x10/GPT2_ACADEMY_MODEL
+              ;;
+            GPT2_ACADEMY_FULL)
+              python -m aassr.gpt2_experiment \
+                --mode academy \
+                --world v2_complex \
+                --pretrain-episodes 100 \
+                --episodes 30 \
+                --seeds 10 \
+                --step-limit 120 \
+                --prophecy-kind sequence \
+                --transfer-mode full_prior \
+                --output-dir runs/gpt2_v2_complex_30x10/GPT2_ACADEMY_FULL
+              ;;
+          esac
+
+      - name: Print result summary
+        working-directory: v2
+        shell: bash
+        run: |
+          find runs/gpt2_v2_complex_30x10/${{ matrix.condition }} -maxdepth 2 \
+            \( -name 'gridworld_summary.csv' -o -name 'academy_report.json' \) \
+            -print -exec cat {} \;
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpt2-v2-complex-30x10-${{ matrix.condition }}
+          path: v2/runs/gpt2_v2_complex_30x10/${{ matrix.condition }}
+          if-no-files-found: error
+          retention-days: 30
