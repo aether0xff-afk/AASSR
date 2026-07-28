@@ -31,6 +31,7 @@ class PlannedTransition:
     evaluated: EvaluatedTransition
     depth_before: int
     depth_after: int
+    depth_evidence_score: float
 
 
 class TransitionEvaluator:
@@ -171,15 +172,22 @@ class ImaginationTransitionEvaluator:
             ledger,
         )
 
+        depth_evidence_score = evaluated.prediction_score_before
+        unreliable_prediction = evaluated.trace.error or any(
+            prediction.source.lower().endswith(":unseen")
+            for prediction in evaluated.trace.predictions
+        )
+        if unreliable_prediction:
+            depth_evidence_score = min(depth_evidence_score, 0.0)
+
         depth_after = depth_before
         if self.depth_controller is not None:
-            depth_after = self.depth_controller.observe(
-                evaluated.prediction_score_before
-            )
+            depth_after = self.depth_controller.observe(depth_evidence_score)
 
         return PlannedTransition(
             plan=plan,
             evaluated=evaluated,
             depth_before=depth_before,
             depth_after=depth_after,
+            depth_evidence_score=depth_evidence_score,
         )
