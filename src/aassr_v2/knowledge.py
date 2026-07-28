@@ -14,7 +14,9 @@ class KnowledgeEntry:
 
     def __post_init__(self) -> None:
         if not 0.0 <= self.confidence <= 1.0:
-            raise ValueError("confidence must be between 0 and 1")
+            raise ValueError(
+                "confidence must be between 0 and 1"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,24 +27,34 @@ class KnowledgeDelta:
 
     @property
     def is_empty(self) -> bool:
-        return not (self.added or self.changed or self.removed_keys)
+        return not (
+            self.added
+            or self.changed
+            or self.removed_keys
+        )
 
 
 @dataclass(slots=True)
 class KnowledgeStore:
-    """Explicit knowledge storage with provenance.
+    """Explicit knowledge storage with provenance."""
 
-    This store intentionally avoids assigning reward to knowledge by itself.
-    Reward is computed later from the measurable effect of a KnowledgeDelta.
-    """
+    _entries: dict[str, KnowledgeEntry] = field(
+        default_factory=dict
+    )
 
-    _entries: dict[str, KnowledgeEntry] = field(default_factory=dict)
-
-    def get(self, key: str) -> KnowledgeEntry | None:
+    def get(
+        self,
+        key: str,
+    ) -> KnowledgeEntry | None:
         return self._entries.get(key)
 
     def values(self) -> tuple[KnowledgeEntry, ...]:
         return tuple(self._entries.values())
+
+    def clone(self) -> KnowledgeStore:
+        """Return an independent branch-local knowledge snapshot."""
+
+        return KnowledgeStore(dict(self._entries))
 
     def apply(
         self,
@@ -66,4 +78,8 @@ class KnowledgeStore:
             elif previous != entry:
                 changed.append(entry)
 
-        return KnowledgeDelta(tuple(added), tuple(changed), tuple(removed))
+        return KnowledgeDelta(
+            tuple(added),
+            tuple(changed),
+            tuple(removed),
+        )
