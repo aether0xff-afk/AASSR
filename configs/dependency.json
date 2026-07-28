@@ -1,0 +1,55 @@
+{
+  "name": "dependency_scaling",
+  "output_dir": "runs/dependency",
+  "seeds": [7, 13, 21, 42, 100],
+  "suites": [
+    {
+      "kind": "dependency",
+      "lengths": [4, 6, 8],
+      "train_episodes": 20,
+      "eval_episodes": 50,
+      "max_steps_multiplier": 4,
+      "conditions": [
+        {
+          "name": "random",
+          "mode": "random",
+          "model": "tabular"
+        },
+        {
+          "name": "policy",
+          "mode": "policy",
+          "model": "tabular"
+        },
+        {
+          "name": "tabular_n2_k2",
+          "mode": "imagination",
+          "model": "tabular",
+          "branching_factor": 2,
+          "maximum_depth": 2,
+          "aggregation": "max"
+        },
+        {
+          "name": "tabular_n2_k4",
+          "mode": "imagination",
+          "model": "tabular",
+          "branching_factor": 2,
+          "maximum_depth": 4,
+          "aggregation": "max"
+        },
+        {
+          "name": "gru_n2_k2",
+          "mode": "imagination",
+          "model": "gru",
+          "branching_factor": 2,
+          "maximum_depth": 2,
+          "aggregation": "max",
+          "model_options": {
+            "hidden_size": 32,
+            "action_feature_size": 16,
+            "learning_rate": 0.02
+          }
+        }
+      ]
+    }
+  ]
+}
