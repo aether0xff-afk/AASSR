@@ -44,16 +44,12 @@ class NoisyInformationWrapper:
         outcome = self.environment.step(action)
         self.index += 1
         snapshot = self._decorate(outcome.snapshot)
-        if isinstance(outcome, PluginOutcome):
-            return replace(
-                outcome,
-                snapshot=snapshot,
-                added_facts=(
-                    outcome.added_facts
-                    | (snapshot.facts - outcome.snapshot.facts)
-                ),
-            )
-        return replace(outcome, snapshot=snapshot)
+        noise_added = snapshot.facts - outcome.snapshot.facts
+        return replace(
+            outcome,
+            snapshot=snapshot,
+            added_facts=outcome.added_facts | noise_added,
+        )
 
 
 @dataclass(frozen=True, slots=True)
