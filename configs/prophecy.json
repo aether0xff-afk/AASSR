@@ -1,0 +1,22 @@
+{
+  "name": "prophecy_comparison",
+  "output_dir": "runs/prophecy",
+  "seeds": [7, 13, 21, 42, 100],
+  "suites": [
+    {
+      "kind": "prophecy",
+      "models": ["tabular", "gru"],
+      "train_episodes": 100,
+      "eval_episodes": 50,
+      "samples": 8,
+      "model_options": {
+        "gru": {
+          "hidden_size": 24,
+          "action_feature_size": 16,
+          "learning_rate": 0.02,
+          "replay_limit": 1024
+        }
+      }
+    }
+  ]
+}
