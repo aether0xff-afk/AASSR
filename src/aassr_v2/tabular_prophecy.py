@@ -12,21 +12,21 @@ StateFingerprint = tuple[
 ]
 
 
-def state_fingerprint(state: StateSnapshot) -> StateFingerprint:
+def state_fingerprint(
+    state: StateSnapshot,
+) -> StateFingerprint:
     return (
         tuple(round(value, 8) for value in state.vector),
         tuple(sorted(state.facts)),
-        tuple(action.signature for action in state.available_actions),
+        tuple(
+            action.signature
+            for action in state.available_actions
+        ),
     )
 
 
 class TabularProphecy:
-    """Transparent empirical transition model used as the first baseline.
-
-    Exact state-action observations are preferred. Before an exact transition
-    is known, the model falls back to transitions observed for the same action
-    family during the curriculum.
-    """
+    """Transparent empirical transition model baseline."""
 
     def __init__(self, name: str = "tabular") -> None:
         self._name = name
@@ -34,8 +34,14 @@ class TabularProphecy:
             tuple[StateFingerprint, str],
             Counter[StateFingerprint],
         ] = defaultdict(Counter)
-        self._global: dict[str, Counter[StateFingerprint]] = defaultdict(Counter)
-        self._states: dict[StateFingerprint, StateSnapshot] = {}
+        self._global: dict[
+            str,
+            Counter[StateFingerprint],
+        ] = defaultdict(Counter)
+        self._states: dict[
+            StateFingerprint,
+            StateSnapshot,
+        ] = {}
 
     @property
     def name(self) -> str:
@@ -54,10 +60,16 @@ class TabularProphecy:
         action: Action,
         actual_next_state: StateSnapshot,
     ) -> None:
-        next_fingerprint = state_fingerprint(actual_next_state)
+        next_fingerprint = state_fingerprint(
+            actual_next_state
+        )
         self._states[next_fingerprint] = actual_next_state
-        self._exact[self._key(state, action)][next_fingerprint] += 1
-        self._global[action.verb.value][next_fingerprint] += 1
+        self._exact[
+            self._key(state, action)
+        ][next_fingerprint] += 1
+        self._global[
+            action.verb_name
+        ][next_fingerprint] += 1
 
     def predict(
         self,
@@ -69,10 +81,14 @@ class TabularProphecy:
         if samples <= 0:
             raise ValueError("samples must be positive")
 
-        counts = self._exact.get(self._key(state, action))
+        counts = self._exact.get(
+            self._key(state, action)
+        )
         source = f"{self.name}:exact"
         if not counts:
-            counts = self._global.get(action.verb.value)
+            counts = self._global.get(
+                action.verb_name
+            )
             source = f"{self.name}:action-family"
 
         if not counts:
@@ -91,5 +107,7 @@ class TabularProphecy:
                 probability=count / total,
                 source=source,
             )
-            for fingerprint, count in counts.most_common(samples)
+            for fingerprint, count in counts.most_common(
+                samples
+            )
         )
