@@ -8,11 +8,7 @@ from .types import Action, Prediction, StateSnapshot
 
 @dataclass(frozen=True, slots=True)
 class ProphecyStep:
-    """One branch-local recurrent prediction step.
-
-    ``memory`` is intentionally opaque. A GRU/LSTM implementation may place its
-    hidden state here, while the tabular baseline simply keeps it as ``None``.
-    """
+    """One branch-local recurrent prediction step."""
 
     predictions: tuple[Prediction, ...]
     memory: Any = None
@@ -23,8 +19,6 @@ class ProphecyStep:
 
 
 class ProphecyModel(Protocol):
-    """Predict possible next states for one state-action pair."""
-
     @property
     def name(self) -> str: ...
 
@@ -45,7 +39,7 @@ class ProphecyModel(Protocol):
 
 
 class RecurrentProphecyModel(Protocol):
-    """Optional interface for RNN/GRU/LSTM Prophecy implementations."""
+    """Optional interface for RNN/GRU/LSTM implementations."""
 
     def initial_memory(self) -> Any: ...
 
@@ -57,3 +51,16 @@ class RecurrentProphecyModel(Protocol):
         memory: Any,
         samples: int,
     ) -> ProphecyStep: ...
+
+
+class ContextualProphecyModel(Protocol):
+    """Optional interface used to separate KK-context and model updates."""
+
+    def predict_with_context(
+        self,
+        state: StateSnapshot,
+        action: Action,
+        *,
+        knowledge: object,
+        samples: int,
+    ) -> tuple[Prediction, ...]: ...
