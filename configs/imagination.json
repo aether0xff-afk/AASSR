@@ -1,0 +1,81 @@
+{
+  "name": "imagination_ablation",
+  "output_dir": "runs/imagination",
+  "seeds": [7, 13, 21, 42, 100],
+  "suites": [
+    {
+      "kind": "imagination",
+      "train_episodes": 30,
+      "eval_episodes": 50,
+      "max_steps": 3,
+      "conditions": [
+        {
+          "name": "policy_only",
+          "mode": "policy",
+          "model": "tabular"
+        },
+        {
+          "name": "n2_k1_max",
+          "mode": "imagination",
+          "model": "tabular",
+          "branching_factor": 2,
+          "maximum_depth": 1,
+          "aggregation": "max"
+        },
+        {
+          "name": "n2_k2_max",
+          "mode": "imagination",
+          "model": "tabular",
+          "branching_factor": 2,
+          "maximum_depth": 2,
+          "aggregation": "max"
+        },
+        {
+          "name": "n2_k3_max",
+          "mode": "imagination",
+          "model": "tabular",
+          "branching_factor": 2,
+          "maximum_depth": 3,
+          "aggregation": "max"
+        },
+        {
+          "name": "n3_k3_max",
+          "mode": "imagination",
+          "model": "tabular",
+          "branching_factor": 3,
+          "maximum_depth": 3,
+          "aggregation": "max"
+        },
+        {
+          "name": "n2_k2_mean",
+          "mode": "imagination",
+          "model": "tabular",
+          "branching_factor": 2,
+          "maximum_depth": 2,
+          "aggregation": "mean"
+        },
+        {
+          "name": "n2_k2_risk_adjusted",
+          "mode": "imagination",
+          "model": "tabular",
+          "branching_factor": 2,
+          "maximum_depth": 2,
+          "aggregation": "risk_adjusted"
+        },
+        {
+          "name": "gru_n2_k2_max",
+          "mode": "imagination",
+          "model": "gru",
+          "branching_factor": 2,
+          "maximum_depth": 2,
+          "aggregation": "max",
+          "model_options": {
+            "hidden_size": 20,
+            "action_feature_size": 12,
+            "learning_rate": 0.03
+          }
+        }
+      ]
+    }
+  ]
+}
