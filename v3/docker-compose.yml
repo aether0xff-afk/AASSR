@@ -1,9 +1,0 @@
-services:
-  sandbag:
-    build: ./sandbox_web
-    ports:
-      - "8088:8088"
-    environment:
-      - SANDBAG_HOST=0.0.0.0
-      - SANDBAG_PORT=8088
-

@@ -1,2 +1,0 @@
-condition,seeds,episodes,success_rate,steps_to_flag_mean,total_reward_mean,external_reward_mean,semantic_gain_mean,prophecy_error_mean,repeat_count_mean,error_count_mean,knowledge_reuse_mean,unique_action_count_mean
-QLEARN,10,300,0.5733333333333334,91.37333333333333,9.895666666666667,0.5733333333333334,119.98333333333333,0.0,39.49333333333333,3.506666666666667,9.096666666666666,51.88

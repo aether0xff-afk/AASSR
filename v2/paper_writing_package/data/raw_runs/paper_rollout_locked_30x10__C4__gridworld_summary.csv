@@ -1,2 +1,0 @@
-condition,seeds,episodes,success_rate,steps_to_flag_mean,total_reward_mean,external_reward_mean,semantic_gain_mean,prophecy_error_mean,repeat_count_mean,error_count_mean,knowledge_reuse_mean,unique_action_count_mean
-C4,10,300,0.5266666666666666,105.69666666666667,10.394757201223449,0.5266666666666666,114.93666666666667,0.05581158183412869,55.11666666666667,2.1633333333333336,8.356666666666667,50.58

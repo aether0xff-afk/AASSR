@@ -1,33 +1,51 @@
-# AASSR Workspace
+# AASSR v2
 
-This root folder is only the version container.
+AASSR v2는 기존 구현을 복사하지 않고 처음부터 다시 설계하는 연구용 코드베이스다.
 
-## Folders
+목표는 에이전트에게 정답 행동이나 사물별 규칙을 직접 가르치는 것이 아니다. 다음 세 가지만 가르친 뒤, 최종 목표만 주어진 새로운 환경에서 스스로 유용한 정보를 찾고 행동 조합을 구성하도록 만드는 것이다.
 
-| Folder | Purpose |
-| --- | --- |
-| `v1/` | Frozen v1 snapshot: APASSR GridWorld, C0-C3, baselines, analysis, plots |
-| `v2/` | Active workspace for the next, more complex version |
-| `artifacts/` | Local experiment outputs and logs moved out of the root |
+1. 기본 조작 방식: 이동, 관찰, 줍기, 사용, 부수기, 설치하기, 조합하기
+2. 일반적인 인과관계: 행동은 상태를 바꾸며, 정보와 물체는 새로운 행동을 가능하게 할 수 있고, 여러 행동은 순서대로 결합될 수 있음
+3. 학습 가치 판단: 특정 경험 이후 세계 예측이 실제로 얼마나 개선되었는지를 측정
 
-## Work In v2
-
-```powershell
-cd X:\Dev\AASSR\v2
-$env:PYTHONPATH='src'
-python -m unittest discover -s tests -v
-```
-
-## v1 Status
-
-v1 was snapshotted after:
+## 핵심 폐루프
 
 ```text
-Ran 59 tests
-OK
+관측
+→ Knowledge Store 갱신
+→ 같은 행동에 대한 여러 미래 예측
+→ Imagination 불확실성 측정
+→ 행동 실행
+→ 예측한 다음 상태와 실제 다음 상태 비교
+→ 예측 개선량과 불확실성 감소량 계산
+→ 정보 가치에 비례한 학습 신호 생성
+→ 다음 행동 선택
 ```
 
-See:
+## 현재 범위: 0.1.0
 
-- `v1/VERSION.md`
-- `v2/V2_PLAN.md`
+현재 단계는 새 알고리즘의 성능을 높이는 단계가 아니라, 다음 항목을 정확히 측정할 수 있는 최소 골격을 만드는 단계다.
+
+- 범용 행동 표현
+- 상태와 다음 상태 표현
+- ASeq 기반 행동-지식 인과 기록
+- 같은 행동에 대한 다중 Prophecy 예측
+- Imagination 간 불확실성
+- Prophecy 예측과 실제 다음 상태의 유사도
+- 정보 가치 점수
+- 커리큘럼 단계 정의
+
+기존 AASSR 코드는 이 브랜치에 복사하지 않는다.
+
+## 개발
+
+```bash
+python -m pip install -e ".[dev]"
+pytest
+```
+
+## 버전 이름
+
+- 연구 세대 이름: **AASSR v2**
+- 코드 패키지 개발 버전: **0.1.0**
+- 개발 브랜치: **aassr-v2**

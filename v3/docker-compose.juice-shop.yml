@@ -1,7 +1,0 @@
-services:
-  juice-shop:
-    image: bkimminich/juice-shop:v17.3.0
-    container_name: aassr-juice-shop
-    ports:
-      - "3000:3000"
-    restart: unless-stopped

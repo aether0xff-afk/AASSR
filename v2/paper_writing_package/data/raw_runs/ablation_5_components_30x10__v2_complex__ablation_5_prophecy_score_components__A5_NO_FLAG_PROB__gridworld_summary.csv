@@ -1,2 +1,0 @@
-condition,seeds,episodes,success_rate,steps_to_flag_mean,total_reward_mean,external_reward_mean,semantic_gain_mean,prophecy_error_mean,repeat_count_mean,error_count_mean,knowledge_reuse_mean,unique_action_count_mean
-A5_NO_FLAG_PROB,10,300,0.7,87.00333333333333,14.013961786182676,0.7,140.62333333333333,0.07040174915233295,27.236666666666668,6.0,8.426666666666666,59.46333333333333
