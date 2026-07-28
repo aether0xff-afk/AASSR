@@ -7,6 +7,8 @@ on:
         description: "Comma-separated seeds overriding configs/pilot.json"
         required: false
         default: "7,13"
+  pull_request:
+    branches: [aassr-v2]
 
 jobs:
   pilot:
