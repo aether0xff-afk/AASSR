@@ -23,6 +23,7 @@ from .adapters import (
     DryRunTransport,
     MinecraftControlPlugin,
 )
+from .agent import AgentStep, LearningAgent
 from .confidence import AdaptiveDepthController
 from .counterexamples import (
     LearnableVsRandomWorld,
