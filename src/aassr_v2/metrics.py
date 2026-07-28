@@ -4,6 +4,8 @@ from math import sqrt
 from statistics import fmean
 from typing import Iterable, Sequence
 
+from .types import Prediction
+
 
 Vector = Sequence[float]
 
@@ -64,3 +66,31 @@ def prediction_similarity(predicted: Vector, actual: Vector) -> float:
     """Similarity between Prophecy's next-state prediction and reality."""
 
     return cosine_similarity(predicted, actual)
+
+
+def expected_prediction_vector(
+    predictions: Iterable[Prediction],
+) -> tuple[float, ...]:
+    """Return the probability-weighted expected next-state vector."""
+
+    items = tuple(predictions)
+    if not items:
+        raise ValueError("at least one prediction is required")
+
+    vector_size = len(items[0].next_state.vector)
+    if any(len(item.next_state.vector) != vector_size for item in items):
+        raise ValueError("all prediction vectors must have the same length")
+
+    probability_sum = sum(item.probability for item in items)
+    if probability_sum > 0.0:
+        weights = tuple(item.probability / probability_sum for item in items)
+    else:
+        weights = tuple(1.0 / len(items) for _ in items)
+
+    return tuple(
+        sum(
+            weight * prediction.next_state.vector[index]
+            for weight, prediction in zip(weights, items, strict=True)
+        )
+        for index in range(vector_size)
+    )
