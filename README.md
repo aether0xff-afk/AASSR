@@ -112,14 +112,51 @@ Minecraft와 모의 침투 테스트 항목은 **코어 호환성과 안전한 �
 - 특징 없음, 특징만, 군집, 2단계 선택, 온라인 재군집, 행동-슬롯 문맥
 - 경험 특징, 임베딩 특징, 혼합 특징
 
+## 실험 실행
+
+설정 문법과 실행 규모만 확인:
+
+```bash
+python scripts/run_experiment.py --config configs/pilot.json --dry-run
+```
+
+전체 파일럿 실행:
+
+```bash
+python scripts/run_experiment.py --config configs/pilot.json --output runs/pilot --overwrite
+```
+
+결과는 다음으로 저장된다.
+
+```text
+runs/pilot/
+├─ resolved_config.json
+├─ episodes.csv
+├─ seed_summary.csv
+├─ summary.csv
+├─ report.md
+└─ traces/
+```
+
+본 실험 설정:
+
+- `configs/prophecy.json`
+- `configs/imagination.json`
+- `configs/dependency.json`
+- `configs/goals_skills.json`
+- `configs/information_value.json`
+
+자세한 명령과 파일럿 해석 기준은 [`docs/experiments.md`](docs/experiments.md)를 참고한다.
+
 ## 검증
 
 ```bash
 python -m pip install -e ".[dev]"
+python -m compileall -q src tests scripts
 pytest -q
 ```
 
-새 로드맵 기능은 `tests/test_roadmap_completion.py`에서 플러그인, 군집, GOAL, Skill, GRU, 정보 가치 분리, JSONL, 커리큘럼, 반례 환경, 확장 플러그인, 기능 제거 행렬을 검증한다.
+새 로드맵 기능은 `tests/test_roadmap_completion.py`에서 검증하고, 배치 실험기·파일럿·seed 단위 통계는 `tests/test_experiment_runner.py`에서 검증한다.
 
 ## 버전
 
