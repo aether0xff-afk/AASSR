@@ -1,0 +1,99 @@
+{
+  "name": "aassr_v2_pilot",
+  "output_dir": "runs/pilot",
+  "seeds": [7, 13],
+  "suites": [
+    {
+      "kind": "prophecy",
+      "models": ["tabular", "gru"],
+      "train_episodes": 20,
+      "eval_episodes": 8,
+      "samples": 4,
+      "model_options": {
+        "gru": {
+          "hidden_size": 12,
+          "action_feature_size": 8,
+          "learning_rate": 0.03
+        }
+      }
+    },
+    {
+      "kind": "imagination",
+      "train_episodes": 8,
+      "eval_episodes": 8,
+      "max_steps": 3,
+      "conditions": [
+        {
+          "name": "policy_only",
+          "mode": "policy",
+          "model": "tabular"
+        },
+        {
+          "name": "depth_1",
+          "mode": "imagination",
+          "model": "tabular",
+          "branching_factor": 2,
+          "maximum_depth": 1,
+          "aggregation": "max"
+        },
+        {
+          "name": "depth_2",
+          "mode": "imagination",
+          "model": "tabular",
+          "branching_factor": 2,
+          "maximum_depth": 2,
+          "aggregation": "max"
+        }
+      ]
+    },
+    {
+      "kind": "dependency",
+      "lengths": [4, 6],
+      "train_episodes": 4,
+      "eval_episodes": 6,
+      "max_steps_multiplier": 4,
+      "conditions": [
+        {
+          "name": "random",
+          "mode": "random",
+          "model": "tabular"
+        },
+        {
+          "name": "policy",
+          "mode": "policy",
+          "model": "tabular"
+        },
+        {
+          "name": "imagination_depth_2",
+          "mode": "imagination",
+          "model": "tabular",
+          "branching_factor": 2,
+          "maximum_depth": 2,
+          "aggregation": "max"
+        }
+      ]
+    },
+    {
+      "kind": "skills",
+      "length": 4,
+      "episodes": 5,
+      "conditions": [
+        {
+          "name": "no_skill",
+          "use_skills": false
+        },
+        {
+          "name": "skill_after_two_successes",
+          "use_skills": true,
+          "promotion_successes": 2
+        }
+      ]
+    },
+    {
+      "kind": "information_value",
+      "noise_levels": [0, 8],
+      "steps": 12,
+      "samples": 4
+    }
+  ]
+}
