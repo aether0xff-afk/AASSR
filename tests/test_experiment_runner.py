@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import csv
-import json
-
+from aassr_v2.counterexamples import (
+    LearnableVsRandomWorld,
+    NoisyInformationWrapper,
+)
 from aassr_v2.experiment_runner import (
     load_config,
     planned_run_count,
@@ -14,6 +15,7 @@ from aassr_v2.experiment_statistics import (
     regenerate_seed_level_summary,
     seed_level_rows,
 )
+from aassr_v2.types import Action
 
 
 def test_pilot_config_has_expected_size() -> None:
@@ -219,3 +221,17 @@ def test_statistics_average_inside_seed_first() -> None:
     assert len(summary) == 1
     assert summary[0]["success_mean"] == 0.5
     assert summary[0]["steps_mean"] == 6.5
+
+
+def test_noise_wrapper_exposes_noise_as_added_information() -> None:
+    environment = NoisyInformationWrapper(
+        LearnableVsRandomWorld(seed=1),
+        facts_per_step=5,
+        seed=1,
+    )
+    outcome = environment.step(Action("probe_stable"))
+    noise = {
+        fact for fact in outcome.added_facts if fact.startswith("noise:")
+    }
+    assert len(noise) == 5
+    assert noise <= outcome.snapshot.facts
