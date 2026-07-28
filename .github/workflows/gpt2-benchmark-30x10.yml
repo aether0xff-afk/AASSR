@@ -5,6 +5,10 @@ on:
     branches: [GPT-2]
     paths:
       - ".github/workflows/gpt2-benchmark-30x10.yml"
+  pull_request:
+    paths:
+      - ".github/workflows/gpt2-benchmark-30x10.yml"
+      - "v2/src/aassr/gpt2_*.py"
   workflow_dispatch:
 
 jobs:
