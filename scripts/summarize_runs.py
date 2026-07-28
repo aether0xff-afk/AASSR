@@ -3,12 +3,16 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from aassr_v2.experiment_runner import regenerate_summary
+from aassr_v2.experiment_runner import read_rows
+from aassr_v2.experiment_statistics import regenerate_seed_level_summary
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Regenerate summary.csv and report.md from an AASSR run directory."
+        description=(
+            "Regenerate seed_summary.csv, summary.csv and report.md "
+            "from an AASSR run directory."
+        )
     )
     parser.add_argument(
         "run_dir",
@@ -19,10 +23,13 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    artifacts = regenerate_summary(Path(args.run_dir))
-    print(f"Rows: {artifacts.row_count}")
-    print(f"Summary: {artifacts.summary_csv.resolve()}")
-    print(f"Report: {artifacts.report_md.resolve()}")
+    directory = Path(args.run_dir)
+    rows = read_rows(directory / "episodes.csv")
+    seed_summary, summary, report = regenerate_seed_level_summary(directory)
+    print(f"Rows: {len(rows)}")
+    print(f"Seed summary: {seed_summary.resolve()}")
+    print(f"Summary: {summary.resolve()}")
+    print(f"Report: {report.resolve()}")
     return 0
 
 
