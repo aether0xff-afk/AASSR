@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from aassr_v2.escape_gridworld import (
     EscapeGridWorld,
     generate_escape_grid,
@@ -104,5 +106,5 @@ def test_epsilon_decay_is_monotonic() -> None:
     )
     values = [epsilon_for_episode(config, episode) for episode in range(101)]
     assert values[0] == 1.0
-    assert values[-1] == 0.1
+    assert values[-1] == pytest.approx(0.1)
     assert all(left >= right for left, right in zip(values, values[1:]))
