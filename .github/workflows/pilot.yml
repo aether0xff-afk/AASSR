@@ -1,12 +1,14 @@
 name: pilot-experiment
 
 on:
+  push:
+    branches: [aassr-v2]
   workflow_dispatch:
     inputs:
       seeds:
         description: "Comma-separated seeds overriding configs/pilot.json"
         required: false
-        default: "7,13"
+        default: "7,13,21,42,100"
 
 jobs:
   pilot:
@@ -25,17 +27,26 @@ jobs:
         run: |
           python -m compileall -q src tests scripts
           pytest -q
-      - name: Run pilot
+      - name: Run final pilot
+        shell: bash
         run: |
-          python scripts/run_experiment.py \
-            --config configs/pilot.json \
-            --output runs/pilot \
-            --overwrite \
-            --seeds "${{ inputs.seeds }}"
+          SEEDS="${{ inputs.seeds }}"
+          if [ -n "$SEEDS" ]; then
+            python scripts/run_experiment.py \
+              --config configs/pilot.json \
+              --output runs/final_pilot \
+              --overwrite \
+              --seeds "$SEEDS"
+          else
+            python scripts/run_experiment.py \
+              --config configs/pilot.json \
+              --output runs/final_pilot \
+              --overwrite
+          fi
       - name: Upload pilot outputs
         uses: actions/upload-artifact@v4
         with:
-          name: aassr-v2-pilot-${{ github.sha }}
-          path: runs/pilot
+          name: aassr-v2-final-pilot-${{ github.sha }}
+          path: runs/final_pilot
           if-no-files-found: error
           retention-days: 30
