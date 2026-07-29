@@ -40,35 +40,17 @@ def test_generated_escape_worlds_are_solvable() -> None:
 def test_box_reveals_key_and_matching_door_opens() -> None:
     spec = generate_escape_grid(11, color_count=1, distractor_boxes=0)
     environment = EscapeGridWorld(spec)
-    key_box = next(box for box in spec.boxes if box.key_color == "red")
+    events: list[str] = []
 
-    # Follow the oracle until the box is opened.
     for action in oracle_plan(spec):
         outcome = environment.step(action)
-        if outcome.event == "found_key:red":
-            break
+        events.append(outcome.event)
 
-    assert key_box.box_id in environment.open_boxes
+    assert "found_key:red" in events
+    assert "opened_door:red" in events
     assert "red" in environment.inventory
-
-    door_position = spec.doors[0][0]
-    while environment.position != (door_position[0] - 1, door_position[1]):
-        # The remaining oracle prefix is the simplest deterministic route.
-        for action in oracle_plan(spec):
-            candidate = environment.clone()
-            result = candidate.step(action)
-            if not result.error and candidate.state_key() != environment.state_key():
-                environment = candidate
-                break
-        else:
-            raise AssertionError("failed to approach the door")
-
-    outcome = environment.step(
-        Action("interact", target=f"door:{door_position[0]},{door_position[1]}")
-    )
-    assert not outcome.error
-    assert outcome.event == "opened_door:red"
-    assert door_position in environment.open_doors
+    assert spec.doors[0][0] in environment.open_doors
+    assert environment.success
 
 
 def test_door_rejects_agent_without_matching_key() -> None:
