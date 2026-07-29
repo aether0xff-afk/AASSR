@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 from pathlib import Path
 
 from aassr_v2.experiment_statistics import regenerate_seed_level_summary
+from aassr_v2.progress import format_duration
 
 
 def parse_args() -> argparse.Namespace:
@@ -39,7 +41,27 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Validate the config and print the planned result-row count only.",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--progress-every",
+        type=int,
+        help="Print and persist progress after this many completed episodes.",
+    )
+    parser.add_argument(
+        "--progress-seconds",
+        type=float,
+        help="Print and persist progress at least this often in seconds.",
+    )
+    parser.add_argument(
+        "--quiet-progress",
+        action="store_true",
+        help="Disable console progress lines while still writing progress files.",
+    )
+    args = parser.parse_args()
+    if args.progress_every is not None and args.progress_every <= 0:
+        parser.error("--progress-every must be positive")
+    if args.progress_seconds is not None and args.progress_seconds <= 0.0:
+        parser.error("--progress-seconds must be positive")
+    return args
 
 
 def _seed_override(value: str | None) -> tuple[int, ...] | None:
@@ -81,30 +103,67 @@ def main() -> int:
         config["seeds"] = list(seeds)
     selected = set(args.suite or ()) or None
     planned = planned_run_count(config, selected)
-    print(f"Config: {config_path.resolve()}")
-    print(f"Experiment: {config['name']}")
-    print(f"Runner: {runner}")
-    print(f"Seeds: {config['seeds']}")
-    print(f"Planned result rows: {planned}")
+    print(f"Config: {config_path.resolve()}", flush=True)
+    print(f"Experiment: {config['name']}", flush=True)
+    print(f"Runner: {runner}", flush=True)
+    print(f"Seeds: {config['seeds']}", flush=True)
+    print(f"Planned result rows: {planned:,}", flush=True)
+    if runner == "autonomous_main":
+        progress = config.get("progress", {})
+        every_items = args.progress_every or progress.get("every_episodes", 100)
+        every_seconds = args.progress_seconds or progress.get("every_seconds", 10.0)
+        print(
+            "Progress: "
+            f"every {int(every_items):,} episodes or {float(every_seconds):g} seconds",
+            flush=True,
+        )
+        print(
+            "Progress files: progress.log, progress.jsonl, progress.json",
+            flush=True,
+        )
     if args.dry_run:
         return 0
 
-    artifacts = run_experiment(
-        config,
-        output_dir=args.output,
-        overwrite=args.overwrite,
-        suite_filter=args.suite,
-        seed_override=seeds,
+    run_kwargs = {
+        "output_dir": args.output,
+        "overwrite": args.overwrite,
+        "suite_filter": args.suite,
+        "seed_override": seeds,
+    }
+    if runner == "autonomous_main":
+        run_kwargs.update(
+            {
+                "progress_every": args.progress_every,
+                "progress_seconds": args.progress_seconds,
+                "progress_console": not args.quiet_progress,
+            }
+        )
+
+    started = time.perf_counter()
+    artifacts = run_experiment(config, **run_kwargs)
+    experiment_elapsed = time.perf_counter() - started
+    print(
+        f"[AASSR:postprocess] episode execution complete in "
+        f"{format_duration(experiment_elapsed)}; generating seed summaries...",
+        flush=True,
     )
+    postprocess_started = time.perf_counter()
     seed_summary, summary, report = regenerate_seed_level_summary(
         artifacts.output_dir
     )
-    print(f"Completed rows: {artifacts.row_count}")
-    print(f"Output: {artifacts.output_dir.resolve()}")
-    print(f"Episodes: {artifacts.episodes_csv.resolve()}")
-    print(f"Seed summary: {seed_summary.resolve()}")
-    print(f"Summary: {summary.resolve()}")
-    print(f"Report: {report.resolve()}")
+    postprocess_elapsed = time.perf_counter() - postprocess_started
+    print(
+        f"[AASSR:postprocess] summaries complete in "
+        f"{format_duration(postprocess_elapsed)}",
+        flush=True,
+    )
+    print(f"Completed rows: {artifacts.row_count:,}", flush=True)
+    print(f"Total elapsed: {format_duration(time.perf_counter() - started)}", flush=True)
+    print(f"Output: {artifacts.output_dir.resolve()}", flush=True)
+    print(f"Episodes: {artifacts.episodes_csv.resolve()}", flush=True)
+    print(f"Seed summary: {seed_summary.resolve()}", flush=True)
+    print(f"Summary: {summary.resolve()}", flush=True)
+    print(f"Report: {report.resolve()}", flush=True)
     return 0
 
 
