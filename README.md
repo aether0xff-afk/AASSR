@@ -112,7 +112,39 @@ Minecraft와 모의 침투 테스트 항목은 **코어 호환성과 안전한 �
 - 특징 없음, 특징만, 군집, 2단계 선택, 온라인 재군집, 행동-슬롯 문맥
 - 경험 특징, 임베딩 특징, 혼합 특징
 
-## 실험 실행
+## 시범 없는 자율 본 실험
+
+기존 `final_pilot.py`는 전이 경로를 미리 학습시킨 뒤 Imagination 모듈 자체를 확인하는 **진단 실험**이다. 자율 발견의 근거로 사용하지 않는다.
+
+새 `autonomous_main` runner는 다음을 강제한다.
+
+- oracle pretraining 없음
+- 정답 행동이나 경로 시범 없음
+- `safe`, `trap`, `finish` 같은 의미 있는 행동명 없음
+- 중간 보상과 중간 goal progress 없음
+- 모든 조건의 Policy 초기값 동일
+- seed별 행동 매핑과 상태 표현 무작위화
+- 학습 후 평가에서는 탐색과 갱신 중지
+
+에이전트는 전역 action weight 대신 상태별 `ContextualPolicy`를 사용한다. 전이 coverage가 부족할 때는 epsilon/UCB로 탐색하고, 충분한 실제 경험이 쌓인 뒤에만 Prophecy와 Imagination을 사용한다.
+
+축소 검증:
+
+```bash
+python scripts/run_experiment.py --config configs/autonomous_smoke.json --dry-run
+python scripts/run_experiment.py --config configs/autonomous_smoke.json --output runs/autonomous_smoke --overwrite
+```
+
+본 실험:
+
+```bash
+python scripts/run_experiment.py --config configs/autonomous_main.json --dry-run
+python scripts/run_experiment.py --config configs/autonomous_main.json --output runs/autonomous_main --overwrite
+```
+
+본 실험은 20 seeds, 의존 길이 4/6/8, 5개 조건, train 2,000 + evaluation 200 episode로 총 `660,000`개 결과 행을 계획한다. 주장, 누수 방지 규칙, 비교 조건과 성공 판정은 [`docs/main_experiment_design.md`](docs/main_experiment_design.md)에 정리되어 있다.
+
+## 기존 진단·배치 실험 실행
 
 설정 문법과 실행 규모만 확인:
 
@@ -120,25 +152,25 @@ Minecraft와 모의 침투 테스트 항목은 **코어 호환성과 안전한 �
 python scripts/run_experiment.py --config configs/pilot.json --dry-run
 ```
 
-전체 파일럿 실행:
+최종 진단 파일럿 실행:
 
 ```bash
-python scripts/run_experiment.py --config configs/pilot.json --output runs/pilot --overwrite
+python scripts/run_experiment.py --config configs/pilot.json --output runs/final_pilot --overwrite
 ```
 
 결과는 다음으로 저장된다.
 
 ```text
-runs/pilot/
+runs/<experiment>/
 ├─ resolved_config.json
+├─ protocol_manifest.json  # autonomous_main
 ├─ episodes.csv
 ├─ seed_summary.csv
 ├─ summary.csv
-├─ report.md
-└─ traces/
+└─ report.md
 ```
 
-본 실험 설정:
+기존 실험 설정:
 
 - `configs/prophecy.json`
 - `configs/imagination.json`
@@ -146,7 +178,7 @@ runs/pilot/
 - `configs/goals_skills.json`
 - `configs/information_value.json`
 
-자세한 명령과 파일럿 해석 기준은 [`docs/experiments.md`](docs/experiments.md)를 참고한다.
+자세한 기존 명령은 [`docs/experiments.md`](docs/experiments.md)를 참고한다.
 
 ## 검증
 
@@ -156,7 +188,7 @@ python -m compileall -q src tests scripts
 pytest -q
 ```
 
-새 로드맵 기능은 `tests/test_roadmap_completion.py`에서 검증하고, 배치 실험기·파일럿·seed 단위 통계는 `tests/test_experiment_runner.py`에서 검증한다.
+새 자율 학습 구조와 누수 방지 조건은 `tests/test_autonomous_experiment.py`에서 검증한다. 배치 실험기·진단 파일럿·seed 단위 통계는 `tests/test_experiment_runner.py`에서 검증한다.
 
 ## 버전
 
