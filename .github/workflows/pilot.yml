@@ -3,6 +3,14 @@ name: pilot-experiment
 on:
   push:
     branches: [aassr-v2]
+  pull_request:
+    branches: [aassr-v2]
+    paths:
+      - "src/aassr_v2/**"
+      - "scripts/**"
+      - "configs/pilot.json"
+      - "tests/**"
+      - ".github/workflows/pilot.yml"
   workflow_dispatch:
     inputs:
       seeds:
