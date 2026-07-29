@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
-from aassr_v2.experiment_runner import (
-    load_config,
-    planned_run_count,
-    run_experiment,
-)
 from aassr_v2.experiment_statistics import regenerate_seed_level_summary
 
 
@@ -15,15 +11,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run reproducible AASSR v2 experiment suites from JSON config."
     )
-    parser.add_argument(
-        "--config",
-        required=True,
-        help="Path to an experiment JSON config.",
-    )
-    parser.add_argument(
-        "--output",
-        help="Override output directory from the config.",
-    )
+    parser.add_argument("--config", required=True, help="Path to an experiment JSON config.")
+    parser.add_argument("--output", help="Override output directory from the config.")
     parser.add_argument(
         "--suite",
         action="append",
@@ -37,8 +26,7 @@ def parse_args() -> argparse.Namespace:
         help="Run only selected suite kinds. Repeat this option for several suites.",
     )
     parser.add_argument(
-        "--seeds",
-        help="Comma-separated integer seeds overriding the config.",
+        "--seeds", help="Comma-separated integer seeds overriding the config."
     )
     parser.add_argument(
         "--overwrite",
@@ -53,26 +41,42 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _seed_override(value: str | None) -> tuple[int, ...] | None:
+    if not value:
+        return None
+    seeds = tuple(int(item.strip()) for item in value.split(",") if item.strip())
+    if not seeds:
+        raise SystemExit("--seeds must contain at least one integer")
+    return seeds
+
+
 def main() -> int:
     args = parse_args()
-    config = load_config(args.config)
-    seeds = None
-    if args.seeds:
-        seeds = tuple(
-            int(value.strip())
-            for value in args.seeds.split(",")
-            if value.strip()
+    config_path = Path(args.config)
+    raw = json.loads(config_path.read_text(encoding="utf-8"))
+    final_pilot = raw.get("runner") == "final_pilot"
+    if final_pilot:
+        from aassr_v2.final_pilot import (
+            load_final_config as load_config,
+            planned_final_run_count as planned_run_count,
+            run_final_pilot as run_experiment,
         )
-        if not seeds:
-            raise SystemExit("--seeds must contain at least one integer")
-        config["seeds"] = list(seeds)
+    else:
+        from aassr_v2.experiment_runner import (
+            load_config,
+            planned_run_count,
+            run_experiment,
+        )
 
-    planned = planned_run_count(
-        config,
-        set(args.suite or ()) or None,
-    )
-    print(f"Config: {Path(args.config).resolve()}")
+    config = load_config(config_path)
+    seeds = _seed_override(args.seeds)
+    if seeds is not None:
+        config["seeds"] = list(seeds)
+    selected = set(args.suite or ()) or None
+    planned = planned_run_count(config, selected)
+    print(f"Config: {config_path.resolve()}")
     print(f"Experiment: {config['name']}")
+    print(f"Runner: {'final_pilot' if final_pilot else 'legacy'}")
     print(f"Seeds: {config['seeds']}")
     print(f"Planned result rows: {planned}")
     if args.dry_run:
