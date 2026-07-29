@@ -8,7 +8,7 @@ on:
     paths:
       - "src/aassr_v2/**"
       - "scripts/**"
-      - "configs/pilot.json"
+      - "configs/**"
       - "tests/**"
       - ".github/workflows/pilot.yml"
   workflow_dispatch:
@@ -35,7 +35,13 @@ jobs:
         run: |
           python -m compileall -q src tests scripts
           pytest -q
-      - name: Run final pilot
+      - name: Run autonomous discovery smoke
+        run: |
+          python scripts/run_experiment.py \
+            --config configs/autonomous_smoke.json \
+            --output runs/autonomous_smoke \
+            --overwrite
+      - name: Run final diagnostic pilot
         shell: bash
         run: |
           SEEDS="${{ inputs.seeds }}"
@@ -51,10 +57,12 @@ jobs:
               --output runs/final_pilot \
               --overwrite
           fi
-      - name: Upload pilot outputs
+      - name: Upload experiment outputs
         uses: actions/upload-artifact@v4
         with:
-          name: aassr-v2-final-pilot-${{ github.sha }}
-          path: runs/final_pilot
+          name: aassr-v2-validation-${{ github.sha }}
+          path: |
+            runs/autonomous_smoke
+            runs/final_pilot
           if-no-files-found: error
           retention-days: 30
