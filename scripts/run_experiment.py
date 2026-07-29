@@ -22,6 +22,7 @@ def parse_args() -> argparse.Namespace:
             "dependency",
             "skills",
             "information_value",
+            "autonomous_discovery",
         ),
         help="Run only selected suite kinds. Repeat this option for several suites.",
     )
@@ -54,12 +55,18 @@ def main() -> int:
     args = parse_args()
     config_path = Path(args.config)
     raw = json.loads(config_path.read_text(encoding="utf-8"))
-    final_pilot = raw.get("runner") == "final_pilot"
-    if final_pilot:
+    runner = str(raw.get("runner", "legacy"))
+    if runner == "final_pilot":
         from aassr_v2.final_pilot import (
             load_final_config as load_config,
             planned_final_run_count as planned_run_count,
             run_final_pilot as run_experiment,
+        )
+    elif runner == "autonomous_main":
+        from aassr_v2.autonomous_experiment import (
+            load_autonomous_config as load_config,
+            planned_autonomous_run_count as planned_run_count,
+            run_autonomous_experiment as run_experiment,
         )
     else:
         from aassr_v2.experiment_runner import (
@@ -76,7 +83,7 @@ def main() -> int:
     planned = planned_run_count(config, selected)
     print(f"Config: {config_path.resolve()}")
     print(f"Experiment: {config['name']}")
-    print(f"Runner: {'final_pilot' if final_pilot else 'legacy'}")
+    print(f"Runner: {runner}")
     print(f"Seeds: {config['seeds']}")
     print(f"Planned result rows: {planned}")
     if args.dry_run:
