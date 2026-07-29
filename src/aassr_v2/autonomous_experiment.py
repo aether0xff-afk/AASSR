@@ -4,6 +4,7 @@ import csv
 import json
 import shutil
 import time
+from collections import deque
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
@@ -13,6 +14,7 @@ from typing import Any, Mapping, Sequence
 from .autonomous_agent import AutonomousAgentConfig, AutonomousLearningAgent
 from .autonomous_benchmarks import OpaqueDependencyWorld
 from .experiment_runner import ExperimentArtifacts, RESULT_FIELDS
+from .progress import ProgressReporter
 from .tabular_prophecy import TabularProphecy
 
 
@@ -48,6 +50,13 @@ def validate_autonomous_config(config: Mapping[str, Any]) -> None:
     for condition in conditions:
         if not str(condition.get("name", "")).strip():
             raise ValueError("every condition needs a name")
+    progress = config.get("progress", {})
+    if not isinstance(progress, Mapping):
+        raise ValueError("progress must be an object")
+    if int(progress.get("every_episodes", 100)) <= 0:
+        raise ValueError("progress.every_episodes must be positive")
+    if float(progress.get("every_seconds", 10.0)) <= 0.0:
+        raise ValueError("progress.every_seconds must be positive")
 
 
 def load_autonomous_config(path: str | Path) -> dict[str, Any]:
@@ -189,6 +198,29 @@ def _output_directory(
     return target
 
 
+def _progress_settings(
+    config: Mapping[str, Any],
+    *,
+    every_episodes: int | None,
+    every_seconds: float | None,
+) -> tuple[int, float]:
+    raw = config.get("progress", {})
+    settings = raw if isinstance(raw, Mapping) else {}
+    item_interval = int(
+        every_episodes
+        if every_episodes is not None
+        else settings.get("every_episodes", 100)
+    )
+    time_interval = float(
+        every_seconds
+        if every_seconds is not None
+        else settings.get("every_seconds", 10.0)
+    )
+    if item_interval <= 0 or time_interval <= 0.0:
+        raise ValueError("progress intervals must be positive")
+    return item_interval, time_interval
+
+
 def run_autonomous_experiment(
     config: Mapping[str, Any],
     *,
@@ -196,6 +228,9 @@ def run_autonomous_experiment(
     overwrite: bool = False,
     suite_filter: Sequence[str] | None = None,
     seed_override: Sequence[int] | None = None,
+    progress_every: int | None = None,
+    progress_seconds: float | None = None,
+    progress_console: bool = True,
 ) -> ExperimentArtifacts:
     resolved = dict(config)
     if seed_override is not None:
@@ -205,86 +240,22 @@ def run_autonomous_experiment(
         raise ValueError("autonomous_main supports only autonomous_discovery")
 
     target = _output_directory(resolved, output_dir, overwrite)
-    rows: list[dict[str, Any]] = []
     train_episodes = int(resolved["train_episodes"])
     eval_episodes = int(resolved["eval_episodes"])
+    total_rows = planned_autonomous_run_count(resolved)
+    progress_items, progress_time = _progress_settings(
+        resolved,
+        every_episodes=progress_every,
+        every_seconds=progress_seconds,
+    )
+    reporter = ProgressReporter(
+        total_rows,
+        target,
+        every_items=progress_items,
+        every_seconds=progress_time,
+        console=progress_console,
+    )
 
-    for seed in resolved["seeds"]:
-        for environment_spec in resolved["environments"]:
-            length = int(environment_spec["length"])
-            environment_name = str(
-                environment_spec.get("name", f"opaque_dependency_{length}")
-            )
-            world_seed = seed * 1009 + int(environment_spec.get("seed_offset", 0))
-            for condition in resolved["conditions"]:
-                condition_name = str(condition["name"])
-                prophecy = TabularProphecy(name=f"online:{condition_name}")
-                agent_config = _agent_config(condition, length)
-                agent = AutonomousLearningAgent(
-                    prophecy,
-                    config=agent_config,
-                    seed=seed * 7919 + length,
-                )
-                for episode in range(train_episodes):
-                    result = _run_episode(
-                        agent,
-                        length=length,
-                        world_seed=world_seed,
-                        episode=episode,
-                        phase="training",
-                        learn=True,
-                    )
-                    rows.append(
-                        _empty_row(
-                            experiment=resolved["name"],
-                            suite="autonomous_discovery",
-                            condition=condition_name,
-                            environment=environment_name,
-                            model=(
-                                "tabular_online"
-                                if agent_config.learn_prophecy
-                                else "none"
-                            ),
-                            seed=seed,
-                            episode=episode,
-                            high_level_steps=result["steps"],
-                            primitive_steps=result["steps"],
-                            **result,
-                        )
-                    )
-                for eval_episode in range(eval_episodes):
-                    result = _run_episode(
-                        agent,
-                        length=length,
-                        world_seed=world_seed,
-                        episode=train_episodes + eval_episode,
-                        phase="evaluation",
-                        learn=False,
-                    )
-                    rows.append(
-                        _empty_row(
-                            experiment=resolved["name"],
-                            suite="autonomous_discovery",
-                            condition=condition_name,
-                            environment=environment_name,
-                            model=(
-                                "tabular_online"
-                                if agent_config.learn_prophecy
-                                else "none"
-                            ),
-                            seed=seed,
-                            episode=eval_episode,
-                            high_level_steps=result["steps"],
-                            primitive_steps=result["steps"],
-                            **result,
-                        )
-                    )
-
-    episodes_csv = target / "episodes.csv"
-    with episodes_csv.open("w", newline="", encoding="utf-8-sig") as handle:
-        writer = csv.DictWriter(handle, fieldnames=RESULT_FIELDS, extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(rows)
     resolved_path = target / "resolved_config.json"
     resolved_path.write_text(
         json.dumps(resolved, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -296,10 +267,182 @@ def run_autonomous_experiment(
         "no_oracle_pretraining": True,
         "opaque_action_names": True,
         "terminal_reward_only": True,
+        "streaming_episode_csv": True,
+        "persistent_progress": True,
+        "progress_files": ["progress.log", "progress.jsonl", "progress.json"],
         "agent_config_fields": list(asdict(first_config).keys()),
     }
     (target / "protocol_manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    episodes_csv = target / "episodes.csv"
+    total_jobs = (
+        len(resolved["seeds"])
+        * len(resolved["environments"])
+        * len(resolved["conditions"])
+    )
+    row_count = 0
+    job_index = 0
+    current_context: dict[str, Any] = {}
+    reporter.start(
+        {
+            "jobs": total_jobs,
+            "train_episodes": train_episodes,
+            "eval_episodes": eval_episodes,
+            "output": str(target),
+        }
+    )
+
+    try:
+        with episodes_csv.open("w", newline="", encoding="utf-8-sig") as handle:
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=RESULT_FIELDS,
+                extrasaction="ignore",
+            )
+            writer.writeheader()
+            handle.flush()
+
+            for seed in resolved["seeds"]:
+                for environment_spec in resolved["environments"]:
+                    length = int(environment_spec["length"])
+                    environment_name = str(
+                        environment_spec.get("name", f"opaque_dependency_{length}")
+                    )
+                    world_seed = seed * 1009 + int(
+                        environment_spec.get("seed_offset", 0)
+                    )
+                    for condition in resolved["conditions"]:
+                        job_index += 1
+                        condition_name = str(condition["name"])
+                        prophecy = TabularProphecy(name=f"online:{condition_name}")
+                        agent_config = _agent_config(condition, length)
+                        agent = AutonomousLearningAgent(
+                            prophecy,
+                            config=agent_config,
+                            seed=seed * 7919 + length,
+                        )
+                        base_context = {
+                            "job": f"{job_index}/{total_jobs}",
+                            "seed": seed,
+                            "environment": environment_name,
+                            "condition": condition_name,
+                        }
+                        current_context = dict(base_context)
+                        reporter.stage("job_start", base_context)
+
+                        training_success = deque(maxlen=100)
+                        for episode in range(train_episodes):
+                            result = _run_episode(
+                                agent,
+                                length=length,
+                                world_seed=world_seed,
+                                episode=episode,
+                                phase="training",
+                                learn=True,
+                            )
+                            training_success.append(int(result["success"]))
+                            row = _empty_row(
+                                experiment=resolved["name"],
+                                suite="autonomous_discovery",
+                                condition=condition_name,
+                                environment=environment_name,
+                                model=(
+                                    "tabular_online"
+                                    if agent_config.learn_prophecy
+                                    else "none"
+                                ),
+                                seed=seed,
+                                episode=episode,
+                                high_level_steps=result["steps"],
+                                primitive_steps=result["steps"],
+                                **result,
+                            )
+                            writer.writerow(row)
+                            row_count += 1
+                            current_context = {
+                                **base_context,
+                                "phase": "training",
+                                "episode": f"{episode + 1}/{train_episodes}",
+                                "recent_success": f"{fmean(training_success):.3f}",
+                            }
+                            reporter.advance(current_context)
+                            if row_count % progress_items == 0:
+                                handle.flush()
+
+                        handle.flush()
+                        reporter.stage(
+                            "training_complete",
+                            {
+                                **base_context,
+                                "phase": "training",
+                                "recent_success": f"{fmean(training_success):.3f}",
+                            },
+                        )
+
+                        evaluation_success = deque(maxlen=max(1, eval_episodes))
+                        for eval_episode in range(eval_episodes):
+                            result = _run_episode(
+                                agent,
+                                length=length,
+                                world_seed=world_seed,
+                                episode=train_episodes + eval_episode,
+                                phase="evaluation",
+                                learn=False,
+                            )
+                            evaluation_success.append(int(result["success"]))
+                            row = _empty_row(
+                                experiment=resolved["name"],
+                                suite="autonomous_discovery",
+                                condition=condition_name,
+                                environment=environment_name,
+                                model=(
+                                    "tabular_online"
+                                    if agent_config.learn_prophecy
+                                    else "none"
+                                ),
+                                seed=seed,
+                                episode=eval_episode,
+                                high_level_steps=result["steps"],
+                                primitive_steps=result["steps"],
+                                **result,
+                            )
+                            writer.writerow(row)
+                            row_count += 1
+                            current_context = {
+                                **base_context,
+                                "phase": "evaluation",
+                                "episode": f"{eval_episode + 1}/{eval_episodes}",
+                                "recent_success": f"{fmean(evaluation_success):.3f}",
+                            }
+                            reporter.advance(current_context)
+                            if row_count % progress_items == 0:
+                                handle.flush()
+
+                        handle.flush()
+                        reporter.stage(
+                            "job_complete",
+                            {
+                                **base_context,
+                                "phase": "evaluation",
+                                "evaluation_success": (
+                                    f"{fmean(evaluation_success):.3f}"
+                                    if evaluation_success
+                                    else "-"
+                                ),
+                            },
+                        )
+    except BaseException as error:
+        reporter.fail(error, current_context)
+        raise
+
+    reporter.finish(
+        {
+            "jobs": total_jobs,
+            "rows": row_count,
+            "output": str(target),
+        }
     )
     return ExperimentArtifacts(
         target,
@@ -307,5 +450,5 @@ def run_autonomous_experiment(
         target / "summary.csv",
         target / "report.md",
         resolved_path,
-        len(rows),
+        row_count,
     )
