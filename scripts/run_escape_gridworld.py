@@ -12,7 +12,7 @@ from aassr_v2.escape_training import (
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Train the colored-key escape GridWorld agent."
+        description="Train Full AASSR in the colored-key escape GridWorld."
     )
     parser.add_argument(
         "--gui",
@@ -30,6 +30,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--colors", type=int, choices=(1, 2, 3), default=2)
     parser.add_argument("--distractors", type=int, default=2)
     parser.add_argument("--max-steps", type=int, default=180)
+    parser.add_argument(
+        "--no-imagination",
+        action="store_true",
+        help="run the contextual-policy ablation instead of Full AASSR",
+    )
     return parser
 
 
@@ -45,6 +50,7 @@ def main() -> None:
         color_count=args.colors,
         distractor_boxes=args.distractors,
         max_steps=args.max_steps,
+        use_imagination=not args.no_imagination,
     )
 
     def print_frame(frame: object) -> None:
@@ -59,6 +65,8 @@ def main() -> None:
                 f"success={int(getattr(frame, 'success'))} "
                 f"rolling={getattr(frame, 'rolling_success'):.3f} "
                 f"epsilon={getattr(frame, 'epsilon'):.3f} "
+                f"imagination={int(getattr(frame, 'used_imagination'))} "
+                f"imagined_nodes={getattr(frame, 'imagined_nodes')} "
                 f"event={getattr(frame, 'event')}"
             )
 
@@ -73,7 +81,9 @@ def main() -> None:
         f"success_rate={summary.success_rate:.4f} "
         f"rolling_success={summary.rolling_success:.4f} "
         f"elapsed={summary.elapsed_seconds:.3f}s "
-        f"q_entries={summary.q_entries} "
+        f"policy_entries={summary.policy_entries} "
+        f"imagination_decisions={summary.imagination_decisions} "
+        f"imagined_nodes={summary.imagined_nodes} "
         f"oracle_steps={summary.oracle_steps}"
     )
 
