@@ -1,0 +1,36 @@
+{
+  "name": "aassr_v2_autonomous_smoke",
+  "runner": "autonomous_main",
+  "output_dir": "runs/autonomous_smoke",
+  "seeds": [7, 13],
+  "train_episodes": 160,
+  "eval_episodes": 20,
+  "environments": [
+    {"name": "opaque_dependency_l3", "length": 3, "seed_offset": 3000},
+    {"name": "opaque_dependency_l4", "length": 4, "seed_offset": 4000}
+  ],
+  "conditions": [
+    {
+      "name": "random",
+      "random_policy": true,
+      "learn_policy": false,
+      "learn_prophecy": false,
+      "use_imagination": false,
+      "validated_gain_weight": 0.0
+    },
+    {
+      "name": "contextual_policy",
+      "learn_prophecy": false,
+      "use_imagination": false,
+      "validated_gain_weight": 0.0
+    },
+    {
+      "name": "full_aassr",
+      "learn_prophecy": true,
+      "use_imagination": true,
+      "validated_gain_weight": 0.2,
+      "imagination_interval": 2,
+      "minimum_holdout_count": 2
+    }
+  ]
+}
