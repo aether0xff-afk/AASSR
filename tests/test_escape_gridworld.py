@@ -86,15 +86,18 @@ def test_live_and_fast_modes_run_the_same_learning_configuration() -> None:
         color_count=1,
         distractor_boxes=0,
         max_steps=60,
+        use_imagination=False,
         live_step_delay=0.0,
         fast_progress_interval=2,
+        minimum_holdout_count=2,
     )
     live = train_escape_agent(config, mode=TrainingMode.LIVE)
     fast = train_escape_agent(config, mode=TrainingMode.FAST)
     assert live.episodes == fast.episodes == 8
     assert live.successes == fast.successes
-    assert live.q_entries == fast.q_entries
+    assert live.policy_entries == fast.policy_entries
     assert live.oracle_steps == fast.oracle_steps
+    assert live.imagination_decisions == fast.imagination_decisions == 0
 
 
 def test_epsilon_decay_is_monotonic() -> None:
