@@ -144,6 +144,42 @@ python scripts/run_experiment.py --config configs/autonomous_main.json --output 
 
 본 실험은 20 seeds, 의존 길이 4/6/8, 5개 조건, train 2,000 + evaluation 200 episode로 총 `660,000`개 결과 행을 계획한다. 주장, 누수 방지 규칙, 비교 조건과 성공 판정은 [`docs/main_experiment_design.md`](docs/main_experiment_design.md)에 정리되어 있다.
 
+### 진행률·ETA·로그
+
+`autonomous_main`은 전체 episode 기준 진행률, 처리 속도, 경과시간, ETA, 현재 seed·환경·조건·phase를 콘솔에 출력한다.
+
+```text
+[AASSR:progress]  37.42% 246,972/660,000 |   84.31 ep/s | elapsed 00:48:49 | ETA 01:21:41 | job=113/300 | seed=211 | environment=opaque_dependency_l6 | condition=full_aassr | phase=training | episode=972/2000 | recent_success=0.830
+```
+
+기본 출력 주기는 설정 파일의 `progress.every_episodes`와 `progress.every_seconds`로 정하고 CLI에서 덮어쓸 수 있다.
+
+```bash
+python scripts/run_experiment.py \
+  --config configs/autonomous_main.json \
+  --output runs/autonomous_main \
+  --overwrite \
+  --progress-every 50 \
+  --progress-seconds 5
+```
+
+실행 중 다음 파일이 계속 갱신된다.
+
+```text
+progress.log    # 사람이 읽는 전체 로그
+progress.jsonl  # 모든 진행 이벤트
+progress.json   # 마지막 상태 하나
+episodes.csv    # episode마다 스트리밍되는 중간 결과
+```
+
+PowerShell에서 로그를 실시간 확인하려면:
+
+```powershell
+Get-Content runs/autonomous_main/progress.log -Wait
+```
+
+상세 사용법은 [`docs/progress_monitoring.md`](docs/progress_monitoring.md)를 참고한다.
+
 ## 기존 진단·배치 실험 실행
 
 설정 문법과 실행 규모만 확인:
@@ -164,6 +200,9 @@ python scripts/run_experiment.py --config configs/pilot.json --output runs/final
 runs/<experiment>/
 ├─ resolved_config.json
 ├─ protocol_manifest.json  # autonomous_main
+├─ progress.log            # autonomous_main
+├─ progress.jsonl          # autonomous_main
+├─ progress.json           # autonomous_main
 ├─ episodes.csv
 ├─ seed_summary.csv
 ├─ summary.csv
@@ -188,7 +227,7 @@ python -m compileall -q src tests scripts
 pytest -q
 ```
 
-새 자율 학습 구조와 누수 방지 조건은 `tests/test_autonomous_experiment.py`에서 검증한다. 배치 실험기·진단 파일럿·seed 단위 통계는 `tests/test_experiment_runner.py`에서 검증한다.
+새 자율 학습 구조와 누수 방지 조건은 `tests/test_autonomous_experiment.py`에서 검증한다. 진행률·ETA·영속 로그는 `tests/test_progress_reporting.py`에서 검증한다. 배치 실험기·진단 파일럿·seed 단위 통계는 `tests/test_experiment_runner.py`에서 검증한다.
 
 ## 버전
 
