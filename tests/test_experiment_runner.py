@@ -5,7 +5,6 @@ from aassr_v2.counterexamples import (
     NoisyInformationWrapper,
 )
 from aassr_v2.experiment_runner import (
-    load_config,
     planned_run_count,
     read_rows,
     run_experiment,
@@ -15,12 +14,13 @@ from aassr_v2.experiment_statistics import (
     regenerate_seed_level_summary,
     seed_level_rows,
 )
+from aassr_v2.final_pilot import load_final_config, planned_final_run_count
 from aassr_v2.types import Action
 
 
 def test_pilot_config_has_expected_size() -> None:
-    config = load_config("configs/pilot.json")
-    assert planned_run_count(config) == 252
+    config = load_final_config("configs/pilot.json")
+    assert planned_final_run_count(config) == 1980
 
 
 def test_tiny_experiment_writes_all_artifacts(tmp_path) -> None:
