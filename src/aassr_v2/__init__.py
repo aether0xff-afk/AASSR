@@ -24,6 +24,21 @@ from .adapters import (
     MinecraftControlPlugin,
 )
 from .agent import AgentStep, LearningAgent
+from .autonomous_agent import (
+    ActionDecision,
+    AutonomousAgentConfig,
+    AutonomousLearningAgent,
+    ContextualPolicy,
+    FrozenHoldout,
+    ObservationMetrics,
+)
+from .autonomous_benchmarks import AutonomousStep, OpaqueDependencyWorld
+from .autonomous_experiment import (
+    load_autonomous_config,
+    planned_autonomous_run_count,
+    run_autonomous_experiment,
+    validate_autonomous_config,
+)
 from .confidence import AdaptiveDepthController
 from .counterexamples import (
     LearnableVsRandomWorld,
