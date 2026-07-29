@@ -1,0 +1,55 @@
+{
+  "name": "aassr_v2_autonomous_main",
+  "runner": "autonomous_main",
+  "output_dir": "runs/autonomous_main",
+  "seeds": [7, 13, 21, 42, 100, 131, 173, 211, 257, 307, 353, 401, 457, 503, 557, 601, 659, 701, 761, 809],
+  "train_episodes": 2000,
+  "eval_episodes": 200,
+  "environments": [
+    {"name": "opaque_dependency_l4", "length": 4, "seed_offset": 4000},
+    {"name": "opaque_dependency_l6", "length": 6, "seed_offset": 6000},
+    {"name": "opaque_dependency_l8", "length": 8, "seed_offset": 8000}
+  ],
+  "conditions": [
+    {
+      "name": "random",
+      "random_policy": true,
+      "learn_policy": false,
+      "learn_prophecy": false,
+      "use_imagination": false,
+      "validated_gain_weight": 0.0
+    },
+    {
+      "name": "contextual_policy",
+      "learn_policy": true,
+      "learn_prophecy": false,
+      "use_imagination": false,
+      "validated_gain_weight": 0.0
+    },
+    {
+      "name": "prophecy_no_imagination",
+      "learn_policy": true,
+      "learn_prophecy": true,
+      "use_imagination": false,
+      "validated_gain_weight": 0.2
+    },
+    {
+      "name": "imagination_no_validated_value",
+      "learn_policy": true,
+      "learn_prophecy": true,
+      "use_imagination": true,
+      "validated_gain_weight": 0.0,
+      "imagination_interval": 2
+    },
+    {
+      "name": "full_aassr",
+      "learn_policy": true,
+      "learn_prophecy": true,
+      "use_imagination": true,
+      "validated_gain_weight": 0.2,
+      "imagination_interval": 2,
+      "validation_interval": 8,
+      "holdout_evaluation_limit": 32
+    }
+  ]
+}
