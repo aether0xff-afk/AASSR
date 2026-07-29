@@ -1,26 +1,27 @@
 {
-  "name": "aassr_v2_pilot",
-  "output_dir": "runs/pilot",
-  "seeds": [7, 13],
+  "name": "aassr_v2_final_pilot",
+  "runner": "final_pilot",
+  "output_dir": "runs/final_pilot",
+  "seeds": [7, 13, 21, 42, 100],
   "suites": [
     {
       "kind": "prophecy",
       "models": ["tabular", "gru"],
-      "train_episodes": 20,
-      "eval_episodes": 8,
+      "train_episodes": 60,
+      "eval_episodes": 20,
       "samples": 4,
       "model_options": {
         "gru": {
-          "hidden_size": 12,
-          "action_feature_size": 8,
-          "learning_rate": 0.03
+          "hidden_size": 24,
+          "learning_rate": 0.02,
+          "replay_limit": 512
         }
       }
     },
     {
       "kind": "imagination",
-      "train_episodes": 8,
-      "eval_episodes": 8,
+      "train_episodes": 20,
+      "eval_episodes": 20,
       "max_steps": 3,
       "conditions": [
         {
@@ -32,58 +33,53 @@
           "name": "depth_1",
           "mode": "imagination",
           "model": "tabular",
-          "branching_factor": 2,
-          "maximum_depth": 1,
-          "aggregation": "max"
+          "maximum_depth": 1
         },
         {
           "name": "depth_2",
           "mode": "imagination",
           "model": "tabular",
-          "branching_factor": 2,
-          "maximum_depth": 2,
-          "aggregation": "max"
+          "maximum_depth": 2
         }
       ]
     },
     {
       "kind": "dependency",
       "lengths": [4, 6],
-      "train_episodes": 4,
-      "eval_episodes": 6,
-      "max_steps_multiplier": 4,
+      "train_episodes": 8,
+      "eval_episodes": 20,
       "conditions": [
         {
-          "name": "random",
-          "mode": "random",
-          "model": "tabular"
-        },
-        {
-          "name": "policy",
+          "name": "policy_greedy",
           "mode": "policy",
           "model": "tabular"
         },
         {
-          "name": "imagination_depth_2",
+          "name": "shallow_imagination",
           "mode": "imagination",
           "model": "tabular",
-          "branching_factor": 2,
-          "maximum_depth": 2,
-          "aggregation": "max"
+          "maximum_depth": 2
+        },
+        {
+          "name": "full_chain_imagination",
+          "mode": "imagination",
+          "model": "tabular",
+          "depth_multiplier": 2,
+          "beam_width": 8
         }
       ]
     },
     {
       "kind": "skills",
       "length": 4,
-      "episodes": 5,
+      "episodes": 8,
       "conditions": [
         {
           "name": "no_skill",
           "use_skills": false
         },
         {
-          "name": "skill_after_two_successes",
+          "name": "skill_after_2",
           "use_skills": true,
           "promotion_successes": 2
         }
@@ -91,9 +87,30 @@
     },
     {
       "kind": "information_value",
-      "noise_levels": [0, 8],
-      "steps": 12,
-      "samples": 4
+      "noise_facts": 8,
+      "train_episodes": 80,
+      "eval_episodes": 40,
+      "epsilon": 0.2,
+      "novelty_weight": 0.2,
+      "conditions": [
+        {
+          "name": "sparse_reward",
+          "mode": "sparse_reward",
+          "lr": 0.2
+        },
+        {
+          "name": "raw_novelty",
+          "mode": "novelty_count",
+          "lr": 0.2
+        },
+        {
+          "name": "validated_information_value",
+          "mode": "validated_information",
+          "lr": 0.2,
+          "minimum_holdout_count": 4,
+          "samples": 4
+        }
+      ]
     }
   ]
 }
