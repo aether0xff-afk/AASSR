@@ -13,6 +13,7 @@ GROUP_FIELDS = (
     "condition",
     "environment",
     "model",
+    "phase",
     "action_family",
 )
 
@@ -41,7 +42,6 @@ def seed_level_rows(
     rows: Iterable[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
     """Average episodes inside each seed before cross-seed statistics."""
-
     groups: dict[tuple[str, ...], list[Mapping[str, Any]]] = {}
     for row in rows:
         key = tuple(str(row.get(field, "")) for field in GROUP_FIELDS) + (
@@ -143,10 +143,10 @@ def write_seed_report(
     lines = [
         f"# {config['name']} seed-level report",
         "",
-        "Episode results were averaged inside each seed first. The mean, standard deviation, and 95% interval below are computed across seed means, not across individual episodes.",
+        "Episode results were averaged inside each seed first. Training and evaluation phases are separated. The mean, standard deviation, and 95% interval below are computed across seed means, not across individual episodes.",
         "",
-        "| Suite | Condition | Environment | Model | Action | Seeds | Success | Steps | Prediction | Actual return |",
-        "|---|---|---|---|---|---:|---:|---:|---:|---:|",
+        "| Suite | Condition | Environment | Model | Phase | Action | Seeds | Success | Steps | Prediction | Actual return |",
+        "|---|---|---|---|---|---|---:|---:|---:|---:|---:|",
     ]
     for row in summary:
         lines.append(
@@ -157,6 +157,7 @@ def write_seed_report(
                     str(row["condition"]),
                     str(row["environment"]),
                     str(row["model"]),
+                    str(row["phase"] or "-"),
                     str(row["action_family"] or "-"),
                     str(row["seed_count"]),
                     _format(row.get("success_mean")),
@@ -172,7 +173,7 @@ def write_seed_report(
             "",
             "## 주의",
             "",
-            "파일럿은 실행 배선과 지표 방향을 확인하는 용도다. 성능 주장은 본 실험 설정과 충분한 seed 수를 사용한 뒤 내려야 한다.",
+            "진단 파일럿은 실행 배선과 지표 방향을 확인하는 용도다. 성능 주장은 본 실험 설정과 충분한 seed 수를 사용한 뒤 내려야 한다.",
             "",
         )
     )
