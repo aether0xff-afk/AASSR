@@ -5,6 +5,10 @@
   "seeds": [7, 13],
   "train_episodes": 160,
   "eval_episodes": 20,
+  "progress": {
+    "every_episodes": 20,
+    "every_seconds": 2
+  },
   "environments": [
     {"name": "opaque_dependency_l3", "length": 3, "seed_offset": 3000},
     {"name": "opaque_dependency_l4", "length": 4, "seed_offset": 4000}
