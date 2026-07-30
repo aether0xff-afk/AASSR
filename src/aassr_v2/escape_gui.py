@@ -10,6 +10,7 @@ from .escape_training import (
     EscapeTrainingConfig,
     EscapeTrainingSummary,
     TrainingMode,
+    TrainingRuntime,
     train_escape_agent,
 )
 
@@ -30,12 +31,13 @@ class EscapeTrainingApp:
         self.ttk = ttk
         self.root = root
         self.root.title("AASSR Escape GridWorld Trainer")
-        self.root.geometry("1120x760")
-        self.root.minsize(900, 650)
+        self.root.geometry("1160x780")
+        self.root.minsize(920, 660)
 
         self.events: queue.Queue[tuple[str, object]] = queue.Queue()
         self.stop_event = threading.Event()
         self.worker: threading.Thread | None = None
+        self.runtime: TrainingRuntime | None = None
         self.mode: TrainingMode | None = None
         self.latest_frame: EscapeRenderFrame | None = None
         self.history: list[float] = []
@@ -45,8 +47,9 @@ class EscapeTrainingApp:
         self.colors_var = tk.StringVar(value="2")
         self.status_var = tk.StringVar(value="실행 방식을 선택하세요.")
         self.episode_var = tk.StringVar(value="Episode 0 / 0")
-        self.success_var = tk.StringVar(value="성공률 0.0%")
-        self.rolling_var = tk.StringVar(value="최근 100회 0.0%")
+        self.tick_var = tk.StringVar(value="현재 tick 0")
+        self.score_var = tk.StringVar(value="최근 점수 0.000x")
+        self.rolling_score_var = tk.StringVar(value="최근 100 평균 0.000x")
         self.epsilon_var = tk.StringVar(value="ε 0.000")
         self.model_var = tk.StringVar(value="Imagination 대기")
         self.inventory_var = tk.StringVar(value="보유 열쇠: 없음")
@@ -91,13 +94,13 @@ class EscapeTrainingApp:
         self.live_button = ttk.Button(
             buttons,
             text="실시간으로 보기",
-            command=lambda: self._start(TrainingMode.LIVE),
+            command=lambda: self._select_mode(TrainingMode.LIVE),
         )
         self.live_button.grid(row=0, column=0, padx=5)
         self.fast_button = ttk.Button(
             buttons,
             text="안 보고 최대 속도",
-            command=lambda: self._start(TrainingMode.FAST),
+            command=lambda: self._select_mode(TrainingMode.FAST),
         )
         self.fast_button.grid(row=0, column=1, padx=5)
         self.stop_button = ttk.Button(
@@ -120,8 +123,9 @@ class EscapeTrainingApp:
         for index, variable in enumerate(
             (
                 self.episode_var,
-                self.success_var,
-                self.rolling_var,
+                self.tick_var,
+                self.score_var,
+                self.rolling_score_var,
                 self.epsilon_var,
                 self.model_var,
             )
@@ -157,7 +161,7 @@ class EscapeTrainingApp:
             font=("Consolas", 10),
         )
         self.log.pack(fill="both", expand=True, pady=(4, 10))
-        ttk.Label(side_panel, text="최근 성공률").pack(anchor="w")
+        ttk.Label(side_panel, text="최근 성공 점수").pack(anchor="w")
         self.chart = tk.Canvas(
             side_panel,
             height=150,
@@ -177,15 +181,33 @@ class EscapeTrainingApp:
             seed=int(self.seed_var.get()),
             color_count=colors,
             distractor_boxes=max(1, colors),
-            max_steps=120 + 30 * colors,
             epsilon_decay_episodes=max(100, int(episodes * 0.75)),
             imagination_depth=4 + colors,
             imagination_beam_width=16,
         )
 
-    def _start(self, mode: TrainingMode) -> None:
+    def _select_mode(self, mode: TrainingMode) -> None:
         if self.worker is not None and self.worker.is_alive():
+            if self.runtime is None:
+                return
+            self.runtime.set_mode(mode)
+            self.mode = mode
+            self._refresh_mode_buttons(running=True)
+            if mode is TrainingMode.LIVE:
+                self.status_var.set(
+                    "실시간 모드로 전환됨: 현재 episode를 이어서 렌더링합니다."
+                )
+                if self.latest_frame is not None:
+                    self._draw_grid(self.latest_frame)
+            else:
+                self.status_var.set(
+                    "최대 속도 모드로 전환됨: 같은 episode와 학습 상태를 그대로 이어갑니다."
+                )
+                self._idle("최대 속도 모드\n학습은 같은 세션에서 계속 진행 중")
             return
+        self._start(mode)
+
+    def _start(self, mode: TrainingMode) -> None:
         try:
             config = self._config()
         except ValueError as exc:
@@ -193,12 +215,13 @@ class EscapeTrainingApp:
             return
 
         self.mode = mode
+        self.runtime = TrainingRuntime(mode)
         self.latest_frame = None
         self.history.clear()
         self.stop_event = threading.Event()
         self.progress_var.set(0.0)
         self._clear_log()
-        self._set_running(True)
+        self._refresh_mode_buttons(running=True)
         if mode is TrainingMode.LIVE:
             self.status_var.set("실시간 모드: 모든 primitive step을 렌더링합니다.")
             self._idle("실시간 렌더링 준비 중…")
@@ -211,6 +234,7 @@ class EscapeTrainingApp:
                 train_escape_agent(
                     config,
                     mode=mode,
+                    runtime=self.runtime,
                     on_frame=lambda frame: self.events.put(("frame", frame)),
                     on_complete=lambda summary: self.events.put(
                         ("complete", summary)
@@ -225,15 +249,24 @@ class EscapeTrainingApp:
 
     def _stop(self) -> None:
         self.stop_event.set()
-        self.status_var.set("현재 episode를 중단하고 있습니다…")
+        self.status_var.set("현재 episode와 전체 세션을 중단하고 있습니다…")
 
-    def _set_running(self, running: bool) -> None:
-        self.live_button.configure(state="disabled" if running else "normal")
-        self.fast_button.configure(state="disabled" if running else "normal")
-        self.stop_button.configure(state="normal" if running else "disabled")
+    def _refresh_mode_buttons(self, *, running: bool) -> None:
+        if not running:
+            self.live_button.configure(state="normal")
+            self.fast_button.configure(state="normal")
+            self.stop_button.configure(state="disabled")
+            return
+        self.live_button.configure(
+            state="disabled" if self.mode is TrainingMode.LIVE else "normal"
+        )
+        self.fast_button.configure(
+            state="disabled" if self.mode is TrainingMode.FAST else "normal"
+        )
+        self.stop_button.configure(state="normal")
 
     def _poll(self) -> None:
-        for _ in range(200):
+        for _ in range(300):
             try:
                 kind, payload = self.events.get_nowait()
             except queue.Empty:
@@ -248,12 +281,12 @@ class EscapeTrainingApp:
 
     def _frame(self, frame: EscapeRenderFrame) -> None:
         self.latest_frame = frame
+        self.mode = frame.mode
         self.progress_var.set(100.0 * frame.episode / max(1, frame.total_episodes))
         self.episode_var.set(f"Episode {frame.episode:,} / {frame.total_episodes:,}")
-        self.success_var.set(
-            f"성공률 {frame.total_successes / max(1, frame.episode):.1%}"
-        )
-        self.rolling_var.set(f"최근 100회 {frame.rolling_success:.1%}")
+        self.tick_var.set(f"현재 tick {frame.step:,}")
+        self.score_var.set(f"최근 점수 {frame.episode_score:.3f}x")
+        self.rolling_score_var.set(f"최근 100 평균 {frame.rolling_score:.3f}x")
         self.epsilon_var.set(f"ε {frame.epsilon:.3f}")
         self.model_var.set(
             f"Imagination {frame.imagined_nodes} nodes"
@@ -263,20 +296,20 @@ class EscapeTrainingApp:
         inventory = ", ".join(frame.inventory) if frame.inventory else "없음"
         self.inventory_var.set(f"보유 열쇠: {inventory}")
 
-        if frame.episode_finished:
-            self.history.append(frame.rolling_success)
+        if frame.episode_finished and frame.episode_score > 0.0:
+            self.history.append(frame.episode_score)
             self._draw_chart()
             self._append(
-                f"E{frame.episode:04d} step={frame.step:03d} "
-                f"{'SUCCESS' if frame.success else 'timeout'} "
-                f"rolling={frame.rolling_success:.3f} "
+                f"E{frame.episode:04d} step={frame.step:,} SUCCESS "
+                f"score={frame.episode_score:.4f}x "
+                f"rolling_score={frame.rolling_score:.4f}x "
                 f"imagined={frame.imagined_nodes} "
                 f"gain={frame.holdout_gain:.6f}"
             )
         elif frame.event not in {"", "moved", "episode_started"}:
             imagination = " [IMAGINE]" if frame.used_imagination else ""
             self._append(
-                f"E{frame.episode:04d}:{frame.step:03d} "
+                f"E{frame.episode:04d}:{frame.step:,} "
                 f"{frame.event}{imagination}"
             )
 
@@ -284,29 +317,30 @@ class EscapeTrainingApp:
             self._draw_grid(frame)
 
     def _complete(self, summary: EscapeTrainingSummary) -> None:
-        self._set_running(False)
+        self._refresh_mode_buttons(running=False)
         state = "중지됨" if summary.stopped else "완료"
         self.status_var.set(
             f"{state}: {summary.episodes:,} episodes, 성공 {summary.successes:,}회, "
-            f"{summary.elapsed_seconds:.2f}초, policy entries {summary.policy_entries:,}, "
+            f"평균 점수 {summary.mean_score:.4f}x, {summary.elapsed_seconds:.2f}초, "
             f"Imagination {summary.imagination_decisions:,}회"
         )
         self._append(
             f"[{state}] success={summary.success_rate:.3f} "
-            f"rolling={summary.rolling_success:.3f} "
+            f"mean_score={summary.mean_score:.4f}x "
+            f"rolling_score={summary.rolling_score:.4f}x "
             f"imagined_nodes={summary.imagined_nodes:,} "
             f"oracle_steps={summary.oracle_steps}"
         )
         if self.mode is TrainingMode.FAST:
             self._idle(
                 "최대 속도 학습 완료\n"
-                f"성공률 {summary.success_rate:.1%}\n"
-                f"최근 성공률 {summary.rolling_success:.1%}\n"
+                f"평균 점수 {summary.mean_score:.4f}x\n"
+                f"최근 평균 {summary.rolling_score:.4f}x\n"
                 f"경과 {summary.elapsed_seconds:.2f}초"
             )
 
     def _error(self, message: str) -> None:
-        self._set_running(False)
+        self._refresh_mode_buttons(running=False)
         self.status_var.set("실행 중 오류가 발생했습니다.")
         self._append(message)
 
@@ -428,12 +462,17 @@ class EscapeTrainingApp:
         if len(self.history) < 2:
             return
         values = self.history[-300:]
+        minimum = 1.0
+        maximum = max(2.0, max(values))
+        span = max(0.001, maximum - minimum)
         points: list[float] = []
         for index, value in enumerate(values):
             points.extend(
                 (
                     margin + (width - 2 * margin) * index / (len(values) - 1),
-                    height - margin - (height - 2 * margin) * value,
+                    height
+                    - margin
+                    - (height - 2 * margin) * (value - minimum) / span,
                 )
             )
         canvas.create_line(*points, fill="#3f6fba", width=2, smooth=True)

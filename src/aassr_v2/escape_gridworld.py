@@ -30,7 +30,6 @@ class EscapeGridSpec:
     boxes: tuple[EscapeBox, ...]
     colors: tuple[str, ...]
     seed: int
-    max_steps: int = 180
 
     def __post_init__(self) -> None:
         if self.width < 7 or self.height < 7:
@@ -70,9 +69,8 @@ class EscapeGridStep:
 class EscapeGridWorld:
     """Deterministic escape room with neutral boxes and colored key-door pairs.
 
-    The world exposes only primitive movement and interaction. Boxes are visible,
-    but their contents are unknown until opened. Doors reveal their color. The
-    only external reward is delivered when the agent reaches the exit.
+    An episode has no tick timeout. It ends only when the agent reaches the exit,
+    or when an external controller explicitly stops the training session.
     """
 
     def __init__(self, spec: EscapeGridSpec) -> None:
@@ -97,7 +95,7 @@ class EscapeGridWorld:
 
     @property
     def done(self) -> bool:
-        return self.position == self.spec.goal or self.steps >= self.spec.max_steps
+        return self.success
 
     @property
     def success(self) -> bool:
@@ -200,7 +198,6 @@ class EscapeGridWorld:
                 "open_boxes": tuple(sorted(self.open_boxes)),
                 "open_doors": tuple(sorted(self.open_doors)),
                 "steps": self.steps,
-                "max_steps": self.spec.max_steps,
             },
         )
 
@@ -209,7 +206,7 @@ class EscapeGridWorld:
             return EscapeGridStep(
                 self.snapshot(),
                 error=True,
-                goal_reached=self.success,
+                goal_reached=True,
                 event="episode_finished",
             )
         before = self.snapshot()
@@ -306,7 +303,6 @@ def generate_escape_grid(
     color_count: int = 3,
     distractor_boxes: int = 2,
     height: int = 9,
-    max_steps: int = 180,
 ) -> EscapeGridSpec:
     if not 1 <= color_count <= len(DEFAULT_COLORS):
         raise ValueError(f"color_count must be between 1 and {len(DEFAULT_COLORS)}")
@@ -317,10 +313,10 @@ def generate_escape_grid(
     randomizer = random.Random(seed)
 
     walls: set[Position] = {
-        *( (x, 0) for x in range(width) ),
-        *( (x, height - 1) for x in range(width) ),
-        *( (0, y) for y in range(height) ),
-        *( (width - 1, y) for y in range(height) ),
+        *((x, 0) for x in range(width)),
+        *((x, height - 1) for x in range(width)),
+        *((0, y) for y in range(height)),
+        *((width - 1, y) for y in range(height)),
     }
     doors: list[tuple[Position, str]] = []
     barrier_xs = [4 + 4 * index for index in range(color_count)]
@@ -373,7 +369,6 @@ def generate_escape_grid(
         boxes=tuple(boxes),
         colors=tuple(colors),
         seed=seed,
-        max_steps=max_steps,
     )
 
 
