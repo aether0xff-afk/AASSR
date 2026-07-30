@@ -2,12 +2,9 @@ from __future__ import annotations
 
 import argparse
 
-from aassr_v2.escape_gui import launch_escape_gui
-from aassr_v2.escape_training import (
-    EscapeTrainingConfig,
-    TrainingMode,
-    train_escape_agent,
-)
+from aassr_v2.escape_gui_visualized import launch_escape_gui
+from aassr_v2.escape_training import EscapeTrainingConfig, TrainingMode
+from aassr_v2.escape_training_visualized import train_escape_agent
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -17,7 +14,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--gui",
         action="store_true",
-        help="open the desktop GUI; live/fast can be switched during one session",
+        help="open the desktop GUI with live GridWorld and Imagination windows",
     )
     parser.add_argument(
         "--mode",
