@@ -21,13 +21,29 @@ class TrainingMode(str, Enum):
     FAST = "fast"
 
 
+class TrainingRuntime:
+    """Thread-safe display mode shared by the GUI and training worker."""
+
+    def __init__(self, mode: TrainingMode = TrainingMode.FAST) -> None:
+        self._mode = TrainingMode(mode)
+        self._lock = threading.Lock()
+
+    @property
+    def mode(self) -> TrainingMode:
+        with self._lock:
+            return self._mode
+
+    def set_mode(self, mode: TrainingMode) -> None:
+        with self._lock:
+            self._mode = TrainingMode(mode)
+
+
 @dataclass(frozen=True, slots=True)
 class EscapeTrainingConfig:
     episodes: int = 2_000
     seed: int = 7
     color_count: int = 2
     distractor_boxes: int = 2
-    max_steps: int = 180
     gamma: float = 0.97
     policy_learning_rate: float = 0.2
     epsilon_start: float = 0.9
@@ -47,12 +63,11 @@ class EscapeTrainingConfig:
     live_step_delay: float = 0.06
     fast_progress_interval: int = 25
     rolling_window: int = 100
+    efficiency_bonus_scale: float = 1.0
 
     def __post_init__(self) -> None:
         if self.episodes <= 0:
             raise ValueError("episodes must be positive")
-        if self.max_steps <= 0:
-            raise ValueError("max_steps must be positive")
         if not 0.0 < self.gamma <= 1.0:
             raise ValueError("gamma must be in (0, 1]")
         if not 0.0 < self.policy_learning_rate <= 1.0:
@@ -73,6 +88,8 @@ class EscapeTrainingConfig:
             raise ValueError("fast_progress_interval must be positive")
         if self.rolling_window <= 0:
             raise ValueError("rolling_window must be positive")
+        if self.efficiency_bonus_scale < 0.0:
+            raise ValueError("efficiency_bonus_scale must be non-negative")
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,7 +108,10 @@ class EscapeRenderFrame:
     episode_finished: bool
     epsilon: float
     rolling_success: float
+    rolling_score: float
     total_successes: int
+    total_score: float
+    episode_score: float
     elapsed_seconds: float
     mode: TrainingMode
     used_imagination: bool = False
@@ -107,6 +127,9 @@ class EscapeTrainingSummary:
     successes: int
     success_rate: float
     rolling_success: float
+    total_score: float
+    mean_score: float
+    rolling_score: float
     elapsed_seconds: float
     policy_entries: int
     oracle_steps: int
@@ -124,6 +147,27 @@ def epsilon_for_episode(config: EscapeTrainingConfig, episode: int) -> float:
     return config.epsilon_start + fraction * (
         config.epsilon_end - config.epsilon_start
     )
+
+
+def success_score_multiplier(
+    optimal_steps: int,
+    actual_steps: int,
+    *,
+    bonus_scale: float = 1.0,
+) -> float:
+    """Score a completed escape without introducing intermediate rewards.
+
+    A shortest-path success receives ``1 + bonus_scale``. Longer successful
+    routes approach the base score 1.0. This function is called only after the
+    exit is reached, so an unfinished trajectory never receives this score.
+    """
+
+    if optimal_steps <= 0 or actual_steps <= 0:
+        raise ValueError("step counts must be positive")
+    if bonus_scale < 0.0:
+        raise ValueError("bonus_scale must be non-negative")
+    efficiency = min(1.0, optimal_steps / actual_steps)
+    return 1.0 + bonus_scale * efficiency
 
 
 def _make_agent(config: EscapeTrainingConfig) -> AutonomousLearningAgent:
@@ -157,6 +201,10 @@ def _policy_entry_count(agent: AutonomousLearningAgent) -> int:
     return len(local)
 
 
+def _mean(values: list[float]) -> float:
+    return sum(values) / len(values) if values else 0.0
+
+
 def _frame(
     environment: EscapeGridWorld,
     *,
@@ -167,7 +215,10 @@ def _frame(
     episode_finished: bool,
     epsilon: float,
     rolling_success: float,
+    rolling_score: float,
     total_successes: int,
+    total_score: float,
+    episode_score: float,
     elapsed_seconds: float,
     mode: TrainingMode,
     used_imagination: bool = False,
@@ -191,7 +242,10 @@ def _frame(
         episode_finished=episode_finished,
         epsilon=epsilon,
         rolling_success=rolling_success,
+        rolling_score=rolling_score,
         total_successes=total_successes,
+        total_score=total_score,
+        episode_score=episode_score,
         elapsed_seconds=elapsed_seconds,
         mode=mode,
         used_imagination=used_imagination,
@@ -206,29 +260,33 @@ def train_escape_agent(
     config: EscapeTrainingConfig,
     *,
     mode: TrainingMode = TrainingMode.FAST,
+    runtime: TrainingRuntime | None = None,
     on_frame: FrameCallback | None = None,
     on_complete: CompleteCallback | None = None,
     stop_event: threading.Event | None = None,
 ) -> EscapeTrainingSummary:
-    """Train the autonomous AASSR agent and optionally stream GUI frames.
+    """Train Full AASSR while allowing live/fast switching in one session.
 
-    LIVE and FAST execute the identical agent, world, random seed and update
-    order. LIVE emits every primitive step and sleeps briefly. FAST removes both
-    the sleep and step rendering, emitting only periodic episode progress.
+    The environment has no per-episode tick limit. An episode ends only at the
+    exit or when the whole session is manually stopped. Switching display mode
+    changes only frame emission and sleep; it never resets the world, agent,
+    random generator, episode, or learning state.
     """
 
     stop = stop_event or threading.Event()
+    display = runtime or TrainingRuntime(mode)
     spec = generate_escape_grid(
         config.seed,
         color_count=config.color_count,
         distractor_boxes=config.distractor_boxes,
-        max_steps=config.max_steps,
     )
     oracle_steps = len(oracle_plan(spec))
     agent = _make_agent(config)
     started = time.perf_counter()
     outcomes: list[int] = []
+    scores: list[float] = []
     successes = 0
+    total_score = 0.0
     completed_episodes = 0
     imagination_decisions = 0
     imagined_nodes_total = 0
@@ -245,8 +303,10 @@ def train_escape_agent(
         latest_gain = 0.0
         latest_intrinsic = 0.0
 
-        if mode is TrainingMode.LIVE and on_frame is not None:
-            previous = outcomes[-config.rolling_window :]
+        current_mode = display.mode
+        if current_mode is TrainingMode.LIVE and on_frame is not None:
+            recent_outcomes = outcomes[-config.rolling_window :]
+            recent_scores = scores[-config.rolling_window :]
             on_frame(
                 _frame(
                     environment,
@@ -256,15 +316,18 @@ def train_escape_agent(
                     event="episode_started",
                     episode_finished=False,
                     epsilon=epsilon,
-                    rolling_success=(sum(previous) / len(previous)) if previous else 0.0,
+                    rolling_success=_mean([float(item) for item in recent_outcomes]),
+                    rolling_score=_mean(recent_scores),
                     total_successes=successes,
+                    total_score=total_score,
+                    episode_score=0.0,
                     elapsed_seconds=time.perf_counter() - started,
-                    mode=mode,
+                    mode=current_mode,
                 )
             )
 
         interrupted = False
-        while not environment.done:
+        while not environment.success:
             if stop.is_set():
                 interrupted = True
                 break
@@ -285,9 +348,10 @@ def train_escape_agent(
                 imagination_decisions += 1
                 imagined_nodes_total += decision.imagined_nodes
 
-            if mode is TrainingMode.LIVE:
-                previous = outcomes[-config.rolling_window :]
-                rolling = (sum(previous) / len(previous)) if previous else 0.0
+            current_mode = display.mode
+            if current_mode is TrainingMode.LIVE:
+                recent_outcomes = outcomes[-config.rolling_window :]
+                recent_scores = scores[-config.rolling_window :]
                 if on_frame is not None:
                     on_frame(
                         _frame(
@@ -296,12 +360,17 @@ def train_escape_agent(
                             total_episodes=config.episodes,
                             action=decision.action.signature,
                             event=outcome.event,
-                            episode_finished=environment.done,
+                            episode_finished=environment.success,
                             epsilon=epsilon,
-                            rolling_success=rolling,
+                            rolling_success=_mean(
+                                [float(item) for item in recent_outcomes]
+                            ),
+                            rolling_score=_mean(recent_scores),
                             total_successes=successes,
+                            total_score=total_score,
+                            episode_score=0.0,
                             elapsed_seconds=time.perf_counter() - started,
-                            mode=mode,
+                            mode=current_mode,
                             used_imagination=decision.used_imagination,
                             imagined_nodes=decision.imagined_nodes,
                             prediction_score=metrics.prediction_score,
@@ -309,23 +378,33 @@ def train_escape_agent(
                             intrinsic_value=metrics.intrinsic_value,
                         )
                     )
-                if config.live_step_delay:
-                    time.sleep(config.live_step_delay)
+                if config.live_step_delay and stop.wait(config.live_step_delay):
+                    interrupted = True
+                    break
 
         if interrupted:
             agent.discard_episode()
             break
 
-        success = int(environment.success)
-        agent.finish_episode(final_return=float(success))
-        successes += success
-        outcomes.append(success)
+        episode_score = success_score_multiplier(
+            oracle_steps,
+            environment.steps,
+            bonus_scale=config.efficiency_bonus_scale,
+        )
+        agent.finish_episode(final_return=episode_score)
+        successes += 1
+        total_score += episode_score
+        outcomes.append(1)
+        scores.append(episode_score)
         completed_episodes += 1
-        window = outcomes[-config.rolling_window :]
-        rolling = sum(window) / len(window)
+        recent_outcomes = outcomes[-config.rolling_window :]
+        recent_scores = scores[-config.rolling_window :]
+        rolling_success = _mean([float(item) for item in recent_outcomes])
+        rolling_score = _mean(recent_scores)
 
+        current_mode = display.mode
         should_emit = (
-            mode is TrainingMode.LIVE
+            current_mode is TrainingMode.LIVE
             or episode == 1
             or episode == config.episodes
             or episode % config.fast_progress_interval == 0
@@ -337,13 +416,16 @@ def train_escape_agent(
                     episode=episode,
                     total_episodes=config.episodes,
                     action="",
-                    event="success" if success else "timeout",
+                    event="success",
                     episode_finished=True,
                     epsilon=epsilon,
-                    rolling_success=rolling,
+                    rolling_success=rolling_success,
+                    rolling_score=rolling_score,
                     total_successes=successes,
+                    total_score=total_score,
+                    episode_score=episode_score,
                     elapsed_seconds=time.perf_counter() - started,
-                    mode=mode,
+                    mode=current_mode,
                     used_imagination=latest_imagination,
                     imagined_nodes=latest_nodes,
                     prediction_score=latest_prediction,
@@ -353,12 +435,16 @@ def train_escape_agent(
             )
 
     elapsed = time.perf_counter() - started
-    final_window = outcomes[-config.rolling_window :]
+    final_outcomes = outcomes[-config.rolling_window :]
+    final_scores = scores[-config.rolling_window :]
     summary = EscapeTrainingSummary(
         episodes=completed_episodes,
         successes=successes,
         success_rate=(successes / completed_episodes) if completed_episodes else 0.0,
-        rolling_success=(sum(final_window) / len(final_window)) if final_window else 0.0,
+        rolling_success=_mean([float(item) for item in final_outcomes]),
+        total_score=total_score,
+        mean_score=(total_score / completed_episodes) if completed_episodes else 0.0,
+        rolling_score=_mean(final_scores),
         elapsed_seconds=elapsed,
         policy_entries=_policy_entry_count(agent),
         oracle_steps=oracle_steps,
