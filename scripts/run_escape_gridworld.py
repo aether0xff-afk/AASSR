@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import argparse
 
-from aassr_v2.escape_gui_visualized import launch_escape_gui
+from aassr_v2.escape_gui_modeled import launch_escape_gui
 from aassr_v2.escape_training import EscapeTrainingConfig, TrainingMode
-from aassr_v2.escape_training_visualized import train_escape_agent
+from aassr_v2.escape_training_modeled import train_escape_agent
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -14,7 +14,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--gui",
         action="store_true",
-        help="open the desktop GUI with live GridWorld and Imagination windows",
+        help="open the desktop GUI with GridWorld, Imagination and model controls",
     )
     parser.add_argument(
         "--mode",
@@ -32,6 +32,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="exact result directory; default creates runs/escape_gridworld/<timestamp>_...",
     )
     parser.add_argument(
+        "--load-model",
+        default=None,
+        help="load a .aassr-model.gz file and continue training from its learned state",
+    )
+    parser.add_argument(
+        "--save-model",
+        default=None,
+        help="also save the final portable model to this path",
+    )
+    parser.add_argument(
+        "--no-auto-save-model",
+        action="store_true",
+        help="disable the automatic <output>/models/final.aassr-model.gz save",
+    )
+    parser.add_argument(
         "--no-imagination",
         action="store_true",
         help="run the contextual-policy ablation instead of Full AASSR",
@@ -39,7 +54,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--no-episode-checkpoints",
         action="store_true",
-        help="skip per-episode compressed model checkpoints; final checkpoint is still saved",
+        help="skip per-episode compressed recovery checkpoints; final checkpoint is still saved",
     )
     return parser
 
@@ -82,6 +97,9 @@ def main() -> None:
         mode=TrainingMode(args.mode),
         on_frame=print_frame,
         output_dir=args.output,
+        load_model_path=args.load_model,
+        save_model_path=args.save_model,
+        auto_save_final_model=not args.no_auto_save_model,
     )
     print(
         "completed "
