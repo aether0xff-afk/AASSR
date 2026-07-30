@@ -30,9 +30,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--colors", type=int, choices=(1, 2, 3), default=2)
     parser.add_argument("--distractors", type=int, default=2)
     parser.add_argument(
+        "--output",
+        default=None,
+        help="exact result directory; default creates runs/escape_gridworld/<timestamp>_...",
+    )
+    parser.add_argument(
         "--no-imagination",
         action="store_true",
         help="run the contextual-policy ablation instead of Full AASSR",
+    )
+    parser.add_argument(
+        "--no-episode-checkpoints",
+        action="store_true",
+        help="skip per-episode compressed model checkpoints; final checkpoint is still saved",
     )
     return parser
 
@@ -49,6 +59,7 @@ def main() -> None:
         color_count=args.colors,
         distractor_boxes=args.distractors,
         use_imagination=not args.no_imagination,
+        save_episode_checkpoints=not args.no_episode_checkpoints,
     )
 
     def print_frame(frame: object) -> None:
@@ -73,18 +84,21 @@ def main() -> None:
         config,
         mode=TrainingMode(args.mode),
         on_frame=print_frame,
+        output_dir=args.output,
     )
     print(
         "completed "
         f"episodes={summary.episodes} "
         f"success_rate={summary.success_rate:.4f} "
+        f"total_steps={summary.total_steps} "
         f"mean_score={summary.mean_score:.4f} "
         f"rolling_score={summary.rolling_score:.4f} "
         f"elapsed={summary.elapsed_seconds:.3f}s "
         f"policy_entries={summary.policy_entries} "
         f"imagination_decisions={summary.imagination_decisions} "
         f"imagined_nodes={summary.imagined_nodes} "
-        f"oracle_steps={summary.oracle_steps}"
+        f"oracle_steps={summary.oracle_steps} "
+        f"output={summary.output_dir}"
     )
 
 
