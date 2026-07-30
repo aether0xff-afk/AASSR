@@ -17,19 +17,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--gui",
         action="store_true",
-        help="open the desktop GUI with live and maximum-speed buttons",
+        help="open the desktop GUI; live/fast can be switched during one session",
     )
     parser.add_argument(
         "--mode",
         choices=(TrainingMode.LIVE.value, TrainingMode.FAST.value),
         default=TrainingMode.FAST.value,
-        help="headless display mode; live sleeps between primitive steps",
+        help="initial headless display mode; the environment has no tick timeout",
     )
     parser.add_argument("--episodes", type=int, default=2_000)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--colors", type=int, choices=(1, 2, 3), default=2)
     parser.add_argument("--distractors", type=int, default=2)
-    parser.add_argument("--max-steps", type=int, default=180)
     parser.add_argument(
         "--no-imagination",
         action="store_true",
@@ -49,7 +48,6 @@ def main() -> None:
         seed=args.seed,
         color_count=args.colors,
         distractor_boxes=args.distractors,
-        max_steps=args.max_steps,
         use_imagination=not args.no_imagination,
     )
 
@@ -63,7 +61,8 @@ def main() -> None:
                 f"episode={episode}/{total} "
                 f"step={getattr(frame, 'step')} "
                 f"success={int(getattr(frame, 'success'))} "
-                f"rolling={getattr(frame, 'rolling_success'):.3f} "
+                f"score={getattr(frame, 'episode_score'):.4f} "
+                f"rolling_score={getattr(frame, 'rolling_score'):.4f} "
                 f"epsilon={getattr(frame, 'epsilon'):.3f} "
                 f"imagination={int(getattr(frame, 'used_imagination'))} "
                 f"imagined_nodes={getattr(frame, 'imagined_nodes')} "
@@ -79,7 +78,8 @@ def main() -> None:
         "completed "
         f"episodes={summary.episodes} "
         f"success_rate={summary.success_rate:.4f} "
-        f"rolling_success={summary.rolling_success:.4f} "
+        f"mean_score={summary.mean_score:.4f} "
+        f"rolling_score={summary.rolling_score:.4f} "
         f"elapsed={summary.elapsed_seconds:.3f}s "
         f"policy_entries={summary.policy_entries} "
         f"imagination_decisions={summary.imagination_decisions} "
