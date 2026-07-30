@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from dataclasses import asdict, dataclass, is_dataclass
+from dataclasses import dataclass, fields, is_dataclass
 from datetime import datetime, timezone
 from functools import wraps
 import json
@@ -37,8 +37,11 @@ def _utc_now_iso() -> str:
 
 
 def _json_safe(value: Any) -> Any:
-    if is_dataclass(value):
-        return _json_safe(asdict(value))
+    if is_dataclass(value) and not isinstance(value, type):
+        return {
+            item.name: _json_safe(getattr(value, item.name))
+            for item in fields(value)
+        }
     if isinstance(value, Mapping):
         return {str(key): _json_safe(item) for key, item in value.items()}
     if isinstance(value, (tuple, list, set, frozenset)):
