@@ -30,7 +30,7 @@
 ```text
 출구 도달 전: 계속 진행
 출구 도달: 성공 및 에피소드 종료
-사용자 중지: 현재 에피소드를 폐기하고 전체 세션 종료
+사용자 중지: 현재 에피소드를 중단 기록으로 남기고 전체 세션 종료
 ```
 
 상자 열기, 열쇠 획득, 문 개방에는 외부 성공 점수를 주지 않는다. 출구에 도달한 경우에만 다음 성공 점수를 최종 return으로 사용한다.
@@ -39,7 +39,7 @@
 성공 점수 배수 = 1 + oracle 최단 tick / 실제 성공 tick
 ```
 
-기본 설정에서 최단 경로 성공은 `2.0x`이고, 실제 경로가 길어질수록 `1.0x`에 가까워진다. 예를 들어 최단 경로가 20 tick이라면 20 tick 성공은 2.0x, 40 tick 성공은 1.5x, 200 tick 성공은 1.1x다. 미완료 경로에는 이 점수가 주어지지 않는다.
+기본 설정에서 최단 경로 성공은 `2.0x`이고, 실제 경로가 길어질수록 `1.0x`에 가까워진다.
 
 ## 실제 학습기
 
@@ -65,15 +65,123 @@ python scripts/run_escape_gridworld.py --gui
 
 ### 하나의 세션에서 속도 전환
 
-두 버튼은 새 세션을 따로 시작하는 버튼이 아니라, 실행 중에는 현재 세션의 표시 모드를 바꾸는 버튼으로 동작한다.
+두 버튼은 새 세션을 따로 시작하는 버튼이 아니라 실행 중 현재 세션의 표시 모드를 바꾼다.
 
 - `실시간으로 보기`: 모든 primitive step을 렌더링하고 짧은 지연을 둔다.
 - `안 보고 최대 속도`: step 렌더링과 인위적 sleep을 제거한다.
 - 실행 중 어느 방향으로든 즉시 전환할 수 있다.
-- 전환해도 현재 맵, 현재 episode, 현재 tick, Policy, Prophecy, Imagination, RNG 상태는 초기화되지 않는다.
-- 바뀌는 것은 frame 출력 빈도와 sleep뿐이다.
+- 현재 맵, episode, tick, Policy, Prophecy, Imagination, holdout, RNG 상태는 유지된다.
+- 두 모드 모두 모든 step 기록을 디스크에 저장한다.
 
-따라서 최대 속도로 학습시키다가 특정 시점부터 실시간으로 관찰하거나, 관찰 중 다시 최대 속도로 돌리는 것이 가능하다.
+## 모든 실행 정보 저장
+
+GUI와 headless 실행 모두 기본적으로 다음 경로를 자동 생성한다.
+
+```text
+runs/escape_gridworld/<timestamp>_seed<seed>_<session-id>/
+```
+
+각 step과 episode 기록은 실행 도중 즉시 flush된다. 따라서 프로세스가 비정상 종료되어도 이미 기록된 줄은 남는다.
+
+```text
+session.json                 # 세션 ID, 설정, 상태, 파일 목록
+world.json                   # 맵 크기, 벽, 상자, 열쇠, 문, 출구, seed
+steps.jsonl                  # 모든 tick의 전체 전후 상태와 학습 지표
+episodes.csv                 # 에피소드별 분석용 표
+episodes.jsonl               # 에피소드별 전체 구조화 기록
+mode_switches.jsonl          # 실시간/최대 속도 전환 시각과 위치
+session.log                  # 사람이 읽는 실행 로그
+summary.json                 # 최종 세션 요약과 기술통계
+summary.txt                  # 간단한 텍스트 요약
+statistics.json              # 분포, 사분위수, 상관계수, 행동/이벤트 집계
+checkpoints/
+  episode_000001.json.gz     # 각 episode 종료 후 전체 에이전트 상태
+  ...
+  latest.json.gz             # 가장 최근 checkpoint
+  final.json.gz              # 종료 시 최종 checkpoint
+charts/
+  episode_steps.svg
+  episode_scores.svg
+  episode_duration.svg
+  prediction_and_holdout.svg
+  intrinsic_value.svg
+  imagination_usage.svg
+  errors_and_repeats.svg
+  action_distribution.svg
+  event_distribution.svg
+```
+
+### `steps.jsonl`에 저장되는 항목
+
+- UTC 기록 시각
+- session 경과시간, episode 경과시간
+- tick 전체 소요시간과 계산 소요시간
+- episode 번호와 step 번호
+- 실행 모드와 epsilon
+- 행동의 verb, target, tool, destination, parameters, signature
+- 행동 전후 전체 state vector
+- 행동 전후 전체 facts
+- 행동 전후 available actions
+- 상태 metadata와 goal progress
+- event, error, 외부 보상, goal 도달 여부
+- 추가·삭제된 facts와 새로 열린 actions
+- Imagination 사용 여부, node 수, 깊이, root imagined value
+- Prediction score
+- holdout before, after, gain
+- intrinsic value
+- 반복 행동 여부
+
+### `episodes.csv/jsonl`에 저장되는 항목
+
+- 시작·종료 UTC 시각
+- episode 소요시간과 session 누적시간
+- 전체 step 수와 oracle 최단 step 수
+- 효율, 점수, 최근 100회 평균 점수
+- epsilon
+- 이동·상호작용 횟수
+- 오류, 반복, blocked 횟수
+- 발견한 열쇠, 연 문, 빈 상자 수
+- Imagination 호출 수, node 수, 최대 깊이
+- Prediction, holdout, intrinsic value 통계
+- 실시간·최대 속도에서 소비한 시간
+- Policy entry, Prophecy entry, holdout 크기
+- 행동별·이벤트별 횟수
+- 성공, 중지 여부
+
+### Checkpoint에 저장되는 항목
+
+- Contextual Policy의 state-action value, count, state visits
+- 전역 action value
+- Tabular Prophecy의 exact/global 전이 횟수와 상태 snapshot
+- holdout transition 전체
+- agent와 holdout RNG 상태
+- transition/decision index
+- 학습 설정
+
+각 episode checkpoint는 저장 공간을 절약하기 위해 gzip JSON으로 기록한다. 저장량이 너무 커지는 실험에서는 headless 옵션 `--no-episode-checkpoints`로 episode별 checkpoint만 끌 수 있다. 최종 checkpoint와 step/episode 기록은 계속 저장된다.
+
+## 종료 후 통계 창
+
+세션이 완료되거나 사용자가 중지하면 별도 통계 창이 자동으로 열린다. 메인 GUI의 `통계 창` 버튼으로 다시 열 수 있다.
+
+통계 창은 다음 탭을 제공한다.
+
+- 요약 통계와 결과 폴더 열기
+- **에피소드별 step 수와 100회 이동평균**
+- 성공 점수와 이동평균
+- oracle 대비 경로 효율
+- 에피소드 소요시간
+- Prediction score
+- holdout before/after/gain
+- intrinsic value
+- Imagination node와 호출 수
+- 오류와 반복 행동
+- 실시간/최대 속도별 소요시간
+- 행동 분포
+- 이벤트 분포
+- 모든 episode의 상세 표
+
+같은 그래프는 종료 시 `charts/*.svg`에도 저장된다.
 
 ## Headless 실행
 
@@ -83,10 +191,15 @@ python scripts/run_escape_gridworld.py --gui
 python scripts/run_escape_gridworld.py --episodes 2000 --colors 2 --seed 7 --mode fast
 ```
 
-실시간 콘솔 출력:
+출력 폴더 지정:
 
 ```bash
-python scripts/run_escape_gridworld.py --episodes 100 --colors 1 --seed 7 --mode live
+python scripts/run_escape_gridworld.py \
+  --episodes 2000 \
+  --colors 2 \
+  --seed 7 \
+  --mode fast \
+  --output runs/escape_gridworld/my_run
 ```
 
 Contextual Policy 중심 ablation:
@@ -95,25 +208,9 @@ Contextual Policy 중심 ablation:
 python scripts/run_escape_gridworld.py --episodes 2000 --colors 2 --seed 7 --mode fast --no-imagination
 ```
 
-`--max-steps` 옵션은 제거되었다.
-
-## GUI 표시 항목
-
-- 전체 episode 진행률
-- 현재 episode tick
-- 최근 성공 점수 배수
-- 최근 100 episode 평균 점수
-- epsilon
-- 현재 inventory
-- 상자·열쇠·문 상호작용 이벤트
-- Prophecy prediction score
-- holdout gain과 intrinsic value
-- Imagination 사용 여부와 imagined node 수
-- oracle 최단 경로 길이
-
 ## 연구 해석상의 제한
 
-현재 GUI 실행기는 하나의 procedural seed로 만든 맵을 반복 학습한다. 목적은 환경과 학습 루프를 디버깅하고 행동 변화를 눈으로 확인하는 것이다. 높은 점수가 처음 보는 맵에 대한 일반화를 의미하지는 않는다.
+현재 GUI 실행기는 하나의 procedural seed로 만든 맵을 반복 학습한다. 높은 점수가 처음 보는 맵에 대한 일반화를 의미하지는 않는다.
 
 본 실험에서는 다음을 별도로 구성해야 한다.
 
@@ -137,3 +234,4 @@ pytest -q tests/test_escape_gridworld.py
 - 실시간·최대 속도 모드가 같은 학습 결과를 냄
 - 실행 중 runtime mode를 변경할 수 있음
 - 짧은 성공 경로가 더 높은 점수 배수를 받음
+- 모든 step·episode 파일, checkpoint, summary, SVG chart가 생성됨
