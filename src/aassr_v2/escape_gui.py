@@ -5,6 +5,7 @@ import threading
 import traceback
 from typing import Any
 
+from .escape_stats_gui import show_statistics_window
 from .escape_training import (
     EscapeRenderFrame,
     EscapeTrainingConfig,
@@ -40,6 +41,7 @@ class EscapeTrainingApp:
         self.runtime: TrainingRuntime | None = None
         self.mode: TrainingMode | None = None
         self.latest_frame: EscapeRenderFrame | None = None
+        self.latest_summary: EscapeTrainingSummary | None = None
         self.history: list[float] = []
 
         self.episodes_var = tk.StringVar(value="2000")
@@ -109,7 +111,14 @@ class EscapeTrainingApp:
             command=self._stop,
             state="disabled",
         )
-        self.stop_button.grid(row=0, column=2, padx=(12, 0))
+        self.stop_button.grid(row=0, column=2, padx=5)
+        self.statistics_button = ttk.Button(
+            buttons,
+            text="통계 창",
+            command=self._show_statistics,
+            state="disabled",
+        )
+        self.statistics_button.grid(row=0, column=3, padx=(12, 0))
 
         ttk.Label(outer, textvariable=self.status_var).pack(fill="x", pady=(10, 4))
         ttk.Progressbar(
@@ -184,6 +193,7 @@ class EscapeTrainingApp:
             epsilon_decay_episodes=max(100, int(episodes * 0.75)),
             imagination_depth=4 + colors,
             imagination_beam_width=16,
+            save_episode_checkpoints=True,
         )
 
     def _select_mode(self, mode: TrainingMode) -> None:
@@ -203,7 +213,7 @@ class EscapeTrainingApp:
                 self.status_var.set(
                     "최대 속도 모드로 전환됨: 같은 episode와 학습 상태를 그대로 이어갑니다."
                 )
-                self._idle("최대 속도 모드\n학습은 같은 세션에서 계속 진행 중")
+                self._idle("최대 속도 모드\n학습과 전체 기록 저장은 계속 진행 중")
             return
         self._start(mode)
 
@@ -217,17 +227,19 @@ class EscapeTrainingApp:
         self.mode = mode
         self.runtime = TrainingRuntime(mode)
         self.latest_frame = None
+        self.latest_summary = None
         self.history.clear()
         self.stop_event = threading.Event()
         self.progress_var.set(0.0)
         self._clear_log()
+        self.statistics_button.configure(state="disabled")
         self._refresh_mode_buttons(running=True)
         if mode is TrainingMode.LIVE:
-            self.status_var.set("실시간 모드: 모든 primitive step을 렌더링합니다.")
+            self.status_var.set("실시간 모드: 모든 primitive step을 렌더링하고 저장합니다.")
             self._idle("실시간 렌더링 준비 중…")
         else:
-            self.status_var.set("최대 속도 모드: sleep과 step 렌더링을 제거했습니다.")
-            self._idle("최대 속도 모드\nGrid 렌더링 비활성화")
+            self.status_var.set("최대 속도 모드: 렌더링 없이 모든 step을 파일에 저장합니다.")
+            self._idle("최대 속도 모드\nGrid 렌더링 비활성화\n전체 step 기록 저장 중")
 
         def worker() -> None:
             try:
@@ -249,7 +261,7 @@ class EscapeTrainingApp:
 
     def _stop(self) -> None:
         self.stop_event.set()
-        self.status_var.set("현재 episode와 전체 세션을 중단하고 있습니다…")
+        self.status_var.set("현재 episode와 전체 세션을 중단하고 기록을 마무리합니다…")
 
     def _refresh_mode_buttons(self, *, running: bool) -> None:
         if not running:
@@ -317,12 +329,13 @@ class EscapeTrainingApp:
             self._draw_grid(frame)
 
     def _complete(self, summary: EscapeTrainingSummary) -> None:
+        self.latest_summary = summary
         self._refresh_mode_buttons(running=False)
+        self.statistics_button.configure(state="normal")
         state = "중지됨" if summary.stopped else "완료"
         self.status_var.set(
-            f"{state}: {summary.episodes:,} episodes, 성공 {summary.successes:,}회, "
-            f"평균 점수 {summary.mean_score:.4f}x, {summary.elapsed_seconds:.2f}초, "
-            f"Imagination {summary.imagination_decisions:,}회"
+            f"{state}: {summary.episodes:,} episodes, {summary.total_steps:,} ticks, "
+            f"평균 점수 {summary.mean_score:.4f}x, {summary.elapsed_seconds:.2f}초"
         )
         self._append(
             f"[{state}] success={summary.success_rate:.3f} "
@@ -331,17 +344,25 @@ class EscapeTrainingApp:
             f"imagined_nodes={summary.imagined_nodes:,} "
             f"oracle_steps={summary.oracle_steps}"
         )
+        self._append(f"[저장 완료] {summary.output_dir}")
         if self.mode is TrainingMode.FAST:
             self._idle(
                 "최대 속도 학습 완료\n"
+                f"총 {summary.total_steps:,} ticks\n"
                 f"평균 점수 {summary.mean_score:.4f}x\n"
-                f"최근 평균 {summary.rolling_score:.4f}x\n"
-                f"경과 {summary.elapsed_seconds:.2f}초"
+                f"경과 {summary.elapsed_seconds:.2f}초\n\n"
+                "통계 창이 자동으로 열립니다."
             )
+        self.root.after(100, self._show_statistics)
+
+    def _show_statistics(self) -> None:
+        if self.latest_summary is None:
+            return
+        show_statistics_window(self.root, self.latest_summary)
 
     def _error(self, message: str) -> None:
         self._refresh_mode_buttons(running=False)
-        self.status_var.set("실행 중 오류가 발생했습니다.")
+        self.status_var.set("실행 중 오류가 발생했습니다. 오류 기록도 결과 폴더에 저장됩니다.")
         self._append(message)
 
     def _draw_grid(self, frame: EscapeRenderFrame) -> None:
