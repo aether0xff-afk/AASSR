@@ -10,7 +10,9 @@ from aassr_v2.escape_gridworld import (
 from aassr_v2.escape_training import (
     EscapeTrainingConfig,
     TrainingMode,
+    TrainingRuntime,
     epsilon_for_episode,
+    success_score_multiplier,
     train_escape_agent,
 )
 from aassr_v2.types import Action
@@ -21,7 +23,6 @@ def _execute_oracle(seed: int, color_count: int = 3) -> EscapeGridWorld:
         seed,
         color_count=color_count,
         distractor_boxes=2,
-        max_steps=250,
     )
     environment = EscapeGridWorld(spec)
     plan = oracle_plan(spec)
@@ -79,25 +80,56 @@ def test_only_terminal_escape_has_external_reward() -> None:
     assert all(reward == 0.0 for reward in rewards[:-1])
 
 
+def test_episode_has_no_tick_timeout() -> None:
+    spec = generate_escape_grid(2, color_count=1, distractor_boxes=0)
+    environment = EscapeGridWorld(spec)
+    blocked = Action("move", destination="west")
+    for _ in range(500):
+        outcome = environment.step(blocked)
+        assert outcome.error
+    assert environment.steps == 500
+    assert not environment.done
+    assert not environment.success
+
+
+def test_success_score_rewards_shorter_completed_routes() -> None:
+    assert success_score_multiplier(20, 20) == pytest.approx(2.0)
+    assert success_score_multiplier(20, 40) == pytest.approx(1.5)
+    assert success_score_multiplier(20, 200) == pytest.approx(1.1)
+
+
+def test_runtime_mode_can_change_without_restarting_session() -> None:
+    runtime = TrainingRuntime(TrainingMode.LIVE)
+    assert runtime.mode is TrainingMode.LIVE
+    runtime.set_mode(TrainingMode.FAST)
+    assert runtime.mode is TrainingMode.FAST
+    runtime.set_mode(TrainingMode.LIVE)
+    assert runtime.mode is TrainingMode.LIVE
+
+
 def test_live_and_fast_modes_run_the_same_learning_configuration() -> None:
     config = EscapeTrainingConfig(
-        episodes=8,
+        episodes=2,
         seed=19,
         color_count=1,
         distractor_boxes=0,
-        max_steps=60,
         use_imagination=False,
+        epsilon_start=1.0,
+        epsilon_end=1.0,
+        epsilon_decay_episodes=1,
         live_step_delay=0.0,
-        fast_progress_interval=2,
+        fast_progress_interval=1,
         minimum_holdout_count=2,
     )
     live = train_escape_agent(config, mode=TrainingMode.LIVE)
     fast = train_escape_agent(config, mode=TrainingMode.FAST)
-    assert live.episodes == fast.episodes == 8
-    assert live.successes == fast.successes
+    assert live.episodes == fast.episodes == 2
+    assert live.successes == fast.successes == 2
     assert live.policy_entries == fast.policy_entries
     assert live.oracle_steps == fast.oracle_steps
     assert live.imagination_decisions == fast.imagination_decisions == 0
+    assert live.total_score == pytest.approx(fast.total_score)
+    assert live.mean_score == pytest.approx(fast.mean_score)
 
 
 def test_epsilon_decay_is_monotonic() -> None:
