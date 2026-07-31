@@ -1,0 +1,30 @@
+{
+  "seed": 75001,
+  "allowed_hosts": [
+    "paper-target"
+  ],
+  "target_is_internal": true,
+  "target_port": 8081,
+  "service_name": "local-svc-9907",
+  "route_paths": {
+    "observed": "/flag-f7a213",
+    "configuration": "/configured-178665",
+    "combined": "/combine-6712cc"
+  },
+  "distractors": [
+    {
+      "host": "decoy-537",
+      "port": 7003
+    },
+    {
+      "host": "decoy-428",
+      "port": 7001
+    }
+  ],
+  "distractor_count": 2,
+  "external_network_required": false,
+  "contains_real_vulnerability": false,
+  "compose_sha256": "228a96cd29437bf98f11013dfe068ad341b22608134df8922bfee4df01eca14d",
+  "compose_file": "D:\\AASSR\\docker\\paper_safe_application\\docker-compose.yml",
+  "docker_execution_opt_in": true
+}

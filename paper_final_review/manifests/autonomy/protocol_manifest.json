@@ -1,0 +1,114 @@
+{
+  "protocol_version": "paper-autonomy-final-v1",
+  "study_stage": "final",
+  "git_commit_sha": "bc7f8c46babda4e93491c72dd6fff50a25742e8d",
+  "config_sha256": "56d698280ab6f3c22c407e28fd19668253cadcde9bb30371c8698617ca9a00f2",
+  "research_seeds": [
+    131,
+    173,
+    211,
+    257,
+    307,
+    353,
+    401,
+    457,
+    503,
+    557,
+    601,
+    659,
+    701,
+    761,
+    809,
+    857,
+    907,
+    953,
+    1009,
+    1061,
+    1103,
+    1151,
+    1201,
+    1259,
+    1301,
+    1361,
+    1423,
+    1481,
+    1543,
+    1601
+  ],
+  "world_seeds": {
+    "train": [
+      51001,
+      51002,
+      51003,
+      51004,
+      51005,
+      51006,
+      51007,
+      51008
+    ],
+    "seen": [
+      61001,
+      61002,
+      61003,
+      61004
+    ],
+    "unseen": [
+      71001,
+      71002,
+      71003,
+      71004,
+      71005,
+      71006,
+      71007,
+      71008
+    ]
+  },
+  "phase_definitions": {
+    "training": true,
+    "evaluation_seen": false,
+    "evaluation_unseen_zero_shot": false,
+    "adaptation": true,
+    "evaluation_unseen_adaptation": false
+  },
+  "started_at_utc": "2026-07-31T09:46:27.409+00:00",
+  "completed_at_utc": "2026-07-31T10:23:56.578+00:00",
+  "software": {
+    "python": "3.13.13",
+    "implementation": "CPython",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "numpy": "not-installed",
+    "scipy": "not-installed",
+    "pandas": "not-installed",
+    "matplotlib": "not-installed",
+    "torch": "2.11.0+cu128",
+    "cuda": "12.8"
+  },
+  "hardware": {
+    "cpu_count": 20,
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 198 Stepping 2, GenuineIntel",
+    "cuda_available": true,
+    "gpu": "NVIDIA GeForce RTX 5080",
+    "total_ram_bytes": 137126371328
+  },
+  "execution": {
+    "workers": 0,
+    "cuda_workers": 1,
+    "device": "auto",
+    "allow_cpu_fallback": true
+  },
+  "failed_runs": [
+    {
+      "suite": "autonomy",
+      "error_type": "PermissionError",
+      "reason": "[WinError 5] 액세스가 거부되었습니다: 'paper_results\\\\paper-autonomy-final-v1\\\\raw\\\\suite_runs\\\\autonomy\\\\progress.json.tmp' -> 'paper_results\\\\paper-autonomy-final-v1\\\\raw\\\\suite_runs\\\\autonomy\\\\progress.json'",
+      "failed_at_utc": "2026-07-31T09:48:55.319+00:00"
+    }
+  ],
+  "excluded_runs": [],
+  "human_dataset_version": "",
+  "human_approval_id": "",
+  "protocol_locks": {
+    "acceptance_gate_manifest": "d2e59f25010b3f1be6e2fe8dea6b2642ec6dcda997e6478ed124e6a5e7ca60fd"
+  }
+}

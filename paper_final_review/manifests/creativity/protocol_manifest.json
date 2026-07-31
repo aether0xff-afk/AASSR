@@ -1,0 +1,108 @@
+{
+  "protocol_version": "paper-creativity-final-v1",
+  "study_stage": "final",
+  "git_commit_sha": "bc7f8c46babda4e93491c72dd6fff50a25742e8d",
+  "config_sha256": "09c40029fd849c34f899c3d27fa241c7042da5c1400c18dbc1a86dbdff55ac2f",
+  "research_seeds": [
+    131,
+    173,
+    211,
+    257,
+    307,
+    353,
+    401,
+    457,
+    503,
+    557,
+    601,
+    659,
+    701,
+    761,
+    809,
+    857,
+    907,
+    953,
+    1009,
+    1061,
+    1103,
+    1151,
+    1201,
+    1259,
+    1301,
+    1361,
+    1423,
+    1481,
+    1543,
+    1601
+  ],
+  "world_seeds": {
+    "train": [
+      54001,
+      54002,
+      54003,
+      54004,
+      54005,
+      54006,
+      54007,
+      54008
+    ],
+    "seen": [
+      64001,
+      64002,
+      64003,
+      64004
+    ],
+    "unseen": [
+      74001,
+      74002,
+      74003,
+      74004,
+      74005,
+      74006,
+      74007,
+      74008
+    ]
+  },
+  "phase_definitions": {
+    "training": true,
+    "evaluation_seen": false,
+    "evaluation_unseen_zero_shot": false,
+    "adaptation": true,
+    "evaluation_unseen_adaptation": false
+  },
+  "started_at_utc": "2026-07-31T11:45:48.040+00:00",
+  "completed_at_utc": "2026-07-31T11:48:37.746+00:00",
+  "software": {
+    "python": "3.13.13",
+    "implementation": "CPython",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "numpy": "not-installed",
+    "scipy": "not-installed",
+    "pandas": "not-installed",
+    "matplotlib": "not-installed",
+    "torch": "2.11.0+cu128",
+    "cuda": "12.8"
+  },
+  "hardware": {
+    "cpu_count": 20,
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 198 Stepping 2, GenuineIntel",
+    "cuda_available": true,
+    "gpu": "NVIDIA GeForce RTX 5080",
+    "total_ram_bytes": 137126371328
+  },
+  "execution": {
+    "workers": 0,
+    "cuda_workers": 1,
+    "device": "auto",
+    "allow_cpu_fallback": true
+  },
+  "failed_runs": [],
+  "excluded_runs": [],
+  "human_dataset_version": "creativity-final-v1",
+  "human_approval_id": "",
+  "protocol_locks": {
+    "acceptance_gate_manifest": "d2e59f25010b3f1be6e2fe8dea6b2642ec6dcda997e6478ed124e6a5e7ca60fd",
+    "frozen_creativity_rules": "41438215a441959d7f38c801722b5c24458fb4ae992ddf64b232c98500ce8131"
+  }
+}

@@ -1,0 +1,83 @@
+﻿research_question,experiment,environment,phase,condition,metric,seed_count,mean,ci95_low,ci95_high,verdict,holm_p
+RQ1 autonomy,autonomy,opaque_dependency_l4,training,full_aassr,learning_auc,30,0.615007503751876,0.5961897615474404,0.6329831582457895,partial,
+RQ1 autonomy,autonomy,opaque_dependency_l4,evaluation_seen,full_aassr,success,30,0.0,0.0,0.0,not_supported,
+RQ1 autonomy,autonomy,opaque_dependency_l4,evaluation_unseen_zero_shot,full_aassr,success,30,0.0,0.0,0.0,not_supported,
+RQ1 autonomy,autonomy,opaque_dependency_l6,training,full_aassr,learning_auc,30,0.2736701684175421,0.24974987493746872,0.2983241620810405,partial,
+RQ1 autonomy,autonomy,opaque_dependency_l6,evaluation_seen,full_aassr,success,30,0.0,0.0,0.0,not_supported,
+RQ1 autonomy,autonomy,opaque_dependency_l6,evaluation_unseen_zero_shot,full_aassr,success,30,0.0,0.0,0.0,not_supported,
+RQ1 autonomy,autonomy,opaque_dependency_l8,training,full_aassr,learning_auc,30,0.034333833583458394,0.022811405702851426,0.046256461564115385,partial,
+RQ1 autonomy,autonomy,opaque_dependency_l8,evaluation_seen,full_aassr,success,30,0.0,0.0,0.0,not_supported,
+RQ1 autonomy,autonomy,opaque_dependency_l8,evaluation_unseen_zero_shot,full_aassr,success,30,0.0,0.0,0.0,not_supported,
+RQ1 comparison,autonomy,opaque_dependency_l4,evaluation_seen,full_aassr vs contextual_policy,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l4,evaluation_seen,full_aassr vs dqn,success,30,-0.1,-0.15,-0.05,target_worse,0.003399830008499575
+RQ1 comparison,autonomy,opaque_dependency_l4,evaluation_seen,full_aassr vs prophecy_no_imagination,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l4,evaluation_seen,full_aassr vs q_learning,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l4,evaluation_seen,full_aassr vs random,success,30,-0.06716666666666667,-0.07483333333333334,-0.06016666666666667,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l4,evaluation_unseen_zero_shot,full_aassr vs contextual_policy,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l4,evaluation_unseen_zero_shot,full_aassr vs dqn,success,30,-0.03333333333333333,-0.058333333333333334,-0.0125,target_worse,0.05959702014899255
+RQ1 comparison,autonomy,opaque_dependency_l4,evaluation_unseen_zero_shot,full_aassr vs prophecy_no_imagination,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l4,evaluation_unseen_zero_shot,full_aassr vs q_learning,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l4,evaluation_unseen_zero_shot,full_aassr vs random,success,30,-0.06016666666666667,-0.06566666666666666,-0.0545,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l4,training,full_aassr vs contextual_policy,success,30,-0.039349999999999996,-0.0571,-0.023066666666666655,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l4,training,full_aassr vs contextual_policy,learning_auc,30,-0.03936134734033684,-0.05638652659663167,-0.02315324328831083,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l4,training,full_aassr vs dqn,success,30,0.4546,0.42528333333333335,0.48380000000000006,target_better,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l4,training,full_aassr vs dqn,learning_auc,30,0.45471902617975657,0.423778555944639,0.4852342838085709,target_better,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l4,training,full_aassr vs prophecy_no_imagination,success,30,-0.03916666666666666,-0.056616666666666655,-0.023083333333333324,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l4,training,full_aassr vs prophecy_no_imagination,learning_auc,30,-0.039177922294480576,-0.05656995164248791,-0.02266966816741704,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l4,training,full_aassr vs q_learning,success,30,0.48821666666666663,0.46413333333333334,0.5144666666666666,target_better,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l4,training,full_aassr vs q_learning,learning_auc,30,0.48831082207770554,0.46400700350175084,0.5134317158579289,target_better,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l4,training,full_aassr vs random,success,30,0.5523166666666667,0.5333166666666667,0.5708,target_better,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l4,training,full_aassr vs random,learning_auc,30,0.5524095381023846,0.533525095881274,0.5704769051192263,target_better,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l6,evaluation_seen,full_aassr vs contextual_policy,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l6,evaluation_seen,full_aassr vs dqn,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l6,evaluation_seen,full_aassr vs prophecy_no_imagination,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l6,evaluation_seen,full_aassr vs q_learning,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l6,evaluation_seen,full_aassr vs random,success,30,-0.015166666666666667,-0.018166666666666668,-0.012333333333333333,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l6,evaluation_unseen_zero_shot,full_aassr vs contextual_policy,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l6,evaluation_unseen_zero_shot,full_aassr vs dqn,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l6,evaluation_unseen_zero_shot,full_aassr vs prophecy_no_imagination,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l6,evaluation_unseen_zero_shot,full_aassr vs q_learning,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l6,evaluation_unseen_zero_shot,full_aassr vs random,success,30,-0.0145,-0.017666666666666667,-0.011333333333333334,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l6,training,full_aassr vs contextual_policy,success,30,-0.16148333333333334,-0.19063333333333335,-0.13256666666666667,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l6,training,full_aassr vs contextual_policy,learning_auc,30,-0.16153076538269134,-0.1913873603468401,-0.13138235784558946,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l6,training,full_aassr vs dqn,success,30,0.2375833333333333,0.21138333333333334,0.2632833333333333,target_better,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l6,training,full_aassr vs dqn,learning_auc,30,0.2376021344005336,0.21088044022011004,0.2639236284809071,target_better,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l6,training,full_aassr vs prophecy_no_imagination,success,30,-0.16590000000000002,-0.19645,-0.13553333333333337,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l6,training,full_aassr vs prophecy_no_imagination,learning_auc,30,-0.165941303985326,-0.19566449891612472,-0.13554277138569285,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l6,training,full_aassr vs q_learning,success,30,0.26221666666666665,0.2391333333333333,0.28508333333333336,target_better,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l6,training,full_aassr vs q_learning,learning_auc,30,0.26223945305986324,0.23871102217775553,0.2855511088877772,target_better,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l6,training,full_aassr vs random,success,30,0.25811666666666666,0.23376666666666665,0.2821166666666667,target_better,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l6,training,full_aassr vs random,learning_auc,30,0.258170752042688,0.23365015841253958,0.28207437051859263,target_better,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l8,evaluation_seen,full_aassr vs contextual_policy,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l8,evaluation_seen,full_aassr vs dqn,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l8,evaluation_seen,full_aassr vs prophecy_no_imagination,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l8,evaluation_seen,full_aassr vs q_learning,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l8,evaluation_seen,full_aassr vs random,success,30,-0.0038333333333333336,-0.005166666666666667,-0.0025,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l8,evaluation_unseen_zero_shot,full_aassr vs contextual_policy,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l8,evaluation_unseen_zero_shot,full_aassr vs dqn,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l8,evaluation_unseen_zero_shot,full_aassr vs prophecy_no_imagination,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l8,evaluation_unseen_zero_shot,full_aassr vs q_learning,success,30,0.0,0.0,0.0,no_clear_difference,1.0
+RQ1 comparison,autonomy,opaque_dependency_l8,evaluation_unseen_zero_shot,full_aassr vs random,success,30,-0.004333333333333333,-0.006,-0.0028333333333333335,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l8,training,full_aassr vs contextual_policy,success,30,-0.13303333333333334,-0.16055,-0.10658333333333332,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l8,training,full_aassr vs contextual_policy,learning_auc,30,-0.1330331832582958,-0.15986326496581624,-0.10646990161747541,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l8,training,full_aassr vs dqn,success,30,0.031516666666666665,0.019116666666666667,0.04368333333333333,target_better,0.0002999850007499625
+RQ1 comparison,autonomy,opaque_dependency_l8,training,full_aassr vs dqn,learning_auc,30,0.03153243288310822,0.019493079873269967,0.043621810905452724,target_better,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l8,training,full_aassr vs prophecy_no_imagination,success,30,-0.12511666666666665,-0.15048333333333333,-0.09916666666666667,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l8,training,full_aassr vs prophecy_no_imagination,learning_auc,30,-0.12512089378022345,-0.1509171252292813,-0.10002501250625313,target_worse,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l8,training,full_aassr vs q_learning,success,30,0.03128333333333334,0.019883333333333333,0.043166666666666666,target_better,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l8,training,full_aassr vs q_learning,learning_auc,30,0.031298982824745705,0.01980990495247624,0.0431882607970652,target_better,0.00024998750062496874
+RQ1 comparison,autonomy,opaque_dependency_l8,training,full_aassr vs random,success,30,0.030699999999999998,0.019133333333333332,0.04256666666666666,target_better,0.0002999850007499625
+RQ1 comparison,autonomy,opaque_dependency_l8,training,full_aassr vs random,learning_auc,30,0.030715357678839417,0.018976154744038683,0.04265466066366517,target_better,0.00024998750062496874
+RQ1 comparison,transfer,opaque_dependency_l6,adaptation,full_transfer vs from_scratch_contextual_policy,success,30,0.013725490196078431,-0.023333333333333334,0.05612745098039216,no_clear_difference,1.0
+RQ1 comparison,transfer,opaque_dependency_l6,adaptation,full_transfer vs from_scratch_full_aassr,success,30,0.01637254901960784,-0.022892156862745098,0.053039215686274496,no_clear_difference,1.0
+RQ1 comparison,transfer,opaque_dependency_l6,adaptation,full_transfer vs policy_reset_effect_retained,success,30,0.00303921568627451,-0.01941176470588235,0.025980392156862743,no_clear_difference,1.0
+RQ1 comparison,transfer,opaque_dependency_l6,adaptation,full_transfer vs policy_reset_prophecy_retained,success,30,-0.0029901960784313713,-0.02696078431372549,0.02230392156862745,no_clear_difference,1.0
+RQ1 comparison,transfer,opaque_dependency_l6,adaptation_curve,full_transfer vs from_scratch_contextual_policy,adaptation_auc,30,0.018522135416666665,-0.0287109375,0.07373046875,no_clear_difference,1.0
+RQ1 comparison,transfer,opaque_dependency_l6,adaptation_curve,full_transfer vs from_scratch_full_aassr,adaptation_auc,30,0.014908854166666667,-0.034440104166666666,0.06435546875,no_clear_difference,1.0
+RQ1 comparison,transfer,opaque_dependency_l6,adaptation_curve,full_transfer vs policy_reset_effect_retained,adaptation_auc,30,0.00400390625,-0.02705078125,0.034765625,no_clear_difference,1.0
+RQ1 comparison,transfer,opaque_dependency_l6,adaptation_curve,full_transfer vs policy_reset_prophecy_retained,adaptation_auc,30,-0.00380859375,-0.0375,0.0294921875,no_clear_difference,1.0
+RQ1 comparison,transfer,opaque_dependency_l6,evaluation_unseen_adaptation,full_transfer vs from_scratch_contextual_policy,success,30,0.007500000000000001,-0.016666666666666666,0.035833333333333335,no_clear_difference,1.0
+RQ1 comparison,transfer,opaque_dependency_l6,evaluation_unseen_adaptation,full_transfer vs from_scratch_full_aassr,success,30,0.005833333333333333,-0.01916666666666667,0.03166666666666666,no_clear_difference,1.0
+RQ1 comparison,transfer,opaque_dependency_l6,evaluation_unseen_adaptation,full_transfer vs policy_reset_effect_retained,success,30,-1.3877787807814458e-18,-0.015833333333333335,0.01583333333333333,no_clear_difference,1.0
+RQ1 comparison,transfer,opaque_dependency_l6,evaluation_unseen_adaptation,full_transfer vs policy_reset_prophecy_retained,success,30,-0.0033333333333333335,-0.020833333333333332,0.015000000000000005,no_clear_difference,1.0
+RQ2 creativity,creativity,multi_solution_dependency,training,full_aassr,creative_candidate_count,30,0,,,not_supported,

@@ -1,0 +1,12 @@
+﻿experiment,suite,condition,environment,model,phase,action_family,metric,seed_count,mean,sd,ci95_low,ci95_high,minimum,maximum
+safe_application,safe_application,safe_rule_agent,docker_local_assessment,deterministic,evaluation_unseen_zero_shot,safe_local,success,30,1.0,0.0,1.0,1.0,1.0,1.0
+safe_application,safe_application,safe_rule_agent,docker_local_assessment,deterministic,evaluation_unseen_zero_shot,safe_local,steps,30,2.35,0.0,2.35,2.35,2.35,2.35
+safe_application,safe_application,safe_rule_agent,docker_local_assessment,deterministic,evaluation_unseen_zero_shot,safe_local,high_level_steps,30,2.35,0.0,2.35,2.35,2.35,2.35
+safe_application,safe_application,safe_rule_agent,docker_local_assessment,deterministic,evaluation_unseen_zero_shot,safe_local,primitive_steps,30,2.35,0.0,2.35,2.35,2.35,2.35
+safe_application,safe_application,safe_rule_agent,docker_local_assessment,deterministic,evaluation_unseen_zero_shot,safe_local,reward,30,1.0,0.0,1.0,1.0,1.0,1.0
+safe_application,safe_application,safe_rule_agent,docker_local_assessment,deterministic,evaluation_unseen_zero_shot,safe_local,actual_return,30,1.0,0.0,1.0,1.0,1.0,1.0
+safe_application,safe_application,safe_rule_agent,docker_local_assessment,deterministic,evaluation_unseen_zero_shot,safe_local,real_transitions,30,2.35,0.0,2.35,2.35,2.35,2.35
+safe_application,safe_application,safe_rule_agent,docker_local_assessment,deterministic,evaluation_unseen_zero_shot,safe_local,imagined_transitions,30,0.0,0.0,0.0,0.0,0.0,0.0
+safe_application,safe_application,safe_rule_agent,docker_local_assessment,deterministic,evaluation_unseen_zero_shot,safe_local,action_proposals,30,2.35,0.0,2.35,2.35,2.35,2.35
+safe_application,safe_application,safe_rule_agent,docker_local_assessment,deterministic,evaluation_unseen_zero_shot,safe_local,repeat_rate,30,0.0,0.0,0.0,0.0,0.0,0.0
+safe_application,safe_application,safe_rule_agent,docker_local_assessment,deterministic,evaluation_unseen_zero_shot,safe_local,error_rate,30,0.0,0.0,0.0,0.0,0.0,0.0

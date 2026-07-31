@@ -1,0 +1,930 @@
+{
+  "artifact_validator": {
+    "issues": [],
+    "passed": true
+  },
+  "config": {
+    "acceptance_gate_copy_present": true,
+    "acceptance_gate_declared": true,
+    "acceptance_gate_hash_matches": true,
+    "config_canonical_sha256": "56d698280ab6f3c22c407e28fd19668253cadcde9bb30371c8698617ca9a00f2",
+    "config_hash_matches_manifest": true,
+    "config_path": "D:\\AASSR\\configs\\paper_autonomy_final_v1.json",
+    "frozen_creativity_rule_copy_present": false,
+    "frozen_creativity_rule_declared": false,
+    "frozen_creativity_rule_hash_matches": false,
+    "manifest_config_sha256": "56d698280ab6f3c22c407e28fd19668253cadcde9bb30371c8698617ca9a00f2",
+    "resolved_config_canonical_sha256": "56d698280ab6f3c22c407e28fd19668253cadcde9bb30371c8698617ca9a00f2",
+    "resolved_config_hash_matches_manifest": true
+  },
+  "episode_csv": {
+    "abnormal_counts": {},
+    "average_serialized_row_bytes": 220.27052777777777,
+    "column_count": 41,
+    "column_payload_bytes": {
+      "action_family": 9072000,
+      "action_proposals": 1512000,
+      "actual_return": 4536000,
+      "adaptation_budget": 0,
+      "branch_start_fingerprint": 0,
+      "checkpoint_fingerprint_after": 14292000,
+      "checkpoint_fingerprint_before": 14292000,
+      "cluster_count": 0,
+      "condition": 18792000,
+      "environment": 30240000,
+      "episode": 4958100,
+      "errors": 1512000,
+      "experiment": 34776000,
+      "high_level_steps": 1512000,
+      "holdout_gain": 3784715,
+      "holdout_score": 6477902,
+      "imagination_depth": 1512000,
+      "imagined_nodes": 1786816,
+      "imagined_transitions": 1786816,
+      "intrinsic_value": 3792652,
+      "model": 17064000,
+      "noise_facts": 0,
+      "novelty_score": 0,
+      "phase": 15372000,
+      "prediction_score": 4244658,
+      "primitive_steps": 1512000,
+      "real_transitions": 1512000,
+      "repeats": 1512000,
+      "research_seed": 5140800,
+      "reward": 4536000,
+      "root_imagined_value": 3071672,
+      "runtime_seconds": 31611540,
+      "seed": 5140800,
+      "skill_count": 0,
+      "skill_uses": 1512000,
+      "solution_family": 0,
+      "steps": 1512000,
+      "strategy_id": 0,
+      "success": 1512000,
+      "suite": 12096000,
+      "world_seed": 7560000
+    },
+    "column_payload_share": {
+      "action_family": 0.03365678385590035,
+      "action_proposals": 0.005609463975983392,
+      "actual_return": 0.016828391927950177,
+      "adaptation_budget": 0.0,
+      "branch_start_fingerprint": 0.0,
+      "checkpoint_fingerprint_after": 0.05302279043965254,
+      "checkpoint_fingerprint_before": 0.05302279043965254,
+      "cluster_count": 0.0,
+      "condition": 0.06971762370150787,
+      "environment": 0.11218927951966784,
+      "episode": 0.018394367287912206,
+      "errors": 0.005609463975983392,
+      "experiment": 0.129017671447618,
+      "high_level_steps": 0.005609463975983392,
+      "holdout_gain": 0.014041152415253956,
+      "holdout_score": 0.024032776394808705,
+      "imagination_depth": 0.005609463975983392,
+      "imagined_nodes": 0.006629021153247844,
+      "imagined_transitions": 0.006629021153247844,
+      "intrinsic_value": 0.014070598391164922,
+      "model": 0.06330680772895542,
+      "noise_facts": 0.0,
+      "novelty_score": 0.0,
+      "phase": 0.05702955042249781,
+      "prediction_score": 0.015747523903022295,
+      "primitive_steps": 0.005609463975983392,
+      "real_transitions": 0.005609463975983392,
+      "repeats": 0.005609463975983392,
+      "research_seed": 0.01907217751834353,
+      "reward": 0.016828391927950177,
+      "root_imagined_value": 0.011395789305579931,
+      "runtime_seconds": 0.11727764210010451,
+      "seed": 0.01907217751834353,
+      "skill_count": 0.0,
+      "skill_uses": 0.005609463975983392,
+      "solution_family": 0.0,
+      "steps": 0.005609463975983392,
+      "strategy_id": 0.0,
+      "success": 0.005609463975983392,
+      "suite": 0.04487571180786713,
+      "world_seed": 0.02804731987991696
+    },
+    "columns": [
+      "action_family",
+      "action_proposals",
+      "actual_return",
+      "adaptation_budget",
+      "branch_start_fingerprint",
+      "checkpoint_fingerprint_after",
+      "checkpoint_fingerprint_before",
+      "cluster_count",
+      "condition",
+      "environment",
+      "episode",
+      "errors",
+      "experiment",
+      "high_level_steps",
+      "holdout_gain",
+      "holdout_score",
+      "imagination_depth",
+      "imagined_nodes",
+      "imagined_transitions",
+      "intrinsic_value",
+      "model",
+      "noise_facts",
+      "novelty_score",
+      "phase",
+      "prediction_score",
+      "primitive_steps",
+      "real_transitions",
+      "repeats",
+      "research_seed",
+      "reward",
+      "root_imagined_value",
+      "runtime_seconds",
+      "seed",
+      "skill_count",
+      "skill_uses",
+      "solution_family",
+      "steps",
+      "strategy_id",
+      "success",
+      "suite",
+      "world_seed"
+    ],
+    "condition_counts": {
+      "contextual_policy": 216000,
+      "dqn": 216000,
+      "full_aassr": 216000,
+      "oracle_upper_bound": 216000,
+      "prophecy_no_imagination": 216000,
+      "q_learning": 216000,
+      "random": 216000
+    },
+    "condition_environment_phase_counts": [
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l4",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l4",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l4",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l6",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l6",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l6",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l8",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l8",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l8",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "dqn",
+        "environment": "opaque_dependency_l4",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "dqn",
+        "environment": "opaque_dependency_l4",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "dqn",
+        "environment": "opaque_dependency_l4",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "dqn",
+        "environment": "opaque_dependency_l6",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "dqn",
+        "environment": "opaque_dependency_l6",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "dqn",
+        "environment": "opaque_dependency_l6",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "dqn",
+        "environment": "opaque_dependency_l8",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "dqn",
+        "environment": "opaque_dependency_l8",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "dqn",
+        "environment": "opaque_dependency_l8",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l4",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l4",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l4",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l6",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l6",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l6",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l8",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l8",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l8",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l4",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l4",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l4",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l6",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l6",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l6",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l8",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l8",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l8",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l4",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l4",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l4",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l6",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l6",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l6",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l8",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l8",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l8",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "q_learning",
+        "environment": "opaque_dependency_l4",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "q_learning",
+        "environment": "opaque_dependency_l4",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "q_learning",
+        "environment": "opaque_dependency_l4",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "q_learning",
+        "environment": "opaque_dependency_l6",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "q_learning",
+        "environment": "opaque_dependency_l6",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "q_learning",
+        "environment": "opaque_dependency_l6",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "q_learning",
+        "environment": "opaque_dependency_l8",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "q_learning",
+        "environment": "opaque_dependency_l8",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "q_learning",
+        "environment": "opaque_dependency_l8",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "random",
+        "environment": "opaque_dependency_l4",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "random",
+        "environment": "opaque_dependency_l4",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "random",
+        "environment": "opaque_dependency_l4",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "random",
+        "environment": "opaque_dependency_l6",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "random",
+        "environment": "opaque_dependency_l6",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "random",
+        "environment": "opaque_dependency_l6",
+        "phase": "training",
+        "rows": 60000
+      },
+      {
+        "condition": "random",
+        "environment": "opaque_dependency_l8",
+        "phase": "evaluation_seen",
+        "rows": 6000
+      },
+      {
+        "condition": "random",
+        "environment": "opaque_dependency_l8",
+        "phase": "evaluation_unseen_zero_shot",
+        "rows": 6000
+      },
+      {
+        "condition": "random",
+        "environment": "opaque_dependency_l8",
+        "phase": "training",
+        "rows": 60000
+      }
+    ],
+    "csv_syntax_overhead_bytes": 63504567,
+    "distinct_counts_for_repeated_fields": {
+      "action_family": 1,
+      "branch_start_fingerprint": 1,
+      "checkpoint_fingerprint_after": 537,
+      "checkpoint_fingerprint_before": 537,
+      "condition": 7,
+      "environment": 3,
+      "experiment": 1,
+      "model": 5,
+      "phase": 3,
+      "solution_family": 1,
+      "suite": 1
+    },
+    "duplicate_episode_grain_rows": 0,
+    "duplicate_method": "BLAKE2b-128 fingerprints stored and counted in a temporary SQLite table; raw rows were never retained in memory.",
+    "empty_counts": {
+      "adaptation_budget": 1512000,
+      "branch_start_fingerprint": 1512000,
+      "checkpoint_fingerprint_after": 1260000,
+      "checkpoint_fingerprint_before": 1260000,
+      "cluster_count": 1512000,
+      "holdout_gain": 252000,
+      "holdout_score": 108000,
+      "intrinsic_value": 252000,
+      "noise_facts": 1512000,
+      "novelty_score": 1512000,
+      "prediction_score": 108000,
+      "root_imagined_value": 1337998,
+      "skill_count": 1512000,
+      "solution_family": 1512000,
+      "strategy_id": 1512000
+    },
+    "environment_counts": {
+      "opaque_dependency_l4": 504000,
+      "opaque_dependency_l6": 504000,
+      "opaque_dependency_l8": 504000
+    },
+    "exact_duplicate_rows": 0,
+    "file_size_bytes": 333049038,
+    "gzip_ratio": 0.06699689671525189,
+    "gzip_size_bytes_exact": 22313252,
+    "high_prediction_failed_rows": 224109,
+    "invalid_numeric_counts": {},
+    "nan_or_infinite_counts": {},
+    "parquet_size_estimate_bytes": {
+      "high": 73270788,
+      "low": 26643923,
+      "method": "Estimated range for typed columnar storage with dictionary encoding; pyarrow/duckdb were unavailable, so no Parquet file was materialized."
+    },
+    "path": "D:\\AASSR\\paper_results\\paper-autonomy-final-v1\\raw\\episodes.csv",
+    "phase_counts": {
+      "evaluation_seen": 126000,
+      "evaluation_unseen_zero_shot": 126000,
+      "training": 1260000
+    },
+    "repeated_value_estimated_bytes": {
+      "action_family": 9071994,
+      "branch_start_fingerprint": 0,
+      "checkpoint_fingerprint_after": 14257747,
+      "checkpoint_fingerprint_before": 14257747,
+      "condition": 18791913,
+      "environment": 30239940,
+      "experiment": 34775977,
+      "model": 17063939,
+      "phase": 15371950,
+      "solution_family": 0,
+      "suite": 12095992
+    },
+    "research_seeds": [
+      131,
+      173,
+      211,
+      257,
+      307,
+      353,
+      401,
+      457,
+      503,
+      557,
+      601,
+      659,
+      701,
+      761,
+      809,
+      857,
+      907,
+      953,
+      1009,
+      1061,
+      1103,
+      1151,
+      1201,
+      1259,
+      1301,
+      1361,
+      1423,
+      1481,
+      1543,
+      1601
+    ],
+    "row_count": 1512000,
+    "transfer_branch_budget_mismatches": 0,
+    "transfer_branch_origin_mismatches": 0,
+    "unequal_transition_budget_groups": [],
+    "world_seeds": [
+      51001,
+      51002,
+      51003,
+      51004,
+      51005,
+      51006,
+      51007,
+      51008,
+      61001,
+      61002,
+      61003,
+      61004,
+      71001,
+      71002,
+      71003,
+      71004,
+      71005,
+      71006,
+      71007,
+      71008
+    ]
+  },
+  "run": {
+    "actual_rows": 1512000,
+    "completed_research_seed_count": 30,
+    "completed_suites": [
+      "autonomy"
+    ],
+    "expected_research_seed_count": 30,
+    "experiment_completed_at_utc": "2026-07-31T10:23:56.578+00:00",
+    "failed_runs": [
+      {
+        "error_type": "PermissionError",
+        "failed_at_utc": "2026-07-31T09:48:55.319+00:00",
+        "reason": "[WinError 5] 액세스가 거부되었습니다: 'paper_results\\\\paper-autonomy-final-v1\\\\raw\\\\suite_runs\\\\autonomy\\\\progress.json.tmp' -> 'paper_results\\\\paper-autonomy-final-v1\\\\raw\\\\suite_runs\\\\autonomy\\\\progress.json'",
+        "suite": "autonomy"
+      }
+    ],
+    "missing_research_seeds": [],
+    "pipeline_completed_at_utc": "2026-07-31T10:28:18.029+00:00",
+    "planned_rows": 1512000,
+    "result_path": "D:\\AASSR\\paper_results\\paper-autonomy-final-v1",
+    "started_at_utc": "2026-07-31T09:46:27.409+00:00",
+    "state_row_count": 1512000,
+    "unexpected_research_seeds": []
+  },
+  "seed_overlap": {
+    "research_seed_overlap_pilot_final": [],
+    "seen_unseen_overlap_final": [],
+    "train_seen_overlap_final": [],
+    "train_unseen_overlap_final": [],
+    "world_seed_overlap_pilot_final": []
+  },
+  "storage": {
+    "directory_size_bytes": 22527487166,
+    "files": [
+      {
+        "relative_path": "figures\\figure1_closed_loop.svg",
+        "size_bytes": 2450,
+        "suffix": ".svg"
+      },
+      {
+        "relative_path": "figures\\figure2_protocol.svg",
+        "size_bytes": 2445,
+        "suffix": ".svg"
+      },
+      {
+        "relative_path": "figures\\figure3_autonomy.svg",
+        "size_bytes": 1493754,
+        "suffix": ".svg"
+      },
+      {
+        "relative_path": "figures\\figure4_transfer.svg",
+        "size_bytes": 6550,
+        "suffix": ".svg"
+      },
+      {
+        "relative_path": "figures\\figure5_ablation.svg",
+        "size_bytes": 11535,
+        "suffix": ".svg"
+      },
+      {
+        "relative_path": "figures\\figure6_creativity.svg",
+        "size_bytes": 876,
+        "suffix": ".svg"
+      },
+      {
+        "relative_path": "manifests\\acceptance_gate_manifest.json",
+        "size_bytes": 884,
+        "suffix": ".json"
+      },
+      {
+        "relative_path": "manifests\\protocol_manifest.json",
+        "size_bytes": 2572,
+        "suffix": ".json"
+      },
+      {
+        "relative_path": "manifests\\protocol_manifest.json.sha256",
+        "size_bytes": 66,
+        "suffix": ".sha256"
+      },
+      {
+        "relative_path": "manifests\\resolved_config.json",
+        "size_bytes": 2874,
+        "suffix": ".json"
+      },
+      {
+        "relative_path": "manifests\\run_state.json",
+        "size_bytes": 760,
+        "suffix": ".json"
+      },
+      {
+        "relative_path": "raw\\episodes.csv",
+        "size_bytes": 333049038,
+        "suffix": ".csv"
+      },
+      {
+        "relative_path": "raw\\strategies.jsonl",
+        "size_bytes": 0,
+        "suffix": ".jsonl"
+      },
+      {
+        "relative_path": "raw\\suite_cache\\autonomy_episodes.jsonl",
+        "size_bytes": 1557768471,
+        "suffix": ".jsonl"
+      },
+      {
+        "relative_path": "raw\\suite_cache\\autonomy_strategies.jsonl",
+        "size_bytes": 0,
+        "suffix": ".jsonl"
+      },
+      {
+        "relative_path": "raw\\suite_cache\\autonomy_transitions.jsonl",
+        "size_bytes": 6688097909,
+        "suffix": ".jsonl"
+      },
+      {
+        "relative_path": "raw\\suite_runs\\autonomy\\episodes.csv",
+        "size_bytes": 364801038,
+        "suffix": ".csv"
+      },
+      {
+        "relative_path": "raw\\suite_runs\\autonomy\\progress.json",
+        "size_bytes": 476,
+        "suffix": ".json"
+      },
+      {
+        "relative_path": "raw\\suite_runs\\autonomy\\progress.jsonl",
+        "size_bytes": 9675280,
+        "suffix": ".jsonl"
+      },
+      {
+        "relative_path": "raw\\suite_runs\\autonomy\\progress.log",
+        "size_bytes": 5366284,
+        "suffix": ".log"
+      },
+      {
+        "relative_path": "raw\\suite_runs\\autonomy\\protocol_manifest.json",
+        "size_bytes": 1188,
+        "suffix": ".json"
+      },
+      {
+        "relative_path": "raw\\suite_runs\\autonomy\\resolved_config.json",
+        "size_bytes": 3904,
+        "suffix": ".json"
+      },
+      {
+        "relative_path": "raw\\suite_runs\\autonomy\\transitions.jsonl",
+        "size_bytes": 6878609909,
+        "suffix": ".jsonl"
+      },
+      {
+        "relative_path": "raw\\transitions.jsonl",
+        "size_bytes": 6688097909,
+        "suffix": ".jsonl"
+      },
+      {
+        "relative_path": "report.md",
+        "size_bytes": 5934,
+        "suffix": ".md"
+      },
+      {
+        "relative_path": "seed_level\\seed_summary.csv",
+        "size_bytes": 362538,
+        "suffix": ".csv"
+      },
+      {
+        "relative_path": "statistics\\adaptation_summary.csv",
+        "size_bytes": 0,
+        "suffix": ".csv"
+      },
+      {
+        "relative_path": "statistics\\analysis_summary.json",
+        "size_bytes": 558,
+        "suffix": ".json"
+      },
+      {
+        "relative_path": "statistics\\condition_comparisons.csv",
+        "size_bytes": 8568,
+        "suffix": ".csv"
+      },
+      {
+        "relative_path": "statistics\\creativity_summary.csv",
+        "size_bytes": 0,
+        "suffix": ".csv"
+      },
+      {
+        "relative_path": "statistics\\cross_seed_summary.csv",
+        "size_bytes": 45912,
+        "suffix": ".csv"
+      },
+      {
+        "relative_path": "statistics\\learning_auc_comparisons.csv",
+        "size_bytes": 4161,
+        "suffix": ".csv"
+      },
+      {
+        "relative_path": "statistics\\learning_summary.csv",
+        "size_bytes": 52981,
+        "suffix": ".csv"
+      },
+      {
+        "relative_path": "statistics\\transfer_comparisons.csv",
+        "size_bytes": 0,
+        "suffix": ".csv"
+      },
+      {
+        "relative_path": "tables\\table1_protocol.md",
+        "size_bytes": 203,
+        "suffix": ".md"
+      },
+      {
+        "relative_path": "tables\\table2_autonomy.md",
+        "size_bytes": 9537,
+        "suffix": ".md"
+      },
+      {
+        "relative_path": "tables\\table3_transfer.md",
+        "size_bytes": 238,
+        "suffix": ".md"
+      },
+      {
+        "relative_path": "tables\\table4_creativity.md",
+        "size_bytes": 364,
+        "suffix": ".md"
+      }
+    ],
+    "merged_cache_transition_same_size": true,
+    "merged_cache_transition_sha256_match": true,
+    "size_by_suffix": {
+      ".csv": 698324236,
+      ".json": 13216,
+      ".jsonl": 21822249478,
+      ".log": 5366284,
+      ".md": 16276,
+      ".sha256": 66,
+      ".svg": 1517610
+    }
+  },
+  "transitions": {
+    "evaluation_learning_enabled_rows": 0,
+    "exists": true,
+    "file_size_bytes": 6688097909,
+    "json_parse_errors": 0,
+    "line_count": 9072000,
+    "path": "D:\\AASSR\\paper_results\\paper-autonomy-final-v1\\raw\\transitions.jsonl",
+    "private_agent_visible_leak_rows": 0,
+    "private_tokens_checked": [
+      "bypass_route",
+      "correct_action",
+      "emergent_combination",
+      "hidden_solution",
+      "information_route",
+      "oracle_answer",
+      "resource_route",
+      "solution_family",
+      "solution_label",
+      "target_sequence",
+      "tool_route",
+      "viable_branch"
+    ]
+  }
+}

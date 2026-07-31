@@ -1,0 +1,101 @@
+{
+  "protocol_version": "paper-safe-application-final-v1",
+  "study_stage": "final",
+  "git_commit_sha": "55fac07dcf42f1298f710152a5d22ee5fe4e6fd8",
+  "config_sha256": "9612b316aa1af83c4a901856143571f7c07883462f4a6692de4874f0bb373c04",
+  "research_seeds": [
+    131,
+    173,
+    211,
+    257,
+    307,
+    353,
+    401,
+    457,
+    503,
+    557,
+    601,
+    659,
+    701,
+    761,
+    809,
+    857,
+    907,
+    953,
+    1009,
+    1061,
+    1103,
+    1151,
+    1201,
+    1259,
+    1301,
+    1361,
+    1423,
+    1481,
+    1543,
+    1601
+  ],
+  "world_seeds": {
+    "train": [
+      55001,
+      55002,
+      55003,
+      55004
+    ],
+    "seen": [
+      65001,
+      65002
+    ],
+    "unseen": [
+      75001,
+      75002,
+      75003,
+      75004,
+      75005,
+      75006,
+      75007,
+      75008
+    ]
+  },
+  "phase_definitions": {
+    "training": true,
+    "evaluation_seen": false,
+    "evaluation_unseen_zero_shot": false,
+    "adaptation": true,
+    "evaluation_unseen_adaptation": false
+  },
+  "started_at_utc": "2026-07-31T09:19:34.040+00:00",
+  "completed_at_utc": "2026-07-31T09:19:34.157+00:00",
+  "software": {
+    "python": "3.13.13",
+    "implementation": "CPython",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "numpy": "not-installed",
+    "scipy": "not-installed",
+    "pandas": "not-installed",
+    "matplotlib": "not-installed",
+    "torch": "2.11.0+cu128",
+    "cuda": "12.8"
+  },
+  "hardware": {
+    "cpu_count": 20,
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 198 Stepping 2, GenuineIntel",
+    "cuda_available": true,
+    "gpu": "NVIDIA GeForce RTX 5080",
+    "total_ram_bytes": 137126371328
+  },
+  "execution": {
+    "workers": 1,
+    "cuda_workers": 1,
+    "device": "cpu",
+    "allow_cpu_fallback": true
+  },
+  "failed_runs": [],
+  "excluded_runs": [],
+  "human_dataset_version": "",
+  "human_approval_id": "",
+  "protocol_locks": {
+    "acceptance_gate_manifest": "d2e59f25010b3f1be6e2fe8dea6b2642ec6dcda997e6478ed124e6a5e7ca60fd"
+  }
+}

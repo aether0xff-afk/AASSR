@@ -1,0 +1,5909 @@
+{
+  "anomaly_analysis": {
+    "creativity_novelty_pass_count": 0,
+    "creativity_strategy_count": 105000,
+    "extreme_success_group_count": 138,
+    "extreme_success_groups": [
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch1_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch1_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch1_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch1_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch1_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch1_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch2_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch2_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch2_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch2_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch2_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch2_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch4_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch4_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch4_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch4_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch4_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth1_branch4_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch1_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch1_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch1_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch1_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch1_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch1_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch2_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch2_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch2_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch2_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch2_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch2_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch4_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch4_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch4_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch4_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch4_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth2_branch4_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch1_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch1_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch1_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch1_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch1_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch1_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch2_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch2_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch2_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch2_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch2_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch2_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch4_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch4_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch4_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch4_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch4_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth4_branch4_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch1_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch1_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch1_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch1_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch1_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch1_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch2_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch2_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch2_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch2_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch2_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch2_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch4_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch4_max",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch4_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch4_mean",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch4_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_depth6_branch4_risk-adjusted",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_no_error_penalty",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_no_error_penalty",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_no_repeat_penalty",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_no_repeat_penalty",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_no_validated_information",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_no_validated_information",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "imagination_no_validated_value",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "imagination_no_validated_value",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "contextual_policy",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "dqn",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "dqn",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "dqn",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "dqn",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "phase": "training",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "phase": "training",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "oracle_upper_bound",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "phase": "training",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "prophecy_no_imagination",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "q_learning",
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "q_learning",
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "q_learning",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "q_learning",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "q_learning",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "phase": "evaluation_seen",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "q_learning",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "0.0"
+      },
+      {
+        "condition": "aassr_no_imagination",
+        "environment": "multi_solution_dependency",
+        "experiment": "creativity",
+        "phase": "evaluation_unseen_adaptation",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "aassr_no_imagination",
+        "environment": "multi_solution_dependency",
+        "experiment": "creativity",
+        "phase": "training",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "aassr_no_novelty",
+        "environment": "multi_solution_dependency",
+        "experiment": "creativity",
+        "phase": "evaluation_unseen_adaptation",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "aassr_no_novelty",
+        "environment": "multi_solution_dependency",
+        "experiment": "creativity",
+        "phase": "training",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "dqn",
+        "environment": "multi_solution_dependency",
+        "experiment": "creativity",
+        "phase": "evaluation_unseen_adaptation",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "dqn",
+        "environment": "multi_solution_dependency",
+        "experiment": "creativity",
+        "phase": "training",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "multi_solution_dependency",
+        "experiment": "creativity",
+        "phase": "evaluation_unseen_adaptation",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "full_aassr",
+        "environment": "multi_solution_dependency",
+        "experiment": "creativity",
+        "phase": "training",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "novelty_search",
+        "environment": "multi_solution_dependency",
+        "experiment": "creativity",
+        "phase": "evaluation_unseen_adaptation",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "novelty_search",
+        "environment": "multi_solution_dependency",
+        "experiment": "creativity",
+        "phase": "training",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "q_learning",
+        "environment": "multi_solution_dependency",
+        "experiment": "creativity",
+        "phase": "evaluation_unseen_adaptation",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "q_learning",
+        "environment": "multi_solution_dependency",
+        "experiment": "creativity",
+        "phase": "training",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "random",
+        "environment": "multi_solution_dependency",
+        "experiment": "creativity",
+        "phase": "evaluation_unseen_adaptation",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "random",
+        "environment": "multi_solution_dependency",
+        "experiment": "creativity",
+        "phase": "training",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      },
+      {
+        "condition": "safe_rule_agent",
+        "environment": "docker_local_assessment",
+        "experiment": "safe_application",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": "30",
+        "success_mean": "1.0"
+      }
+    ],
+    "high_prediction_failed_episode_counts": {
+      "ablation": 1632659,
+      "autonomy": 224109,
+      "creativity": 0,
+      "safe_application": 0,
+      "transfer": 419970
+    },
+    "high_prediction_low_success_group_count": 2,
+    "high_prediction_low_success_groups": [
+      {
+        "condition": "full_aassr",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "phase": "training",
+        "prediction_score_mean": 0.9899749999999999,
+        "seed_count": "30",
+        "success_mean": 0.03431666666666667
+      },
+      {
+        "condition": "from_scratch_full_aassr",
+        "environment": "opaque_dependency_l6",
+        "experiment": "transfer",
+        "phase": "adaptation",
+        "prediction_score_mean": 0.9020506535947711,
+        "seed_count": "30",
+        "success_mean": 0.08803921568627451
+      }
+    ],
+    "identical_condition_vector_count": 14,
+    "identical_condition_vectors": [
+      {
+        "common_mean": 0.0,
+        "conditions": [
+          "contextual_policy",
+          "full_aassr",
+          "prophecy_no_imagination",
+          "q_learning"
+        ],
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "metric": "success",
+        "phase": "evaluation_seen",
+        "seed_count": 30
+      },
+      {
+        "common_mean": 0.0,
+        "conditions": [
+          "contextual_policy",
+          "full_aassr",
+          "prophecy_no_imagination",
+          "q_learning"
+        ],
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "metric": "success",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": 30
+      },
+      {
+        "common_mean": 0.0,
+        "conditions": [
+          "contextual_policy",
+          "dqn",
+          "full_aassr",
+          "prophecy_no_imagination",
+          "q_learning"
+        ],
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "metric": "success",
+        "phase": "evaluation_seen",
+        "seed_count": 30
+      },
+      {
+        "common_mean": 0.0,
+        "conditions": [
+          "contextual_policy",
+          "dqn",
+          "full_aassr",
+          "prophecy_no_imagination",
+          "q_learning"
+        ],
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "metric": "success",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": 30
+      },
+      {
+        "common_mean": 0.0,
+        "conditions": [
+          "contextual_policy",
+          "dqn",
+          "full_aassr",
+          "prophecy_no_imagination",
+          "q_learning"
+        ],
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "metric": "success",
+        "phase": "evaluation_seen",
+        "seed_count": 30
+      },
+      {
+        "common_mean": 0.0,
+        "conditions": [
+          "contextual_policy",
+          "dqn",
+          "full_aassr",
+          "prophecy_no_imagination",
+          "q_learning"
+        ],
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "metric": "success",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": 30
+      },
+      {
+        "common_mean": 0.0,
+        "conditions": [
+          "contextual_policy",
+          "full_aassr",
+          "full_depth1_branch1_max",
+          "full_depth1_branch1_mean",
+          "full_depth1_branch1_risk-adjusted",
+          "full_depth1_branch2_max",
+          "full_depth1_branch2_mean",
+          "full_depth1_branch2_risk-adjusted",
+          "full_depth1_branch4_max",
+          "full_depth1_branch4_mean",
+          "full_depth1_branch4_risk-adjusted",
+          "full_depth2_branch1_max",
+          "full_depth2_branch1_mean",
+          "full_depth2_branch1_risk-adjusted",
+          "full_depth2_branch2_max",
+          "full_depth2_branch2_mean",
+          "full_depth2_branch2_risk-adjusted",
+          "full_depth2_branch4_max",
+          "full_depth2_branch4_mean",
+          "full_depth2_branch4_risk-adjusted",
+          "full_depth4_branch1_max",
+          "full_depth4_branch1_mean",
+          "full_depth4_branch1_risk-adjusted",
+          "full_depth4_branch2_max",
+          "full_depth4_branch2_mean",
+          "full_depth4_branch2_risk-adjusted",
+          "full_depth4_branch4_max",
+          "full_depth4_branch4_mean",
+          "full_depth4_branch4_risk-adjusted",
+          "full_depth6_branch1_max",
+          "full_depth6_branch1_mean",
+          "full_depth6_branch1_risk-adjusted",
+          "full_depth6_branch2_max",
+          "full_depth6_branch2_mean",
+          "full_depth6_branch2_risk-adjusted",
+          "full_depth6_branch4_max",
+          "full_depth6_branch4_mean",
+          "full_depth6_branch4_risk-adjusted",
+          "full_no_error_penalty",
+          "full_no_repeat_penalty",
+          "full_no_validated_information",
+          "imagination_no_validated_value",
+          "prophecy_no_imagination"
+        ],
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "metric": "success",
+        "phase": "evaluation_seen",
+        "seed_count": 30
+      },
+      {
+        "common_mean": 0.0,
+        "conditions": [
+          "contextual_policy",
+          "full_aassr",
+          "full_depth1_branch1_max",
+          "full_depth1_branch1_mean",
+          "full_depth1_branch1_risk-adjusted",
+          "full_depth1_branch2_max",
+          "full_depth1_branch2_mean",
+          "full_depth1_branch2_risk-adjusted",
+          "full_depth1_branch4_max",
+          "full_depth1_branch4_mean",
+          "full_depth1_branch4_risk-adjusted",
+          "full_depth2_branch1_max",
+          "full_depth2_branch1_mean",
+          "full_depth2_branch1_risk-adjusted",
+          "full_depth2_branch2_max",
+          "full_depth2_branch2_mean",
+          "full_depth2_branch2_risk-adjusted",
+          "full_depth2_branch4_max",
+          "full_depth2_branch4_mean",
+          "full_depth2_branch4_risk-adjusted",
+          "full_depth4_branch1_max",
+          "full_depth4_branch1_mean",
+          "full_depth4_branch1_risk-adjusted",
+          "full_depth4_branch2_max",
+          "full_depth4_branch2_mean",
+          "full_depth4_branch2_risk-adjusted",
+          "full_depth4_branch4_max",
+          "full_depth4_branch4_mean",
+          "full_depth4_branch4_risk-adjusted",
+          "full_depth6_branch1_max",
+          "full_depth6_branch1_mean",
+          "full_depth6_branch1_risk-adjusted",
+          "full_depth6_branch2_max",
+          "full_depth6_branch2_mean",
+          "full_depth6_branch2_risk-adjusted",
+          "full_depth6_branch4_max",
+          "full_depth6_branch4_mean",
+          "full_depth6_branch4_risk-adjusted",
+          "full_no_error_penalty",
+          "full_no_repeat_penalty",
+          "full_no_validated_information",
+          "imagination_no_validated_value",
+          "prophecy_no_imagination"
+        ],
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "metric": "success",
+        "phase": "evaluation_unseen_zero_shot",
+        "seed_count": 30
+      },
+      {
+        "common_mean": 0.33521666666666666,
+        "conditions": [
+          "full_depth1_branch1_max",
+          "full_depth1_branch1_mean",
+          "full_depth1_branch1_risk-adjusted",
+          "full_depth1_branch2_max",
+          "full_depth1_branch2_mean",
+          "full_depth1_branch2_risk-adjusted",
+          "full_depth1_branch4_max",
+          "full_depth1_branch4_mean",
+          "full_depth1_branch4_risk-adjusted",
+          "full_depth2_branch1_max",
+          "full_depth2_branch1_mean",
+          "full_depth2_branch1_risk-adjusted",
+          "full_depth2_branch2_max",
+          "full_depth2_branch2_mean",
+          "full_depth2_branch2_risk-adjusted",
+          "full_depth2_branch4_max",
+          "full_depth2_branch4_mean",
+          "full_depth2_branch4_risk-adjusted",
+          "full_depth4_branch1_max",
+          "full_depth4_branch1_mean",
+          "full_depth4_branch1_risk-adjusted",
+          "full_depth4_branch2_max",
+          "full_depth4_branch2_mean",
+          "full_depth4_branch2_risk-adjusted",
+          "full_depth4_branch4_max",
+          "full_depth4_branch4_mean",
+          "full_depth4_branch4_risk-adjusted",
+          "full_depth6_branch1_max",
+          "full_depth6_branch1_mean",
+          "full_depth6_branch1_risk-adjusted",
+          "full_depth6_branch2_max",
+          "full_depth6_branch2_mean",
+          "full_depth6_branch2_risk-adjusted",
+          "full_depth6_branch4_max",
+          "full_depth6_branch4_mean",
+          "full_depth6_branch4_risk-adjusted",
+          "full_no_error_penalty",
+          "full_no_repeat_penalty"
+        ],
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "metric": "success",
+        "phase": "training",
+        "seed_count": 30
+      },
+      {
+        "common_mean": 0.33526763381683333,
+        "conditions": [
+          "full_depth1_branch1_max",
+          "full_depth1_branch1_mean",
+          "full_depth1_branch1_risk-adjusted",
+          "full_depth1_branch2_max",
+          "full_depth1_branch2_mean",
+          "full_depth1_branch2_risk-adjusted",
+          "full_depth1_branch4_max",
+          "full_depth1_branch4_mean",
+          "full_depth1_branch4_risk-adjusted",
+          "full_depth2_branch1_max",
+          "full_depth2_branch1_mean",
+          "full_depth2_branch1_risk-adjusted",
+          "full_depth2_branch2_max",
+          "full_depth2_branch2_mean",
+          "full_depth2_branch2_risk-adjusted",
+          "full_depth2_branch4_max",
+          "full_depth2_branch4_mean",
+          "full_depth2_branch4_risk-adjusted",
+          "full_depth4_branch1_max",
+          "full_depth4_branch1_mean",
+          "full_depth4_branch1_risk-adjusted",
+          "full_depth4_branch2_max",
+          "full_depth4_branch2_mean",
+          "full_depth4_branch2_risk-adjusted",
+          "full_depth4_branch4_max",
+          "full_depth4_branch4_mean",
+          "full_depth4_branch4_risk-adjusted",
+          "full_depth6_branch1_max",
+          "full_depth6_branch1_mean",
+          "full_depth6_branch1_risk-adjusted",
+          "full_depth6_branch2_max",
+          "full_depth6_branch2_mean",
+          "full_depth6_branch2_risk-adjusted",
+          "full_depth6_branch4_max",
+          "full_depth6_branch4_mean",
+          "full_depth6_branch4_risk-adjusted",
+          "full_no_error_penalty",
+          "full_no_repeat_penalty"
+        ],
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "metric": "learning_auc",
+        "phase": "training",
+        "seed_count": 30
+      },
+      {
+        "common_mean": 0.33554999999999996,
+        "conditions": [
+          "full_no_validated_information",
+          "imagination_no_validated_value"
+        ],
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "metric": "success",
+        "phase": "training",
+        "seed_count": 30
+      },
+      {
+        "common_mean": 0.33560113390019997,
+        "conditions": [
+          "full_no_validated_information",
+          "imagination_no_validated_value"
+        ],
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "metric": "learning_auc",
+        "phase": "training",
+        "seed_count": 30
+      },
+      {
+        "common_mean": 1.0,
+        "conditions": [
+          "aassr_no_imagination",
+          "aassr_no_novelty",
+          "dqn",
+          "full_aassr",
+          "novelty_search",
+          "q_learning",
+          "random"
+        ],
+        "environment": "multi_solution_dependency",
+        "experiment": "creativity",
+        "metric": "success",
+        "phase": "evaluation_unseen_adaptation",
+        "seed_count": 30
+      },
+      {
+        "common_mean": 1.0,
+        "conditions": [
+          "aassr_no_imagination",
+          "aassr_no_novelty",
+          "dqn",
+          "full_aassr",
+          "novelty_search",
+          "q_learning",
+          "random"
+        ],
+        "environment": "multi_solution_dependency",
+        "experiment": "creativity",
+        "metric": "success",
+        "phase": "training",
+        "seed_count": 30
+      }
+    ],
+    "imagination_degradation_comparison_count": 16,
+    "imagination_degradation_comparisons": [
+      {
+        "baseline": "contextual_policy",
+        "ci95_high": "-0.07990000000000003",
+        "ci95_low": "-0.16171666666666668",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "interpretation": "Full AASSR underperformed a no-imagination/contextual comparator; this is associative because more than imagination differs between conditions.",
+        "metric": "success",
+        "p_value_holm": "0.0029498525073746312",
+        "paired_mean_difference": "-0.12131666666666668",
+        "phase": "training",
+        "target": "full_aassr"
+      },
+      {
+        "baseline": "contextual_policy",
+        "ci95_high": "-0.08045689511422378",
+        "ci95_low": "-0.16303985325996334",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "interpretation": "Full AASSR underperformed a no-imagination/contextual comparator; this is associative because more than imagination differs between conditions.",
+        "metric": "learning_auc",
+        "p_value_holm": "0.0029498525073746312",
+        "paired_mean_difference": "-0.12137735534433884",
+        "phase": "training",
+        "target": "full_aassr"
+      },
+      {
+        "baseline": "prophecy_no_imagination",
+        "ci95_high": "-0.07393333333333335",
+        "ci95_low": "-0.15711666666666668",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "interpretation": "Full AASSR underperformed a no-imagination/contextual comparator; this is associative because more than imagination differs between conditions.",
+        "metric": "success",
+        "p_value_holm": "0.0029498525073746312",
+        "paired_mean_difference": "-0.11686666666666667",
+        "phase": "training",
+        "target": "full_aassr"
+      },
+      {
+        "baseline": "prophecy_no_imagination",
+        "ci95_high": "-0.07705519426379856",
+        "ci95_low": "-0.15668667667166916",
+        "environment": "opaque_dependency_l6",
+        "experiment": "ablation",
+        "interpretation": "Full AASSR underperformed a no-imagination/contextual comparator; this is associative because more than imagination differs between conditions.",
+        "metric": "learning_auc",
+        "p_value_holm": "0.0029498525073746312",
+        "paired_mean_difference": "-0.1169251292312823",
+        "phase": "training",
+        "target": "full_aassr"
+      },
+      {
+        "baseline": "contextual_policy",
+        "ci95_high": "-0.023066666666666655",
+        "ci95_low": "-0.0571",
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "interpretation": "Full AASSR underperformed a no-imagination/contextual comparator; this is associative because more than imagination differs between conditions.",
+        "metric": "success",
+        "p_value_holm": "0.00024998750062496874",
+        "paired_mean_difference": "-0.039349999999999996",
+        "phase": "training",
+        "target": "full_aassr"
+      },
+      {
+        "baseline": "contextual_policy",
+        "ci95_high": "-0.02315324328831083",
+        "ci95_low": "-0.05638652659663167",
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "interpretation": "Full AASSR underperformed a no-imagination/contextual comparator; this is associative because more than imagination differs between conditions.",
+        "metric": "learning_auc",
+        "p_value_holm": "0.00024998750062496874",
+        "paired_mean_difference": "-0.03936134734033684",
+        "phase": "training",
+        "target": "full_aassr"
+      },
+      {
+        "baseline": "prophecy_no_imagination",
+        "ci95_high": "-0.023083333333333324",
+        "ci95_low": "-0.056616666666666655",
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "interpretation": "Full AASSR underperformed a no-imagination/contextual comparator; this is associative because more than imagination differs between conditions.",
+        "metric": "success",
+        "p_value_holm": "0.00024998750062496874",
+        "paired_mean_difference": "-0.03916666666666666",
+        "phase": "training",
+        "target": "full_aassr"
+      },
+      {
+        "baseline": "prophecy_no_imagination",
+        "ci95_high": "-0.02266966816741704",
+        "ci95_low": "-0.05656995164248791",
+        "environment": "opaque_dependency_l4",
+        "experiment": "autonomy",
+        "interpretation": "Full AASSR underperformed a no-imagination/contextual comparator; this is associative because more than imagination differs between conditions.",
+        "metric": "learning_auc",
+        "p_value_holm": "0.00024998750062496874",
+        "paired_mean_difference": "-0.039177922294480576",
+        "phase": "training",
+        "target": "full_aassr"
+      },
+      {
+        "baseline": "contextual_policy",
+        "ci95_high": "-0.13256666666666667",
+        "ci95_low": "-0.19063333333333335",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "interpretation": "Full AASSR underperformed a no-imagination/contextual comparator; this is associative because more than imagination differs between conditions.",
+        "metric": "success",
+        "p_value_holm": "0.00024998750062496874",
+        "paired_mean_difference": "-0.16148333333333334",
+        "phase": "training",
+        "target": "full_aassr"
+      },
+      {
+        "baseline": "contextual_policy",
+        "ci95_high": "-0.13138235784558946",
+        "ci95_low": "-0.1913873603468401",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "interpretation": "Full AASSR underperformed a no-imagination/contextual comparator; this is associative because more than imagination differs between conditions.",
+        "metric": "learning_auc",
+        "p_value_holm": "0.00024998750062496874",
+        "paired_mean_difference": "-0.16153076538269134",
+        "phase": "training",
+        "target": "full_aassr"
+      },
+      {
+        "baseline": "prophecy_no_imagination",
+        "ci95_high": "-0.13553333333333337",
+        "ci95_low": "-0.19645",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "interpretation": "Full AASSR underperformed a no-imagination/contextual comparator; this is associative because more than imagination differs between conditions.",
+        "metric": "success",
+        "p_value_holm": "0.00024998750062496874",
+        "paired_mean_difference": "-0.16590000000000002",
+        "phase": "training",
+        "target": "full_aassr"
+      },
+      {
+        "baseline": "prophecy_no_imagination",
+        "ci95_high": "-0.13554277138569285",
+        "ci95_low": "-0.19566449891612472",
+        "environment": "opaque_dependency_l6",
+        "experiment": "autonomy",
+        "interpretation": "Full AASSR underperformed a no-imagination/contextual comparator; this is associative because more than imagination differs between conditions.",
+        "metric": "learning_auc",
+        "p_value_holm": "0.00024998750062496874",
+        "paired_mean_difference": "-0.165941303985326",
+        "phase": "training",
+        "target": "full_aassr"
+      },
+      {
+        "baseline": "contextual_policy",
+        "ci95_high": "-0.10658333333333332",
+        "ci95_low": "-0.16055",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "interpretation": "Full AASSR underperformed a no-imagination/contextual comparator; this is associative because more than imagination differs between conditions.",
+        "metric": "success",
+        "p_value_holm": "0.00024998750062496874",
+        "paired_mean_difference": "-0.13303333333333334",
+        "phase": "training",
+        "target": "full_aassr"
+      },
+      {
+        "baseline": "contextual_policy",
+        "ci95_high": "-0.10646990161747541",
+        "ci95_low": "-0.15986326496581624",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "interpretation": "Full AASSR underperformed a no-imagination/contextual comparator; this is associative because more than imagination differs between conditions.",
+        "metric": "learning_auc",
+        "p_value_holm": "0.00024998750062496874",
+        "paired_mean_difference": "-0.1330331832582958",
+        "phase": "training",
+        "target": "full_aassr"
+      },
+      {
+        "baseline": "prophecy_no_imagination",
+        "ci95_high": "-0.09916666666666667",
+        "ci95_low": "-0.15048333333333333",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "interpretation": "Full AASSR underperformed a no-imagination/contextual comparator; this is associative because more than imagination differs between conditions.",
+        "metric": "success",
+        "p_value_holm": "0.00024998750062496874",
+        "paired_mean_difference": "-0.12511666666666665",
+        "phase": "training",
+        "target": "full_aassr"
+      },
+      {
+        "baseline": "prophecy_no_imagination",
+        "ci95_high": "-0.10002501250625313",
+        "ci95_low": "-0.1509171252292813",
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "interpretation": "Full AASSR underperformed a no-imagination/contextual comparator; this is associative because more than imagination differs between conditions.",
+        "metric": "learning_auc",
+        "p_value_holm": "0.00024998750062496874",
+        "paired_mean_difference": "-0.12512089378022345",
+        "phase": "training",
+        "target": "full_aassr"
+      }
+    ],
+    "largest_solution_family": "tool_route",
+    "largest_solution_family_count": 26130,
+    "largest_solution_family_share": 0.24885714285714286,
+    "observed_phase_gaps": {
+      "ablation": {
+        "declared": [
+          "adaptation",
+          "evaluation_seen",
+          "evaluation_unseen_adaptation",
+          "evaluation_unseen_zero_shot",
+          "training"
+        ],
+        "declared_but_not_observed": [
+          "adaptation",
+          "evaluation_unseen_adaptation"
+        ],
+        "note": "Global protocol phases are not necessarily applicable to every suite; gaps are reported for auditability, not automatically classified as incomplete.",
+        "observed": [
+          "evaluation_seen",
+          "evaluation_unseen_zero_shot",
+          "training"
+        ]
+      },
+      "autonomy": {
+        "declared": [
+          "adaptation",
+          "evaluation_seen",
+          "evaluation_unseen_adaptation",
+          "evaluation_unseen_zero_shot",
+          "training"
+        ],
+        "declared_but_not_observed": [
+          "adaptation",
+          "evaluation_unseen_adaptation"
+        ],
+        "note": "Global protocol phases are not necessarily applicable to every suite; gaps are reported for auditability, not automatically classified as incomplete.",
+        "observed": [
+          "evaluation_seen",
+          "evaluation_unseen_zero_shot",
+          "training"
+        ]
+      },
+      "creativity": {
+        "declared": [
+          "adaptation",
+          "evaluation_seen",
+          "evaluation_unseen_adaptation",
+          "evaluation_unseen_zero_shot",
+          "training"
+        ],
+        "declared_but_not_observed": [
+          "adaptation",
+          "evaluation_seen",
+          "evaluation_unseen_zero_shot"
+        ],
+        "note": "Global protocol phases are not necessarily applicable to every suite; gaps are reported for auditability, not automatically classified as incomplete.",
+        "observed": [
+          "evaluation_unseen_adaptation",
+          "training"
+        ]
+      },
+      "safe_application": {
+        "declared": [
+          "adaptation",
+          "evaluation_seen",
+          "evaluation_unseen_adaptation",
+          "evaluation_unseen_zero_shot",
+          "training"
+        ],
+        "declared_but_not_observed": [
+          "adaptation",
+          "evaluation_seen",
+          "evaluation_unseen_adaptation",
+          "training"
+        ],
+        "note": "Global protocol phases are not necessarily applicable to every suite; gaps are reported for auditability, not automatically classified as incomplete.",
+        "observed": [
+          "evaluation_unseen_zero_shot"
+        ]
+      },
+      "transfer": {
+        "declared": [
+          "adaptation",
+          "evaluation_seen",
+          "evaluation_unseen_adaptation",
+          "evaluation_unseen_zero_shot",
+          "training"
+        ],
+        "declared_but_not_observed": [
+          "evaluation_seen",
+          "evaluation_unseen_zero_shot"
+        ],
+        "note": "Global protocol phases are not necessarily applicable to every suite; gaps are reported for auditability, not automatically classified as incomplete.",
+        "observed": [
+          "adaptation",
+          "evaluation_unseen_adaptation",
+          "training"
+        ]
+      }
+    },
+    "seed_dominance_definition": "A single research seed contributes more than 50% of the group's absolute seed-level metric total.",
+    "seed_dominance_group_count": 2,
+    "seed_dominance_groups": [
+      {
+        "condition": "q_learning",
+        "dominant_seed": "307",
+        "dominant_value": 0.0595,
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "metric": "success",
+        "phase": "training",
+        "seed_count": 30,
+        "share_of_absolute_total": 0.6538461538461539
+      },
+      {
+        "condition": "q_learning",
+        "dominant_seed": "307",
+        "dominant_value": 0.05952976488244122,
+        "environment": "opaque_dependency_l8",
+        "experiment": "autonomy",
+        "metric": "learning_auc",
+        "phase": "training",
+        "seed_count": 30,
+        "share_of_absolute_total": 0.6538461538461539
+      }
+    ]
+  },
+  "creativity": {
+    "baseline_reference_unique_graphs": 234,
+    "by_condition": [
+      {
+        "condition": "aassr_no_imagination",
+        "creative_candidate": 0,
+        "mean_novelty_score": 0.0,
+        "novel_above_threshold": 0,
+        "novelty_score_scaled": 0,
+        "reproducible": 15000,
+        "strategies": 15000,
+        "successful": 15000,
+        "unique_causal_graphs": 234,
+        "utility_qualified": 772
+      },
+      {
+        "condition": "aassr_no_novelty",
+        "creative_candidate": 0,
+        "mean_novelty_score": 0.0,
+        "novel_above_threshold": 0,
+        "novelty_score_scaled": 0,
+        "reproducible": 15000,
+        "strategies": 15000,
+        "successful": 15000,
+        "unique_causal_graphs": 234,
+        "utility_qualified": 870
+      },
+      {
+        "condition": "dqn",
+        "creative_candidate": 0,
+        "mean_novelty_score": 0.0,
+        "novel_above_threshold": 0,
+        "novelty_score_scaled": 0,
+        "reproducible": 15000,
+        "strategies": 15000,
+        "successful": 15000,
+        "unique_causal_graphs": 234,
+        "utility_qualified": 965
+      },
+      {
+        "condition": "full_aassr",
+        "creative_candidate": 0,
+        "mean_novelty_score": 0.0,
+        "novel_above_threshold": 0,
+        "novelty_score_scaled": 0,
+        "reproducible": 15000,
+        "strategies": 15000,
+        "successful": 15000,
+        "unique_causal_graphs": 234,
+        "utility_qualified": 899
+      },
+      {
+        "condition": "novelty_search",
+        "creative_candidate": 0,
+        "mean_novelty_score": 0.0,
+        "novel_above_threshold": 0,
+        "novelty_score_scaled": 0,
+        "reproducible": 15000,
+        "strategies": 15000,
+        "successful": 15000,
+        "unique_causal_graphs": 234,
+        "utility_qualified": 939
+      },
+      {
+        "condition": "q_learning",
+        "creative_candidate": 0,
+        "mean_novelty_score": 0.0,
+        "novel_above_threshold": 0,
+        "novelty_score_scaled": 0,
+        "reproducible": 15000,
+        "strategies": 15000,
+        "successful": 15000,
+        "unique_causal_graphs": 234,
+        "utility_qualified": 1057
+      },
+      {
+        "condition": "random",
+        "creative_candidate": 0,
+        "mean_novelty_score": 0.0,
+        "novel_above_threshold": 0,
+        "novelty_score_scaled": 0,
+        "reproducible": 15000,
+        "strategies": 15000,
+        "successful": 15000,
+        "unique_causal_graphs": 234,
+        "utility_qualified": 982
+      }
+    ],
+    "by_solution_family": {
+      "bypass_route": 24522,
+      "emergent_combination": 7370,
+      "information_route": 22522,
+      "resource_route": 24456,
+      "tool_route": 26130
+    },
+    "creative_candidate_count": 0,
+    "deduplication_rule": "CausalEffectGraph canonical nodes, prerequisite/enablement edges, effect sequence, and solution family; raw action strings are excluded.",
+    "frozen_novelty_threshold": 0.06000000000000001,
+    "human_reference_rows": 0,
+    "reference_label": "baseline-generated reference (no human participant data)",
+    "strategy_rows": 105000,
+    "unique_causal_graphs_global": 234
+  },
+  "experiments": {
+    "ablation": {
+      "artifact_validator": {
+        "issues": [],
+        "passed": true
+      },
+      "config": {
+        "acceptance_gate_copy_present": true,
+        "acceptance_gate_declared": true,
+        "acceptance_gate_hash_matches": true,
+        "config_canonical_sha256": "4c17f5c3eb51730c9a689aa30d4acc63f58420d25e42fa448082b506c17a5e82",
+        "config_hash_matches_manifest": true,
+        "config_path": "D:\\AASSR\\configs\\paper_ablation_final_v1.json",
+        "frozen_creativity_rule_copy_present": false,
+        "frozen_creativity_rule_declared": false,
+        "frozen_creativity_rule_hash_matches": false,
+        "manifest_config_sha256": "4c17f5c3eb51730c9a689aa30d4acc63f58420d25e42fa448082b506c17a5e82",
+        "resolved_config_canonical_sha256": "4c17f5c3eb51730c9a689aa30d4acc63f58420d25e42fa448082b506c17a5e82",
+        "resolved_config_hash_matches_manifest": true
+      },
+      "episode_csv": {
+        "abnormal_counts": {},
+        "average_serialized_row_bytes": 257.37964405684755,
+        "column_count": 41,
+        "column_payload_bytes": {
+          "action_family": 18576000,
+          "action_proposals": 3096000,
+          "actual_return": 9288000,
+          "adaptation_budget": 0,
+          "branch_start_fingerprint": 0,
+          "checkpoint_fingerprint_after": 33024000,
+          "checkpoint_fingerprint_before": 33024000,
+          "cluster_count": 0,
+          "condition": 80064000,
+          "environment": 61920000,
+          "episode": 10152300,
+          "errors": 3096000,
+          "experiment": 71208000,
+          "high_level_steps": 3096000,
+          "holdout_gain": 7773920,
+          "holdout_score": 37852798,
+          "imagination_depth": 3096000,
+          "imagined_nodes": 5971098,
+          "imagined_transitions": 5971098,
+          "intrinsic_value": 7781875,
+          "model": 42624000,
+          "noise_facts": 0,
+          "novelty_score": 0,
+          "phase": 31476000,
+          "prediction_score": 9774633,
+          "primitive_steps": 3096000,
+          "real_transitions": 3096000,
+          "repeats": 3096000,
+          "research_seed": 10526400,
+          "reward": 9288000,
+          "root_imagined_value": 35452616,
+          "runtime_seconds": 63331673,
+          "seed": 10526400,
+          "skill_count": 0,
+          "skill_uses": 3096000,
+          "solution_family": 0,
+          "steps": 3096000,
+          "strategy_id": 0,
+          "success": 3096000,
+          "suite": 24768000,
+          "world_seed": 15480000
+        },
+        "column_payload_share": {
+          "action_family": 0.02785780953506745,
+          "action_proposals": 0.0046429682558445755,
+          "actual_return": 0.013928904767533725,
+          "adaptation_budget": 0.0,
+          "branch_start_fingerprint": 0.0,
+          "checkpoint_fingerprint_after": 0.0495249947290088,
+          "checkpoint_fingerprint_before": 0.0495249947290088,
+          "cluster_count": 0.0,
+          "condition": 0.1200693186162597,
+          "environment": 0.0928593651168915,
+          "episode": 0.015225066738957002,
+          "errors": 0.0046429682558445755,
+          "experiment": 0.10678826988442523,
+          "high_level_steps": 0.0046429682558445755,
+          "holdout_gain": 0.011658289335747822,
+          "holdout_score": 0.056766582528713506,
+          "imagination_depth": 0.0046429682558445755,
+          "imagined_nodes": 0.008954657127434441,
+          "imagined_transitions": 0.008954657127434441,
+          "intrinsic_value": 0.011670219184738534,
+          "model": 0.06392179552232531,
+          "noise_facts": 0.0,
+          "novelty_score": 0.0,
+          "phase": 0.04720351060108651,
+          "prediction_score": 0.014658692096747684,
+          "primitive_steps": 0.0046429682558445755,
+          "real_transitions": 0.0046429682558445755,
+          "repeats": 0.0046429682558445755,
+          "research_seed": 0.015786092069871555,
+          "reward": 0.013928904767533725,
+          "root_imagined_value": 0.053167109391036006,
+          "runtime_seconds": 0.09497640417588145,
+          "seed": 0.015786092069871555,
+          "skill_count": 0.0,
+          "skill_uses": 0.0046429682558445755,
+          "solution_family": 0.0,
+          "steps": 0.0046429682558445755,
+          "strategy_id": 0.0,
+          "success": 0.0046429682558445755,
+          "suite": 0.037143746046756604,
+          "world_seed": 0.023214841279222874
+        },
+        "columns": [
+          "action_family",
+          "action_proposals",
+          "actual_return",
+          "adaptation_budget",
+          "branch_start_fingerprint",
+          "checkpoint_fingerprint_after",
+          "checkpoint_fingerprint_before",
+          "cluster_count",
+          "condition",
+          "environment",
+          "episode",
+          "errors",
+          "experiment",
+          "high_level_steps",
+          "holdout_gain",
+          "holdout_score",
+          "imagination_depth",
+          "imagined_nodes",
+          "imagined_transitions",
+          "intrinsic_value",
+          "model",
+          "noise_facts",
+          "novelty_score",
+          "phase",
+          "prediction_score",
+          "primitive_steps",
+          "real_transitions",
+          "repeats",
+          "research_seed",
+          "reward",
+          "root_imagined_value",
+          "runtime_seconds",
+          "seed",
+          "skill_count",
+          "skill_uses",
+          "solution_family",
+          "steps",
+          "strategy_id",
+          "success",
+          "suite",
+          "world_seed"
+        ],
+        "condition_counts": {
+          "contextual_policy": 72000,
+          "full_aassr": 72000,
+          "full_depth1_branch1_max": 72000,
+          "full_depth1_branch1_mean": 72000,
+          "full_depth1_branch1_risk-adjusted": 72000,
+          "full_depth1_branch2_max": 72000,
+          "full_depth1_branch2_mean": 72000,
+          "full_depth1_branch2_risk-adjusted": 72000,
+          "full_depth1_branch4_max": 72000,
+          "full_depth1_branch4_mean": 72000,
+          "full_depth1_branch4_risk-adjusted": 72000,
+          "full_depth2_branch1_max": 72000,
+          "full_depth2_branch1_mean": 72000,
+          "full_depth2_branch1_risk-adjusted": 72000,
+          "full_depth2_branch2_max": 72000,
+          "full_depth2_branch2_mean": 72000,
+          "full_depth2_branch2_risk-adjusted": 72000,
+          "full_depth2_branch4_max": 72000,
+          "full_depth2_branch4_mean": 72000,
+          "full_depth2_branch4_risk-adjusted": 72000,
+          "full_depth4_branch1_max": 72000,
+          "full_depth4_branch1_mean": 72000,
+          "full_depth4_branch1_risk-adjusted": 72000,
+          "full_depth4_branch2_max": 72000,
+          "full_depth4_branch2_mean": 72000,
+          "full_depth4_branch2_risk-adjusted": 72000,
+          "full_depth4_branch4_max": 72000,
+          "full_depth4_branch4_mean": 72000,
+          "full_depth4_branch4_risk-adjusted": 72000,
+          "full_depth6_branch1_max": 72000,
+          "full_depth6_branch1_mean": 72000,
+          "full_depth6_branch1_risk-adjusted": 72000,
+          "full_depth6_branch2_max": 72000,
+          "full_depth6_branch2_mean": 72000,
+          "full_depth6_branch2_risk-adjusted": 72000,
+          "full_depth6_branch4_max": 72000,
+          "full_depth6_branch4_mean": 72000,
+          "full_depth6_branch4_risk-adjusted": 72000,
+          "full_no_error_penalty": 72000,
+          "full_no_repeat_penalty": 72000,
+          "full_no_validated_information": 72000,
+          "imagination_no_validated_value": 72000,
+          "prophecy_no_imagination": 72000
+        },
+        "condition_environment_phase_counts": [
+          {
+            "condition": "contextual_policy",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "contextual_policy",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "contextual_policy",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_aassr",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_aassr",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_aassr",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth1_branch1_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch1_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch1_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth1_branch1_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch1_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch1_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth1_branch1_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch1_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch1_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth1_branch2_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch2_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch2_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth1_branch2_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch2_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch2_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth1_branch2_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch2_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch2_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth1_branch4_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch4_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch4_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth1_branch4_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch4_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch4_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth1_branch4_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch4_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth1_branch4_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth2_branch1_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch1_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch1_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth2_branch1_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch1_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch1_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth2_branch1_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch1_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch1_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth2_branch2_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch2_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch2_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth2_branch2_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch2_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch2_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth2_branch2_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch2_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch2_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth2_branch4_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch4_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch4_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth2_branch4_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch4_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch4_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth2_branch4_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch4_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth2_branch4_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth4_branch1_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch1_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch1_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth4_branch1_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch1_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch1_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth4_branch1_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch1_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch1_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth4_branch2_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch2_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch2_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth4_branch2_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch2_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch2_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth4_branch2_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch2_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch2_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth4_branch4_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch4_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch4_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth4_branch4_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch4_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch4_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth4_branch4_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch4_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth4_branch4_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth6_branch1_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch1_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch1_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth6_branch1_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch1_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch1_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth6_branch1_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch1_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch1_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth6_branch2_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch2_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch2_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth6_branch2_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch2_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch2_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth6_branch2_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch2_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch2_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth6_branch4_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch4_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch4_max",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth6_branch4_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch4_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch4_mean",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_depth6_branch4_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch4_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_depth6_branch4_risk-adjusted",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_no_error_penalty",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_no_error_penalty",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_no_error_penalty",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_no_repeat_penalty",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_no_repeat_penalty",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_no_repeat_penalty",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_no_validated_information",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_no_validated_information",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_no_validated_information",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "imagination_no_validated_value",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "imagination_no_validated_value",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "imagination_no_validated_value",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "prophecy_no_imagination",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "prophecy_no_imagination",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "prophecy_no_imagination",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          }
+        ],
+        "csv_syntax_overhead_bytes": 130032567,
+        "distinct_counts_for_repeated_fields": {
+          "action_family": 1,
+          "branch_start_fingerprint": 1,
+          "checkpoint_fingerprint_after": 1291,
+          "checkpoint_fingerprint_before": 1291,
+          "condition": 43,
+          "environment": 1,
+          "experiment": 1,
+          "model": 2,
+          "phase": 3,
+          "solution_family": 1,
+          "suite": 1
+        },
+        "duplicate_episode_grain_rows": 0,
+        "duplicate_method": "BLAKE2b-128 fingerprints stored and counted in a temporary SQLite table; raw rows were never retained in memory.",
+        "empty_counts": {
+          "adaptation_budget": 3096000,
+          "branch_start_fingerprint": 3096000,
+          "checkpoint_fingerprint_after": 2580000,
+          "checkpoint_fingerprint_before": 2580000,
+          "cluster_count": 3096000,
+          "holdout_gain": 516000,
+          "intrinsic_value": 516000,
+          "noise_facts": 3096000,
+          "novelty_score": 3096000,
+          "root_imagined_value": 707671,
+          "skill_count": 3096000,
+          "solution_family": 3096000,
+          "strategy_id": 3096000
+        },
+        "environment_counts": {
+          "opaque_dependency_l6": 3096000
+        },
+        "exact_duplicate_rows": 0,
+        "file_size_bytes": 796847378,
+        "gzip_ratio": 0.06800873479187128,
+        "gzip_size_bytes_exact": 54192582,
+        "high_prediction_failed_rows": 1632659,
+        "invalid_numeric_counts": {},
+        "nan_or_infinite_counts": {},
+        "parquet_size_estimate_bytes": {
+          "high": 175306423,
+          "low": 63747790,
+          "method": "Estimated range for typed columnar storage with dictionary encoding; pyarrow/duckdb were unavailable, so no Parquet file was materialized."
+        },
+        "path": "D:\\AASSR\\paper_results\\paper-ablation-final-v1\\raw\\episodes.csv",
+        "phase_counts": {
+          "evaluation_seen": 258000,
+          "evaluation_unseen_zero_shot": 258000,
+          "training": 2580000
+        },
+        "repeated_value_estimated_bytes": {
+          "action_family": 18575994,
+          "branch_start_fingerprint": 0,
+          "checkpoint_fingerprint_after": 32941440,
+          "checkpoint_fingerprint_before": 32941440,
+          "condition": 80062888,
+          "environment": 61919980,
+          "experiment": 71207977,
+          "model": 42623982,
+          "phase": 31475950,
+          "solution_family": 0,
+          "suite": 24767992
+        },
+        "research_seeds": [
+          131,
+          173,
+          211,
+          257,
+          307,
+          353,
+          401,
+          457,
+          503,
+          557,
+          601,
+          659,
+          701,
+          761,
+          809,
+          857,
+          907,
+          953,
+          1009,
+          1061,
+          1103,
+          1151,
+          1201,
+          1259,
+          1301,
+          1361,
+          1423,
+          1481,
+          1543,
+          1601
+        ],
+        "row_count": 3096000,
+        "transfer_branch_budget_mismatches": 0,
+        "transfer_branch_origin_mismatches": 0,
+        "unequal_transition_budget_groups": [],
+        "world_seeds": [
+          52001,
+          52002,
+          52003,
+          52004,
+          52005,
+          52006,
+          52007,
+          52008,
+          62001,
+          62002,
+          62003,
+          62004,
+          72001,
+          72002,
+          72003,
+          72004,
+          72005,
+          72006,
+          72007,
+          72008
+        ]
+      },
+      "run": {
+        "actual_rows": 3096000,
+        "completed_research_seed_count": 30,
+        "completed_suites": [
+          "ablation"
+        ],
+        "expected_research_seed_count": 30,
+        "experiment_completed_at_utc": "2026-07-31T10:54:09.355+00:00",
+        "failed_runs": [],
+        "missing_research_seeds": [],
+        "pipeline_completed_at_utc": "2026-07-31T11:03:02.798+00:00",
+        "planned_rows": 3096000,
+        "result_path": "D:\\AASSR\\paper_results\\paper-ablation-final-v1",
+        "started_at_utc": "2026-07-31T10:35:19.989+00:00",
+        "state_row_count": 3096000,
+        "unexpected_research_seeds": []
+      },
+      "seed_overlap": {
+        "research_seed_overlap_pilot_final": [],
+        "seen_unseen_overlap_final": [],
+        "train_seen_overlap_final": [],
+        "train_unseen_overlap_final": [],
+        "world_seed_overlap_pilot_final": []
+      },
+      "storage": {
+        "directory_size_bytes": 46980731237,
+        "files": [
+          {
+            "relative_path": "figures\\figure1_closed_loop.svg",
+            "size_bytes": 2450,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure2_protocol.svg",
+            "size_bytes": 2445,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure3_autonomy.svg",
+            "size_bytes": 3090567,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure4_transfer.svg",
+            "size_bytes": 12994,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure5_ablation.svg",
+            "size_bytes": 33597,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure6_creativity.svg",
+            "size_bytes": 876,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "manifests\\acceptance_gate_manifest.json",
+            "size_bytes": 884,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\protocol_manifest.json",
+            "size_bytes": 2168,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\protocol_manifest.json.sha256",
+            "size_bytes": 66,
+            "suffix": ".sha256"
+          },
+          {
+            "relative_path": "manifests\\resolved_config.json",
+            "size_bytes": 3834,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\run_state.json",
+            "size_bytes": 356,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "raw\\episodes.csv",
+            "size_bytes": 796847378,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "raw\\strategies.jsonl",
+            "size_bytes": 0,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_cache\\ablation_episodes.jsonl",
+            "size_bytes": 3304606811,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_cache\\ablation_strategies.jsonl",
+            "size_bytes": 0,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_cache\\ablation_transitions.jsonl",
+            "size_bytes": 13863732510,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_runs\\ablation\\episodes.csv",
+            "size_bytes": 861863378,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "raw\\suite_runs\\ablation\\progress.json",
+            "size_bytes": 476,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "raw\\suite_runs\\ablation\\progress.jsonl",
+            "size_bytes": 20279182,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_runs\\ablation\\progress.log",
+            "size_bytes": 11478302,
+            "suffix": ".log"
+          },
+          {
+            "relative_path": "raw\\suite_runs\\ablation\\protocol_manifest.json",
+            "size_bytes": 1188,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "raw\\suite_runs\\ablation\\resolved_config.json",
+            "size_bytes": 11645,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "raw\\suite_runs\\ablation\\transitions.jsonl",
+            "size_bytes": 14253828510,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\transitions.jsonl",
+            "size_bytes": 13863732510,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "report.md",
+            "size_bytes": 17255,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "seed_level\\seed_summary.csv",
+            "size_bytes": 883718,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\adaptation_summary.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\analysis_summary.json",
+            "size_bytes": 560,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "statistics\\condition_comparisons.csv",
+            "size_bytes": 22524,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\creativity_summary.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\cross_seed_summary.csv",
+            "size_bytes": 112972,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\learning_auc_comparisons.csv",
+            "size_bytes": 11242,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\learning_summary.csv",
+            "size_bytes": 128972,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\transfer_comparisons.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "tables\\table1_protocol.md",
+            "size_bytes": 203,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "tables\\table2_autonomy.md",
+            "size_bytes": 21062,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "tables\\table3_transfer.md",
+            "size_bytes": 238,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "tables\\table4_creativity.md",
+            "size_bytes": 364,
+            "suffix": ".md"
+          }
+        ],
+        "merged_cache_transition_same_size": true,
+        "merged_cache_transition_sha256_match": true,
+        "size_by_suffix": {
+          ".csv": 1659870184,
+          ".json": 21111,
+          ".jsonl": 45306179523,
+          ".log": 11478302,
+          ".md": 39122,
+          ".sha256": 66,
+          ".svg": 3142929
+        }
+      },
+      "transitions": {
+        "evaluation_learning_enabled_rows": 0,
+        "exists": true,
+        "file_size_bytes": 13863732510,
+        "json_parse_errors": 0,
+        "line_count": 18576000,
+        "path": "D:\\AASSR\\paper_results\\paper-ablation-final-v1\\raw\\transitions.jsonl",
+        "private_agent_visible_leak_rows": 0,
+        "private_tokens_checked": [
+          "bypass_route",
+          "correct_action",
+          "emergent_combination",
+          "hidden_solution",
+          "information_route",
+          "oracle_answer",
+          "resource_route",
+          "solution_family",
+          "solution_label",
+          "target_sequence",
+          "tool_route",
+          "viable_branch"
+        ]
+      }
+    },
+    "autonomy": {
+      "artifact_validator": {
+        "issues": [],
+        "passed": true
+      },
+      "config": {
+        "acceptance_gate_copy_present": true,
+        "acceptance_gate_declared": true,
+        "acceptance_gate_hash_matches": true,
+        "config_canonical_sha256": "56d698280ab6f3c22c407e28fd19668253cadcde9bb30371c8698617ca9a00f2",
+        "config_hash_matches_manifest": true,
+        "config_path": "D:\\AASSR\\configs\\paper_autonomy_final_v1.json",
+        "frozen_creativity_rule_copy_present": false,
+        "frozen_creativity_rule_declared": false,
+        "frozen_creativity_rule_hash_matches": false,
+        "manifest_config_sha256": "56d698280ab6f3c22c407e28fd19668253cadcde9bb30371c8698617ca9a00f2",
+        "resolved_config_canonical_sha256": "56d698280ab6f3c22c407e28fd19668253cadcde9bb30371c8698617ca9a00f2",
+        "resolved_config_hash_matches_manifest": true
+      },
+      "episode_csv": {
+        "abnormal_counts": {},
+        "average_serialized_row_bytes": 220.27052777777777,
+        "column_count": 41,
+        "column_payload_bytes": {
+          "action_family": 9072000,
+          "action_proposals": 1512000,
+          "actual_return": 4536000,
+          "adaptation_budget": 0,
+          "branch_start_fingerprint": 0,
+          "checkpoint_fingerprint_after": 14292000,
+          "checkpoint_fingerprint_before": 14292000,
+          "cluster_count": 0,
+          "condition": 18792000,
+          "environment": 30240000,
+          "episode": 4958100,
+          "errors": 1512000,
+          "experiment": 34776000,
+          "high_level_steps": 1512000,
+          "holdout_gain": 3784715,
+          "holdout_score": 6477902,
+          "imagination_depth": 1512000,
+          "imagined_nodes": 1786816,
+          "imagined_transitions": 1786816,
+          "intrinsic_value": 3792652,
+          "model": 17064000,
+          "noise_facts": 0,
+          "novelty_score": 0,
+          "phase": 15372000,
+          "prediction_score": 4244658,
+          "primitive_steps": 1512000,
+          "real_transitions": 1512000,
+          "repeats": 1512000,
+          "research_seed": 5140800,
+          "reward": 4536000,
+          "root_imagined_value": 3071672,
+          "runtime_seconds": 31611540,
+          "seed": 5140800,
+          "skill_count": 0,
+          "skill_uses": 1512000,
+          "solution_family": 0,
+          "steps": 1512000,
+          "strategy_id": 0,
+          "success": 1512000,
+          "suite": 12096000,
+          "world_seed": 7560000
+        },
+        "column_payload_share": {
+          "action_family": 0.03365678385590035,
+          "action_proposals": 0.005609463975983392,
+          "actual_return": 0.016828391927950177,
+          "adaptation_budget": 0.0,
+          "branch_start_fingerprint": 0.0,
+          "checkpoint_fingerprint_after": 0.05302279043965254,
+          "checkpoint_fingerprint_before": 0.05302279043965254,
+          "cluster_count": 0.0,
+          "condition": 0.06971762370150787,
+          "environment": 0.11218927951966784,
+          "episode": 0.018394367287912206,
+          "errors": 0.005609463975983392,
+          "experiment": 0.129017671447618,
+          "high_level_steps": 0.005609463975983392,
+          "holdout_gain": 0.014041152415253956,
+          "holdout_score": 0.024032776394808705,
+          "imagination_depth": 0.005609463975983392,
+          "imagined_nodes": 0.006629021153247844,
+          "imagined_transitions": 0.006629021153247844,
+          "intrinsic_value": 0.014070598391164922,
+          "model": 0.06330680772895542,
+          "noise_facts": 0.0,
+          "novelty_score": 0.0,
+          "phase": 0.05702955042249781,
+          "prediction_score": 0.015747523903022295,
+          "primitive_steps": 0.005609463975983392,
+          "real_transitions": 0.005609463975983392,
+          "repeats": 0.005609463975983392,
+          "research_seed": 0.01907217751834353,
+          "reward": 0.016828391927950177,
+          "root_imagined_value": 0.011395789305579931,
+          "runtime_seconds": 0.11727764210010451,
+          "seed": 0.01907217751834353,
+          "skill_count": 0.0,
+          "skill_uses": 0.005609463975983392,
+          "solution_family": 0.0,
+          "steps": 0.005609463975983392,
+          "strategy_id": 0.0,
+          "success": 0.005609463975983392,
+          "suite": 0.04487571180786713,
+          "world_seed": 0.02804731987991696
+        },
+        "columns": [
+          "action_family",
+          "action_proposals",
+          "actual_return",
+          "adaptation_budget",
+          "branch_start_fingerprint",
+          "checkpoint_fingerprint_after",
+          "checkpoint_fingerprint_before",
+          "cluster_count",
+          "condition",
+          "environment",
+          "episode",
+          "errors",
+          "experiment",
+          "high_level_steps",
+          "holdout_gain",
+          "holdout_score",
+          "imagination_depth",
+          "imagined_nodes",
+          "imagined_transitions",
+          "intrinsic_value",
+          "model",
+          "noise_facts",
+          "novelty_score",
+          "phase",
+          "prediction_score",
+          "primitive_steps",
+          "real_transitions",
+          "repeats",
+          "research_seed",
+          "reward",
+          "root_imagined_value",
+          "runtime_seconds",
+          "seed",
+          "skill_count",
+          "skill_uses",
+          "solution_family",
+          "steps",
+          "strategy_id",
+          "success",
+          "suite",
+          "world_seed"
+        ],
+        "condition_counts": {
+          "contextual_policy": 216000,
+          "dqn": 216000,
+          "full_aassr": 216000,
+          "oracle_upper_bound": 216000,
+          "prophecy_no_imagination": 216000,
+          "q_learning": 216000,
+          "random": 216000
+        },
+        "condition_environment_phase_counts": [
+          {
+            "condition": "contextual_policy",
+            "environment": "opaque_dependency_l4",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "contextual_policy",
+            "environment": "opaque_dependency_l4",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "contextual_policy",
+            "environment": "opaque_dependency_l4",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "contextual_policy",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "contextual_policy",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "contextual_policy",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "contextual_policy",
+            "environment": "opaque_dependency_l8",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "contextual_policy",
+            "environment": "opaque_dependency_l8",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "contextual_policy",
+            "environment": "opaque_dependency_l8",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "dqn",
+            "environment": "opaque_dependency_l4",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "dqn",
+            "environment": "opaque_dependency_l4",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "dqn",
+            "environment": "opaque_dependency_l4",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "dqn",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "dqn",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "dqn",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "dqn",
+            "environment": "opaque_dependency_l8",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "dqn",
+            "environment": "opaque_dependency_l8",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "dqn",
+            "environment": "opaque_dependency_l8",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_aassr",
+            "environment": "opaque_dependency_l4",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_aassr",
+            "environment": "opaque_dependency_l4",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_aassr",
+            "environment": "opaque_dependency_l4",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_aassr",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_aassr",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_aassr",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "full_aassr",
+            "environment": "opaque_dependency_l8",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "full_aassr",
+            "environment": "opaque_dependency_l8",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "full_aassr",
+            "environment": "opaque_dependency_l8",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "oracle_upper_bound",
+            "environment": "opaque_dependency_l4",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "oracle_upper_bound",
+            "environment": "opaque_dependency_l4",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "oracle_upper_bound",
+            "environment": "opaque_dependency_l4",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "oracle_upper_bound",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "oracle_upper_bound",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "oracle_upper_bound",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "oracle_upper_bound",
+            "environment": "opaque_dependency_l8",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "oracle_upper_bound",
+            "environment": "opaque_dependency_l8",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "oracle_upper_bound",
+            "environment": "opaque_dependency_l8",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "prophecy_no_imagination",
+            "environment": "opaque_dependency_l4",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "prophecy_no_imagination",
+            "environment": "opaque_dependency_l4",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "prophecy_no_imagination",
+            "environment": "opaque_dependency_l4",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "prophecy_no_imagination",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "prophecy_no_imagination",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "prophecy_no_imagination",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "prophecy_no_imagination",
+            "environment": "opaque_dependency_l8",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "prophecy_no_imagination",
+            "environment": "opaque_dependency_l8",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "prophecy_no_imagination",
+            "environment": "opaque_dependency_l8",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "q_learning",
+            "environment": "opaque_dependency_l4",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "q_learning",
+            "environment": "opaque_dependency_l4",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "q_learning",
+            "environment": "opaque_dependency_l4",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "q_learning",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "q_learning",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "q_learning",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "q_learning",
+            "environment": "opaque_dependency_l8",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "q_learning",
+            "environment": "opaque_dependency_l8",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "q_learning",
+            "environment": "opaque_dependency_l8",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "random",
+            "environment": "opaque_dependency_l4",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "random",
+            "environment": "opaque_dependency_l4",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "random",
+            "environment": "opaque_dependency_l4",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "random",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "random",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "random",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          },
+          {
+            "condition": "random",
+            "environment": "opaque_dependency_l8",
+            "phase": "evaluation_seen",
+            "rows": 6000
+          },
+          {
+            "condition": "random",
+            "environment": "opaque_dependency_l8",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 6000
+          },
+          {
+            "condition": "random",
+            "environment": "opaque_dependency_l8",
+            "phase": "training",
+            "rows": 60000
+          }
+        ],
+        "csv_syntax_overhead_bytes": 63504567,
+        "distinct_counts_for_repeated_fields": {
+          "action_family": 1,
+          "branch_start_fingerprint": 1,
+          "checkpoint_fingerprint_after": 537,
+          "checkpoint_fingerprint_before": 537,
+          "condition": 7,
+          "environment": 3,
+          "experiment": 1,
+          "model": 5,
+          "phase": 3,
+          "solution_family": 1,
+          "suite": 1
+        },
+        "duplicate_episode_grain_rows": 0,
+        "duplicate_method": "BLAKE2b-128 fingerprints stored and counted in a temporary SQLite table; raw rows were never retained in memory.",
+        "empty_counts": {
+          "adaptation_budget": 1512000,
+          "branch_start_fingerprint": 1512000,
+          "checkpoint_fingerprint_after": 1260000,
+          "checkpoint_fingerprint_before": 1260000,
+          "cluster_count": 1512000,
+          "holdout_gain": 252000,
+          "holdout_score": 108000,
+          "intrinsic_value": 252000,
+          "noise_facts": 1512000,
+          "novelty_score": 1512000,
+          "prediction_score": 108000,
+          "root_imagined_value": 1337998,
+          "skill_count": 1512000,
+          "solution_family": 1512000,
+          "strategy_id": 1512000
+        },
+        "environment_counts": {
+          "opaque_dependency_l4": 504000,
+          "opaque_dependency_l6": 504000,
+          "opaque_dependency_l8": 504000
+        },
+        "exact_duplicate_rows": 0,
+        "file_size_bytes": 333049038,
+        "gzip_ratio": 0.06699689671525189,
+        "gzip_size_bytes_exact": 22313252,
+        "high_prediction_failed_rows": 224109,
+        "invalid_numeric_counts": {},
+        "nan_or_infinite_counts": {},
+        "parquet_size_estimate_bytes": {
+          "high": 73270788,
+          "low": 26643923,
+          "method": "Estimated range for typed columnar storage with dictionary encoding; pyarrow/duckdb were unavailable, so no Parquet file was materialized."
+        },
+        "path": "D:\\AASSR\\paper_results\\paper-autonomy-final-v1\\raw\\episodes.csv",
+        "phase_counts": {
+          "evaluation_seen": 126000,
+          "evaluation_unseen_zero_shot": 126000,
+          "training": 1260000
+        },
+        "repeated_value_estimated_bytes": {
+          "action_family": 9071994,
+          "branch_start_fingerprint": 0,
+          "checkpoint_fingerprint_after": 14257747,
+          "checkpoint_fingerprint_before": 14257747,
+          "condition": 18791913,
+          "environment": 30239940,
+          "experiment": 34775977,
+          "model": 17063939,
+          "phase": 15371950,
+          "solution_family": 0,
+          "suite": 12095992
+        },
+        "research_seeds": [
+          131,
+          173,
+          211,
+          257,
+          307,
+          353,
+          401,
+          457,
+          503,
+          557,
+          601,
+          659,
+          701,
+          761,
+          809,
+          857,
+          907,
+          953,
+          1009,
+          1061,
+          1103,
+          1151,
+          1201,
+          1259,
+          1301,
+          1361,
+          1423,
+          1481,
+          1543,
+          1601
+        ],
+        "row_count": 1512000,
+        "transfer_branch_budget_mismatches": 0,
+        "transfer_branch_origin_mismatches": 0,
+        "unequal_transition_budget_groups": [],
+        "world_seeds": [
+          51001,
+          51002,
+          51003,
+          51004,
+          51005,
+          51006,
+          51007,
+          51008,
+          61001,
+          61002,
+          61003,
+          61004,
+          71001,
+          71002,
+          71003,
+          71004,
+          71005,
+          71006,
+          71007,
+          71008
+        ]
+      },
+      "run": {
+        "actual_rows": 1512000,
+        "completed_research_seed_count": 30,
+        "completed_suites": [
+          "autonomy"
+        ],
+        "expected_research_seed_count": 30,
+        "experiment_completed_at_utc": "2026-07-31T10:23:56.578+00:00",
+        "failed_runs": [
+          {
+            "error_type": "PermissionError",
+            "failed_at_utc": "2026-07-31T09:48:55.319+00:00",
+            "reason": "[WinError 5] 액세스가 거부되었습니다: 'paper_results\\\\paper-autonomy-final-v1\\\\raw\\\\suite_runs\\\\autonomy\\\\progress.json.tmp' -> 'paper_results\\\\paper-autonomy-final-v1\\\\raw\\\\suite_runs\\\\autonomy\\\\progress.json'",
+            "suite": "autonomy"
+          }
+        ],
+        "missing_research_seeds": [],
+        "pipeline_completed_at_utc": "2026-07-31T10:28:18.029+00:00",
+        "planned_rows": 1512000,
+        "result_path": "D:\\AASSR\\paper_results\\paper-autonomy-final-v1",
+        "started_at_utc": "2026-07-31T09:46:27.409+00:00",
+        "state_row_count": 1512000,
+        "unexpected_research_seeds": []
+      },
+      "seed_overlap": {
+        "research_seed_overlap_pilot_final": [],
+        "seen_unseen_overlap_final": [],
+        "train_seen_overlap_final": [],
+        "train_unseen_overlap_final": [],
+        "world_seed_overlap_pilot_final": []
+      },
+      "storage": {
+        "directory_size_bytes": 22527487166,
+        "files": [
+          {
+            "relative_path": "figures\\figure1_closed_loop.svg",
+            "size_bytes": 2450,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure2_protocol.svg",
+            "size_bytes": 2445,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure3_autonomy.svg",
+            "size_bytes": 1493754,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure4_transfer.svg",
+            "size_bytes": 6550,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure5_ablation.svg",
+            "size_bytes": 11535,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure6_creativity.svg",
+            "size_bytes": 876,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "manifests\\acceptance_gate_manifest.json",
+            "size_bytes": 884,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\protocol_manifest.json",
+            "size_bytes": 2572,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\protocol_manifest.json.sha256",
+            "size_bytes": 66,
+            "suffix": ".sha256"
+          },
+          {
+            "relative_path": "manifests\\resolved_config.json",
+            "size_bytes": 2874,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\run_state.json",
+            "size_bytes": 760,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "raw\\episodes.csv",
+            "size_bytes": 333049038,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "raw\\strategies.jsonl",
+            "size_bytes": 0,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_cache\\autonomy_episodes.jsonl",
+            "size_bytes": 1557768471,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_cache\\autonomy_strategies.jsonl",
+            "size_bytes": 0,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_cache\\autonomy_transitions.jsonl",
+            "size_bytes": 6688097909,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_runs\\autonomy\\episodes.csv",
+            "size_bytes": 364801038,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "raw\\suite_runs\\autonomy\\progress.json",
+            "size_bytes": 476,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "raw\\suite_runs\\autonomy\\progress.jsonl",
+            "size_bytes": 9675280,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_runs\\autonomy\\progress.log",
+            "size_bytes": 5366284,
+            "suffix": ".log"
+          },
+          {
+            "relative_path": "raw\\suite_runs\\autonomy\\protocol_manifest.json",
+            "size_bytes": 1188,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "raw\\suite_runs\\autonomy\\resolved_config.json",
+            "size_bytes": 3904,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "raw\\suite_runs\\autonomy\\transitions.jsonl",
+            "size_bytes": 6878609909,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\transitions.jsonl",
+            "size_bytes": 6688097909,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "report.md",
+            "size_bytes": 5934,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "seed_level\\seed_summary.csv",
+            "size_bytes": 362538,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\adaptation_summary.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\analysis_summary.json",
+            "size_bytes": 558,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "statistics\\condition_comparisons.csv",
+            "size_bytes": 8568,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\creativity_summary.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\cross_seed_summary.csv",
+            "size_bytes": 45912,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\learning_auc_comparisons.csv",
+            "size_bytes": 4161,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\learning_summary.csv",
+            "size_bytes": 52981,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\transfer_comparisons.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "tables\\table1_protocol.md",
+            "size_bytes": 203,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "tables\\table2_autonomy.md",
+            "size_bytes": 9537,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "tables\\table3_transfer.md",
+            "size_bytes": 238,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "tables\\table4_creativity.md",
+            "size_bytes": 364,
+            "suffix": ".md"
+          }
+        ],
+        "merged_cache_transition_same_size": true,
+        "merged_cache_transition_sha256_match": true,
+        "size_by_suffix": {
+          ".csv": 698324236,
+          ".json": 13216,
+          ".jsonl": 21822249478,
+          ".log": 5366284,
+          ".md": 16276,
+          ".sha256": 66,
+          ".svg": 1517610
+        }
+      },
+      "transitions": {
+        "evaluation_learning_enabled_rows": 0,
+        "exists": true,
+        "file_size_bytes": 6688097909,
+        "json_parse_errors": 0,
+        "line_count": 9072000,
+        "path": "D:\\AASSR\\paper_results\\paper-autonomy-final-v1\\raw\\transitions.jsonl",
+        "private_agent_visible_leak_rows": 0,
+        "private_tokens_checked": [
+          "bypass_route",
+          "correct_action",
+          "emergent_combination",
+          "hidden_solution",
+          "information_route",
+          "oracle_answer",
+          "resource_route",
+          "solution_family",
+          "solution_label",
+          "target_sequence",
+          "tool_route",
+          "viable_branch"
+        ]
+      }
+    },
+    "creativity": {
+      "artifact_validator": {
+        "issues": [],
+        "passed": true
+      },
+      "config": {
+        "acceptance_gate_copy_present": true,
+        "acceptance_gate_declared": true,
+        "acceptance_gate_hash_matches": true,
+        "config_canonical_sha256": "09c40029fd849c34f899c3d27fa241c7042da5c1400c18dbc1a86dbdff55ac2f",
+        "config_hash_matches_manifest": true,
+        "config_path": "D:\\AASSR\\configs\\paper_creativity_final_v1.json",
+        "frozen_creativity_rule_copy_present": true,
+        "frozen_creativity_rule_declared": true,
+        "frozen_creativity_rule_hash_matches": true,
+        "manifest_config_sha256": "09c40029fd849c34f899c3d27fa241c7042da5c1400c18dbc1a86dbdff55ac2f",
+        "resolved_config_canonical_sha256": "09c40029fd849c34f899c3d27fa241c7042da5c1400c18dbc1a86dbdff55ac2f",
+        "resolved_config_hash_matches_manifest": true
+      },
+      "episode_csv": {
+        "abnormal_counts": {},
+        "average_serialized_row_bytes": 241.11746662879864,
+        "column_count": 41,
+        "column_payload_bytes": {
+          "action_family": 2006970,
+          "action_proposals": 105630,
+          "actual_return": 316890,
+          "adaptation_budget": 0,
+          "branch_start_fingerprint": 0,
+          "checkpoint_fingerprint_after": 40320,
+          "checkpoint_fingerprint_before": 40320,
+          "cluster_count": 0,
+          "condition": 1192110,
+          "environment": 2640750,
+          "episode": 293790,
+          "errors": 105630,
+          "experiment": 2640750,
+          "high_level_steps": 105630,
+          "holdout_gain": 0,
+          "holdout_score": 0,
+          "imagination_depth": 0,
+          "imagined_nodes": 110024,
+          "imagined_transitions": 110024,
+          "intrinsic_value": 0,
+          "model": 633780,
+          "noise_facts": 0,
+          "novelty_score": 316890,
+          "phase": 857640,
+          "prediction_score": 0,
+          "primitive_steps": 105630,
+          "real_transitions": 105630,
+          "repeats": 105630,
+          "research_seed": 359142,
+          "reward": 316890,
+          "root_imagined_value": 0,
+          "runtime_seconds": 2240310,
+          "seed": 359142,
+          "skill_count": 0,
+          "skill_uses": 0,
+          "solution_family": 1436897,
+          "steps": 105630,
+          "strategy_id": 2690082,
+          "success": 105630,
+          "suite": 1056300,
+          "world_seed": 528150
+        },
+        "column_payload_share": {
+          "action_family": 0.09542363377773264,
+          "action_proposals": 0.005022296514617507,
+          "actual_return": 0.015066889543852522,
+          "adaptation_budget": 0.0,
+          "branch_start_fingerprint": 0.0,
+          "checkpoint_fingerprint_after": 0.0019170595045856092,
+          "checkpoint_fingerprint_before": 0.0019170595045856092,
+          "cluster_count": 0.0,
+          "condition": 0.056680203522111866,
+          "environment": 0.12555741286543767,
+          "episode": 0.013968574202683683,
+          "errors": 0.005022296514617507,
+          "experiment": 0.12555741286543767,
+          "high_level_steps": 0.005022296514617507,
+          "holdout_gain": 0.0,
+          "holdout_score": 0.0,
+          "imagination_depth": 0.0,
+          "imagined_nodes": 0.005231214160032914,
+          "imagined_transitions": 0.005231214160032914,
+          "intrinsic_value": 0.0,
+          "model": 0.030133779087705044,
+          "noise_facts": 0.0,
+          "novelty_score": 0.015066889543852522,
+          "phase": 0.04077745321212306,
+          "prediction_score": 0.0,
+          "primitive_steps": 0.005022296514617507,
+          "real_transitions": 0.005022296514617507,
+          "repeats": 0.005022296514617507,
+          "research_seed": 0.017075808149699525,
+          "reward": 0.015066889543852522,
+          "root_imagined_value": 0.0,
+          "runtime_seconds": 0.10651804510709786,
+          "seed": 0.017075808149699525,
+          "skill_count": 0.0,
+          "skill_uses": 0.0,
+          "solution_family": 0.068318875271839,
+          "steps": 0.005022296514617507,
+          "strategy_id": 0.12790295799143514,
+          "success": 0.005022296514617507,
+          "suite": 0.05022296514617507,
+          "world_seed": 0.025111482573087537
+        },
+        "columns": [
+          "action_family",
+          "action_proposals",
+          "actual_return",
+          "adaptation_budget",
+          "branch_start_fingerprint",
+          "checkpoint_fingerprint_after",
+          "checkpoint_fingerprint_before",
+          "cluster_count",
+          "condition",
+          "environment",
+          "episode",
+          "errors",
+          "experiment",
+          "high_level_steps",
+          "holdout_gain",
+          "holdout_score",
+          "imagination_depth",
+          "imagined_nodes",
+          "imagined_transitions",
+          "intrinsic_value",
+          "model",
+          "noise_facts",
+          "novelty_score",
+          "phase",
+          "prediction_score",
+          "primitive_steps",
+          "real_transitions",
+          "repeats",
+          "research_seed",
+          "reward",
+          "root_imagined_value",
+          "runtime_seconds",
+          "seed",
+          "skill_count",
+          "skill_uses",
+          "solution_family",
+          "steps",
+          "strategy_id",
+          "success",
+          "suite",
+          "world_seed"
+        ],
+        "condition_counts": {
+          "aassr_no_imagination": 15090,
+          "aassr_no_novelty": 15090,
+          "dqn": 15090,
+          "full_aassr": 15090,
+          "novelty_search": 15090,
+          "q_learning": 15090,
+          "random": 15090
+        },
+        "condition_environment_phase_counts": [
+          {
+            "condition": "aassr_no_imagination",
+            "environment": "multi_solution_dependency",
+            "phase": "evaluation_unseen_adaptation",
+            "rows": 90
+          },
+          {
+            "condition": "aassr_no_imagination",
+            "environment": "multi_solution_dependency",
+            "phase": "training",
+            "rows": 15000
+          },
+          {
+            "condition": "aassr_no_novelty",
+            "environment": "multi_solution_dependency",
+            "phase": "evaluation_unseen_adaptation",
+            "rows": 90
+          },
+          {
+            "condition": "aassr_no_novelty",
+            "environment": "multi_solution_dependency",
+            "phase": "training",
+            "rows": 15000
+          },
+          {
+            "condition": "dqn",
+            "environment": "multi_solution_dependency",
+            "phase": "evaluation_unseen_adaptation",
+            "rows": 90
+          },
+          {
+            "condition": "dqn",
+            "environment": "multi_solution_dependency",
+            "phase": "training",
+            "rows": 15000
+          },
+          {
+            "condition": "full_aassr",
+            "environment": "multi_solution_dependency",
+            "phase": "evaluation_unseen_adaptation",
+            "rows": 90
+          },
+          {
+            "condition": "full_aassr",
+            "environment": "multi_solution_dependency",
+            "phase": "training",
+            "rows": 15000
+          },
+          {
+            "condition": "novelty_search",
+            "environment": "multi_solution_dependency",
+            "phase": "evaluation_unseen_adaptation",
+            "rows": 90
+          },
+          {
+            "condition": "novelty_search",
+            "environment": "multi_solution_dependency",
+            "phase": "training",
+            "rows": 15000
+          },
+          {
+            "condition": "q_learning",
+            "environment": "multi_solution_dependency",
+            "phase": "evaluation_unseen_adaptation",
+            "rows": 90
+          },
+          {
+            "condition": "q_learning",
+            "environment": "multi_solution_dependency",
+            "phase": "training",
+            "rows": 15000
+          },
+          {
+            "condition": "random",
+            "environment": "multi_solution_dependency",
+            "phase": "evaluation_unseen_adaptation",
+            "rows": 90
+          },
+          {
+            "condition": "random",
+            "environment": "multi_solution_dependency",
+            "phase": "training",
+            "rows": 15000
+          }
+        ],
+        "csv_syntax_overhead_bytes": 4437027,
+        "distinct_counts_for_repeated_fields": {
+          "action_family": 1,
+          "branch_start_fingerprint": 1,
+          "checkpoint_fingerprint_after": 211,
+          "checkpoint_fingerprint_before": 211,
+          "condition": 7,
+          "environment": 1,
+          "experiment": 1,
+          "model": 1,
+          "phase": 2,
+          "solution_family": 5,
+          "suite": 1
+        },
+        "duplicate_episode_grain_rows": 0,
+        "duplicate_method": "BLAKE2b-128 fingerprints stored and counted in a temporary SQLite table; raw rows were never retained in memory.",
+        "empty_counts": {
+          "adaptation_budget": 105630,
+          "branch_start_fingerprint": 105630,
+          "checkpoint_fingerprint_after": 105000,
+          "checkpoint_fingerprint_before": 105000,
+          "cluster_count": 105630,
+          "holdout_gain": 105630,
+          "holdout_score": 105630,
+          "imagination_depth": 105630,
+          "intrinsic_value": 105630,
+          "noise_facts": 105630,
+          "prediction_score": 105630,
+          "root_imagined_value": 105630,
+          "skill_count": 105630,
+          "skill_uses": 105630
+        },
+        "environment_counts": {
+          "multi_solution_dependency": 105630
+        },
+        "exact_duplicate_rows": 0,
+        "file_size_bytes": 25469238,
+        "gzip_ratio": 0.09743208650372658,
+        "gzip_size_bytes_exact": 2481521,
+        "high_prediction_failed_rows": 0,
+        "invalid_numeric_counts": {},
+        "nan_or_infinite_counts": {},
+        "parquet_size_estimate_bytes": {
+          "high": 5603232,
+          "low": 2037539,
+          "method": "Estimated range for typed columnar storage with dictionary encoding; pyarrow/duckdb were unavailable, so no Parquet file was materialized."
+        },
+        "path": "D:\\AASSR\\paper_results\\paper-creativity-final-v1\\raw\\episodes.csv",
+        "phase_counts": {
+          "evaluation_unseen_adaptation": 630,
+          "training": 105000
+        },
+        "repeated_value_estimated_bytes": {
+          "action_family": 2006951,
+          "branch_start_fingerprint": 0,
+          "checkpoint_fingerprint_after": 26880,
+          "checkpoint_fingerprint_before": 26880,
+          "condition": 1192031,
+          "environment": 2640725,
+          "experiment": 2640725,
+          "model": 633774,
+          "phase": 857604,
+          "solution_family": 1436824,
+          "suite": 1056290
+        },
+        "research_seeds": [
+          131,
+          173,
+          211,
+          257,
+          307,
+          353,
+          401,
+          457,
+          503,
+          557,
+          601,
+          659,
+          701,
+          761,
+          809,
+          857,
+          907,
+          953,
+          1009,
+          1061,
+          1103,
+          1151,
+          1201,
+          1259,
+          1301,
+          1361,
+          1423,
+          1481,
+          1543,
+          1601
+        ],
+        "row_count": 105630,
+        "transfer_branch_budget_mismatches": 0,
+        "transfer_branch_origin_mismatches": 0,
+        "unequal_transition_budget_groups": [],
+        "world_seeds": [
+          54001,
+          54002,
+          54003,
+          54004,
+          54005,
+          54006,
+          54007,
+          54008,
+          64001,
+          64002,
+          64003,
+          64004,
+          74001,
+          74002,
+          74003
+        ]
+      },
+      "run": {
+        "actual_rows": 105630,
+        "completed_research_seed_count": 30,
+        "completed_suites": [
+          "creativity"
+        ],
+        "expected_research_seed_count": 30,
+        "experiment_completed_at_utc": "2026-07-31T11:48:37.746+00:00",
+        "failed_runs": [],
+        "missing_research_seeds": [],
+        "pipeline_completed_at_utc": "2026-07-31T11:49:14.397+00:00",
+        "planned_rows": 105630,
+        "result_path": "D:\\AASSR\\paper_results\\paper-creativity-final-v1",
+        "started_at_utc": "2026-07-31T11:45:48.040+00:00",
+        "state_row_count": 105630,
+        "unexpected_research_seeds": []
+      },
+      "seed_overlap": {
+        "research_seed_overlap_pilot_final": [],
+        "seen_unseen_overlap_final": [],
+        "train_seen_overlap_final": [],
+        "train_unseen_overlap_final": [],
+        "world_seed_overlap_pilot_final": []
+      },
+      "storage": {
+        "directory_size_bytes": 1562649787,
+        "files": [
+          {
+            "relative_path": "figures\\figure1_closed_loop.svg",
+            "size_bytes": 2450,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure2_protocol.svg",
+            "size_bytes": 2445,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure3_autonomy.svg",
+            "size_bytes": 1571,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure4_transfer.svg",
+            "size_bytes": 530,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure5_ablation.svg",
+            "size_bytes": 3336,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure6_creativity.svg",
+            "size_bytes": 12124776,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "manifests\\acceptance_gate_manifest.json",
+            "size_bytes": 884,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\frozen_creativity_rules.json",
+            "size_bytes": 613,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\protocol_manifest.json",
+            "size_bytes": 2289,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\protocol_manifest.json.sha256",
+            "size_bytes": 66,
+            "suffix": ".sha256"
+          },
+          {
+            "relative_path": "manifests\\resolved_config.json",
+            "size_bytes": 2725,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\run_state.json",
+            "size_bytes": 357,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "raw\\episodes.csv",
+            "size_bytes": 25469238,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "raw\\strategies.jsonl",
+            "size_bytes": 375378816,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_cache\\creativity_episodes.jsonl",
+            "size_bytes": 107226291,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_cache\\creativity_strategies.jsonl",
+            "size_bytes": 375378816,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_cache\\creativity_transitions.jsonl",
+            "size_bytes": 319206550,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\transitions.jsonl",
+            "size_bytes": 319206550,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "report.md",
+            "size_bytes": 1917,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "seed_level\\seed_summary.csv",
+            "size_bytes": 95385,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\adaptation_summary.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\analysis_summary.json",
+            "size_bytes": 558,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "statistics\\condition_comparisons.csv",
+            "size_bytes": 1826,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\creativity_summary.csv",
+            "size_bytes": 10147476,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\cross_seed_summary.csv",
+            "size_bytes": 14390,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\learning_auc_comparisons.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\learning_summary.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\transfer_comparisons.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "tables\\table1_protocol.md",
+            "size_bytes": 205,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "tables\\table2_autonomy.md",
+            "size_bytes": 225,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "tables\\table3_transfer.md",
+            "size_bytes": 238,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "tables\\table4_creativity.md",
+            "size_bytes": 18379264,
+            "suffix": ".md"
+          }
+        ],
+        "merged_cache_transition_same_size": true,
+        "merged_cache_transition_sha256_match": true,
+        "size_by_suffix": {
+          ".csv": 35728315,
+          ".json": 7426,
+          ".jsonl": 1496397023,
+          ".md": 18381849,
+          ".sha256": 66,
+          ".svg": 12135108
+        }
+      },
+      "transitions": {
+        "evaluation_learning_enabled_rows": 0,
+        "exists": true,
+        "file_size_bytes": 319206550,
+        "json_parse_errors": 0,
+        "line_count": 336382,
+        "path": "D:\\AASSR\\paper_results\\paper-creativity-final-v1\\raw\\transitions.jsonl",
+        "private_agent_visible_leak_rows": 0,
+        "private_tokens_checked": [
+          "bypass_route",
+          "correct_action",
+          "emergent_combination",
+          "hidden_solution",
+          "information_route",
+          "oracle_answer",
+          "resource_route",
+          "solution_family",
+          "solution_label",
+          "target_sequence",
+          "tool_route",
+          "viable_branch"
+        ]
+      }
+    },
+    "safe_application": {
+      "artifact_validator": {
+        "issues": [],
+        "passed": true
+      },
+      "config": {
+        "acceptance_gate_copy_present": true,
+        "acceptance_gate_declared": true,
+        "acceptance_gate_hash_matches": true,
+        "config_canonical_sha256": "9612b316aa1af83c4a901856143571f7c07883462f4a6692de4874f0bb373c04",
+        "config_hash_matches_manifest": true,
+        "config_path": "D:\\AASSR\\configs\\paper_safe_application_final_v1.json",
+        "frozen_creativity_rule_copy_present": false,
+        "frozen_creativity_rule_declared": false,
+        "frozen_creativity_rule_hash_matches": false,
+        "manifest_config_sha256": "9612b316aa1af83c4a901856143571f7c07883462f4a6692de4874f0bb373c04",
+        "resolved_config_canonical_sha256": "9612b316aa1af83c4a901856143571f7c07883462f4a6692de4874f0bb373c04",
+        "resolved_config_hash_matches_manifest": true
+      },
+      "episode_csv": {
+        "abnormal_counts": {},
+        "average_serialized_row_bytes": 224.89,
+        "column_count": 41,
+        "column_payload_bytes": {
+          "action_family": 6000,
+          "action_proposals": 600,
+          "actual_return": 1800,
+          "adaptation_budget": 0,
+          "branch_start_fingerprint": 0,
+          "checkpoint_fingerprint_after": 0,
+          "checkpoint_fingerprint_before": 0,
+          "cluster_count": 0,
+          "condition": 9000,
+          "environment": 13800,
+          "episode": 900,
+          "errors": 0,
+          "experiment": 18600,
+          "high_level_steps": 600,
+          "holdout_gain": 0,
+          "holdout_score": 0,
+          "imagination_depth": 0,
+          "imagined_nodes": 0,
+          "imagined_transitions": 600,
+          "intrinsic_value": 0,
+          "model": 7800,
+          "noise_facts": 0,
+          "novelty_score": 0,
+          "phase": 16200,
+          "prediction_score": 0,
+          "primitive_steps": 600,
+          "real_transitions": 600,
+          "repeats": 0,
+          "research_seed": 2040,
+          "reward": 1800,
+          "root_imagined_value": 0,
+          "runtime_seconds": 0,
+          "seed": 2040,
+          "skill_count": 0,
+          "skill_uses": 0,
+          "solution_family": 12387,
+          "steps": 600,
+          "strategy_id": 0,
+          "success": 600,
+          "suite": 9600,
+          "world_seed": 3000
+        },
+        "column_payload_share": {
+          "action_family": 0.054961664239193166,
+          "action_proposals": 0.0054961664239193166,
+          "actual_return": 0.01648849927175795,
+          "adaptation_budget": 0.0,
+          "branch_start_fingerprint": 0.0,
+          "checkpoint_fingerprint_after": 0.0,
+          "checkpoint_fingerprint_before": 0.0,
+          "cluster_count": 0.0,
+          "condition": 0.08244249635878974,
+          "environment": 0.12641182775014428,
+          "episode": 0.008244249635878975,
+          "errors": 0.0,
+          "experiment": 0.17038115914149882,
+          "high_level_steps": 0.0054961664239193166,
+          "holdout_gain": 0.0,
+          "holdout_score": 0.0,
+          "imagination_depth": 0.0,
+          "imagined_nodes": 0.0,
+          "imagined_transitions": 0.0054961664239193166,
+          "intrinsic_value": 0.0,
+          "model": 0.07145016351095111,
+          "noise_facts": 0.0,
+          "novelty_score": 0.0,
+          "phase": 0.14839649344582154,
+          "prediction_score": 0.0,
+          "primitive_steps": 0.0054961664239193166,
+          "real_transitions": 0.0054961664239193166,
+          "repeats": 0.0,
+          "research_seed": 0.018686965841325676,
+          "reward": 0.01648849927175795,
+          "root_imagined_value": 0.0,
+          "runtime_seconds": 0.0,
+          "seed": 0.018686965841325676,
+          "skill_count": 0.0,
+          "skill_uses": 0.0,
+          "solution_family": 0.11346835582181429,
+          "steps": 0.0054961664239193166,
+          "strategy_id": 0.0,
+          "success": 0.0054961664239193166,
+          "suite": 0.08793866278270907,
+          "world_seed": 0.027480832119596583
+        },
+        "columns": [
+          "action_family",
+          "action_proposals",
+          "actual_return",
+          "adaptation_budget",
+          "branch_start_fingerprint",
+          "checkpoint_fingerprint_after",
+          "checkpoint_fingerprint_before",
+          "cluster_count",
+          "condition",
+          "environment",
+          "episode",
+          "errors",
+          "experiment",
+          "high_level_steps",
+          "holdout_gain",
+          "holdout_score",
+          "imagination_depth",
+          "imagined_nodes",
+          "imagined_transitions",
+          "intrinsic_value",
+          "model",
+          "noise_facts",
+          "novelty_score",
+          "phase",
+          "prediction_score",
+          "primitive_steps",
+          "real_transitions",
+          "repeats",
+          "research_seed",
+          "reward",
+          "root_imagined_value",
+          "runtime_seconds",
+          "seed",
+          "skill_count",
+          "skill_uses",
+          "solution_family",
+          "steps",
+          "strategy_id",
+          "success",
+          "suite",
+          "world_seed"
+        ],
+        "condition_counts": {
+          "safe_rule_agent": 600
+        },
+        "condition_environment_phase_counts": [
+          {
+            "condition": "safe_rule_agent",
+            "environment": "docker_local_assessment",
+            "phase": "evaluation_unseen_zero_shot",
+            "rows": 600
+          }
+        ],
+        "csv_syntax_overhead_bytes": 25767,
+        "distinct_counts_for_repeated_fields": {
+          "action_family": 1,
+          "branch_start_fingerprint": 1,
+          "checkpoint_fingerprint_after": 1,
+          "checkpoint_fingerprint_before": 1,
+          "condition": 1,
+          "environment": 1,
+          "experiment": 1,
+          "model": 1,
+          "phase": 1,
+          "solution_family": 3,
+          "suite": 1
+        },
+        "duplicate_episode_grain_rows": 0,
+        "duplicate_method": "BLAKE2b-128 fingerprints stored and counted in a temporary SQLite table; raw rows were never retained in memory.",
+        "empty_counts": {
+          "adaptation_budget": 600,
+          "branch_start_fingerprint": 600,
+          "checkpoint_fingerprint_after": 600,
+          "checkpoint_fingerprint_before": 600,
+          "cluster_count": 600,
+          "errors": 600,
+          "holdout_gain": 600,
+          "holdout_score": 600,
+          "imagination_depth": 600,
+          "imagined_nodes": 600,
+          "intrinsic_value": 600,
+          "noise_facts": 600,
+          "novelty_score": 600,
+          "prediction_score": 600,
+          "repeats": 600,
+          "root_imagined_value": 600,
+          "runtime_seconds": 600,
+          "skill_count": 600,
+          "skill_uses": 600,
+          "strategy_id": 600
+        },
+        "environment_counts": {
+          "docker_local_assessment": 600
+        },
+        "exact_duplicate_rows": 0,
+        "file_size_bytes": 134934,
+        "gzip_ratio": 0.027368935924229624,
+        "gzip_size_bytes_exact": 3693,
+        "high_prediction_failed_rows": 0,
+        "invalid_numeric_counts": {},
+        "nan_or_infinite_counts": {},
+        "parquet_size_estimate_bytes": {
+          "high": 29685,
+          "low": 10794,
+          "method": "Estimated range for typed columnar storage with dictionary encoding; pyarrow/duckdb were unavailable, so no Parquet file was materialized."
+        },
+        "path": "D:\\AASSR\\paper_results\\paper-safe-application-final-v1\\raw\\episodes.csv",
+        "phase_counts": {
+          "evaluation_unseen_zero_shot": 600
+        },
+        "repeated_value_estimated_bytes": {
+          "action_family": 5990,
+          "branch_start_fingerprint": 0,
+          "checkpoint_fingerprint_after": 0,
+          "checkpoint_fingerprint_before": 0,
+          "condition": 8985,
+          "environment": 13777,
+          "experiment": 18569,
+          "model": 7787,
+          "phase": 16173,
+          "solution_family": 12325,
+          "suite": 9584
+        },
+        "research_seeds": [
+          131,
+          173,
+          211,
+          257,
+          307,
+          353,
+          401,
+          457,
+          503,
+          557,
+          601,
+          659,
+          701,
+          761,
+          809,
+          857,
+          907,
+          953,
+          1009,
+          1061,
+          1103,
+          1151,
+          1201,
+          1259,
+          1301,
+          1361,
+          1423,
+          1481,
+          1543,
+          1601
+        ],
+        "row_count": 600,
+        "transfer_branch_budget_mismatches": 0,
+        "transfer_branch_origin_mismatches": 0,
+        "unequal_transition_budget_groups": [],
+        "world_seeds": [
+          75001,
+          75002,
+          75003,
+          75004,
+          75005,
+          75006,
+          75007,
+          75008
+        ]
+      },
+      "run": {
+        "actual_rows": 600,
+        "completed_research_seed_count": 30,
+        "completed_suites": [
+          "safe_application"
+        ],
+        "expected_research_seed_count": 30,
+        "experiment_completed_at_utc": "2026-07-31T09:19:34.157+00:00",
+        "failed_runs": [],
+        "missing_research_seeds": [],
+        "pipeline_completed_at_utc": "2026-07-31T09:19:35.485+00:00",
+        "planned_rows": 600,
+        "result_path": "D:\\AASSR\\paper_results\\paper-safe-application-final-v1",
+        "started_at_utc": "2026-07-31T09:19:34.040+00:00",
+        "state_row_count": 600,
+        "unexpected_research_seeds": []
+      },
+      "seed_overlap": {
+        "research_seed_overlap_pilot_final": [],
+        "seen_unseen_overlap_final": [],
+        "train_seen_overlap_final": [],
+        "train_unseen_overlap_final": [],
+        "world_seed_overlap_pilot_final": []
+      },
+      "storage": {
+        "directory_size_bytes": 2704328,
+        "files": [
+          {
+            "relative_path": "figures\\figure1_closed_loop.svg",
+            "size_bytes": 2450,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure2_protocol.svg",
+            "size_bytes": 2445,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure3_autonomy.svg",
+            "size_bytes": 1571,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure4_transfer.svg",
+            "size_bytes": 530,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure5_ablation.svg",
+            "size_bytes": 358,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure6_creativity.svg",
+            "size_bytes": 876,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "manifests\\acceptance_gate_manifest.json",
+            "size_bytes": 884,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\protocol_manifest.json",
+            "size_bytes": 2091,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\protocol_manifest.json.sha256",
+            "size_bytes": 66,
+            "suffix": ".sha256"
+          },
+          {
+            "relative_path": "manifests\\resolved_config.json",
+            "size_bytes": 2243,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\run_state.json",
+            "size_bytes": 360,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\safe_application_world.json",
+            "size_bytes": 765,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "raw\\episodes.csv",
+            "size_bytes": 134934,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "raw\\strategies.jsonl",
+            "size_bytes": 0,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_cache\\safe_application_episodes.jsonl",
+            "size_bytes": 604767,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_cache\\safe_application_strategies.jsonl",
+            "size_bytes": 0,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_cache\\safe_application_transitions.jsonl",
+            "size_bytes": 969543,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\transitions.jsonl",
+            "size_bytes": 969543,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "report.md",
+            "size_bytes": 941,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "seed_level\\seed_summary.csv",
+            "size_bytes": 5594,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\adaptation_summary.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\analysis_summary.json",
+            "size_bytes": 548,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "statistics\\condition_comparisons.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\creativity_summary.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\cross_seed_summary.csv",
+            "size_bytes": 2781,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\learning_auc_comparisons.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\learning_summary.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\transfer_comparisons.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "tables\\table1_protocol.md",
+            "size_bytes": 211,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "tables\\table2_autonomy.md",
+            "size_bytes": 225,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "tables\\table3_transfer.md",
+            "size_bytes": 238,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "tables\\table4_creativity.md",
+            "size_bytes": 364,
+            "suffix": ".md"
+          }
+        ],
+        "merged_cache_transition_same_size": true,
+        "merged_cache_transition_sha256_match": true,
+        "size_by_suffix": {
+          ".csv": 143309,
+          ".json": 6891,
+          ".jsonl": 2543853,
+          ".md": 1979,
+          ".sha256": 66,
+          ".svg": 8230
+        }
+      },
+      "transitions": {
+        "evaluation_learning_enabled_rows": 0,
+        "exists": true,
+        "file_size_bytes": 969543,
+        "json_parse_errors": 0,
+        "line_count": 1410,
+        "path": "D:\\AASSR\\paper_results\\paper-safe-application-final-v1\\raw\\transitions.jsonl",
+        "private_agent_visible_leak_rows": 0,
+        "private_tokens_checked": [
+          "bypass_route",
+          "correct_action",
+          "emergent_combination",
+          "hidden_solution",
+          "information_route",
+          "oracle_answer",
+          "resource_route",
+          "solution_family",
+          "solution_label",
+          "target_sequence",
+          "tool_route",
+          "viable_branch"
+        ]
+      }
+    },
+    "transfer": {
+      "artifact_validator": {
+        "issues": [],
+        "passed": true
+      },
+      "config": {
+        "acceptance_gate_copy_present": true,
+        "acceptance_gate_declared": true,
+        "acceptance_gate_hash_matches": true,
+        "config_canonical_sha256": "6b1e4534985f39ce34bfcfcb3710812b440a3a2c54c2c1927f99eaeb373a06f7",
+        "config_hash_matches_manifest": true,
+        "config_path": "D:\\AASSR\\configs\\paper_transfer_final_v1.json",
+        "frozen_creativity_rule_copy_present": false,
+        "frozen_creativity_rule_declared": false,
+        "frozen_creativity_rule_hash_matches": false,
+        "manifest_config_sha256": "6b1e4534985f39ce34bfcfcb3710812b440a3a2c54c2c1927f99eaeb373a06f7",
+        "resolved_config_canonical_sha256": "6b1e4534985f39ce34bfcfcb3710812b440a3a2c54c2c1927f99eaeb373a06f7",
+        "resolved_config_hash_matches_manifest": true
+      },
+      "episode_csv": {
+        "abnormal_counts": {},
+        "average_serialized_row_bytes": 401.9091036745407,
+        "column_count": 41,
+        "column_payload_bytes": {
+          "action_family": 4572000,
+          "action_proposals": 762000,
+          "actual_return": 2286000,
+          "adaptation_budget": 1038000,
+          "branch_start_fingerprint": 44928000,
+          "checkpoint_fingerprint_after": 38400000,
+          "checkpoint_fingerprint_before": 44928000,
+          "cluster_count": 0,
+          "condition": 18609600,
+          "environment": 15240000,
+          "episode": 1520700,
+          "errors": 762000,
+          "experiment": 17526000,
+          "high_level_steps": 0,
+          "holdout_gain": 509476,
+          "holdout_score": 4922950,
+          "imagination_depth": 762000,
+          "imagined_nodes": 1234739,
+          "imagined_transitions": 1234739,
+          "intrinsic_value": 510483,
+          "model": 10668000,
+          "noise_facts": 0,
+          "novelty_score": 0,
+          "phase": 18300000,
+          "prediction_score": 3500026,
+          "primitive_steps": 0,
+          "real_transitions": 762000,
+          "repeats": 762000,
+          "research_seed": 2590800,
+          "reward": 2286000,
+          "root_imagined_value": 5070248,
+          "runtime_seconds": 15781609,
+          "seed": 2590800,
+          "skill_count": 0,
+          "skill_uses": 762000,
+          "solution_family": 0,
+          "steps": 762000,
+          "strategy_id": 0,
+          "success": 762000,
+          "suite": 6096000,
+          "world_seed": 3810000
+        },
+        "column_payload_share": {
+          "action_family": 0.016670910358961673,
+          "action_proposals": 0.0027784850598269457,
+          "actual_return": 0.008335455179480837,
+          "adaptation_budget": 0.003784865475197335,
+          "branch_start_fingerprint": 0.16382122935420604,
+          "checkpoint_fingerprint_after": 0.14001814474718466,
+          "checkpoint_fingerprint_before": 0.16382122935420604,
+          "cluster_count": 0.0,
+          "condition": 0.06785629339810437,
+          "environment": 0.05556970119653891,
+          "episode": 0.00554493731033968,
+          "errors": 0.0027784850598269457,
+          "experiment": 0.06390515637601975,
+          "high_level_steps": 0.0,
+          "holdout_gain": 0.0018577053206566836,
+          "holdout_score": 0.01795058139799877,
+          "imagination_depth": 0.0027784850598269457,
+          "imagined_nodes": 0.004502236042369636,
+          "imagined_transitions": 0.004502236042369636,
+          "intrinsic_value": 0.0018613771506504444,
+          "model": 0.03889879083757724,
+          "noise_facts": 0.0,
+          "novelty_score": 0.0,
+          "phase": 0.0667273971060802,
+          "prediction_score": 0.012762165288721608,
+          "primitive_steps": 0.0,
+          "real_transitions": 0.0027784850598269457,
+          "repeats": 0.0027784850598269457,
+          "research_seed": 0.009446849203411614,
+          "reward": 0.008335455179480837,
+          "root_imagined_value": 0.018487674957503218,
+          "runtime_seconds": 0.05754457326316334,
+          "seed": 0.009446849203411614,
+          "skill_count": 0.0,
+          "skill_uses": 0.0027784850598269457,
+          "solution_family": 0.0,
+          "steps": 0.0027784850598269457,
+          "strategy_id": 0.0,
+          "success": 0.0027784850598269457,
+          "suite": 0.022227880478615566,
+          "world_seed": 0.013892425299134727
+        },
+        "columns": [
+          "action_family",
+          "action_proposals",
+          "actual_return",
+          "adaptation_budget",
+          "branch_start_fingerprint",
+          "checkpoint_fingerprint_after",
+          "checkpoint_fingerprint_before",
+          "cluster_count",
+          "condition",
+          "environment",
+          "episode",
+          "errors",
+          "experiment",
+          "high_level_steps",
+          "holdout_gain",
+          "holdout_score",
+          "imagination_depth",
+          "imagined_nodes",
+          "imagined_transitions",
+          "intrinsic_value",
+          "model",
+          "noise_facts",
+          "novelty_score",
+          "phase",
+          "prediction_score",
+          "primitive_steps",
+          "real_transitions",
+          "repeats",
+          "research_seed",
+          "reward",
+          "root_imagined_value",
+          "runtime_seconds",
+          "seed",
+          "skill_count",
+          "skill_uses",
+          "solution_family",
+          "steps",
+          "strategy_id",
+          "success",
+          "suite",
+          "world_seed"
+        ],
+        "condition_counts": {
+          "from_scratch_contextual_policy": 140400,
+          "from_scratch_full_aassr": 140400,
+          "full_transfer": 140400,
+          "policy_reset_effect_retained": 140400,
+          "policy_reset_prophecy_retained": 140400,
+          "transfer_pretraining": 60000
+        },
+        "condition_environment_phase_counts": [
+          {
+            "condition": "from_scratch_contextual_policy",
+            "environment": "opaque_dependency_l6",
+            "phase": "adaptation",
+            "rows": 20400
+          },
+          {
+            "condition": "from_scratch_contextual_policy",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_adaptation",
+            "rows": 120000
+          },
+          {
+            "condition": "from_scratch_full_aassr",
+            "environment": "opaque_dependency_l6",
+            "phase": "adaptation",
+            "rows": 20400
+          },
+          {
+            "condition": "from_scratch_full_aassr",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_adaptation",
+            "rows": 120000
+          },
+          {
+            "condition": "full_transfer",
+            "environment": "opaque_dependency_l6",
+            "phase": "adaptation",
+            "rows": 20400
+          },
+          {
+            "condition": "full_transfer",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_adaptation",
+            "rows": 120000
+          },
+          {
+            "condition": "policy_reset_effect_retained",
+            "environment": "opaque_dependency_l6",
+            "phase": "adaptation",
+            "rows": 20400
+          },
+          {
+            "condition": "policy_reset_effect_retained",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_adaptation",
+            "rows": 120000
+          },
+          {
+            "condition": "policy_reset_prophecy_retained",
+            "environment": "opaque_dependency_l6",
+            "phase": "adaptation",
+            "rows": 20400
+          },
+          {
+            "condition": "policy_reset_prophecy_retained",
+            "environment": "opaque_dependency_l6",
+            "phase": "evaluation_unseen_adaptation",
+            "rows": 120000
+          },
+          {
+            "condition": "transfer_pretraining",
+            "environment": "opaque_dependency_l6",
+            "phase": "training",
+            "rows": 60000
+          }
+        ],
+        "csv_syntax_overhead_bytes": 32004567,
+        "distinct_counts_for_repeated_fields": {
+          "action_family": 1,
+          "branch_start_fingerprint": 991,
+          "checkpoint_fingerprint_after": 5791,
+          "checkpoint_fingerprint_before": 5791,
+          "condition": 6,
+          "environment": 1,
+          "experiment": 1,
+          "model": 1,
+          "phase": 3,
+          "solution_family": 1,
+          "suite": 1
+        },
+        "duplicate_episode_grain_rows": 0,
+        "duplicate_method": "BLAKE2b-128 fingerprints stored and counted in a temporary SQLite table; raw rows were never retained in memory.",
+        "empty_counts": {
+          "adaptation_budget": 60000,
+          "branch_start_fingerprint": 60000,
+          "checkpoint_fingerprint_after": 162000,
+          "checkpoint_fingerprint_before": 60000,
+          "cluster_count": 762000,
+          "high_level_steps": 762000,
+          "holdout_gain": 600000,
+          "intrinsic_value": 600000,
+          "noise_facts": 762000,
+          "novelty_score": 762000,
+          "primitive_steps": 762000,
+          "root_imagined_value": 483380,
+          "skill_count": 762000,
+          "solution_family": 762000,
+          "strategy_id": 762000
+        },
+        "environment_counts": {
+          "opaque_dependency_l6": 762000
+        },
+        "exact_duplicate_rows": 0,
+        "file_size_bytes": 306254737,
+        "gzip_ratio": 0.040330615359591974,
+        "gzip_size_bytes_exact": 12351442,
+        "high_prediction_failed_rows": 419970,
+        "invalid_numeric_counts": {},
+        "nan_or_infinite_counts": {},
+        "parquet_size_estimate_bytes": {
+          "high": 67376042,
+          "low": 24500378,
+          "method": "Estimated range for typed columnar storage with dictionary encoding; pyarrow/duckdb were unavailable, so no Parquet file was materialized."
+        },
+        "path": "D:\\AASSR\\paper_results\\paper-transfer-final-v1\\raw\\episodes.csv",
+        "phase_counts": {
+          "adaptation": 102000,
+          "evaluation_unseen_adaptation": 600000,
+          "training": 60000
+        },
+        "repeated_value_estimated_bytes": {
+          "action_family": 4571994,
+          "branch_start_fingerprint": 44864640,
+          "checkpoint_fingerprint_after": 38029440,
+          "checkpoint_fingerprint_before": 44557440,
+          "condition": 18609456,
+          "environment": 15239980,
+          "experiment": 17525977,
+          "model": 10667986,
+          "phase": 18299954,
+          "solution_family": 0,
+          "suite": 6095992
+        },
+        "research_seeds": [
+          131,
+          173,
+          211,
+          257,
+          307,
+          353,
+          401,
+          457,
+          503,
+          557,
+          601,
+          659,
+          701,
+          761,
+          809,
+          857,
+          907,
+          953,
+          1009,
+          1061,
+          1103,
+          1151,
+          1201,
+          1259,
+          1301,
+          1361,
+          1423,
+          1481,
+          1543,
+          1601
+        ],
+        "row_count": 762000,
+        "transfer_branch_budget_mismatches": 0,
+        "transfer_branch_origin_mismatches": 0,
+        "unequal_transition_budget_groups": [],
+        "world_seeds": [
+          53001,
+          53002,
+          53003,
+          53004,
+          53005,
+          53006,
+          53007,
+          53008,
+          73001,
+          73002,
+          73003,
+          73004,
+          73005,
+          73006,
+          73007,
+          73008
+        ]
+      },
+      "run": {
+        "actual_rows": 762000,
+        "completed_research_seed_count": 30,
+        "completed_suites": [
+          "transfer"
+        ],
+        "expected_research_seed_count": 30,
+        "experiment_completed_at_utc": "2026-07-31T11:44:17.222+00:00",
+        "failed_runs": [],
+        "missing_research_seeds": [],
+        "pipeline_completed_at_utc": "2026-07-31T11:45:04.225+00:00",
+        "planned_rows": 762000,
+        "result_path": "D:\\AASSR\\paper_results\\paper-transfer-final-v1",
+        "started_at_utc": "2026-07-31T11:05:03.085+00:00",
+        "state_row_count": 762000,
+        "unexpected_research_seeds": []
+      },
+      "seed_overlap": {
+        "research_seed_overlap_pilot_final": [],
+        "seen_unseen_overlap_final": [],
+        "train_seen_overlap_final": [],
+        "train_unseen_overlap_final": [],
+        "world_seed_overlap_pilot_final": []
+      },
+      "storage": {
+        "directory_size_bytes": 7620585077,
+        "files": [
+          {
+            "relative_path": "figures\\figure1_closed_loop.svg",
+            "size_bytes": 2450,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure2_protocol.svg",
+            "size_bytes": 2445,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure3_autonomy.svg",
+            "size_bytes": 1571,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure4_transfer.svg",
+            "size_bytes": 1989,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure5_ablation.svg",
+            "size_bytes": 2456,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "figures\\figure6_creativity.svg",
+            "size_bytes": 876,
+            "suffix": ".svg"
+          },
+          {
+            "relative_path": "manifests\\acceptance_gate_manifest.json",
+            "size_bytes": 884,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\protocol_manifest.json",
+            "size_bytes": 2168,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\protocol_manifest.json.sha256",
+            "size_bytes": 66,
+            "suffix": ".sha256"
+          },
+          {
+            "relative_path": "manifests\\resolved_config.json",
+            "size_bytes": 2468,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "manifests\\run_state.json",
+            "size_bytes": 355,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "raw\\episodes.csv",
+            "size_bytes": 306254737,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "raw\\strategies.jsonl",
+            "size_bytes": 0,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_cache\\transfer_episodes.jsonl",
+            "size_bytes": 891908930,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_cache\\transfer_strategies.jsonl",
+            "size_bytes": 0,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\suite_cache\\transfer_transitions.jsonl",
+            "size_bytes": 3211123832,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "raw\\transitions.jsonl",
+            "size_bytes": 3211123832,
+            "suffix": ".jsonl"
+          },
+          {
+            "relative_path": "report.md",
+            "size_bytes": 2136,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "seed_level\\seed_summary.csv",
+            "size_bytes": 94659,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\adaptation_summary.csv",
+            "size_bytes": 22592,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\analysis_summary.json",
+            "size_bytes": 554,
+            "suffix": ".json"
+          },
+          {
+            "relative_path": "statistics\\condition_comparisons.csv",
+            "size_bytes": 2266,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\creativity_summary.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\cross_seed_summary.csv",
+            "size_bytes": 16059,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\learning_auc_comparisons.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\learning_summary.csv",
+            "size_bytes": 0,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "statistics\\transfer_comparisons.csv",
+            "size_bytes": 1116,
+            "suffix": ".csv"
+          },
+          {
+            "relative_path": "tables\\table1_protocol.md",
+            "size_bytes": 203,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "tables\\table2_autonomy.md",
+            "size_bytes": 225,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "tables\\table3_transfer.md",
+            "size_bytes": 15844,
+            "suffix": ".md"
+          },
+          {
+            "relative_path": "tables\\table4_creativity.md",
+            "size_bytes": 364,
+            "suffix": ".md"
+          }
+        ],
+        "merged_cache_transition_same_size": true,
+        "merged_cache_transition_sha256_match": true,
+        "size_by_suffix": {
+          ".csv": 306391429,
+          ".json": 6429,
+          ".jsonl": 7314156594,
+          ".md": 18772,
+          ".sha256": 66,
+          ".svg": 11787
+        }
+      },
+      "transitions": {
+        "evaluation_learning_enabled_rows": 0,
+        "exists": true,
+        "file_size_bytes": 3211123832,
+        "json_parse_errors": 0,
+        "line_count": 4572000,
+        "path": "D:\\AASSR\\paper_results\\paper-transfer-final-v1\\raw\\transitions.jsonl",
+        "private_agent_visible_leak_rows": 0,
+        "private_tokens_checked": [
+          "bypass_route",
+          "correct_action",
+          "emergent_combination",
+          "hidden_solution",
+          "information_route",
+          "oracle_answer",
+          "resource_route",
+          "solution_family",
+          "solution_label",
+          "target_sequence",
+          "tool_route",
+          "viable_branch"
+        ]
+      }
+    }
+  },
+  "human_data": {
+    "approval_id_matches": false,
+    "automatic_human_novelty_correlation": null,
+    "configured_approval_id": null,
+    "configured_dataset_version": "creativity-final-v1",
+    "dataset_version_matches": false,
+    "duplicate_rating_removed": null,
+    "human_dataset_manifest_present": false,
+    "human_paths_present": false,
+    "human_ratings_present": false,
+    "inter_rater_agreement": null,
+    "interpretation": "No human participant dataset is present; all non-AASSR references are baseline-generated.",
+    "manifest_approval_id": null,
+    "manifest_dataset_version": null,
+    "maximum_raters_per_strategy": null,
+    "merge_enabled": false,
+    "minimum_raters_per_strategy": null,
+    "participant_count": 0,
+    "rating_row_count": 0,
+    "self_rating_removed": null,
+    "valid_human_strategy_count": 0
+  },
+  "method": {
+    "bootstrap_samples": 5000,
+    "csv": "streaming csv.DictReader",
+    "duplicates": "BLAKE2b-128 fingerprints counted in temporary SQLite",
+    "gzip": "full streaming zlib level 6 byte count",
+    "multiple_comparisons": "Holm within experiment/environment/phase/metric",
+    "permutation_samples": 20000,
+    "statistics_unit": "research_seed"
+  },
+  "read_only_source_policy": true,
+  "schema_version": 1,
+  "source_root": "D:\\AASSR\\paper_results"
+}

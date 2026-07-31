@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="530" viewBox="0 0 1000 530">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="36" y="38" font-family="Arial" font-size="23" fill="#20242b">Ablation matrix marginal learning AUC</text>
+<text x="36" y="66" font-family="Arial" font-size="13" fill="#5b6470">Each axis level is averaged within seed across the other matrix axes; only dependency length L6 was run</text>
+<line x1="310" y1="86" x2="310" y2="472" stroke="#303640"/>
+<text x="298" y="116" text-anchor="end" font-family="Arial" font-size="12" fill="#303640">axis_aggregation=max</text>
+<rect x="310" y="100" width="204.51" height="22" fill="#4c78a8" stroke="#2f4f6f"/>
+<text x="522.51" y="116" font-family="Consolas" font-size="12" fill="#20242b">0.3353</text>
+<text x="298" y="150" text-anchor="end" font-family="Arial" font-size="12" fill="#303640">axis_aggregation=mean</text>
+<rect x="310" y="134" width="204.51" height="22" fill="#4c78a8" stroke="#2f4f6f"/>
+<text x="522.51" y="150" font-family="Consolas" font-size="12" fill="#20242b">0.3353</text>
+<text x="298" y="184" text-anchor="end" font-family="Arial" font-size="12" fill="#303640">axis_aggregation=risk-adjusted</text>
+<rect x="310" y="168" width="204.51" height="22" fill="#4c78a8" stroke="#2f4f6f"/>
+<text x="522.51" y="184" font-family="Consolas" font-size="12" fill="#20242b">0.3353</text>
+<text x="298" y="218" text-anchor="end" font-family="Arial" font-size="12" fill="#303640">axis_branch=1</text>
+<rect x="310" y="202" width="204.51" height="22" fill="#4c78a8" stroke="#2f4f6f"/>
+<text x="522.51" y="218" font-family="Consolas" font-size="12" fill="#20242b">0.3353</text>
+<text x="298" y="252" text-anchor="end" font-family="Arial" font-size="12" fill="#303640">axis_branch=2</text>
+<rect x="310" y="236" width="204.51" height="22" fill="#4c78a8" stroke="#2f4f6f"/>
+<text x="522.51" y="252" font-family="Consolas" font-size="12" fill="#20242b">0.3353</text>
+<text x="298" y="286" text-anchor="end" font-family="Arial" font-size="12" fill="#303640">axis_branch=4</text>
+<rect x="310" y="270" width="204.51" height="22" fill="#4c78a8" stroke="#2f4f6f"/>
+<text x="522.51" y="286" font-family="Consolas" font-size="12" fill="#20242b">0.3353</text>
+<text x="298" y="320" text-anchor="end" font-family="Arial" font-size="12" fill="#303640">axis_depth=1</text>
+<rect x="310" y="304" width="204.51" height="22" fill="#4c78a8" stroke="#2f4f6f"/>
+<text x="522.51" y="320" font-family="Consolas" font-size="12" fill="#20242b">0.3353</text>
+<text x="298" y="354" text-anchor="end" font-family="Arial" font-size="12" fill="#303640">axis_depth=2</text>
+<rect x="310" y="338" width="204.51" height="22" fill="#4c78a8" stroke="#2f4f6f"/>
+<text x="522.51" y="354" font-family="Consolas" font-size="12" fill="#20242b">0.3353</text>
+<text x="298" y="388" text-anchor="end" font-family="Arial" font-size="12" fill="#303640">axis_depth=4</text>
+<rect x="310" y="372" width="204.51" height="22" fill="#4c78a8" stroke="#2f4f6f"/>
+<text x="522.51" y="388" font-family="Consolas" font-size="12" fill="#20242b">0.3353</text>
+<text x="298" y="422" text-anchor="end" font-family="Arial" font-size="12" fill="#303640">axis_depth=6</text>
+<rect x="310" y="406" width="204.51" height="22" fill="#4c78a8" stroke="#2f4f6f"/>
+<text x="522.51" y="422" font-family="Consolas" font-size="12" fill="#20242b">0.3353</text>
+<text x="615.0" y="508" text-anchor="middle" font-family="Arial" font-size="13" fill="#303640">training success AUC</text>
+</svg>

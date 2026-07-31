@@ -1,0 +1,27 @@
+{
+  "status": "accepted",
+  "p0": true,
+  "p1": true,
+  "p2": true,
+  "p3": true,
+  "reviewer": "implementation-audit",
+  "frozen_at_utc": "2026-07-31T09:19:22+00:00",
+  "evidence": {
+    "p0": {
+      "path": "paper_results\\paper-autonomy-pilot-v1",
+      "manifest_sha256": "d84cc37cfdb4dcf1e19c646eebc8589a62f8e3a4eac46562e8a5eb5c7fffb283"
+    },
+    "p1": {
+      "path": "paper_results\\paper-ablation-pilot-v1",
+      "manifest_sha256": "63d5f0eee4bf44d2f70341f47e5da0acd452e6364d453c1fd488caf820ecea31"
+    },
+    "p2": {
+      "path": "paper_results\\paper-transfer-pilot-v1",
+      "manifest_sha256": "627dc5bbbe1f752fb76e3ba4ec003fb85c8a06b95f9e923f54e3267b6c82ca86"
+    },
+    "p3": {
+      "path": "paper_results\\paper-creativity-pilot-v1",
+      "manifest_sha256": "20cb3e59ffa60bdbd4d86cec1a06fecbad4e6054a2322a9b2fc97fb02c902a22"
+    }
+  }
+}
