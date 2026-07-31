@@ -56,14 +56,15 @@ class OpaqueDependencyWorld:
     def _vector(self) -> tuple[float, ...]:
         one_hot = [0.0] * (self.length + 1)
         one_hot[self._state_slots[min(self.stage, self.length)]] = 1.0
-        return (*one_hot, float(self.corrupted), float(self.terminal))
+        # Viability is deliberately absent from the agent-visible state.  A
+        # wrong choice and a viable choice at the same stage must be
+        # observationally indistinguishable until terminal reward is emitted.
+        return (*one_hot, 0.0, float(self.terminal))
 
     def snapshot(self) -> StateSnapshot:
         success = self.terminal and not self.corrupted
         actions = () if self.terminal else self._actions[self.stage]
         facts = {self._labels[min(self.stage, self.length)]}
-        if self.corrupted:
-            facts.add(f"obs_{(self.seed ^ 0xA55A):012x}")
         return StateSnapshot(
             self._vector(),
             frozenset(facts),
@@ -99,4 +100,15 @@ class OpaqueDependencyWorld:
             unlocked_actions=unlocked,
             error=error,
             reward=reward,
+        )
+
+    def oracle_action(self) -> Action:
+        """Return the viable action for the explicitly privileged upper bound."""
+        if self.terminal:
+            raise RuntimeError("terminal world has no oracle action")
+        signature = self._viable_signature[self.stage]
+        return next(
+            action
+            for action in self._actions[self.stage]
+            if action.signature == signature
         )

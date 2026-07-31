@@ -1,0 +1,17 @@
+{
+  "status": "frozen",
+  "novelty_threshold": 0.06000000000000001,
+  "utility_criteria": {
+    "valid": true,
+    "minimum_reusable_success_rate": 0.5,
+    "must_not_be_dominated_on_all_utility_metrics": true
+  },
+  "derived_from": "pilot baseline strategy distances",
+  "baseline_strategy_count": 600,
+  "unique_reference_graph_count": 94,
+  "distance_count": 94,
+  "generated_at_utc": "2026-07-31T09:19:13.052+00:00",
+  "reviewer": "implementation-audit",
+  "frozen_at_utc": "2026-07-31T09:19:22+00:00",
+  "candidate_sha256": "4bae8da8778ceba5f91f5f92a6fd939b51ee5bce5fcfcc319c171659af2536c5"
+}

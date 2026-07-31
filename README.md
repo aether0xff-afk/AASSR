@@ -1,5 +1,13 @@
 # AASSR v2
 
+논문용 P0–P5 재현 실험은
+[`docs/paper_experiment_quickstart.md`](docs/paper_experiment_quickstart.md)를
+따른다. Pilot/Final seed 분리, 평가 동결, 구조 전이, 창의성 전략 거리,
+익명 블라인드 평가, 내부망 전용 Docker 검증이 독립된 논문 runner에
+구현되어 있다. 요구사항별 구현·실행 증거는
+[`docs/paper_protocol_implementation_status.md`](docs/paper_protocol_implementation_status.md)에
+정리되어 있다.
+
 AASSR v2는 기존 구현을 복사하지 않고 처음부터 다시 설계한 연구용 코드베이스다.
 
 목표는 에이전트에게 사물별 정답 규칙이나 행동 순서를 직접 가르치는 것이 아니다. 플러그인은 명령 문법과 기본 조작만 제공하고, 어떤 정보와 행동 조합이 목표에 유용한지는 실제 경험·Prophecy·Imagination을 통해 학습한다.

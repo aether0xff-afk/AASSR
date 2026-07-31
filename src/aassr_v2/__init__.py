@@ -133,7 +133,22 @@ from .types import (
     TransitionTrace,
     action_verb_name,
 )
+from .paper_types import (
+    AgentCheckpointParts,
+    BudgetLedger,
+    CausalEffectGraph,
+    EffectProfile,
+    ExperimentPhase,
+    PaperManifest,
+    StrategyRecord,
+)
+from .paper_protocol import (
+    load_paper_config,
+    planned_paper_run_count,
+    validate_paper_config,
+)
+from .paper_runner import PaperArtifacts, run_paper_suite
 
 __all__ = [name for name in globals() if not name.startswith("_")]
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

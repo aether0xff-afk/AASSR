@@ -497,6 +497,13 @@ def serialize_agent_checkpoint(agent: object, *, episode: int) -> dict[str, Any]
             "items": holdout_items,
             "random_state": _json_safe(getattr(holdout, "_randomizer").getstate()),
         },
+        "effect_novelty_motifs": [
+            _json_safe(item)
+            for item in sorted(
+                getattr(agent, "_seen_effect_motifs", ()),
+                key=repr,
+            )
+        ],
     }
 
 

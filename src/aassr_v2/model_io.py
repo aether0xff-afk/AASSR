@@ -254,6 +254,10 @@ def restore_agent_checkpoint(agent: object, checkpoint: Mapping[str, Any]) -> No
 
     agent._transition_index = int(checkpoint.get("transition_index", 0))  # type: ignore[attr-defined]
     agent._decision_index = int(checkpoint.get("decision_index", 0))  # type: ignore[attr-defined]
+    agent._seen_effect_motifs = {  # type: ignore[attr-defined]
+        _hashable(item)
+        for item in checkpoint.get("effect_novelty_motifs", ())
+    }
     agent._episode.clear()  # type: ignore[attr-defined]
     agent._recent_pairs.clear()  # type: ignore[attr-defined]
 

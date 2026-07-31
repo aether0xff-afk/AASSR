@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import hashlib
 from math import log, sqrt
 import random
 from statistics import fmean
@@ -92,7 +93,7 @@ class ContextualPolicy:
             raise ValueError("state has no available actions")
         if not 0.0 <= epsilon <= 1.0:
             raise ValueError("epsilon must be in [0, 1]")
-        if randomizer.random() < epsilon:
+        if epsilon > 0.0 and randomizer.random() < epsilon:
             return randomizer.choice(state.available_actions)
         key = state_key(state)
         total = self._state_visits.get(key, 0)
@@ -212,6 +213,9 @@ class AutonomousAgentConfig:
     holdout_evaluation_limit: int = 32
     validation_interval: int = 8
     imagination_interval: int = 1
+    imagination_aggregation: str = "max"
+    effect_novelty_weight: float = 0.0
+    extrinsic_reward_weight: float = 1.0
 
     def __post_init__(self) -> None:
         if not 0.0 < self.gamma <= 1.0:
@@ -228,6 +232,14 @@ class AutonomousAgentConfig:
             raise ValueError("intervals must be positive")
         if not 0.0 <= self.imagination_minimum_coverage <= 1.0:
             raise ValueError("imagination_minimum_coverage must be in [0, 1]")
+        if self.imagination_aggregation not in {"max", "mean", "risk-adjusted"}:
+            raise ValueError(
+                "imagination_aggregation must be max, mean, or risk-adjusted"
+            )
+        if self.effect_novelty_weight < 0.0:
+            raise ValueError("effect_novelty_weight must be non-negative")
+        if self.extrinsic_reward_weight < 0.0:
+            raise ValueError("extrinsic_reward_weight must be non-negative")
 
 
 @dataclass(frozen=True, slots=True)
@@ -270,6 +282,7 @@ class AutonomousLearningAgent:
     ) -> None:
         self.prophecy = prophecy
         self.config = config or AutonomousAgentConfig()
+        self._seed = int(seed)
         self.randomizer = random.Random(seed)
         self.policy = policy or ContextualPolicy(
             learning_rate=self.config.policy_learning_rate
@@ -283,6 +296,7 @@ class AutonomousLearningAgent:
         self._transition_index = 0
         self._decision_index = 0
         self._recent_pairs: list[tuple[StateKey, str]] = []
+        self._seen_effect_motifs: set[tuple[float | int | bool, ...]] = set()
         self.planner = ImaginationTree(
             self.policy,
             prophecy,
@@ -293,7 +307,11 @@ class AutonomousLearningAgent:
                 outcome_samples=1,
                 minimum_path_confidence=0.1,
                 uncertainty_penalty=0.2,
-                aggregation="max",
+                aggregation=(
+                    "risk_adjusted"
+                    if self.config.imagination_aggregation == "risk-adjusted"
+                    else self.config.imagination_aggregation
+                ),
                 update_policy=False,
             ),
             scorer=StateDeltaScorer(
@@ -334,23 +352,50 @@ class AutonomousLearningAgent:
             raise ValueError("state has no available actions")
         epsilon = self.epsilon(episode) if explore else 0.0
         if self.config.random_policy:
-            return ActionDecision(self.randomizer.choice(state.available_actions), False)
+            if explore:
+                action = self.randomizer.choice(state.available_actions)
+            else:
+                digest = hashlib.sha256(
+                    (
+                        f"{self._seed}:{episode}:"
+                        f"{state_key(state)!r}:"
+                        f"{tuple(item.signature for item in state.available_actions)!r}"
+                    ).encode("utf-8")
+                ).digest()
+                action = state.available_actions[
+                    int.from_bytes(digest[:8], "big")
+                    % len(state.available_actions)
+                ]
+            return ActionDecision(action, False)
         if explore and self.randomizer.random() < epsilon:
             return ActionDecision(self.randomizer.choice(state.available_actions), False)
-        self._decision_index += 1
+        decision_index = self._decision_index + 1
+        if explore:
+            self._decision_index = decision_index
         if (
             self.config.use_imagination
-            and self._decision_index % self.config.imagination_interval == 0
+            and decision_index % self.config.imagination_interval == 0
             and self.model_coverage(state) >= self.config.imagination_minimum_coverage
         ):
             plan = self.planner.plan(state)
-            selected = next(
+            best_imagined = max(
+                item.aggregate_value
+                for item in plan.root_evaluations
+            )
+            candidates = [
                 item
                 for item in plan.root_evaluations
-                if item.action.signature == plan.chosen_action.signature
+                if abs(item.aggregate_value - best_imagined) <= 1e-12
+            ]
+            selected = min(
+                candidates,
+                key=lambda item: (
+                    -self.policy.value(state, item.action),
+                    item.action.signature,
+                ),
             )
             return ActionDecision(
-                plan.chosen_action,
+                selected.action,
                 True,
                 imagined_nodes=len(plan.nodes),
                 imagination_depth=plan.maximum_depth_reached,
@@ -408,6 +453,24 @@ class AutonomousLearningAgent:
         self._recent_pairs.append(pair)
         error = bool(getattr(outcome, "error", False))
         intrinsic = self.config.validated_gain_weight * max(0.0, gain)
+        before_vector = before.vector
+        after_vector = after.vector
+        effect_motif: tuple[float | int | bool, ...] = (
+            *(
+                round(right - left, 6)
+                for left, right in zip(
+                    before_vector, after_vector, strict=False
+                )
+            ),
+            len(after.facts - before.facts),
+            len(before.facts - after.facts),
+            len(getattr(outcome, "unlocked_actions", ())),
+            error,
+            round(after.goal_progress - before.goal_progress, 6),
+        )
+        if effect_motif not in self._seen_effect_motifs:
+            intrinsic += self.config.effect_novelty_weight
+            self._seen_effect_motifs.add(effect_motif)
         if repeated:
             intrinsic -= self.config.repeat_penalty
         if error:
@@ -425,7 +488,7 @@ class AutonomousLearningAgent:
 
     def finish_episode(self, *, final_return: float) -> None:
         if self.config.learn_policy and not self.config.random_policy:
-            future = float(final_return)
+            future = float(final_return) * self.config.extrinsic_reward_weight
             for transition in reversed(self._episode):
                 target = future + transition.intrinsic_value
                 self.policy.observe_return(transition.state, transition.action, target)

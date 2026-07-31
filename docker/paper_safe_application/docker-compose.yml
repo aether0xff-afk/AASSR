@@ -1,0 +1,32 @@
+name: aassr-paper-safe
+
+services:
+  paper-target:
+    build:
+      context: ./target
+    environment:
+      WORLD_SEED: "${WORLD_SEED:-41001}"
+      LOCAL_FLAG: "FLAG{AASSR_LOCAL_SIMULATION_ONLY}"
+    networks:
+      - paper-internal
+    user: "65534:65534"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os,urllib.request; seed=int(os.environ['WORLD_SEED']); urllib.request.urlopen(f'http://127.0.0.1:{8080 + seed % 4}/health', timeout=2)"
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+networks:
+  paper-internal:
+    internal: true

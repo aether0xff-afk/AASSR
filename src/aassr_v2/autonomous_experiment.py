@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import multiprocessing
 import os
@@ -16,13 +17,22 @@ from typing import Any, Mapping, Sequence
 
 from .autonomous_agent import AutonomousAgentConfig, AutonomousLearningAgent
 from .autonomous_benchmarks import OpaqueDependencyWorld
+from .baseline_agents import DQNAgent, OracleAgent, TabularQLearningAgent
+from .escape_reporting import serialize_agent_checkpoint
 from .experiment_runner import ExperimentArtifacts, RESULT_FIELDS
 from .gru_prophecy import OnlineGRUProphecy
+from .metrics import expected_prediction_vector, prediction_similarity
 from .progress import ProgressReporter
 from .tabular_prophecy import TabularProphecy
 
 
-_ALLOWED_EVALUATION_MODES = {"evaluation", "seen", "unseen"}
+_ALLOWED_EVALUATION_MODES = {
+    "evaluation",
+    "seen",
+    "unseen",
+    "evaluation_seen",
+    "evaluation_unseen_zero_shot",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,12 +110,23 @@ def validate_autonomous_config(config: Mapping[str, Any]) -> None:
         if int(environment.get("eval_worlds_per_seed", 1)) <= 0:
             raise ValueError("eval_worlds_per_seed must be positive")
     supported_models = {"tabular", "gru", "torch_gru"}
+    supported_algorithms = {
+        "aassr",
+        "contextual_policy",
+        "random",
+        "q_learning",
+        "dqn",
+        "oracle",
+    }
     for condition in conditions:
         if not str(condition.get("name", "")).strip():
             raise ValueError("every condition needs a name")
         model = str(condition.get("model", "tabular"))
         if model not in supported_models:
             raise ValueError(f"unsupported autonomous model: {model}")
+        algorithm = str(condition.get("algorithm", "aassr"))
+        if algorithm not in supported_algorithms:
+            raise ValueError(f"unsupported autonomous algorithm: {algorithm}")
     progress = config.get("progress", {})
     if not isinstance(progress, Mapping):
         raise ValueError("progress must be an object")
@@ -186,6 +207,15 @@ def _agent_config(
         imagination_interval=int(
             condition.get("imagination_interval", 1)
         ),
+        imagination_aggregation=str(
+            condition.get("imagination_aggregation", "max")
+        ),
+        effect_novelty_weight=float(
+            condition.get("effect_novelty_weight", 0.0)
+        ),
+        extrinsic_reward_weight=float(
+            condition.get("extrinsic_reward_weight", 1.0)
+        ),
     )
 
 
@@ -241,8 +271,24 @@ def _world_seed(
     mode: str,
     episode: int,
 ) -> int:
+    explicit_key = {
+        "training": "train_world_seeds",
+        "evaluation": "seen_world_seeds",
+        "seen": "seen_world_seeds",
+        "evaluation_seen": "seen_world_seeds",
+        "unseen": "unseen_world_seeds",
+        "evaluation_unseen_zero_shot": "unseen_world_seeds",
+    }.get(mode)
+    explicit = environment.get(explicit_key, ()) if explicit_key else ()
+    if isinstance(explicit, (list, tuple)) and explicit:
+        return int(explicit[episode % len(explicit)])
     base_offset = int(environment.get("seed_offset", 0))
-    if mode in {"training", "seen", "evaluation"}:
+    if mode in {
+        "training",
+        "seen",
+        "evaluation",
+        "evaluation_seen",
+    }:
         count = int(environment.get("train_worlds_per_seed", 1))
         return seed * 1009 + base_offset + (episode % count) * 104729
     count = int(environment.get("eval_worlds_per_seed", 1))
@@ -272,10 +318,21 @@ def _run_episode(
     steps = 0
     started = time.perf_counter()
     final_return = 0.0
+    transition_records: list[dict[str, Any]] = []
 
     while not environment.terminal:
         state = environment.snapshot()
-        decision = agent.select_action(state, episode=episode, explore=learn)
+        if hasattr(agent, "select_action_for_environment"):
+            decision = agent.select_action_for_environment(
+                environment,
+                state,
+                episode=episode,
+                explore=learn,
+            )
+        else:
+            decision = agent.select_action(
+                state, episode=episode, explore=learn
+            )
         imagined_nodes += decision.imagined_nodes
         imagination_depth = max(
             imagination_depth, decision.imagination_depth
@@ -283,6 +340,36 @@ def _run_episode(
         if decision.used_imagination:
             root_values.append(decision.root_imagined_value)
         outcome = environment.step(decision.action)
+        transition_records.append(
+            {
+                "transition_index": steps,
+                "phase": phase,
+                "episode": episode,
+                "world_seed": world_seed,
+                "before": {
+                    "vector": list(state.vector),
+                    "facts": sorted(state.facts),
+                    "available_actions": [
+                        item.signature for item in state.available_actions
+                    ],
+                    "goal_progress": state.goal_progress,
+                },
+                "action": decision.action.signature,
+                "after": {
+                    "vector": list(outcome.snapshot.vector),
+                    "facts": sorted(outcome.snapshot.facts),
+                    "available_actions": [
+                        item.signature
+                        for item in outcome.snapshot.available_actions
+                    ],
+                    "goal_progress": outcome.snapshot.goal_progress,
+                },
+                "reward": outcome.reward,
+                "error": outcome.error,
+                "learning_enabled": learn,
+                "imagined_nodes": decision.imagined_nodes,
+            }
+        )
         final_return = outcome.reward
         if learn:
             metrics = agent.observe(state, decision.action, outcome)
@@ -292,6 +379,28 @@ def _run_episode(
             intrinsic_values.append(metrics.intrinsic_value)
             errors += int(metrics.error)
             repeats += int(metrics.repeated)
+        elif hasattr(agent, "prophecy"):
+            predictions = agent.prophecy.predict(
+                state, decision.action, samples=1
+            )
+            prediction_scores.append(
+                prediction_similarity(
+                    expected_prediction_vector(predictions),
+                    outcome.snapshot.vector,
+                )
+            )
+            holdout = getattr(agent, "holdout", None)
+            if holdout is not None:
+                holdout_scores.append(
+                    holdout.score(
+                        agent.prophecy,
+                        limit=getattr(
+                            getattr(agent, "config", object()),
+                            "holdout_evaluation_limit",
+                            32,
+                        ),
+                    )
+                )
         steps += 1
 
     if learn:
@@ -321,7 +430,98 @@ def _run_episode(
         "skill_uses": 0,
         "action_family": "opaque",
         "runtime_seconds": time.perf_counter() - started,
+        "real_transitions": steps,
+        "imagined_transitions": imagined_nodes,
+        "action_proposals": steps,
+        "world_seed": world_seed,
+        "_transitions": transition_records,
     }
+
+
+def _learning_fingerprint(agent: object) -> str:
+    if hasattr(agent, "learning_fingerprint"):
+        return str(agent.learning_fingerprint())
+    payload = serialize_agent_checkpoint(agent, episode=0)
+    learned = {
+        "policy": payload.get("policy", {}),
+        "prophecy": payload.get("prophecy", {}),
+        "holdout": payload.get("holdout", {}),
+        "transition_index": payload.get("transition_index", 0),
+        "decision_index": payload.get("decision_index", 0),
+        "random_state": payload.get("random_state"),
+        "effect_novelty_motifs": payload.get(
+            "effect_novelty_motifs", ()
+        ),
+    }
+    encoded = json.dumps(
+        learned,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _make_agent(
+    condition: Mapping[str, Any],
+    *,
+    length: int,
+    seed: int,
+    execution: Mapping[str, Any],
+) -> tuple[object, str, AutonomousAgentConfig | None]:
+    algorithm = str(condition.get("algorithm", "aassr"))
+    common = {
+        "seed": seed,
+        "gamma": float(condition.get("gamma", 0.97)),
+        "epsilon_start": float(condition.get("epsilon_start", 0.8)),
+        "epsilon_end": float(condition.get("epsilon_end", 0.05)),
+        "epsilon_decay_episodes": int(
+            condition.get("epsilon_decay_episodes", 1000)
+        ),
+    }
+    if algorithm == "q_learning":
+        return (
+            TabularQLearningAgent(
+                **common,
+                learning_rate=float(
+                    condition.get("policy_learning_rate", 0.2)
+                ),
+            ),
+            "tabular_q_learning",
+            None,
+        )
+    if algorithm == "dqn":
+        options = condition.get("model_options", {})
+        options = options if isinstance(options, Mapping) else {}
+        agent = DQNAgent(
+            length + 3,
+            **common,
+            action_feature_size=int(options.get("action_feature_size", 16)),
+            hidden_size=int(options.get("hidden_size", 32)),
+            learning_rate=float(options.get("learning_rate", 1e-3)),
+            device=str(condition.get("device", execution.get("device", "auto"))),
+            allow_cpu_fallback=bool(
+                execution.get("allow_cpu_fallback", True)
+            ),
+        )
+        return agent, f"dqn:{agent.device}", None
+    if algorithm == "oracle":
+        return OracleAgent(), "oracle_privileged", None
+
+    prophecy, model_label = _make_prophecy(
+        condition,
+        length=length,
+        seed=seed,
+        execution=execution,
+    )
+    agent_config = _agent_config(condition, length)
+    agent = AutonomousLearningAgent(
+        prophecy,
+        config=agent_config,
+        seed=seed,
+    )
+    return agent, model_label, agent_config
 
 
 def _run_job(spec: _JobSpec) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -333,17 +533,11 @@ def _run_job(spec: _JobSpec) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         environment_spec.get("name", f"opaque_dependency_{length}")
     )
     condition_name = str(condition["name"])
-    prophecy, model_label = _make_prophecy(
+    agent, model_label, agent_config = _make_agent(
         condition,
         length=length,
         seed=seed * 7919 + length,
         execution=spec.execution,
-    )
-    agent_config = _agent_config(condition, length)
-    agent = AutonomousLearningAgent(
-        prophecy,
-        config=agent_config,
-        seed=seed * 7919 + length,
     )
     rows: list[dict[str, Any]] = []
     training_success = deque(maxlen=100)
@@ -365,8 +559,13 @@ def _run_job(spec: _JobSpec) -> tuple[dict[str, Any], list[dict[str, Any]]]:
                 suite="autonomous_discovery",
                 condition=condition_name,
                 environment=environment_name,
-                model=model_label if agent_config.learn_prophecy else "none",
+                model=(
+                    model_label
+                    if agent_config is None or agent_config.learn_prophecy
+                    else "none"
+                ),
                 seed=seed,
+                research_seed=seed,
                 episode=episode,
                 high_level_steps=result["steps"],
                 primitive_steps=result["steps"],
@@ -376,6 +575,7 @@ def _run_job(spec: _JobSpec) -> tuple[dict[str, Any], list[dict[str, Any]]]:
 
     evaluation_summary: dict[str, float] = {}
     for mode in spec.evaluation_modes:
+        fingerprint_before = _learning_fingerprint(agent)
         successes = deque(maxlen=max(1, spec.eval_episodes))
         for eval_episode in range(spec.eval_episodes):
             result = _run_episode(
@@ -388,7 +588,15 @@ def _run_job(spec: _JobSpec) -> tuple[dict[str, Any], list[dict[str, Any]]]:
                     episode=eval_episode,
                 ),
                 episode=spec.train_episodes + eval_episode,
-                phase=("evaluation" if mode == "evaluation" else f"evaluation_{mode}"),
+                phase=(
+                    "evaluation"
+                    if mode == "evaluation"
+                    else (
+                        mode
+                        if mode.startswith("evaluation_")
+                        else f"evaluation_{mode}"
+                    )
+                ),
                 learn=False,
             )
             successes.append(int(result["success"]))
@@ -398,14 +606,27 @@ def _run_job(spec: _JobSpec) -> tuple[dict[str, Any], list[dict[str, Any]]]:
                     suite="autonomous_discovery",
                     condition=condition_name,
                     environment=environment_name,
-                    model=model_label if agent_config.learn_prophecy else "none",
+                    model=(
+                        model_label
+                        if agent_config is None or agent_config.learn_prophecy
+                        else "none"
+                    ),
                     seed=seed,
+                    research_seed=seed,
                     episode=eval_episode,
+                    checkpoint_fingerprint_before=fingerprint_before,
                     high_level_steps=result["steps"],
                     primitive_steps=result["steps"],
                     **result,
                 )
             )
+        fingerprint_after = _learning_fingerprint(agent)
+        if fingerprint_before != fingerprint_after:
+            raise RuntimeError(
+                f"learning state mutated during frozen evaluation mode {mode}"
+            )
+        for row in rows[-spec.eval_episodes :]:
+            row["checkpoint_fingerprint_after"] = fingerprint_after
         evaluation_summary[mode] = fmean(successes) if successes else 0.0
 
     context = {
@@ -463,7 +684,11 @@ def _progress_settings(
 
 
 def _uses_cuda(spec: _JobSpec) -> bool:
-    if str(spec.condition.get("model", "tabular")) != "torch_gru":
+    algorithm = str(spec.condition.get("algorithm", "aassr"))
+    if (
+        algorithm != "dqn"
+        and str(spec.condition.get("model", "tabular")) != "torch_gru"
+    ):
         return False
     requested = str(
         spec.condition.get("device", spec.execution.get("device", "auto"))
@@ -534,7 +759,10 @@ def run_autonomous_experiment(
         "no_oracle_pretraining": True,
         "opaque_action_names": True,
         "terminal_reward_only": True,
-        "train_test_world_separation": "unseen" in modes,
+        "train_test_world_separation": any(
+            mode in {"unseen", "evaluation_unseen_zero_shot"}
+            for mode in modes
+        ),
         "evaluation_modes": list(modes),
         "parallel_process_workers": workers,
         "cuda_workers": cuda_workers,
@@ -571,6 +799,7 @@ def run_autonomous_experiment(
     cuda_specs = [spec for spec in specs if _uses_cuda(spec)]
 
     episodes_csv = target / "episodes.csv"
+    transitions_jsonl = target / "transitions.jsonl"
     row_count = 0
     current_context: dict[str, Any] = {}
     reporter.start(
@@ -591,6 +820,7 @@ def run_autonomous_experiment(
         result: tuple[dict[str, Any], list[dict[str, Any]]],
         writer: csv.DictWriter,
         handle: Any,
+        transition_handle: Any,
         job_number: int,
     ) -> None:
         nonlocal row_count, current_context
@@ -601,6 +831,22 @@ def run_autonomous_experiment(
         }
         reporter.stage("job_complete", current_context)
         for row in rows:
+            for transition in row.get("_transitions", ()):
+                transition_handle.write(
+                    json.dumps(
+                        {
+                            "experiment": row.get("experiment", ""),
+                            "suite": row.get("suite", ""),
+                            "condition": row.get("condition", ""),
+                            "environment": row.get("environment", ""),
+                            "research_seed": row.get("research_seed", row.get("seed", "")),
+                            **transition,
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                    + "\n"
+                )
             writer.writerow(row)
             row_count += 1
             reporter.advance(
@@ -612,11 +858,15 @@ def run_autonomous_experiment(
             )
             if row_count % progress_items == 0:
                 handle.flush()
+                transition_handle.flush()
 
     try:
-        with episodes_csv.open(
-            "w", newline="", encoding="utf-8-sig"
-        ) as handle:
+        with (
+            episodes_csv.open(
+                "w", newline="", encoding="utf-8-sig"
+            ) as handle,
+            transitions_jsonl.open("w", encoding="utf-8") as transition_handle,
+        ):
             writer = csv.DictWriter(
                 handle,
                 fieldnames=RESULT_FIELDS,
@@ -625,8 +875,15 @@ def run_autonomous_experiment(
             writer.writeheader()
             handle.flush()
 
-            if len(specs) == 1 and workers == 1 and not cuda_specs:
-                consume(_run_job(specs[0]), writer, handle, 1)
+            if workers == 1 and not cuda_specs:
+                for job_number, spec in enumerate(specs, start=1):
+                    consume(
+                        _run_job(spec),
+                        writer,
+                        handle,
+                        transition_handle,
+                        job_number,
+                    )
             else:
                 context = multiprocessing.get_context("spawn")
                 executors: list[ProcessPoolExecutor] = []
@@ -656,12 +913,17 @@ def run_autonomous_experiment(
                         as_completed(futures), start=1
                     ):
                         consume(
-                            future.result(), writer, handle, job_number
+                            future.result(),
+                            writer,
+                            handle,
+                            transition_handle,
+                            job_number,
                         )
                 finally:
                     for executor in executors:
                         executor.shutdown(wait=True, cancel_futures=True)
             handle.flush()
+            transition_handle.flush()
     except BaseException as error:
         reporter.fail(error, current_context)
         raise

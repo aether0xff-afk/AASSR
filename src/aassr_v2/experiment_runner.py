@@ -64,6 +64,17 @@ RESULT_FIELDS = (
     "intrinsic_value",
     "action_family",
     "runtime_seconds",
+    "real_transitions",
+    "imagined_transitions",
+    "action_proposals",
+    "research_seed",
+    "world_seed",
+    "adaptation_budget",
+    "branch_start_fingerprint",
+    "checkpoint_fingerprint_before",
+    "checkpoint_fingerprint_after",
+    "solution_family",
+    "strategy_id",
 )
 
 SUMMARY_METRICS = (
@@ -87,6 +98,9 @@ SUMMARY_METRICS = (
     "novelty_score",
     "intrinsic_value",
     "runtime_seconds",
+    "real_transitions",
+    "imagined_transitions",
+    "action_proposals",
 )
 
 
