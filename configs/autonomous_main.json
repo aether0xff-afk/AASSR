@@ -5,18 +5,47 @@
   "seeds": [7, 13, 21, 42, 100, 131, 173, 211, 257, 307, 353, 401, 457, 503, 557, 601, 659, 701, 761, 809],
   "train_episodes": 2000,
   "eval_episodes": 200,
+  "evaluation_modes": ["seen", "unseen"],
+  "execution": {
+    "workers": 0,
+    "cuda_workers": 1,
+    "device": "auto",
+    "allow_cpu_fallback": true
+  },
   "progress": {
     "every_episodes": 100,
     "every_seconds": 10
   },
   "environments": [
-    {"name": "opaque_dependency_l4", "length": 4, "seed_offset": 4000},
-    {"name": "opaque_dependency_l6", "length": 6, "seed_offset": 6000},
-    {"name": "opaque_dependency_l8", "length": 8, "seed_offset": 8000}
+    {
+      "name": "opaque_dependency_l4",
+      "length": 4,
+      "seed_offset": 4000,
+      "eval_seed_offset": 4004000,
+      "train_worlds_per_seed": 8,
+      "eval_worlds_per_seed": 32
+    },
+    {
+      "name": "opaque_dependency_l6",
+      "length": 6,
+      "seed_offset": 6000,
+      "eval_seed_offset": 6006000,
+      "train_worlds_per_seed": 8,
+      "eval_worlds_per_seed": 32
+    },
+    {
+      "name": "opaque_dependency_l8",
+      "length": 8,
+      "seed_offset": 8000,
+      "eval_seed_offset": 8008000,
+      "train_worlds_per_seed": 8,
+      "eval_worlds_per_seed": 32
+    }
   ],
   "conditions": [
     {
       "name": "random",
+      "model": "tabular",
       "random_policy": true,
       "learn_policy": false,
       "learn_prophecy": false,
@@ -25,6 +54,7 @@
     },
     {
       "name": "contextual_policy",
+      "model": "tabular",
       "learn_policy": true,
       "learn_prophecy": false,
       "use_imagination": false,
@@ -32,6 +62,7 @@
     },
     {
       "name": "prophecy_no_imagination",
+      "model": "tabular",
       "learn_policy": true,
       "learn_prophecy": true,
       "use_imagination": false,
@@ -39,6 +70,7 @@
     },
     {
       "name": "imagination_no_validated_value",
+      "model": "tabular",
       "learn_policy": true,
       "learn_prophecy": true,
       "use_imagination": true,
@@ -47,6 +79,7 @@
     },
     {
       "name": "full_aassr",
+      "model": "tabular",
       "learn_policy": true,
       "learn_prophecy": true,
       "use_imagination": true,
