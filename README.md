@@ -4,6 +4,136 @@ AASSR v2는 기존 구현을 복사하지 않고 처음부터 다시 설계한 �
 
 목표는 에이전트에게 사물별 정답 규칙이나 행동 순서를 직접 가르치는 것이 아니다. 플러그인은 명령 문법과 기본 조작만 제공하고, 어떤 정보와 행동 조합이 목표에 유용한지는 실제 경험·Prophecy·Imagination을 통해 학습한다.
 
+## Escape GridWorld 연구 GUI
+
+현재 가장 쉽게 AASSR의 학습 과정을 관찰할 수 있는 실행 환경은 색 열쇠·색 문 Escape GridWorld다.
+
+- 상자 안의 색 열쇠를 찾아 같은 색 문을 연 뒤 출구까지 이동
+- 출구 도달만 외부 성공으로 판정
+- 고정 episode tick 제한 없음
+- 더 짧게 성공할수록 높은 성공 점수
+- 하나의 세션에서 실시간 렌더링과 최대속도 학습 즉시 전환
+- 모든 step·episode·상상 트리·모델 상태 영구 저장
+- 종료 후 통계 창과 전체 그래프 자동 표시
+- 별도 Imagination Viewer에서 실제 상상 트리 실시간 관찰
+- 학습 모델 저장·불러오기 및 이어 학습
+
+### 실행
+
+```bash
+python -m pip install -e ".[dev]"
+python scripts/run_escape_gridworld.py --gui
+```
+
+GUI는 현재 GridWorld 창과 `AASSR Imagination Viewer` 창을 함께 연다.
+
+### 같은 세션에서 속도 전환
+
+학습 도중 다음 버튼을 언제든 누를 수 있다.
+
+- `실시간으로 보기`: primitive step을 적당한 속도로 렌더링한다.
+- `안 보고 최대 속도`: 렌더링과 인위적 대기를 중단하고 같은 학습 상태에서 최대 속도로 계속한다.
+
+속도 전환은 현재 맵, episode, tick, Policy, Prophecy, Imagination, holdout, RNG 상태를 초기화하지 않는다.
+
+### 에피소드와 성공 점수
+
+에피소드는 출구에 도달할 때까지 계속된다. 출구까지 간 경우만 성공이며 점수는 다음과 같다.
+
+```text
+성공 점수 = 1 + oracle 최단 tick / 실제 성공 tick
+```
+
+최단 경로 성공은 `2.0x`, 오래 걸릴수록 `1.0x`에 가까워진다. 상자 열기나 문 열기 자체에는 외부 성공 보상을 주지 않는다.
+
+### 전체 기록과 통계
+
+모든 step과 episode는 실행 중 즉시 파일에 기록된다.
+
+```text
+runs/escape_gridworld/<session>/
+├─ session.json
+├─ world.json
+├─ steps.jsonl
+├─ episodes.csv
+├─ episodes.jsonl
+├─ mode_switches.jsonl
+├─ imaginations.jsonl
+├─ imagination_summary.json
+├─ summary.json
+├─ summary.txt
+├─ statistics.json
+├─ session.log
+├─ checkpoints/
+├─ models/
+└─ charts/
+```
+
+학습 완료 또는 중지 후 별도 통계 창이 자동으로 열린다. episode별 step 수와 최근 이동평균을 필수로 표시하며, 점수, 경로 효율, 소요시간, Prediction, holdout, intrinsic value, Imagination, 오류·반복, 행동·이벤트 분포도 함께 제공한다. 그래프는 SVG 파일로도 저장된다.
+
+### Imagination Viewer
+
+`imagination_interval=1`은 모든 환경 tick에서 무조건 상상한다는 뜻이 아니다. 다음 조건을 만족하는 비무작위 step마다 Imagination을 실행한다.
+
+- Imagination 기능이 켜져 있음
+- epsilon random exploration이 아님
+- interval 조건 충족
+- Prophecy model coverage가 기본 임계값 이상
+
+상상 창은 실제 트리의 전체 노드, 부모 관계, 깊이, 누적 가치, 신뢰도, 종료 이유, 루트 행동별 평가, 선택된 첫 행동과 최선 경로를 표시한다. 최대속도 모드에서는 화면은 최신 트리로 갱신하지만 모든 상상 트리는 `imaginations.jsonl`에 빠짐없이 저장된다.
+
+### 모델 저장과 불러오기
+
+세션 종료 시 정식 모델이 자동 저장된다.
+
+```text
+runs/escape_gridworld/<session>/models/final.aassr-model.gz
+```
+
+GUI 버튼:
+
+- `모델 불러오기`: 저장 모델을 다음 세션의 초기 학습 상태로 사용
+- `현재 모델 저장`: 학습 중 또는 종료 후 원하는 경로에 저장
+- `새 모델로 시작`: 선택한 모델을 해제하고 처음부터 학습
+
+모델에는 Policy, Prophecy, holdout, RNG, transition/decision index와 누적 episode가 들어간다. 불러오면 epsilon 감쇠도 저장 지점 다음부터 이어진다. 현재 episode 중간 위치와 임시 행동열은 포함하지 않으므로 새 episode부터 시작한다.
+
+CLI 예시:
+
+```bash
+python scripts/run_escape_gridworld.py \
+  --episodes 2000 \
+  --colors 2 \
+  --distractors 2 \
+  --load-model models/my_agent.aassr-model.gz \
+  --save-model models/continued_agent.aassr-model.gz
+```
+
+최대속도 headless 실행:
+
+```bash
+python scripts/run_escape_gridworld.py \
+  --episodes 2000 \
+  --colors 2 \
+  --seed 7 \
+  --mode fast
+```
+
+Imagination 제거 비교:
+
+```bash
+python scripts/run_escape_gridworld.py \
+  --episodes 2000 \
+  --colors 2 \
+  --seed 7 \
+  --mode fast \
+  --no-imagination
+```
+
+상세 사용법은 [`docs/escape_gridworld_quickstart.md`](docs/escape_gridworld_quickstart.md)를 참고한다.
+
+> 현재 GUI는 한 procedural seed의 맵을 반복해 학습 과정을 관찰하는 도구다. 같은 맵에서의 개선만으로 처음 보는 맵 일반화를 주장하지 않는다. 일반화 검증은 train/test map seed를 분리한 별도 실험으로 수행해야 한다.
+
 ## 핵심 폐루프
 
 ```text
@@ -27,7 +157,7 @@ AASSR v2는 기존 구현을 복사하지 않고 처음부터 다시 설계한 �
 
 코어는 `MOVE`, `SCAN`, `BREAK` 같은 단어의 의미를 가정하지 않는다. 플러그인은 `ActionSchema`와 `ParameterSpec`으로 행동 문법·필수/선택 파라미터·기본값만 선언한다.
 
-- 임의의 문자열 행동 verb 지원
+- 임의 문자열 행동 verb 지원
 - 동적 파라미터와 안정적인 action signature
 - 플러그인 등록 및 실행 분리
 - 행동별 슬롯 후보의 2단계 선택
@@ -35,14 +165,14 @@ AASSR v2는 기존 구현을 복사하지 않고 처음부터 다시 설계한 �
 
 ### 정보 특징과 의미 형성
 
-`OnlineFeatureMemory`는 정보를 이름으로 고정 분류하지 않고, 관측 특징과 `행동-슬롯-결과` 경험으로 표현한다.
+`OnlineFeatureMemory`는 정보를 이름으로 고정 분류하지 않고 관측 특징과 `행동-슬롯-결과` 경험으로 표현한다.
 
 - 해시 특징 기본선
 - 온라인 비지도 군집화와 재배치
 - 군집 역할 점수와 개별 정보 점수
 - 군집 선택 후 구체 값 선택
 - 대규모 관측에서만 임베딩을 쓰는 선택적 라우터
-- 경험 특징/임베딩/혼합 표현 기능 제거 설정
+- 경험 특징·임베딩·혼합 표현 기능 제거 설정
 
 ### GOAL과 자율 Skill
 
@@ -116,7 +246,7 @@ Minecraft와 모의 침투 테스트 항목은 **코어 호환성과 안전한 �
 
 기존 `final_pilot.py`는 전이 경로를 미리 학습시킨 뒤 Imagination 모듈 자체를 확인하는 **진단 실험**이다. 자율 발견의 근거로 사용하지 않는다.
 
-새 `autonomous_main` runner는 다음을 강제한다.
+`autonomous_main` runner는 다음을 강제한다.
 
 - oracle pretraining 없음
 - 정답 행동이나 경로 시범 없음
@@ -166,10 +296,10 @@ python scripts/run_experiment.py \
 실행 중 다음 파일이 계속 갱신된다.
 
 ```text
-progress.log    # 사람이 읽는 전체 로그
-progress.jsonl  # 모든 진행 이벤트
-progress.json   # 마지막 상태 하나
-episodes.csv    # episode마다 스트리밍되는 중간 결과
+progress.log
+progress.jsonl
+progress.json
+episodes.csv
 ```
 
 PowerShell에서 로그를 실시간 확인하려면:
@@ -199,10 +329,10 @@ python scripts/run_experiment.py --config configs/pilot.json --output runs/final
 ```text
 runs/<experiment>/
 ├─ resolved_config.json
-├─ protocol_manifest.json  # autonomous_main
-├─ progress.log            # autonomous_main
-├─ progress.jsonl          # autonomous_main
-├─ progress.json           # autonomous_main
+├─ protocol_manifest.json
+├─ progress.log
+├─ progress.jsonl
+├─ progress.json
 ├─ episodes.csv
 ├─ seed_summary.csv
 ├─ summary.csv
@@ -227,7 +357,14 @@ python -m compileall -q src tests scripts
 pytest -q
 ```
 
-새 자율 학습 구조와 누수 방지 조건은 `tests/test_autonomous_experiment.py`에서 검증한다. 진행률·ETA·영속 로그는 `tests/test_progress_reporting.py`에서 검증한다. 배치 실험기·진단 파일럿·seed 단위 통계는 `tests/test_experiment_runner.py`에서 검증한다.
+주요 테스트:
+
+- `tests/test_autonomous_experiment.py`: 자율 학습 구조와 누수 방지
+- `tests/test_progress_reporting.py`: 진행률·ETA·영속 로그
+- `tests/test_escape_gridworld.py`: Escape 환경·무제한 episode·점수
+- `tests/test_escape_imagination_capture.py`: 전체 상상 트리 저장
+- `tests/test_escape_model_io.py`: 모델 저장·복원·호환성
+- `tests/test_experiment_runner.py`: 배치 실험기·진단 파일럿·seed 통계
 
 ## 버전
 
