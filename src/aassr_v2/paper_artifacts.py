@@ -12,6 +12,7 @@ from typing import Any, Mapping, Sequence
 from .paper_protocol import PaperPaths, sha256_json
 from .paper_statistics import (
     bootstrap_confidence_interval,
+    iter_csv_rows,
     read_csv_rows,
     write_csv_rows,
 )
@@ -485,7 +486,6 @@ def _svg_creativity_scatter(
 
 def make_paper_figures(root: str | Path) -> tuple[Path, ...]:
     paths = PaperPaths.create(root)
-    episodes = read_csv_rows(paths.raw / "episodes.csv")
     summaries = read_csv_rows(paths.statistics / "cross_seed_summary.csv")
     comparisons_path = paths.statistics / "condition_comparisons.csv"
     comparisons = (
@@ -541,7 +541,7 @@ def make_paper_figures(root: str | Path) -> tuple[Path, ...]:
     curve_values: dict[
         tuple[str, int], list[float]
     ] = defaultdict(list)
-    for row in episodes:
+    for row in iter_csv_rows(paths.raw / "episodes.csv"):
         if row.get("suite") not in {"autonomy", "ablation"}:
             continue
         if row.get("phase") != "training":
@@ -794,79 +794,80 @@ def validate_paper_artifacts(
             if metadata.get("approval_id") != settings.get("approval_id"):
                 issues.append("human dataset approval ID mismatch")
     if (paths.raw / "episodes.csv").exists():
-        rows = read_csv_rows(paths.raw / "episodes.csv")
-        frozen = [
-            row
-            for row in rows
-            if str(row.get("phase", "")).startswith("evaluation")
-            and row.get("checkpoint_fingerprint_before")
-            and row.get("checkpoint_fingerprint_after")
-            and row["checkpoint_fingerprint_before"]
-            != row["checkpoint_fingerprint_after"]
-        ]
-        if frozen:
-            issues.append("learning-state mutation found in evaluation rows")
-        missing_fingerprints = [
-            row
-            for row in rows
-            if str(row.get("phase", "")).startswith("evaluation")
-            and row.get("suite")
-            in {"autonomy", "ablation", "transfer", "creativity"}
-            and (
-                not row.get("checkpoint_fingerprint_before")
-                or not row.get("checkpoint_fingerprint_after")
-            )
-        ]
-        if missing_fingerprints:
-            issues.append(
-                "evaluation rows are missing learning-state fingerprints"
-            )
-        if config is not None:
-            limit = int(
-                config.get("budgets", {}).get(
-                    "real_transitions_per_episode", 0
-                )
-            )
-            if limit > 0 and any(
-                float(row.get("real_transitions") or row.get("steps") or 0)
-                > limit
-                for row in rows
-            ):
-                issues.append("episode exceeds real transition budget")
-            if config.get("study_stage") == "final":
-                for filename in ("acceptance_gate_manifest.json",):
-                    if not (paths.manifests / filename).exists():
-                        issues.append(f"Final run is missing manifests/{filename}")
-                if any(
-                    item.get("kind") == "creativity"
-                    for item in config.get("suites", ())
-                ) and not (
-                    paths.manifests / "frozen_creativity_rules.json"
-                ).exists():
-                    issues.append(
-                        "Final creativity run is missing frozen rules"
-                    )
         branch_origins: dict[
             tuple[str, str, str], set[str]
         ] = defaultdict(set)
         branch_budgets: dict[
             tuple[str, str, str], set[int]
         ] = defaultdict(set)
-        for row in rows:
-            if row.get("suite") != "transfer":
-                continue
-            origin = str(row.get("branch_start_fingerprint", ""))
-            if not origin:
-                continue
-            key = (
-                str(row.get("condition", "")),
-                str(row.get("seed", "")),
-                str(row.get("world_seed", "")),
+        fair_groups: dict[
+            tuple[str, str, str, str], dict[str, float]
+        ] = {}
+        frozen_found = False
+        missing_fingerprints_found = False
+        budget_exceeded = False
+        limit = (
+            int(
+                config.get("budgets", {}).get(
+                    "real_transitions_per_episode", 0
+                )
             )
-            branch_origins[key].add(origin)
-            budget = row.get("adaptation_budget")
-            if budget not in (None, ""):
-                branch_budgets[key].add(int(float(budget)))
+            if config is not None
+            else 0
+        )
+        for row in iter_csv_rows(paths.raw / "episodes.csv"):
+            phase = str(row.get("phase", ""))
+            evaluating = phase.startswith("evaluation")
+            before = row.get("checkpoint_fingerprint_before")
+            after = row.get("checkpoint_fingerprint_after")
+            if evaluating and before and after and before != after:
+                frozen_found = True
+            if (
+                evaluating
+                and row.get("suite")
+                in {"autonomy", "ablation", "transfer", "creativity"}
+                and (not before or not after)
+            ):
+                missing_fingerprints_found = True
+            actual = float(
+                row.get("real_transitions") or row.get("steps") or 0
+            )
+            if limit > 0 and actual > limit:
+                budget_exceeded = True
+            if row.get("suite") == "transfer":
+                origin = str(row.get("branch_start_fingerprint", ""))
+                if origin:
+                    branch_key = (
+                        str(row.get("condition", "")),
+                        str(row.get("seed", "")),
+                        str(row.get("world_seed", "")),
+                    )
+                    branch_origins[branch_key].add(origin)
+                    budget = row.get("adaptation_budget")
+                    if budget not in (None, ""):
+                        branch_budgets[branch_key].add(
+                            int(float(budget))
+                        )
+            if row.get("suite") in {"autonomy", "ablation"}:
+                fair_key = (
+                    row.get("suite", ""),
+                    row.get("environment", ""),
+                    phase,
+                    row.get("seed", ""),
+                )
+                condition_totals = fair_groups.setdefault(fair_key, {})
+                condition = row.get("condition", "")
+                condition_totals[condition] = condition_totals.get(
+                    condition, 0.0
+                ) + actual
+        if frozen_found:
+            issues.append("learning-state mutation found in evaluation rows")
+        if missing_fingerprints_found:
+            issues.append(
+                "evaluation rows are missing learning-state fingerprints"
+            )
+        if budget_exceeded:
+            issues.append("episode exceeds real transition budget")
         if any(len(values) != 1 for values in branch_origins.values()):
             issues.append(
                 "adaptation budgets do not share one branch checkpoint"
@@ -885,23 +886,6 @@ def validate_paper_artifacts(
                 issues.append(
                     "transfer branch is missing an adaptation budget"
                 )
-        fair_groups: dict[
-            tuple[str, str, str, str], dict[str, float]
-        ] = {}
-        for row in rows:
-            if row.get("suite") not in {"autonomy", "ablation"}:
-                continue
-            key = (
-                row.get("suite", ""),
-                row.get("environment", ""),
-                row.get("phase", ""),
-                row.get("seed", ""),
-            )
-            condition_totals = fair_groups.setdefault(key, {})
-            condition = row.get("condition", "")
-            condition_totals[condition] = condition_totals.get(
-                condition, 0.0
-            ) + float(row.get("real_transitions") or row.get("steps") or 0)
         if any(
             len(values) > 1
             and max(values.values()) != min(values.values())
@@ -910,6 +894,20 @@ def validate_paper_artifacts(
             issues.append(
                 "autonomy/ablation conditions use unequal real transitions"
             )
+        if config is not None and config.get("study_stage") == "final":
+            if not (paths.manifests / "acceptance_gate_manifest.json").exists():
+                issues.append(
+                    "Final run is missing manifests/acceptance_gate_manifest.json"
+                )
+            if any(
+                item.get("kind") == "creativity"
+                for item in config.get("suites", ())
+            ) and not (
+                paths.manifests / "frozen_creativity_rules.json"
+            ).exists():
+                issues.append(
+                    "Final creativity run is missing frozen rules"
+                )
     transitions_path = paths.raw / "transitions.jsonl"
     if transitions_path.exists():
         private_labels = {
@@ -921,46 +919,47 @@ def validate_paper_artifacts(
             "viable_branch",
             "solution_family",
         }
-        for line in transitions_path.read_text(
-            encoding="utf-8"
-        ).splitlines():
-            if not line.strip():
-                continue
-            payload = json.loads(line)
-            phase = str(payload.get("phase", ""))
-            if (
-                phase.startswith("evaluation")
-                and payload.get("learning_enabled") is not False
-            ):
-                issues.append(
-                    "evaluation transition is not explicitly frozen"
+        with transitions_path.open(encoding="utf-8") as handle:
+            for line in handle:
+                if not line.strip():
+                    continue
+                payload = json.loads(line)
+                phase = str(payload.get("phase", ""))
+                if (
+                    phase.startswith("evaluation")
+                    and payload.get("learning_enabled") is not False
+                ):
+                    issues.append(
+                        "evaluation transition is not explicitly frozen"
+                    )
+                    break
+                if payload.get("suite") != "creativity":
+                    continue
+                visible = json.dumps(
+                    {
+                        "before": payload.get("before"),
+                        "action": payload.get("action"),
+                        "after": payload.get("after"),
+                    }
                 )
-                break
-            if payload.get("suite") != "creativity":
-                continue
-            visible = json.dumps(
-                {
-                    "before": payload.get("before"),
-                    "action": payload.get("action"),
-                    "after": payload.get("after"),
-                }
-            )
-            if any(label in visible for label in private_labels):
-                issues.append(
-                    "creative agent-visible trace contains a private label"
-                )
-                break
+                if any(label in visible for label in private_labels):
+                    issues.append(
+                        "creative agent-visible trace contains a private label"
+                    )
+                    break
     strategies_path = paths.raw / "strategies.jsonl"
     if strategies_path.exists():
-        for line in strategies_path.read_text(
-            encoding="utf-8"
-        ).splitlines():
-            if not line.strip():
-                continue
-            strategy = json.loads(line)
-            if "trace" not in strategy or "novelty_components" not in strategy:
-                issues.append(
-                    "strategy record is missing trace or distance components"
-                )
-                break
+        with strategies_path.open(encoding="utf-8") as handle:
+            for line in handle:
+                if not line.strip():
+                    continue
+                strategy = json.loads(line)
+                if (
+                    "trace" not in strategy
+                    or "novelty_components" not in strategy
+                ):
+                    issues.append(
+                        "strategy record is missing trace or distance components"
+                    )
+                    break
     return issues

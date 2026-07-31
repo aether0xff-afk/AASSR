@@ -155,7 +155,19 @@ class ProgressReporter:
             json.dumps(snapshot, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-        temporary.replace(self.status_path)
+        # On Windows, a short-lived reader can prevent os.replace from
+        # replacing the destination. Progress telemetry must never abort a
+        # multi-hour experiment, so retry the atomic replace and fall back to
+        # the append-only log/JSONL records if a reader keeps it open.
+        for attempt in range(20):
+            try:
+                temporary.replace(self.status_path)
+                return
+            except PermissionError:
+                if attempt == 19:
+                    temporary.unlink(missing_ok=True)
+                    return
+                time.sleep(0.05)
 
     def _emit(
         self,

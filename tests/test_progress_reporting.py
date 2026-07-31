@@ -72,3 +72,32 @@ def test_duration_format_supports_long_runs() -> None:
     assert format_duration(None) == "--:--:--"
     assert format_duration(65.0) == "00:01:05"
     assert format_duration(90_061.0) == "1d 01:01:01"
+
+
+def test_progress_status_retries_windows_reader_collision(
+    tmp_path, monkeypatch
+) -> None:
+    path_type = type(tmp_path)
+    original = path_type.replace
+    attempts = 0
+
+    def flaky_replace(self, target):
+        nonlocal attempts
+        attempts += 1
+        if attempts < 3:
+            raise PermissionError("simulated Windows reader lock")
+        return original(self, target)
+
+    monkeypatch.setattr(path_type, "replace", flaky_replace)
+    reporter = ProgressReporter(
+        1,
+        tmp_path,
+        every_items=1,
+        every_seconds=3600.0,
+        console=False,
+    )
+    reporter.start({"jobs": 1})
+    assert attempts >= 3
+    assert json.loads(
+        (tmp_path / "progress.json").read_text(encoding="utf-8")
+    )["event"] == "start"

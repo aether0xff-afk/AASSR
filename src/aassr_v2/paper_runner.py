@@ -23,7 +23,7 @@ from .creativity import (
     novelty_against_references,
     strategy_record_from_trace,
 )
-from .experiment_runner import RESULT_FIELDS, read_rows
+from .experiment_runner import RESULT_FIELDS
 from .paper_artifacts import (
     make_paper_figures,
     make_paper_tables,
@@ -198,7 +198,11 @@ def _run_autonomy(
     suite: Mapping[str, Any],
     *,
     output_dir: Path,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[StrategyRecord]]:
+) -> tuple[
+    Iterable[dict[str, Any]],
+    Iterable[dict[str, Any]],
+    list[StrategyRecord],
+]:
     budgets = config["budgets"]
     kind = str(suite["kind"])
     autonomous_config = {
@@ -222,27 +226,33 @@ def _run_autonomy(
         overwrite=True,
         progress_console=False,
     )
-    rows = read_rows(artifacts.episodes_csv)
-    for row in rows:
-        row["suite"] = kind
-        row["experiment"] = str(config["name"])
+    def iter_rows() -> Iterable[dict[str, Any]]:
+        with artifacts.episodes_csv.open(
+            newline="", encoding="utf-8-sig"
+        ) as handle:
+            for row in csv.DictReader(handle):
+                yield {
+                    **row,
+                    "suite": kind,
+                    "experiment": str(config["name"]),
+                }
+
     transitions_path = artifacts.output_dir / "transitions.jsonl"
-    transitions = (
-        [
-            {
-                **json.loads(line),
-                "suite": kind,
-                "experiment": str(config["name"]),
-            }
-            for line in transitions_path.read_text(
-                encoding="utf-8"
-            ).splitlines()
-            if line.strip()
-        ]
-        if transitions_path.exists()
-        else []
-    )
-    return rows, transitions, []
+
+    def iter_transitions() -> Iterable[dict[str, Any]]:
+        if not transitions_path.exists():
+            return
+        with transitions_path.open(encoding="utf-8") as handle:
+            for line in handle:
+                if not line.strip():
+                    continue
+                yield {
+                    **json.loads(line),
+                    "suite": kind,
+                    "experiment": str(config["name"]),
+                }
+
+    return iter_rows(), iter_transitions(), []
 
 
 def _transition_effect_profile(
@@ -824,25 +834,36 @@ def _run_creativity(
                     reusable_success_rate=reuse_rate,
                 )
 
-    references = [
-        (item.strategy_id, item.graph)
-        for item in strategies
-        if item.source_kind != "aassr"
-    ]
-    references.extend(
-        (item.strategy_id, item.graph)
-        for item in _human_reference_records(config)
-    )
+    reference_items = [
+        item.graph for item in strategies if item.source_kind != "aassr"
+    ] + [item.graph for item in _human_reference_records(config)]
+    reference_counts: dict[Any, int] = defaultdict(int)
+    for graph in reference_items:
+        reference_counts[graph] += 1
+    reference_graphs = tuple(dict.fromkeys(reference_items))
+    novelty_cache: dict[tuple[Any, bool], dict[str, float]] = {}
     rescored: list[StrategyRecord] = []
     for item in strategies:
-        novelty = novelty_against_references(
-            item.graph,
-            [
-                graph
-                for strategy_id, graph in references
-                if strategy_id != item.strategy_id
-            ],
+        exclude_only_self = bool(
+            item.source_kind != "aassr"
+            and reference_counts[item.graph] == 1
         )
+        cache_key = (item.graph, exclude_only_self)
+        novelty = novelty_cache.get(cache_key)
+        if novelty is None:
+            novelty = novelty_against_references(
+                item.graph,
+                (
+                    tuple(
+                        graph
+                        for graph in reference_graphs
+                        if graph != item.graph
+                    )
+                    if exclude_only_self
+                    else reference_graphs
+                ),
+            )
+            novelty_cache[cache_key] = novelty
         rescored.append(
             replace(
                 item,
@@ -1206,7 +1227,7 @@ def _write_jsonl(path: Path, rows: Iterable[Mapping[str, Any]]) -> None:
 
 
 def _enforce_episode_budgets(
-    rows: Sequence[Mapping[str, Any]], config: Mapping[str, Any]
+    rows: Iterable[Mapping[str, Any]], config: Mapping[str, Any]
 ) -> None:
     limit = int(config["budgets"]["real_transitions_per_episode"])
     for index, row in enumerate(rows):
@@ -1243,6 +1264,73 @@ def _load_jsonl(path: Path) -> list[dict[str, Any]]:
         for line in path.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
+
+
+def _iter_jsonl(path: Path) -> Iterable[dict[str, Any]]:
+    if not path.exists():
+        return
+    with path.open(encoding="utf-8") as handle:
+        for line in handle:
+            if line.strip():
+                yield json.loads(line)
+
+
+def _iter_suite_cache_rows(
+    paths: PaperPaths,
+    suites: Sequence[Mapping[str, Any]],
+    cache_index: int,
+) -> Iterable[dict[str, Any]]:
+    for suite in suites:
+        cache_path = _suite_cache_paths(
+            paths, str(suite["kind"])
+        )[cache_index]
+        yield from _iter_jsonl(cache_path)
+
+
+def _write_episode_csv_from_caches(
+    paths: PaperPaths,
+    suites: Sequence[Mapping[str, Any]],
+    config: Mapping[str, Any],
+) -> tuple[Path, int]:
+    fields: list[str] = []
+    for row in _iter_suite_cache_rows(paths, suites, 0):
+        for key in row:
+            if key not in fields:
+                fields.append(key)
+    destination = paths.raw / "episodes.csv"
+    row_count = 0
+    with destination.open("w", newline="", encoding="utf-8-sig") as handle:
+        if not fields:
+            return destination, 0
+        writer = csv.DictWriter(
+            handle, fieldnames=fields, extrasaction="ignore"
+        )
+        writer.writeheader()
+        for row in _iter_suite_cache_rows(paths, suites, 0):
+            _enforce_episode_budgets((row,), config)
+            writer.writerow(row)
+            row_count += 1
+    return destination, row_count
+
+
+def _concatenate_suite_caches(
+    destination: Path,
+    paths: PaperPaths,
+    suites: Sequence[Mapping[str, Any]],
+    cache_index: int,
+) -> Path:
+    with destination.open("wb") as output:
+        for suite in suites:
+            source = _suite_cache_paths(
+                paths, str(suite["kind"])
+            )[cache_index]
+            if not source.exists():
+                continue
+            with source.open("rb") as input_handle:
+                shutil.copyfileobj(
+                    input_handle, output, length=16 * 1024 * 1024
+                )
+    return destination
 
 
 def _suite_cache_paths(
@@ -1335,6 +1423,7 @@ def run_paper_suite(
                     strategy_cache,
                     (item.to_dict() for item in strategies),
                 )
+                del rows, transitions, strategies
                 completed.add(kind)
                 state["completed_suites"] = sorted(completed)
                 state["last_completed_at_utc"] = utc_now()
@@ -1369,20 +1458,21 @@ def run_paper_suite(
         )
         raise
 
-    all_rows: list[dict[str, Any]] = []
-    all_transitions: list[dict[str, Any]] = []
-    all_strategies: list[dict[str, Any]] = []
-    for suite in resolved["suites"]:
-        cache_paths = _suite_cache_paths(paths, str(suite["kind"]))
-        all_rows.extend(_load_jsonl(cache_paths[0]))
-        all_transitions.extend(_load_jsonl(cache_paths[1]))
-        all_strategies.extend(_load_jsonl(cache_paths[2]))
-    _enforce_episode_budgets(all_rows, resolved)
-    episodes_csv = write_csv_rows(paths.raw / "episodes.csv", all_rows)
-    transitions_jsonl = paths.raw / "transitions.jsonl"
-    strategies_jsonl = paths.raw / "strategies.jsonl"
-    _write_jsonl(transitions_jsonl, all_transitions)
-    _write_jsonl(strategies_jsonl, all_strategies)
+    episodes_csv, row_count = _write_episode_csv_from_caches(
+        paths, resolved["suites"], resolved
+    )
+    transitions_jsonl = _concatenate_suite_caches(
+        paths.raw / "transitions.jsonl",
+        paths,
+        resolved["suites"],
+        1,
+    )
+    strategies_jsonl = _concatenate_suite_caches(
+        paths.raw / "strategies.jsonl",
+        paths,
+        resolved["suites"],
+        2,
+    )
     _merge_human_dataset(resolved, paths)
     _copy_protocol_locks(resolved, paths)
     if any(
@@ -1411,8 +1501,13 @@ def run_paper_suite(
             ),
             encoding="utf-8",
         )
-    if resolved["study_stage"] == "pilot" and all_strategies:
-        _write_creativity_threshold_candidate(paths, all_strategies)
+    if (
+        resolved["study_stage"] == "pilot"
+        and strategies_jsonl.stat().st_size > 0
+    ):
+        _write_creativity_threshold_candidate(
+            paths, list(_iter_jsonl(strategies_jsonl))
+        )
     manifest = build_manifest(
         resolved,
         started_at_utc=str(state["started_at_utc"]),
@@ -1439,7 +1534,7 @@ def run_paper_suite(
             "paper artifact validation failed: " + "; ".join(issues)
         )
     state["completed_at_utc"] = utc_now()
-    state["row_count"] = len(all_rows)
+    state["row_count"] = row_count
     state_path.write_text(
         json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -1450,5 +1545,5 @@ def run_paper_suite(
         strategies_jsonl,
         manifest_json,
         report,
-        len(all_rows),
+        row_count,
     )

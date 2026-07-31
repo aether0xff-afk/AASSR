@@ -42,27 +42,37 @@ def seed_level_rows(
     rows: Iterable[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
     """Average episodes inside each seed before cross-seed statistics."""
-    groups: dict[tuple[str, ...], list[Mapping[str, Any]]] = {}
+    groups: dict[
+        tuple[str, ...],
+        tuple[int, list[float], list[int]],
+    ] = {}
     for row in rows:
         key = tuple(str(row.get(field, "")) for field in GROUP_FIELDS) + (
             str(row.get("seed", "")),
         )
-        groups.setdefault(key, []).append(row)
+        episode_count, sums, counts = groups.setdefault(
+            key,
+            (0, [0.0] * len(SUMMARY_METRICS), [0] * len(SUMMARY_METRICS)),
+        )
+        episode_count += 1
+        for index, metric in enumerate(SUMMARY_METRICS):
+            numeric = _to_float(row.get(metric))
+            if numeric is not None:
+                sums[index] += numeric
+                counts[index] += 1
+        groups[key] = (episode_count, sums, counts)
 
     result: list[dict[str, Any]] = []
-    for key, items in sorted(groups.items()):
+    for key, (episode_count, sums, counts) in sorted(groups.items()):
         record: dict[str, Any] = {
             field: key[index]
             for index, field in enumerate((*GROUP_FIELDS, "seed"))
         }
-        record["episode_rows"] = len(items)
-        for metric in SUMMARY_METRICS:
-            values = [
-                numeric
-                for item in items
-                if (numeric := _to_float(item.get(metric))) is not None
-            ]
-            record[metric] = fmean(values) if values else ""
+        record["episode_rows"] = episode_count
+        for index, metric in enumerate(SUMMARY_METRICS):
+            record[metric] = (
+                sums[index] / counts[index] if counts[index] else ""
+            )
         result.append(record)
     return result
 

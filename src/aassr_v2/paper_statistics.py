@@ -38,6 +38,11 @@ def read_csv_rows(path: str | Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+def iter_csv_rows(path: str | Path) -> Iterable[dict[str, str]]:
+    with Path(path).open(newline="", encoding="utf-8-sig") as handle:
+        yield from csv.DictReader(handle)
+
+
 def write_csv_rows(
     path: str | Path, rows: Sequence[Mapping[str, Any]]
 ) -> Path:
@@ -298,7 +303,7 @@ def _comparison_rows(
 
 
 def _adaptation_rows(
-    episode_rows: Sequence[Mapping[str, Any]],
+    episode_rows: Iterable[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
     grouped: dict[
         tuple[str, str, str], dict[int, list[float]]
@@ -472,10 +477,10 @@ def _curve_comparison_rows(
 
 
 def _learning_curve_rows(
-    episode_rows: Sequence[Mapping[str, Any]],
+    episode_rows: Iterable[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
     groups: dict[
-        tuple[str, str, str, str], list[Mapping[str, Any]]
+        tuple[str, str, str, str], list[tuple[int, float, int]]
     ] = defaultdict(list)
     for row in episode_rows:
         if str(row.get("phase", "")) != "training":
@@ -488,15 +493,24 @@ def _learning_curve_rows(
             str(row.get("environment", "")),
             str(row.get("seed", row.get("research_seed", ""))),
         )
-        groups[key].append(row)
+        groups[key].append(
+            (
+                int(float(row["episode"])),
+                float(row.get("success") or 0.0),
+                int(
+                    float(
+                        row.get("real_transitions")
+                        or row.get("steps")
+                        or 0
+                    )
+                ),
+            )
+        )
     result = []
     for key, items in sorted(groups.items()):
-        ordered = sorted(items, key=lambda row: int(float(row["episode"])))
-        success = [float(row.get("success") or 0.0) for row in ordered]
-        transitions = [
-            int(float(row.get("real_transitions") or row.get("steps") or 0))
-            for row in ordered
-        ]
+        ordered = sorted(items, key=lambda item: item[0])
+        success = [item[1] for item in ordered]
+        transitions = [item[2] for item in ordered]
         cumulative = 0
         first_success_transitions: int | None = None
         for value, count in zip(success, transitions, strict=True):
@@ -542,24 +556,37 @@ def _creativity_rows(
         family = record.graph.solution_family
         family_seeds[family].add(record.research_seed)
         family_worlds[family].add(record.world_seed)
+    utility_profiles = {
+        (
+            int(record.success),
+            record.primitive_steps,
+            record.errors,
+            record.resources_used,
+            record.risk_entries,
+        )
+        for record in records
+    }
+    dominated_profiles: dict[tuple[Any, ...], bool] = {}
+    for profile in utility_profiles:
+        dominated_profiles[profile] = any(
+            other[0] >= profile[0]
+            and other[1] <= profile[1]
+            and other[2] <= profile[2]
+            and other[3] <= profile[3]
+            and other[4] <= profile[4]
+            and other != profile
+            for other in utility_profiles
+        )
     result = []
     for record in records:
-        dominated = any(
-            other.strategy_id != record.strategy_id
-            and int(other.success) >= int(record.success)
-            and other.primitive_steps <= record.primitive_steps
-            and other.errors <= record.errors
-            and other.resources_used <= record.resources_used
-            and other.risk_entries <= record.risk_entries
-            and (
-                int(other.success) > int(record.success)
-                or other.primitive_steps < record.primitive_steps
-                or other.errors < record.errors
-                or other.resources_used < record.resources_used
-                or other.risk_entries < record.risk_entries
-            )
-            for other in records
+        profile = (
+            int(record.success),
+            record.primitive_steps,
+            record.errors,
+            record.resources_used,
+            record.risk_entries,
         )
+        dominated = dominated_profiles[profile]
         family = record.graph.solution_family
         reproducible = (
             len(family_seeds[family]) >= 3
@@ -662,8 +689,8 @@ def analyze_paper_results(
         statistics.get("permutation_samples", 20000)
     )
     episodes_path = paths.raw / "episodes.csv"
-    episode_rows = read_csv_rows(episodes_path)
-    per_seed = seed_level_rows(episode_rows)
+    per_seed = seed_level_rows(iter_csv_rows(episodes_path))
+    episode_count = sum(int(row["episode_rows"]) for row in per_seed)
     cross_seed = _add_seed_bootstrap_bounds(
         cross_seed_summary(per_seed),
         per_seed,
@@ -676,8 +703,8 @@ def analyze_paper_results(
         bootstrap_samples=bootstrap_samples,
         permutation_samples=permutation_samples,
     )
-    adaptation = _adaptation_rows(episode_rows)
-    learning = _learning_curve_rows(episode_rows)
+    adaptation = _adaptation_rows(iter_csv_rows(episodes_path))
+    learning = _learning_curve_rows(iter_csv_rows(episodes_path))
     learning_comparisons = _curve_comparison_rows(
         learning,
         metric="learning_auc",
@@ -766,7 +793,7 @@ def analyze_paper_results(
     summary_json.write_text(
         json.dumps(
             {
-                "episode_rows": len(episode_rows),
+                "episode_rows": episode_count,
                 "seed_rows": len(per_seed),
                 "comparison_rows": len(comparisons),
                 "adaptation_rows": len(adaptation),
@@ -804,5 +831,5 @@ def analyze_paper_results(
         "transfer_comparisons": transfer_comparisons_path,
         "creativity": creativity_path,
         "analysis_summary": summary_json,
-        "episode_rows": len(episode_rows),
+        "episode_rows": episode_count,
     }
