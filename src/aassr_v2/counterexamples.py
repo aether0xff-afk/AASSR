@@ -3,12 +3,15 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass, replace
 
-from .action_plugins import PluginOutcome
 from .types import Action, StateSnapshot
 
 
 class NoisyInformationWrapper:
-    """Add goal-irrelevant facts without changing wrapped dynamics."""
+    """Add goal-irrelevant facts without making observation calls impure.
+
+    Noise is sampled exactly once per real environment transition. Repeated
+    ``snapshot()`` calls return the same decorated state and do not consume RNG.
+    """
 
     def __init__(
         self,
@@ -17,38 +20,43 @@ class NoisyInformationWrapper:
         facts_per_step: int = 8,
         seed: int = 0,
     ) -> None:
+        if facts_per_step < 0:
+            raise ValueError("facts_per_step must be non-negative")
         self.environment = environment
         self.facts_per_step = facts_per_step
         self.random = random.Random(seed)
         self.index = 0
+        self._noise = self._sample_noise()
 
-    def _decorate(
-        self,
-        state: StateSnapshot,
-    ) -> StateSnapshot:
-        noise = {
+    def _sample_noise(self) -> frozenset[str]:
+        return frozenset(
             f"noise:{self.index}:{self.random.randrange(1_000_000)}"
             for _ in range(self.facts_per_step)
-        }
-        return replace(
-            state,
-            facts=state.facts | noise,
         )
+
+    def _decorate(self, state: StateSnapshot) -> StateSnapshot:
+        return replace(state, facts=state.facts | self._noise)
 
     def snapshot(self) -> StateSnapshot:
-        return self._decorate(
-            self.environment.snapshot()
-        )
+        return self._decorate(self.environment.snapshot())
 
     def step(self, action: Action):
+        previous_noise = self._noise
         outcome = self.environment.step(action)
         self.index += 1
+        self._noise = self._sample_noise()
         snapshot = self._decorate(outcome.snapshot)
-        noise_added = snapshot.facts - outcome.snapshot.facts
         return replace(
             outcome,
             snapshot=snapshot,
-            added_facts=outcome.added_facts | noise_added,
+            added_facts=(
+                outcome.added_facts
+                | (self._noise - previous_noise)
+            ),
+            removed_facts=(
+                outcome.removed_facts
+                | (previous_noise - self._noise)
+            ),
         )
 
 
@@ -77,9 +85,7 @@ class LearnableVsRandomWorld:
             Action("probe_random"),
             Action("finish"),
         )
-        progress = (
-            1.0 if self.stable_value >= 2 else 0.0
-        )
+        progress = 1.0 if self.stable_value >= 2 else 0.0
         facts = frozenset(
             {
                 f"stable:{self.stable_value}",
@@ -101,10 +107,7 @@ class LearnableVsRandomWorld:
         before = self.snapshot()
         error = False
         if action.verb_name == "probe_stable":
-            self.stable_value = min(
-                2,
-                self.stable_value + 1,
-            )
+            self.stable_value = min(2, self.stable_value + 1)
         elif action.verb_name == "probe_random":
             self.random_value = self.random.randrange(3)
         elif action.verb_name == "finish":
@@ -134,26 +137,14 @@ class LongDependencyWorld:
         self.known: set[str] = set()
 
     def snapshot(self) -> StateSnapshot:
-        actions = [
-            Action(
-                "inspect",
-                parameters={"stage": self.stage},
-            )
-        ]
+        actions = [Action("inspect", parameters={"stage": self.stage})]
         if f"token:{self.stage}" in self.known:
-            actions.append(
-                Action(
-                    "advance",
-                    parameters={"stage": self.stage},
-                )
-            )
+            actions.append(Action("advance", parameters={"stage": self.stage}))
         progress = self.stage / self.length
         vector = tuple(
             [progress]
             + [
-                1.0
-                if f"token:{index}" in self.known
-                else 0.0
+                1.0 if f"token:{index}" in self.known else 0.0
                 for index in range(self.length)
             ]
         )
@@ -161,11 +152,7 @@ class LongDependencyWorld:
             vector,
             frozenset(self.known),
             tuple(actions),
-            (
-                1.0
-                if self.stage >= self.length
-                else progress
-            ),
+            1.0 if self.stage >= self.length else progress,
         )
 
     def step(self, action: Action) -> UncertaintyStep:
@@ -173,24 +160,19 @@ class LongDependencyWorld:
         error = False
         if (
             action.verb_name == "inspect"
-            and int(action.parameters.get("stage", -1))
-            == self.stage
+            and int(action.parameters.get("stage", -1)) == self.stage
         ):
             self.known.add(f"token:{self.stage}")
         elif (
             action.verb_name == "advance"
             and f"token:{self.stage}" in self.known
         ):
-            self.stage = min(
-                self.length,
-                self.stage + 1,
-            )
+            self.stage = min(self.length, self.stage + 1)
         else:
             error = True
         after = self.snapshot()
         before_actions = {
-            item.signature
-            for item in before.available_actions
+            item.signature for item in before.available_actions
         }
         unlocked = tuple(
             item
@@ -215,18 +197,9 @@ def opaque_name_map(
     """Rename semantic labels to opaque identifiers for leakage tests."""
 
     randomizer = random.Random(seed)
-    identifiers = [
-        f"object-{index:04d}"
-        for index in range(len(values))
-    ]
+    identifiers = [f"object-{index:04d}" for index in range(len(values))]
     randomizer.shuffle(identifiers)
-    return dict(
-        zip(
-            sorted(values),
-            identifiers,
-            strict=True,
-        )
-    )
+    return dict(zip(sorted(values), identifiers, strict=True))
 
 
 def permuted_positions(
@@ -238,10 +211,6 @@ def permuted_positions(
 ) -> tuple[tuple[int, int], ...]:
     if count < 0 or count > width * height:
         raise ValueError("count must fit inside the grid")
-    positions = [
-        (x, y)
-        for y in range(height)
-        for x in range(width)
-    ]
+    positions = [(x, y) for y in range(height) for x in range(width)]
     random.Random(seed).shuffle(positions)
     return tuple(positions[:count])
