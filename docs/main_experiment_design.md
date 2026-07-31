@@ -8,6 +8,7 @@
 4. **이름 비의존성**: 행동과 상태 이름을 seed마다 불투명하게 바꿔도 동일한 학습 알고리즘이 작동하는가?
 5. **정보 가치**: 검증된 예측 개선 보상을 제거했을 때 학습 안정성 또는 표본 효율이 악화되는가?
 6. **규모 증가**: 의존 길이가 4, 6, 8로 증가할 때 효과와 계산 비용은 어떻게 변하는가?
+7. **구조 전이**: 학습에 사용하지 않은 행동 이름·상태 표현·정답 매핑을 가진 world seed에서도 성공률이 유지되는가?
 
 이 질문들은 사전에 참이라고 가정하지 않는다. 조건 간 차이가 없으면 해당 가설은 기각하거나 제한적으로 해석한다.
 
@@ -21,6 +22,10 @@
 
 > 결과는 행동 이름의 의미가 아니라 seed별 불투명 행동에 대한 실제 전이 경험에서 형성되었다.
 
+`evaluation_unseen`에서도 기준선을 안정적으로 넘는 경우에만 다음과 같이 제한적으로 주장한다.
+
+> 학습 중 보지 않은 불투명 world seed에서도 일부 구조 전이가 관찰되었다.
+
 현재 설계만으로 모든 현실 환경 일반화, 인간의 환경 설계가 전혀 없음, 처음 보는 행동에 대한 zero-shot 정답은 주장하지 않는다.
 
 ## 누수 방지 규칙
@@ -32,6 +37,7 @@
 - 중간 `goal_progress`는 항상 0이고, 손상 없이 마지막 단계에 도달했을 때만 reward 1과 goal progress 1을 준다.
 - Policy 초기값은 모든 상태·행동에서 동일하다.
 - 각 seed는 독립된 행동 매핑과 상태 표현 순열을 가진다.
+- 학습 world seed 집합과 unseen 평가 world seed 집합은 겹치지 않는다.
 - 평가 구간에서는 탐색과 학습을 끄고 agent를 고정한다.
 - 실행 결과에 `protocol_manifest.json`을 저장한다.
 
@@ -72,6 +78,13 @@ ContextualPolicy
 - corruption은 관측되지만 의미 없는 벡터와 fact로 표현된다.
 - 마지막 단계까지 corruption 없이 도달한 경우에만 reward 1을 준다.
 
+각 연구 seed에서는 여러 학습 world를 순환한다. 평가는 두 구간으로 나뉜다.
+
+- `evaluation_seen`: 학습에 사용한 world seed 집합에서 기억·숙련 성능 측정
+- `evaluation_unseen`: 학습 집합과 겹치지 않는 world seed에서 구조 전이 측정
+
+두 결과를 섞어 평균내지 않는다.
+
 ## 비교 조건
 
 | 조건 | 상태별 Policy | Prophecy | Imagination | 검증 정보 가치 |
@@ -88,20 +101,34 @@ ContextualPolicy
 
 `configs/autonomous_main.json`
 
-- 독립 seed 20개
+- 독립 연구 seed 20개
 - 의존 길이 4, 6, 8
 - 조건 5개
+- 연구 seed당 학습 world 8개
+- 연구 seed당 unseen 평가 world 32개
 - train 2,000 episode
-- 고정 평가 200 episode
-- 총 결과 행 `20 × 3 × 5 × 2,200 = 660,000`
+- seen evaluation 200 episode
+- unseen evaluation 200 episode
+- 총 결과 행 `20 × 3 × 5 × 2,400 = 720,000`
 
 배선 확인은 `configs/autonomous_smoke.json`으로 수행한다.
 
+## 병렬 실행과 CUDA
+
+독립적인 seed·환경·조건 job은 `spawn` 기반 프로세스로 병렬 실행한다.
+
+- Tabular 모델과 환경 시뮬레이션: CPU 프로세스 풀
+- PyTorch GRU 조건: 별도 CUDA 프로세스 풀
+- 단일 GPU에서는 `cuda_workers=1` 권장
+- CPU와 CUDA 풀은 동시에 실행 가능
+
+Tabular 자료구조와 환경 전이는 분기 중심 Python 작업이므로 CUDA로 강제 이동하지 않는다. CUDA는 행렬 연산이 있는 신경망 Prophecy 조건에 사용한다.
+
 ## 지표와 통계
 
-주요 지표는 평가 성공률, 학습 곡선 AUC, 최초 성공 episode, 최근 구간 성공률, prediction similarity, Imagination 사용량과 실행 시간이다. 보조 지표는 holdout score/gain, 반복, 오류, intrinsic value다.
+주요 지표는 seen/unseen 평가 성공률, 학습 곡선 AUC, 최초 성공 episode, 최근 구간 성공률, prediction similarity, Imagination 사용량과 실행 시간이다. 보조 지표는 holdout score/gain, 반복, 오류, intrinsic value다.
 
-Episode를 독립 표본으로 세지 않는다. 각 seed 내부에서 먼저 요약하고 seed 간 평균·표준편차·95% 구간을 계산한다. training과 evaluation phase는 분리한다.
+Episode를 독립 표본으로 세지 않는다. 각 seed 내부에서 먼저 요약하고 seed 간 평균·표준편차·95% 구간을 계산한다. `training`, `evaluation_seen`, `evaluation_unseen` phase는 분리한다.
 
 ## 성공 판정
 
@@ -109,6 +136,8 @@ Episode를 독립 표본으로 세지 않는다. 각 seed 내부에서 먼저 �
 - Imagination 조건이 `prophecy_no_imagination`보다 평가 성공률, AUC, 최초 성공 시점 중 하나 이상에서 개선되어야 계획 효과를 주장한다.
 - 차이가 없으면 이 환경에서 Imagination 추가 이득은 검증되지 않았다고 결론낸다.
 - `full_aassr`와 `imagination_no_validated_value` 차이가 없고 holdout gain이 0이면 정보 가치 효과를 주장하지 않는다.
+- seen 성능만 높고 unseen 성능이 random 수준이면 퍼즐 암기에는 성공했지만 구조 전이는 검증되지 않았다고 결론낸다.
+- unseen 성능 주장은 반드시 `evaluation_unseen` seed 평균과 신뢰구간을 기준으로 한다.
 
 ## 기존 최종 파일럿의 위치
 
