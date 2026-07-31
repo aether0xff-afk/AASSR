@@ -57,7 +57,7 @@ CUDA-specific test:
 pytest -q -n 1 -m cuda
 ```
 
-The CUDA test is skipped when CUDA-enabled PyTorch or a visible GPU is unavailable.
+The cross-platform matrix tests the dependency-free path, and a separate Ubuntu job installs PyTorch and executes the Torch GRU on CPU. The CUDA test is skipped when a visible GPU is unavailable and should be run on the RTX 4090 before interpreting CUDA experiment results.
 
 ## Main tabular experiment
 
