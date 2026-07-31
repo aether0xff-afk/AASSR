@@ -13,8 +13,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run reproducible AASSR v2 experiment suites from JSON config."
     )
-    parser.add_argument("--config", required=True, help="Path to an experiment JSON config.")
-    parser.add_argument("--output", help="Override output directory from the config.")
+    parser.add_argument(
+        "--config", required=True, help="Path to an experiment JSON config."
+    )
+    parser.add_argument(
+        "--output", help="Override output directory from the config."
+    )
     parser.add_argument(
         "--suite",
         action="append",
@@ -26,7 +30,7 @@ def parse_args() -> argparse.Namespace:
             "information_value",
             "autonomous_discovery",
         ),
-        help="Run only selected suite kinds. Repeat this option for several suites.",
+        help="Run only selected suite kinds. Repeat for several suites.",
     )
     parser.add_argument(
         "--seeds", help="Comma-separated integer seeds overriding the config."
@@ -44,33 +48,75 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--progress-every",
         type=int,
-        help="Print and persist progress after this many completed episodes.",
+        help="Persist progress after this many completed episodes.",
     )
     parser.add_argument(
         "--progress-seconds",
         type=float,
-        help="Print and persist progress at least this often in seconds.",
+        help="Persist progress at least this often in seconds.",
     )
     parser.add_argument(
         "--quiet-progress",
         action="store_true",
-        help="Disable console progress lines while still writing progress files.",
+        help="Disable console progress while keeping progress files.",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        help=(
+            "CPU process workers for autonomous jobs. Use 0 for "
+            "max(1, cpu_count-1)."
+        ),
+    )
+    parser.add_argument(
+        "--cuda-workers",
+        type=int,
+        help="Concurrent CUDA worker processes; normally 1 per GPU.",
+    )
+    parser.add_argument(
+        "--device",
+        help="Autonomous neural model device: auto, cpu, cuda, cuda:0, ...",
     )
     args = parser.parse_args()
     if args.progress_every is not None and args.progress_every <= 0:
         parser.error("--progress-every must be positive")
     if args.progress_seconds is not None and args.progress_seconds <= 0.0:
         parser.error("--progress-seconds must be positive")
+    if args.workers is not None and args.workers < 0:
+        parser.error("--workers must be zero or positive")
+    if args.cuda_workers is not None and args.cuda_workers <= 0:
+        parser.error("--cuda-workers must be positive")
     return args
 
 
 def _seed_override(value: str | None) -> tuple[int, ...] | None:
     if not value:
         return None
-    seeds = tuple(int(item.strip()) for item in value.split(",") if item.strip())
+    seeds = tuple(
+        int(item.strip()) for item in value.split(",") if item.strip()
+    )
     if not seeds:
         raise SystemExit("--seeds must contain at least one integer")
     return seeds
+
+
+def _apply_execution_overrides(
+    config: dict[str, object], args: argparse.Namespace
+) -> None:
+    if not any(
+        value is not None
+        for value in (args.workers, args.cuda_workers, args.device)
+    ):
+        return
+    raw = config.get("execution", {})
+    execution = dict(raw) if isinstance(raw, dict) else {}
+    if args.workers is not None:
+        execution["workers"] = args.workers
+    if args.cuda_workers is not None:
+        execution["cuda_workers"] = args.cuda_workers
+    if args.device is not None:
+        execution["device"] = args.device
+    config["execution"] = execution
 
 
 def main() -> int:
@@ -101,6 +147,8 @@ def main() -> int:
     seeds = _seed_override(args.seeds)
     if seeds is not None:
         config["seeds"] = list(seeds)
+    if runner == "autonomous_main":
+        _apply_execution_overrides(config, args)
     selected = set(args.suite or ()) or None
     planned = planned_run_count(config, selected)
     print(f"Config: {config_path.resolve()}", flush=True)
@@ -111,10 +159,26 @@ def main() -> int:
     if runner == "autonomous_main":
         progress = config.get("progress", {})
         every_items = args.progress_every or progress.get("every_episodes", 100)
-        every_seconds = args.progress_seconds or progress.get("every_seconds", 10.0)
+        every_seconds = args.progress_seconds or progress.get(
+            "every_seconds", 10.0
+        )
+        execution = config.get("execution", {})
+        print(
+            "Execution: "
+            f"workers={execution.get('workers', 1)}, "
+            f"cuda_workers={execution.get('cuda_workers', 1)}, "
+            f"device={execution.get('device', 'auto')}",
+            flush=True,
+        )
+        print(
+            "Evaluation modes: "
+            + ", ".join(config.get("evaluation_modes", ["seen"])),
+            flush=True,
+        )
         print(
             "Progress: "
-            f"every {int(every_items):,} episodes or {float(every_seconds):g} seconds",
+            f"every {int(every_items):,} episodes or "
+            f"{float(every_seconds):g} seconds",
             flush=True,
         )
         print(
@@ -143,7 +207,7 @@ def main() -> int:
     artifacts = run_experiment(config, **run_kwargs)
     experiment_elapsed = time.perf_counter() - started
     print(
-        f"[AASSR:postprocess] episode execution complete in "
+        "[AASSR:postprocess] episode execution complete in "
         f"{format_duration(experiment_elapsed)}; generating seed summaries...",
         flush=True,
     )
@@ -153,12 +217,15 @@ def main() -> int:
     )
     postprocess_elapsed = time.perf_counter() - postprocess_started
     print(
-        f"[AASSR:postprocess] summaries complete in "
+        "[AASSR:postprocess] summaries complete in "
         f"{format_duration(postprocess_elapsed)}",
         flush=True,
     )
     print(f"Completed rows: {artifacts.row_count:,}", flush=True)
-    print(f"Total elapsed: {format_duration(time.perf_counter() - started)}", flush=True)
+    print(
+        f"Total elapsed: {format_duration(time.perf_counter() - started)}",
+        flush=True,
+    )
     print(f"Output: {artifacts.output_dir.resolve()}", flush=True)
     print(f"Episodes: {artifacts.episodes_csv.resolve()}", flush=True)
     print(f"Seed summary: {seed_summary.resolve()}", flush=True)
