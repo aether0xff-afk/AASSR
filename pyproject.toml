@@ -4,14 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aassr-v2"
-version = "0.2.0"
+version = "0.2.1"
 description = "A from-scratch AASSR research implementation with learned Prophecy, GOALs, Skills and plugin actions"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "pytest-xdist>=3.6"]
+gpu = ["torch>=2.2"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -19,3 +20,6 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+  "cuda: requires a CUDA-enabled PyTorch installation and visible GPU",
+]
