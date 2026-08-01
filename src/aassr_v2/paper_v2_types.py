@@ -91,3 +91,23 @@ class CausalProphecyPredictionV21:
     uncertainty: float
     ood_score: float
     calibration_confidence: float
+
+
+@dataclass(frozen=True, slots=True)
+class ImaginationDecisionRecord:
+    policy_only_action: str
+    final_selected_action: str
+    root_policy_q: Mapping[str, float]
+    root_model_q: Mapping[str, float]
+    uncertainty: float
+    ood_score: float
+    calibration_confidence: float
+    imagined_advantage: float
+    intervened: bool
+    intervention_reason: str
+    imagined_nodes: int
+    maximum_depth_reached: int
+    actual_success: bool | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)

@@ -236,6 +236,13 @@ class RepresentedReturnAgent:
             ),
         )
 
+    def q_value(self, observation: RawCausalObservation, action: str) -> float:
+        key = (
+            self.encoder.state_key(observation),
+            self.encoder.action_key(observation, action),
+        )
+        return max(0.0, min(1.0, self.values.get(key, 0.0)))
+
     def observe_transition(self, transition: ObservableTransition) -> None:
         state = self.encoder.state_key(transition.before)
         action = self.encoder.action_key(transition.before, transition.action)

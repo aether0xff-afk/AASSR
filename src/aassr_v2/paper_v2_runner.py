@@ -21,6 +21,8 @@ from .representation_diagnostic import (
     run_diagnostic_two_a,
     run_diagnostic_two_b,
 )
+from .causal_imagination import ImaginationGateConfig
+from .imagination_diagnostic_v2 import run_diagnostic_four
 
 
 @dataclass(frozen=True, slots=True)
@@ -94,6 +96,25 @@ def run_paper_v2_suite(
         evaluation_episodes=int(settings.get("evaluation_episodes", 100)),
         budgets=tuple(settings.get("action_remap_probe_budgets", (1, 4, 16))),
     )
+    threshold_config = config.get("thresholds", {})
+    diagnostic_four, imagination_decisions = run_diagnostic_four(
+        research_seeds=config["research_seeds"],
+        world_seeds=config["world_seeds"]["unseen_composition"],
+        training_episodes=int(settings.get("training_episodes", 500)),
+        evaluation_episodes=int(settings.get("evaluation_episodes", 100)),
+        gate=ImaginationGateConfig(
+            calibration_confidence_minimum=float(
+                threshold_config.get("calibration_confidence_minimum", 0.8)
+            ),
+            uncertainty_maximum=float(
+                threshold_config.get("uncertainty_maximum", 0.25)
+            ),
+            ood_maximum=float(threshold_config.get("ood_maximum", 0.25)),
+            minimum_return_margin=float(
+                threshold_config.get("imagined_return_margin", 0.05)
+            ),
+        ),
+    )
     rows: list[dict[str, Any]] = []
     for item in diagnostic_rows:
         source = item.to_dict()
@@ -118,6 +139,28 @@ def run_paper_v2_suite(
         {"condition": "encoder_comparison", "training_final_tail": "", "frozen_success": "", "random_success": "", **item.to_dict()}
         for item in (*diagnostic_two_a, *diagnostic_two_b)
     )
+    rows.extend(
+        {
+            "diagnostic": "diagnostic_4",
+            "condition": item["condition"],
+            "representation": "relational_effect_representation",
+            "research_seed": item["research_seed"],
+            "adaptation_budget": 0,
+            "training_final_tail": "",
+            "frozen_success": "",
+            "random_success": "",
+            "success_rate": item["success_rate"],
+            "start_checkpoint_fingerprint": "",
+            "evaluation_checkpoint_fingerprint": "",
+            "final_checkpoint_fingerprint": "",
+            "effect_updates": 0,
+            "intervention_rate": item["intervention_rate"],
+            "mean_decision_regret": item["mean_decision_regret"],
+            "dead_end_entry_rate": item["dead_end_entry_rate"],
+            "root_action_optimality": item["root_action_optimality"],
+        }
+        for item in diagnostic_four["summaries"]
+    )
     columns = (
         "diagnostic",
         "condition",
@@ -132,6 +175,10 @@ def run_paper_v2_suite(
         "evaluation_checkpoint_fingerprint",
         "final_checkpoint_fingerprint",
         "effect_updates",
+        "intervention_rate",
+        "mean_decision_regret",
+        "dead_end_entry_rate",
+        "root_action_optimality",
     )
     with V2ArtifactWriter(raw, columns) as writer:
         for payload in rows:
@@ -140,6 +187,15 @@ def run_paper_v2_suite(
                 {
                     "record_type": "seed_summary",
                     **payload,
+                    "private_state_included": False,
+                    "learning_enabled": False,
+                }
+            )
+        for decision in imagination_decisions:
+            writer.write_trace(
+                {
+                    "record_type": "imagination_decision",
+                    **decision,
                     "private_state_included": False,
                     "learning_enabled": False,
                 }
@@ -179,6 +235,25 @@ def run_paper_v2_suite(
             row.evaluation_checkpoint_fingerprint == row.final_checkpoint_fingerprint
             for row in (*diagnostic_two_a, *diagnostic_two_b)
         ),
+        "oracle_transition_accuracy_100_percent": abs(
+            float(diagnostic_four["engineering"]["oracle_transition_accuracy"])
+            - 1.0
+        )
+        <= 1e-12,
+        "oracle_root_action_optimality_at_least_95_percent": float(
+            diagnostic_four["engineering"]["oracle_root_action_optimality"]
+        )
+        >= 0.95,
+        "oracle_regret_below_policy": bool(
+            diagnostic_four["engineering"]["oracle_regret_below_policy"]
+        ),
+        "oracle_dead_end_not_above_policy": bool(
+            diagnostic_four["engineering"]["oracle_dead_end_not_above_policy"]
+        ),
+        "random_model_low_confidence_interventions_zero": float(
+            diagnostic_four["engineering"]["random_model_intervention_rate"]
+        )
+        == 0.0,
     }
     def mean_success(items: list[Any], representation: str, budget: int) -> float:
         selected = [
@@ -193,6 +268,17 @@ def run_paper_v2_suite(
             mean_success(diagnostic_two_a, "relational_effect_representation", 0)
             - mean_success(diagnostic_two_a, "identity_representation", 0)
         ),
+        "imagination_success_by_condition": {
+            condition: sum(
+                row["success_rate"]
+                for row in diagnostic_four["summaries"]
+                if row["condition"] == condition
+            )
+            / len(config["research_seeds"])
+            for condition in {
+                row["condition"] for row in diagnostic_four["summaries"]
+            }
+        },
         "diagnostic_2b_budget16_relational_minus_identity": (
             mean_success(diagnostic_two_b, "relational_effect_representation", 16)
             - mean_success(diagnostic_two_b, "identity_representation", 16)
