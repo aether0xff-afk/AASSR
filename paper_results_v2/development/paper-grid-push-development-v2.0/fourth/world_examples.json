@@ -1,0 +1,57 @@
+[
+  {
+    "world_seed": 76001,
+    "world_sha256": "5ba689e4c9ee7dc7d241c163a53ce928c77fd95adbf72169cb62edbdc1378fc4",
+    "ascii": "########\n#ABD...#\n#P.#...#\n#.B##.G#\n#..#...#\n#..O...#\n########",
+    "minimum_actions": 13,
+    "solution_count": 1,
+    "structural_solution_count": 1,
+    "bounded_dead_end_count": 8,
+    "random_success_estimate": 0.0,
+    "solver_reference_sha256": "80c3755ae5233ee883e0b5b41fd08c05e8a708c2583a00b1d0fdec34471f20b2"
+  },
+  {
+    "world_seed": 76002,
+    "world_sha256": "53caeb6c5967b4d51390165febbcb935bea6bb875a8c03f5f23b33cfd2ebb52f",
+    "ascii": "#######\n#..D..#\n#PB####\n#..O.G#\n#B.#..#\n#A.#..#\n#######",
+    "minimum_actions": 14,
+    "solution_count": 5,
+    "structural_solution_count": 5,
+    "bounded_dead_end_count": 85,
+    "random_success_estimate": 0.0,
+    "solver_reference_sha256": "8e20337bcc7965072690a32d87543ad3028733ea9a9bf07932cb4de99720e616"
+  },
+  {
+    "world_seed": 76003,
+    "world_sha256": "0c6bc79f5c0bc1d8544b7195527b387e23d086d14b1a830e7a1c4d1c1ad0931a",
+    "ascii": "#######\n#...O.#\n#.B.D.#\n#...#G#\n#AB.#.#\n#.P##.#\n#######",
+    "minimum_actions": 9,
+    "solution_count": 25,
+    "structural_solution_count": 18,
+    "bounded_dead_end_count": 308,
+    "random_success_estimate": 0.0,
+    "solver_reference_sha256": "8da7d81c7ed27eb8b9fd51fc21a7ead49cee4ec89baff22c812810c759718fe1"
+  },
+  {
+    "world_seed": 76004,
+    "world_sha256": "94756e37013cde1644c5c1add89e3dda29b618eed71ac2761223187676032de1",
+    "ascii": "#######\n#...O.#\n#.A.D.#\n#PB.#.#\n#.B.#G#\n#...#.#\n#######",
+    "minimum_actions": 9,
+    "solution_count": 27,
+    "structural_solution_count": 16,
+    "bounded_dead_end_count": 395,
+    "random_success_estimate": 0.0,
+    "solver_reference_sha256": "08edfe37a223c1bffc8f3d0b992c9478df877a9be4d4ee6c1b1d9366ae16367e"
+  },
+  {
+    "world_seed": 76005,
+    "world_sha256": "0b7d0ffb3b33eeeedac73821d71f700d2a4aa49a1e0d463883f6cd5b20609a8d",
+    "ascii": "#########\n#..#..DG#\n#.B#..#.#\n#ABO.P#.#\n#..#..#.#\n#..#..#.#\n#########",
+    "minimum_actions": 16,
+    "solution_count": 1,
+    "structural_solution_count": 1,
+    "bounded_dead_end_count": 80,
+    "random_success_estimate": 0.0,
+    "solver_reference_sha256": "0c46554f5d9e9e0591551b746b7a8440b3d24a7c8f506b584c6798f336ce4bb5"
+  }
+]

@@ -1,0 +1,155 @@
+{
+  "causal_law_sha256": "4a3132c76a725c145a2af6edaaddf5293278722c4f521b5feef22b78709598ad",
+  "maximum_actions": 35,
+  "reference_sha256": "28736f5ca411c7db182180b060fab0e0b6a18db9df0299f1d7c76be0f9ec654e",
+  "references": [
+    {
+      "action_count": 9,
+      "actions_analysis_only": [
+        "MOVE_SOUTH",
+        "MOVE_WEST",
+        "MOVE_WEST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_NORTH",
+        "MOVE_NORTH"
+      ],
+      "block_moves": 1,
+      "graph": {
+        "edges": [
+          [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "observed_enablement"
+          ],
+          [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "physical_effect"
+          ],
+          [
+            "door_becomes_passable",
+            "traverse_open_door",
+            "enablement"
+          ],
+          [
+            "door_becomes_passable",
+            "traverse_open_door",
+            "observed_enablement"
+          ],
+          [
+            "traverse_open_door",
+            "goal_reached",
+            "observed_enablement"
+          ]
+        ],
+        "effect_sequence": [
+          "block_occupies_plate",
+          "door_becomes_passable",
+          "traverse_open_door",
+          "goal_reached"
+        ],
+        "nodes": [
+          "block_occupies_plate",
+          "door_becomes_passable",
+          "goal_reached",
+          "traverse_open_door"
+        ],
+        "solution_family": ""
+      },
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "irreversible_risk": 0,
+      "selection_reasons": [
+        "minimum_actions",
+        "minimum_block_moves",
+        "minimum_risk",
+        "structural_representative"
+      ]
+    },
+    {
+      "action_count": 17,
+      "actions_analysis_only": [
+        "MOVE_WEST",
+        "MOVE_WEST",
+        "MOVE_NORTH",
+        "MOVE_WEST",
+        "MOVE_SOUTH",
+        "MOVE_SOUTH",
+        "MOVE_NORTH",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_SOUTH",
+        "MOVE_WEST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_NORTH",
+        "MOVE_NORTH"
+      ],
+      "block_moves": 5,
+      "graph": {
+        "edges": [
+          [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "observed_enablement"
+          ],
+          [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "physical_effect"
+          ],
+          [
+            "door_becomes_passable",
+            "block_occupies_plate",
+            "observed_enablement"
+          ],
+          [
+            "door_becomes_passable",
+            "traverse_open_door",
+            "enablement"
+          ],
+          [
+            "door_becomes_passable",
+            "traverse_open_door",
+            "observed_enablement"
+          ],
+          [
+            "traverse_open_door",
+            "goal_reached",
+            "observed_enablement"
+          ]
+        ],
+        "effect_sequence": [
+          "block_occupies_plate",
+          "door_becomes_passable",
+          "block_occupies_plate",
+          "door_becomes_passable",
+          "traverse_open_door",
+          "goal_reached"
+        ],
+        "nodes": [
+          "block_occupies_plate",
+          "door_becomes_passable",
+          "goal_reached",
+          "traverse_open_door"
+        ],
+        "solution_family": ""
+      },
+      "graph_sha256": "bb80e3c129980df14be9ad8472d947158a9d674a5ac2b4f727ed8b6a9714de30",
+      "irreversible_risk": 1,
+      "selection_reasons": [
+        "structural_representative"
+      ]
+    }
+  ],
+  "schema_version": 1,
+  "solver_explored_states": 2269,
+  "solver_truncated": false,
+  "source": "bounded_grid_solver",
+  "status": "frozen_before_agent_run",
+  "world_sha256": "08928b963eb5ddc86db2ba2fa195eef1f129c610c8f8a3b6511cce0579ece4db"
+}

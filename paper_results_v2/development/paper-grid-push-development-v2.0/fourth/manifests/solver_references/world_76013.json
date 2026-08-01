@@ -1,0 +1,91 @@
+{
+  "causal_law_sha256": "4a3132c76a725c145a2af6edaaddf5293278722c4f521b5feef22b78709598ad",
+  "maximum_actions": 35,
+  "reference_sha256": "d0377b872c18e7e14c7875ba8de2942d551b5accfb87e8dfa14d152adf459011",
+  "references": [
+    {
+      "action_count": 15,
+      "actions_analysis_only": [
+        "MOVE_NORTH",
+        "MOVE_EAST",
+        "MOVE_SOUTH",
+        "MOVE_SOUTH",
+        "MOVE_WEST",
+        "MOVE_SOUTH",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_NORTH",
+        "MOVE_NORTH",
+        "MOVE_WEST",
+        "MOVE_NORTH",
+        "MOVE_NORTH"
+      ],
+      "block_moves": 3,
+      "graph": {
+        "edges": [
+          [
+            "block_enters_pit",
+            "pit_becomes_passable",
+            "observed_enablement"
+          ],
+          [
+            "block_enters_pit",
+            "pit_becomes_passable",
+            "physical_effect"
+          ],
+          [
+            "door_becomes_passable",
+            "block_enters_pit",
+            "observed_enablement"
+          ],
+          [
+            "pit_becomes_passable",
+            "traverse_filled_pit",
+            "enablement"
+          ],
+          [
+            "pit_becomes_passable",
+            "traverse_filled_pit",
+            "observed_enablement"
+          ],
+          [
+            "traverse_filled_pit",
+            "goal_reached",
+            "observed_enablement"
+          ]
+        ],
+        "effect_sequence": [
+          "door_becomes_passable",
+          "block_enters_pit",
+          "pit_becomes_passable",
+          "traverse_filled_pit",
+          "goal_reached"
+        ],
+        "nodes": [
+          "block_enters_pit",
+          "door_becomes_passable",
+          "goal_reached",
+          "pit_becomes_passable",
+          "traverse_filled_pit"
+        ],
+        "solution_family": ""
+      },
+      "graph_sha256": "3daf255435a160d78b7f83a2c245e0c2aafff126761c2ffb7da2383518ac1371",
+      "irreversible_risk": 1,
+      "selection_reasons": [
+        "minimum_actions",
+        "minimum_block_moves",
+        "minimum_risk",
+        "structural_representative"
+      ]
+    }
+  ],
+  "schema_version": 1,
+  "solver_explored_states": 55,
+  "solver_truncated": false,
+  "source": "bounded_grid_solver",
+  "status": "frozen_before_agent_run",
+  "world_sha256": "e3866e592ecc460c9305054135502ce0ee92e774176b4535088358771d5ebf82"
+}

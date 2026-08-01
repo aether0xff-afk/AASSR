@@ -1,0 +1,1318 @@
+{
+  "agent_strategies": [
+    {
+      "source": "agent_episode",
+      "condition": "contextual_policy",
+      "research_seed": 9101,
+      "world_seed": 76004,
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "normalized": {
+        "success": true,
+        "graph": {
+          "nodes": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "goal_reached",
+            "traverse_open_door"
+          ],
+          "edges": [
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "observed_enablement"
+            ],
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "physical_effect"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "enablement"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "observed_enablement"
+            ],
+            [
+              "traverse_open_door",
+              "goal_reached",
+              "observed_enablement"
+            ]
+          ],
+          "effect_sequence": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "traverse_open_door",
+            "goal_reached"
+          ],
+          "solution_family": ""
+        },
+        "primitive_steps": 11,
+        "failed_actions": 2,
+        "meaningful_events": 4,
+        "block_moves": 1,
+        "irreversible_risk": 0
+      },
+      "score": {
+        "success": true,
+        "novelty": 0.0,
+        "utility": 0.7171717171717171,
+        "reproducibility": 0.2,
+        "creativity": 0.0,
+        "novelty_components": {
+          "graph_edit": 0.0,
+          "motif_jaccard": 0.0,
+          "prerequisite_edges": 0.0,
+          "solution_family": 0.0,
+          "effect_sequence": 0.0
+        },
+        "final_candidate": false,
+        "rejection_reasons": [
+          "novelty_not_above_frozen_threshold",
+          "utility_below_threshold",
+          "not_reproduced"
+        ]
+      }
+    },
+    {
+      "source": "agent_episode",
+      "condition": "contextual_policy",
+      "research_seed": 9101,
+      "world_seed": 76004,
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "normalized": {
+        "success": true,
+        "graph": {
+          "nodes": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "goal_reached",
+            "traverse_open_door"
+          ],
+          "edges": [
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "observed_enablement"
+            ],
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "physical_effect"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "enablement"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "observed_enablement"
+            ],
+            [
+              "traverse_open_door",
+              "goal_reached",
+              "observed_enablement"
+            ]
+          ],
+          "effect_sequence": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "traverse_open_door",
+            "goal_reached"
+          ],
+          "solution_family": ""
+        },
+        "primitive_steps": 11,
+        "failed_actions": 2,
+        "meaningful_events": 4,
+        "block_moves": 1,
+        "irreversible_risk": 0
+      },
+      "score": {
+        "success": true,
+        "novelty": 0.0,
+        "utility": 0.7171717171717171,
+        "reproducibility": 0.2,
+        "creativity": 0.0,
+        "novelty_components": {
+          "graph_edit": 0.0,
+          "motif_jaccard": 0.0,
+          "prerequisite_edges": 0.0,
+          "solution_family": 0.0,
+          "effect_sequence": 0.0
+        },
+        "final_candidate": false,
+        "rejection_reasons": [
+          "novelty_not_above_frozen_threshold",
+          "utility_below_threshold",
+          "not_reproduced"
+        ]
+      }
+    },
+    {
+      "source": "agent_episode",
+      "condition": "contextual_policy",
+      "research_seed": 9101,
+      "world_seed": 76004,
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "normalized": {
+        "success": true,
+        "graph": {
+          "nodes": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "goal_reached",
+            "traverse_open_door"
+          ],
+          "edges": [
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "observed_enablement"
+            ],
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "physical_effect"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "enablement"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "observed_enablement"
+            ],
+            [
+              "traverse_open_door",
+              "goal_reached",
+              "observed_enablement"
+            ]
+          ],
+          "effect_sequence": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "traverse_open_door",
+            "goal_reached"
+          ],
+          "solution_family": ""
+        },
+        "primitive_steps": 11,
+        "failed_actions": 2,
+        "meaningful_events": 4,
+        "block_moves": 1,
+        "irreversible_risk": 0
+      },
+      "score": {
+        "success": true,
+        "novelty": 0.0,
+        "utility": 0.7171717171717171,
+        "reproducibility": 0.2,
+        "creativity": 0.0,
+        "novelty_components": {
+          "graph_edit": 0.0,
+          "motif_jaccard": 0.0,
+          "prerequisite_edges": 0.0,
+          "solution_family": 0.0,
+          "effect_sequence": 0.0
+        },
+        "final_candidate": false,
+        "rejection_reasons": [
+          "novelty_not_above_frozen_threshold",
+          "utility_below_threshold",
+          "not_reproduced"
+        ]
+      }
+    },
+    {
+      "source": "agent_episode",
+      "condition": "contextual_policy",
+      "research_seed": 9101,
+      "world_seed": 76004,
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "normalized": {
+        "success": true,
+        "graph": {
+          "nodes": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "goal_reached",
+            "traverse_open_door"
+          ],
+          "edges": [
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "observed_enablement"
+            ],
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "physical_effect"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "enablement"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "observed_enablement"
+            ],
+            [
+              "traverse_open_door",
+              "goal_reached",
+              "observed_enablement"
+            ]
+          ],
+          "effect_sequence": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "traverse_open_door",
+            "goal_reached"
+          ],
+          "solution_family": ""
+        },
+        "primitive_steps": 11,
+        "failed_actions": 2,
+        "meaningful_events": 4,
+        "block_moves": 1,
+        "irreversible_risk": 0
+      },
+      "score": {
+        "success": true,
+        "novelty": 0.0,
+        "utility": 0.7171717171717171,
+        "reproducibility": 0.2,
+        "creativity": 0.0,
+        "novelty_components": {
+          "graph_edit": 0.0,
+          "motif_jaccard": 0.0,
+          "prerequisite_edges": 0.0,
+          "solution_family": 0.0,
+          "effect_sequence": 0.0
+        },
+        "final_candidate": false,
+        "rejection_reasons": [
+          "novelty_not_above_frozen_threshold",
+          "utility_below_threshold",
+          "not_reproduced"
+        ]
+      }
+    },
+    {
+      "source": "agent_episode",
+      "condition": "full_aassr",
+      "research_seed": 9101,
+      "world_seed": 76004,
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "normalized": {
+        "success": true,
+        "graph": {
+          "nodes": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "goal_reached",
+            "traverse_open_door"
+          ],
+          "edges": [
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "observed_enablement"
+            ],
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "physical_effect"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "enablement"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "observed_enablement"
+            ],
+            [
+              "traverse_open_door",
+              "goal_reached",
+              "observed_enablement"
+            ]
+          ],
+          "effect_sequence": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "traverse_open_door",
+            "goal_reached"
+          ],
+          "solution_family": ""
+        },
+        "primitive_steps": 13,
+        "failed_actions": 2,
+        "meaningful_events": 4,
+        "block_moves": 2,
+        "irreversible_risk": 0
+      },
+      "score": {
+        "success": true,
+        "novelty": 0.0,
+        "utility": 0.6752136752136751,
+        "reproducibility": 0.2,
+        "creativity": 0.0,
+        "novelty_components": {
+          "graph_edit": 0.0,
+          "motif_jaccard": 0.0,
+          "prerequisite_edges": 0.0,
+          "solution_family": 0.0,
+          "effect_sequence": 0.0
+        },
+        "final_candidate": false,
+        "rejection_reasons": [
+          "novelty_not_above_frozen_threshold",
+          "utility_below_threshold",
+          "not_reproduced"
+        ]
+      }
+    },
+    {
+      "source": "agent_episode",
+      "condition": "full_aassr",
+      "research_seed": 9101,
+      "world_seed": 76004,
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "normalized": {
+        "success": true,
+        "graph": {
+          "nodes": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "goal_reached",
+            "traverse_open_door"
+          ],
+          "edges": [
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "observed_enablement"
+            ],
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "physical_effect"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "enablement"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "observed_enablement"
+            ],
+            [
+              "traverse_open_door",
+              "goal_reached",
+              "observed_enablement"
+            ]
+          ],
+          "effect_sequence": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "traverse_open_door",
+            "goal_reached"
+          ],
+          "solution_family": ""
+        },
+        "primitive_steps": 13,
+        "failed_actions": 2,
+        "meaningful_events": 4,
+        "block_moves": 2,
+        "irreversible_risk": 0
+      },
+      "score": {
+        "success": true,
+        "novelty": 0.0,
+        "utility": 0.6752136752136751,
+        "reproducibility": 0.2,
+        "creativity": 0.0,
+        "novelty_components": {
+          "graph_edit": 0.0,
+          "motif_jaccard": 0.0,
+          "prerequisite_edges": 0.0,
+          "solution_family": 0.0,
+          "effect_sequence": 0.0
+        },
+        "final_candidate": false,
+        "rejection_reasons": [
+          "novelty_not_above_frozen_threshold",
+          "utility_below_threshold",
+          "not_reproduced"
+        ]
+      }
+    },
+    {
+      "source": "agent_episode",
+      "condition": "full_aassr",
+      "research_seed": 9101,
+      "world_seed": 76004,
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "normalized": {
+        "success": true,
+        "graph": {
+          "nodes": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "goal_reached",
+            "traverse_open_door"
+          ],
+          "edges": [
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "observed_enablement"
+            ],
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "physical_effect"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "enablement"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "observed_enablement"
+            ],
+            [
+              "traverse_open_door",
+              "goal_reached",
+              "observed_enablement"
+            ]
+          ],
+          "effect_sequence": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "traverse_open_door",
+            "goal_reached"
+          ],
+          "solution_family": ""
+        },
+        "primitive_steps": 13,
+        "failed_actions": 2,
+        "meaningful_events": 4,
+        "block_moves": 2,
+        "irreversible_risk": 0
+      },
+      "score": {
+        "success": true,
+        "novelty": 0.0,
+        "utility": 0.6752136752136751,
+        "reproducibility": 0.2,
+        "creativity": 0.0,
+        "novelty_components": {
+          "graph_edit": 0.0,
+          "motif_jaccard": 0.0,
+          "prerequisite_edges": 0.0,
+          "solution_family": 0.0,
+          "effect_sequence": 0.0
+        },
+        "final_candidate": false,
+        "rejection_reasons": [
+          "novelty_not_above_frozen_threshold",
+          "utility_below_threshold",
+          "not_reproduced"
+        ]
+      }
+    },
+    {
+      "source": "agent_episode",
+      "condition": "full_aassr",
+      "research_seed": 9101,
+      "world_seed": 76004,
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "normalized": {
+        "success": true,
+        "graph": {
+          "nodes": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "goal_reached",
+            "traverse_open_door"
+          ],
+          "edges": [
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "observed_enablement"
+            ],
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "physical_effect"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "enablement"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "observed_enablement"
+            ],
+            [
+              "traverse_open_door",
+              "goal_reached",
+              "observed_enablement"
+            ]
+          ],
+          "effect_sequence": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "traverse_open_door",
+            "goal_reached"
+          ],
+          "solution_family": ""
+        },
+        "primitive_steps": 13,
+        "failed_actions": 2,
+        "meaningful_events": 4,
+        "block_moves": 2,
+        "irreversible_risk": 0
+      },
+      "score": {
+        "success": true,
+        "novelty": 0.0,
+        "utility": 0.6752136752136751,
+        "reproducibility": 0.2,
+        "creativity": 0.0,
+        "novelty_components": {
+          "graph_edit": 0.0,
+          "motif_jaccard": 0.0,
+          "prerequisite_edges": 0.0,
+          "solution_family": 0.0,
+          "effect_sequence": 0.0
+        },
+        "final_candidate": false,
+        "rejection_reasons": [
+          "novelty_not_above_frozen_threshold",
+          "utility_below_threshold",
+          "not_reproduced"
+        ]
+      }
+    },
+    {
+      "source": "agent_episode",
+      "condition": "contextual_policy",
+      "research_seed": 9103,
+      "world_seed": 76004,
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "normalized": {
+        "success": true,
+        "graph": {
+          "nodes": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "goal_reached",
+            "traverse_open_door"
+          ],
+          "edges": [
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "observed_enablement"
+            ],
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "physical_effect"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "enablement"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "observed_enablement"
+            ],
+            [
+              "traverse_open_door",
+              "goal_reached",
+              "observed_enablement"
+            ]
+          ],
+          "effect_sequence": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "traverse_open_door",
+            "goal_reached"
+          ],
+          "solution_family": ""
+        },
+        "primitive_steps": 11,
+        "failed_actions": 2,
+        "meaningful_events": 4,
+        "block_moves": 1,
+        "irreversible_risk": 0
+      },
+      "score": {
+        "success": true,
+        "novelty": 0.0,
+        "utility": 0.7171717171717171,
+        "reproducibility": 0.2,
+        "creativity": 0.0,
+        "novelty_components": {
+          "graph_edit": 0.0,
+          "motif_jaccard": 0.0,
+          "prerequisite_edges": 0.0,
+          "solution_family": 0.0,
+          "effect_sequence": 0.0
+        },
+        "final_candidate": false,
+        "rejection_reasons": [
+          "novelty_not_above_frozen_threshold",
+          "utility_below_threshold",
+          "not_reproduced"
+        ]
+      }
+    },
+    {
+      "source": "agent_episode",
+      "condition": "contextual_policy",
+      "research_seed": 9103,
+      "world_seed": 76004,
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "normalized": {
+        "success": true,
+        "graph": {
+          "nodes": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "goal_reached",
+            "traverse_open_door"
+          ],
+          "edges": [
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "observed_enablement"
+            ],
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "physical_effect"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "enablement"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "observed_enablement"
+            ],
+            [
+              "traverse_open_door",
+              "goal_reached",
+              "observed_enablement"
+            ]
+          ],
+          "effect_sequence": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "traverse_open_door",
+            "goal_reached"
+          ],
+          "solution_family": ""
+        },
+        "primitive_steps": 11,
+        "failed_actions": 2,
+        "meaningful_events": 4,
+        "block_moves": 1,
+        "irreversible_risk": 0
+      },
+      "score": {
+        "success": true,
+        "novelty": 0.0,
+        "utility": 0.7171717171717171,
+        "reproducibility": 0.2,
+        "creativity": 0.0,
+        "novelty_components": {
+          "graph_edit": 0.0,
+          "motif_jaccard": 0.0,
+          "prerequisite_edges": 0.0,
+          "solution_family": 0.0,
+          "effect_sequence": 0.0
+        },
+        "final_candidate": false,
+        "rejection_reasons": [
+          "novelty_not_above_frozen_threshold",
+          "utility_below_threshold",
+          "not_reproduced"
+        ]
+      }
+    },
+    {
+      "source": "agent_episode",
+      "condition": "contextual_policy",
+      "research_seed": 9103,
+      "world_seed": 76004,
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "normalized": {
+        "success": true,
+        "graph": {
+          "nodes": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "goal_reached",
+            "traverse_open_door"
+          ],
+          "edges": [
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "observed_enablement"
+            ],
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "physical_effect"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "enablement"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "observed_enablement"
+            ],
+            [
+              "traverse_open_door",
+              "goal_reached",
+              "observed_enablement"
+            ]
+          ],
+          "effect_sequence": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "traverse_open_door",
+            "goal_reached"
+          ],
+          "solution_family": ""
+        },
+        "primitive_steps": 11,
+        "failed_actions": 2,
+        "meaningful_events": 4,
+        "block_moves": 1,
+        "irreversible_risk": 0
+      },
+      "score": {
+        "success": true,
+        "novelty": 0.0,
+        "utility": 0.7171717171717171,
+        "reproducibility": 0.2,
+        "creativity": 0.0,
+        "novelty_components": {
+          "graph_edit": 0.0,
+          "motif_jaccard": 0.0,
+          "prerequisite_edges": 0.0,
+          "solution_family": 0.0,
+          "effect_sequence": 0.0
+        },
+        "final_candidate": false,
+        "rejection_reasons": [
+          "novelty_not_above_frozen_threshold",
+          "utility_below_threshold",
+          "not_reproduced"
+        ]
+      }
+    },
+    {
+      "source": "agent_episode",
+      "condition": "contextual_policy",
+      "research_seed": 9103,
+      "world_seed": 76004,
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "normalized": {
+        "success": true,
+        "graph": {
+          "nodes": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "goal_reached",
+            "traverse_open_door"
+          ],
+          "edges": [
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "observed_enablement"
+            ],
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "physical_effect"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "enablement"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "observed_enablement"
+            ],
+            [
+              "traverse_open_door",
+              "goal_reached",
+              "observed_enablement"
+            ]
+          ],
+          "effect_sequence": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "traverse_open_door",
+            "goal_reached"
+          ],
+          "solution_family": ""
+        },
+        "primitive_steps": 11,
+        "failed_actions": 2,
+        "meaningful_events": 4,
+        "block_moves": 1,
+        "irreversible_risk": 0
+      },
+      "score": {
+        "success": true,
+        "novelty": 0.0,
+        "utility": 0.7171717171717171,
+        "reproducibility": 0.2,
+        "creativity": 0.0,
+        "novelty_components": {
+          "graph_edit": 0.0,
+          "motif_jaccard": 0.0,
+          "prerequisite_edges": 0.0,
+          "solution_family": 0.0,
+          "effect_sequence": 0.0
+        },
+        "final_candidate": false,
+        "rejection_reasons": [
+          "novelty_not_above_frozen_threshold",
+          "utility_below_threshold",
+          "not_reproduced"
+        ]
+      }
+    },
+    {
+      "source": "agent_episode",
+      "condition": "full_aassr",
+      "research_seed": 9103,
+      "world_seed": 76004,
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "normalized": {
+        "success": true,
+        "graph": {
+          "nodes": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "goal_reached",
+            "traverse_open_door"
+          ],
+          "edges": [
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "observed_enablement"
+            ],
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "physical_effect"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "enablement"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "observed_enablement"
+            ],
+            [
+              "traverse_open_door",
+              "goal_reached",
+              "observed_enablement"
+            ]
+          ],
+          "effect_sequence": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "traverse_open_door",
+            "goal_reached"
+          ],
+          "solution_family": ""
+        },
+        "primitive_steps": 11,
+        "failed_actions": 2,
+        "meaningful_events": 4,
+        "block_moves": 1,
+        "irreversible_risk": 0
+      },
+      "score": {
+        "success": true,
+        "novelty": 0.0,
+        "utility": 0.7171717171717171,
+        "reproducibility": 0.2,
+        "creativity": 0.0,
+        "novelty_components": {
+          "graph_edit": 0.0,
+          "motif_jaccard": 0.0,
+          "prerequisite_edges": 0.0,
+          "solution_family": 0.0,
+          "effect_sequence": 0.0
+        },
+        "final_candidate": false,
+        "rejection_reasons": [
+          "novelty_not_above_frozen_threshold",
+          "utility_below_threshold",
+          "not_reproduced"
+        ]
+      }
+    },
+    {
+      "source": "agent_episode",
+      "condition": "full_aassr",
+      "research_seed": 9103,
+      "world_seed": 76004,
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "normalized": {
+        "success": true,
+        "graph": {
+          "nodes": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "goal_reached",
+            "traverse_open_door"
+          ],
+          "edges": [
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "observed_enablement"
+            ],
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "physical_effect"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "enablement"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "observed_enablement"
+            ],
+            [
+              "traverse_open_door",
+              "goal_reached",
+              "observed_enablement"
+            ]
+          ],
+          "effect_sequence": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "traverse_open_door",
+            "goal_reached"
+          ],
+          "solution_family": ""
+        },
+        "primitive_steps": 11,
+        "failed_actions": 2,
+        "meaningful_events": 4,
+        "block_moves": 1,
+        "irreversible_risk": 0
+      },
+      "score": {
+        "success": true,
+        "novelty": 0.0,
+        "utility": 0.7171717171717171,
+        "reproducibility": 0.2,
+        "creativity": 0.0,
+        "novelty_components": {
+          "graph_edit": 0.0,
+          "motif_jaccard": 0.0,
+          "prerequisite_edges": 0.0,
+          "solution_family": 0.0,
+          "effect_sequence": 0.0
+        },
+        "final_candidate": false,
+        "rejection_reasons": [
+          "novelty_not_above_frozen_threshold",
+          "utility_below_threshold",
+          "not_reproduced"
+        ]
+      }
+    },
+    {
+      "source": "agent_episode",
+      "condition": "full_aassr",
+      "research_seed": 9103,
+      "world_seed": 76004,
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "normalized": {
+        "success": true,
+        "graph": {
+          "nodes": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "goal_reached",
+            "traverse_open_door"
+          ],
+          "edges": [
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "observed_enablement"
+            ],
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "physical_effect"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "enablement"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "observed_enablement"
+            ],
+            [
+              "traverse_open_door",
+              "goal_reached",
+              "observed_enablement"
+            ]
+          ],
+          "effect_sequence": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "traverse_open_door",
+            "goal_reached"
+          ],
+          "solution_family": ""
+        },
+        "primitive_steps": 11,
+        "failed_actions": 2,
+        "meaningful_events": 4,
+        "block_moves": 1,
+        "irreversible_risk": 0
+      },
+      "score": {
+        "success": true,
+        "novelty": 0.0,
+        "utility": 0.7171717171717171,
+        "reproducibility": 0.2,
+        "creativity": 0.0,
+        "novelty_components": {
+          "graph_edit": 0.0,
+          "motif_jaccard": 0.0,
+          "prerequisite_edges": 0.0,
+          "solution_family": 0.0,
+          "effect_sequence": 0.0
+        },
+        "final_candidate": false,
+        "rejection_reasons": [
+          "novelty_not_above_frozen_threshold",
+          "utility_below_threshold",
+          "not_reproduced"
+        ]
+      }
+    },
+    {
+      "source": "agent_episode",
+      "condition": "full_aassr",
+      "research_seed": 9103,
+      "world_seed": 76004,
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "normalized": {
+        "success": true,
+        "graph": {
+          "nodes": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "goal_reached",
+            "traverse_open_door"
+          ],
+          "edges": [
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "observed_enablement"
+            ],
+            [
+              "block_occupies_plate",
+              "door_becomes_passable",
+              "physical_effect"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "enablement"
+            ],
+            [
+              "door_becomes_passable",
+              "traverse_open_door",
+              "observed_enablement"
+            ],
+            [
+              "traverse_open_door",
+              "goal_reached",
+              "observed_enablement"
+            ]
+          ],
+          "effect_sequence": [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "traverse_open_door",
+            "goal_reached"
+          ],
+          "solution_family": ""
+        },
+        "primitive_steps": 11,
+        "failed_actions": 2,
+        "meaningful_events": 4,
+        "block_moves": 1,
+        "irreversible_risk": 0
+      },
+      "score": {
+        "success": true,
+        "novelty": 0.0,
+        "utility": 0.7171717171717171,
+        "reproducibility": 0.2,
+        "creativity": 0.0,
+        "novelty_components": {
+          "graph_edit": 0.0,
+          "motif_jaccard": 0.0,
+          "prerequisite_edges": 0.0,
+          "solution_family": 0.0,
+          "effect_sequence": 0.0
+        },
+        "final_candidate": false,
+        "rejection_reasons": [
+          "novelty_not_above_frozen_threshold",
+          "utility_below_threshold",
+          "not_reproduced"
+        ]
+      }
+    }
+  ],
+  "calculation_example": {
+    "source": "posthoc_solver_alternative_example_not_agent_evidence",
+    "world_seed": 76002,
+    "actions_differ_from_first_reference": true,
+    "normalized": {
+      "success": true,
+      "graph": {
+        "nodes": [
+          "block_enters_pit",
+          "door_becomes_passable",
+          "goal_reached",
+          "pit_becomes_passable",
+          "traverse_filled_pit"
+        ],
+        "edges": [
+          [
+            "block_enters_pit",
+            "pit_becomes_passable",
+            "observed_enablement"
+          ],
+          [
+            "block_enters_pit",
+            "pit_becomes_passable",
+            "physical_effect"
+          ],
+          [
+            "door_becomes_passable",
+            "block_enters_pit",
+            "observed_enablement"
+          ],
+          [
+            "pit_becomes_passable",
+            "traverse_filled_pit",
+            "enablement"
+          ],
+          [
+            "pit_becomes_passable",
+            "traverse_filled_pit",
+            "observed_enablement"
+          ],
+          [
+            "traverse_filled_pit",
+            "goal_reached",
+            "observed_enablement"
+          ]
+        ],
+        "effect_sequence": [
+          "door_becomes_passable",
+          "block_enters_pit",
+          "pit_becomes_passable",
+          "traverse_filled_pit",
+          "goal_reached"
+        ],
+        "solution_family": ""
+      },
+      "primitive_steps": 16,
+      "failed_actions": 0,
+      "meaningful_events": 5,
+      "block_moves": 3,
+      "irreversible_risk": 1
+    },
+    "score": {
+      "success": true,
+      "novelty": 0.0,
+      "utility": 0.7916666666666666,
+      "reproducibility": 0.0,
+      "creativity": 0.0,
+      "novelty_components": {
+        "graph_edit": 0.0,
+        "motif_jaccard": 0.0,
+        "prerequisite_edges": 0.0,
+        "solution_family": 0.0,
+        "effect_sequence": 0.0
+      },
+      "final_candidate": false,
+      "rejection_reasons": [
+        "novelty_not_above_frozen_threshold",
+        "utility_below_threshold",
+        "not_reproduced"
+      ]
+    }
+  }
+}
