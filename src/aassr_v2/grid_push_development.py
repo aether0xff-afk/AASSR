@@ -91,6 +91,50 @@ def _find_trace(
     return None
 
 
+def _boundary(width: int, height: int) -> frozenset[tuple[int, int]]:
+    return frozenset(
+        (x, y)
+        for x in range(width)
+        for y in range(height)
+        if x in {0, width - 1} or y in {0, height - 1}
+    )
+
+
+def _pressure_plate_rule_trace() -> dict[str, Any]:
+    plate, door = (3, 2), (4, 1)
+    spec = GridPushSpec(
+        width=6,
+        height=5,
+        walls=_boundary(6, 5),
+        start=(1, 2),
+        goal=(4, 3),
+        blocks=frozenset({(2, 2)}),
+        plates=frozenset({plate}),
+        doors=frozenset({door}),
+        plate_links={plate: (door,)},
+    )
+    trace = _replay_trace(
+        spec, ("MOVE_EAST", "MOVE_EAST", "MOVE_SOUTH")
+    )
+    trace["evidence_scope"] = "physics_rule_probe_not_agent_performance"
+    return trace
+
+
+def _pit_fill_rule_trace() -> dict[str, Any]:
+    spec = GridPushSpec(
+        width=6,
+        height=5,
+        walls=_boundary(6, 5),
+        start=(1, 2),
+        goal=(4, 3),
+        blocks=frozenset({(2, 2)}),
+        pits=frozenset({(3, 2)}),
+    )
+    trace = _replay_trace(spec, ("MOVE_EAST", "MOVE_EAST"))
+    trace["evidence_scope"] = "physics_rule_probe_not_agent_performance"
+    return trace
+
+
 def _write_summary_csv(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
     if not rows:
         raise ValueError("cannot write empty summary")
@@ -178,8 +222,8 @@ def run_grid_push_development(
     )
     traces = {
         "block_push": _find_trace(specs, solver_results, "block_moved"),
-        "pit_fill": _find_trace(specs, solver_results, "pit_filled"),
-        "plate_and_door": _find_trace(specs, solver_results, "door_opened"),
+        "pit_fill": _pit_fill_rule_trace(),
+        "plate_and_door": _pressure_plate_rule_trace(),
     }
     (output / "physics_traces.json").write_text(
         json.dumps(traces, indent=2), encoding="utf-8"

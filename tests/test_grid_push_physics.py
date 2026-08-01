@@ -5,6 +5,7 @@ from aassr_v2.grid_push_world import (
     GridPushWorld,
     solve_grid_world,
 )
+from aassr_v2.grid_push_development import _pressure_plate_rule_trace
 
 
 def _boundary(width: int, height: int) -> frozenset[tuple[int, int]]:
@@ -128,3 +129,17 @@ def test_wrong_push_can_create_a_real_unsolvable_state() -> None:
     world.step("MOVE_SOUTH")  # pushes the only block against the lower wall
     assert world.analysis_private_state.blocks == frozenset({(2, 4)})
     assert not solve_grid_world(world, maximum_actions=30).solutions
+
+
+def test_pressure_rule_evidence_trace_opens_then_closes_door() -> None:
+    trace = _pressure_plate_rule_trace()
+    event_kinds = [
+        event["kind"]
+        for step in trace["steps"]
+        for event in step["analysis_events"]
+    ]
+    assert "block_moved" in event_kinds
+    assert "plate_pressed" in event_kinds
+    assert "door_opened" in event_kinds
+    assert "plate_released" in event_kinds
+    assert "door_closed" in event_kinds
