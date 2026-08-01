@@ -72,3 +72,22 @@ class V2RunIdentity:
         payload = asdict(self)
         payload["stage"] = self.stage.value
         return payload
+
+
+@dataclass(frozen=True, slots=True)
+class CausalProphecyPredictionV20:
+    next_observable_state: RawCausalObservation | None
+    observable_effect_delta: Mapping[str, float]
+    action_unlock_probability: float
+    terminal_return_probability: float
+    visit_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class CausalProphecyPredictionV21:
+    base: CausalProphecyPredictionV20
+    expected_resource_cost: float
+    expected_damage: float
+    uncertainty: float
+    ood_score: float
+    calibration_confidence: float

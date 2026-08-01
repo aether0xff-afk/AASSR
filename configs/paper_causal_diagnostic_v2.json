@@ -46,6 +46,16 @@
     "relational_update_budget": 1,
     "exploration_schedule": "epsilon-0.8-to-0.05-over-400"
   },
+  "prophecy": {
+    "protocol": "v2.0",
+    "model": "empirical",
+    "return_target_mode": "monte_carlo",
+    "gamma": 0.97,
+    "uncertainty_method": "equal_mean_empirical_count_and_holdout_effect_error",
+    "ood_method": "inverse_visit_count",
+    "reliability_bins": 10,
+    "neural_model_enabled": false
+  },
   "thresholds": {
     "contextual_advantage_over_random": 0.2,
     "frozen_replay_gap": 0.1,
