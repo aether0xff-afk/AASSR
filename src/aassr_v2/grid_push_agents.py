@@ -115,6 +115,7 @@ class GridEpisodeRecord:
     imagination_interventions: int
     actions: tuple[str, ...]
     event_steps: tuple[tuple[Mapping[str, Any], ...], ...]
+    initial_agent_observation: Mapping[str, Any]
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -139,6 +140,7 @@ class GridConditionSummary:
     checkpoint_before_evaluation: str
     checkpoint_after_evaluation: str
     evaluation_learning_calls: int
+    relational_key_migrations: int
     prophecy_return_brier: float | None = None
     prophecy_effect_error: float | None = None
 
@@ -161,11 +163,14 @@ def _episode(
     world = GridPushWorld(spec)
     actions: list[str] = []
     event_steps: list[tuple[Mapping[str, Any], ...]] = []
+    initial_agent_observation: Mapping[str, Any] = {}
     failures = 0
     block_moves = 0
     interventions = 0
     for _step in range(maximum_steps):
         before = world.observe()
+        if not initial_agent_observation:
+            initial_agent_observation = before.to_dict()
         if before.terminal:
             break
         action, intervened = choose(before)
@@ -200,6 +205,7 @@ def _episode(
         imagination_interventions=interventions,
         actions=tuple(actions),
         event_steps=tuple(event_steps),
+        initial_agent_observation=dict(initial_agent_observation),
     )
 
 
@@ -212,6 +218,7 @@ def _summarize(
     checkpoint_before: str,
     checkpoint_after: str,
     evaluation_learning_calls: int,
+    relational_key_migrations: int = 0,
     calibration: Mapping[str, float] | None = None,
 ) -> GridConditionSummary:
     tail = training_successes[-min(50, len(training_successes)) :]
@@ -234,6 +241,7 @@ def _summarize(
         checkpoint_before_evaluation=checkpoint_before,
         checkpoint_after_evaluation=checkpoint_after,
         evaluation_learning_calls=evaluation_learning_calls,
+        relational_key_migrations=int(relational_key_migrations),
         prophecy_return_brier=None if calibration is None else calibration["return_brier_score"],
         prophecy_effect_error=None if calibration is None else calibration["observable_effect_error"],
     )
@@ -285,6 +293,7 @@ def run_small_grid_diagnostic(
                 checkpoint_before="",
                 checkpoint_after="",
                 evaluation_learning_calls=0,
+                relational_key_migrations=0,
             )
         )
 
@@ -340,6 +349,7 @@ def run_small_grid_diagnostic(
                 checkpoint_before=contextual_before,
                 checkpoint_after=contextual_after,
                 evaluation_learning_calls=contextual_clone.update_count - updates_before,
+                relational_key_migrations=contextual_clone.key_migration_count,
             )
         )
 
@@ -417,6 +427,7 @@ def run_small_grid_diagnostic(
                 checkpoint_before=full_before,
                 checkpoint_after=full_after,
                 evaluation_learning_calls=updates_after - updates_before,
+                relational_key_migrations=full_clone.policy.key_migration_count,
                 calibration=full_clone.prophecy.calibration_metrics(),
             )
         )
