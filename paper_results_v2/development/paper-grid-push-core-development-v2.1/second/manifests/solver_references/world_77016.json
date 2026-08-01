@@ -1,0 +1,87 @@
+{
+  "causal_law_sha256": "4a3132c76a725c145a2af6edaaddf5293278722c4f521b5feef22b78709598ad",
+  "maximum_actions": 35,
+  "reference_sha256": "3b2c084aa961bd31fc80ad22cd97395acb6b1d22ba073dcb9c0219d89a34de68",
+  "references": [
+    {
+      "action_count": 18,
+      "actions_analysis_only": [
+        "MOVE_NORTH",
+        "MOVE_WEST",
+        "MOVE_WEST",
+        "MOVE_WEST",
+        "MOVE_NORTH",
+        "MOVE_NORTH",
+        "MOVE_EAST",
+        "MOVE_SOUTH",
+        "MOVE_SOUTH",
+        "MOVE_EAST",
+        "MOVE_SOUTH",
+        "MOVE_WEST",
+        "MOVE_NORTH",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_SOUTH"
+      ],
+      "block_moves": 3,
+      "graph": {
+        "edges": [
+          [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "observed_enablement"
+          ],
+          [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "physical_effect"
+          ],
+          [
+            "door_becomes_passable",
+            "traverse_open_door",
+            "enablement"
+          ],
+          [
+            "door_becomes_passable",
+            "traverse_open_door",
+            "observed_enablement"
+          ],
+          [
+            "traverse_open_door",
+            "goal_reached",
+            "observed_enablement"
+          ]
+        ],
+        "effect_sequence": [
+          "block_occupies_plate",
+          "door_becomes_passable",
+          "traverse_open_door",
+          "goal_reached"
+        ],
+        "nodes": [
+          "block_occupies_plate",
+          "door_becomes_passable",
+          "goal_reached",
+          "traverse_open_door"
+        ],
+        "solution_family": ""
+      },
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "irreversible_risk": 0,
+      "selection_reasons": [
+        "minimum_actions",
+        "minimum_block_moves",
+        "minimum_risk",
+        "structural_representative"
+      ]
+    }
+  ],
+  "schema_version": 1,
+  "solver_explored_states": 137,
+  "solver_truncated": false,
+  "source": "bounded_grid_solver",
+  "status": "frozen_before_agent_run",
+  "world_sha256": "b579e0b33d25e9a9ea642219426259fac96c1792a63a5dd64f652b657a62e6a0"
+}

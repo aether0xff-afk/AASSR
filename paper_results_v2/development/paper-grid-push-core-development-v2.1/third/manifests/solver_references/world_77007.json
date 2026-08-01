@@ -1,0 +1,383 @@
+{
+  "causal_law_sha256": "4a3132c76a725c145a2af6edaaddf5293278722c4f521b5feef22b78709598ad",
+  "maximum_actions": 35,
+  "reference_sha256": "fda24d505d79ba20a500fc6fb97510c1cef67ca95cdca3be4ba2fb74bb8c829e",
+  "references": [
+    {
+      "action_count": 21,
+      "actions_analysis_only": [
+        "MOVE_SOUTH",
+        "MOVE_WEST",
+        "MOVE_WEST",
+        "MOVE_WEST",
+        "MOVE_SOUTH",
+        "MOVE_SOUTH",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_NORTH",
+        "MOVE_NORTH",
+        "MOVE_WEST",
+        "MOVE_SOUTH",
+        "MOVE_NORTH",
+        "MOVE_NORTH",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_SOUTH",
+        "MOVE_SOUTH",
+        "MOVE_SOUTH"
+      ],
+      "block_moves": 5,
+      "graph": {
+        "edges": [
+          [
+            "block_enters_pit",
+            "pit_becomes_passable",
+            "observed_enablement"
+          ],
+          [
+            "block_enters_pit",
+            "pit_becomes_passable",
+            "physical_effect"
+          ],
+          [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "observed_enablement"
+          ],
+          [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "physical_effect"
+          ],
+          [
+            "door_becomes_passable",
+            "block_enters_pit",
+            "observed_enablement"
+          ],
+          [
+            "door_becomes_passable",
+            "block_occupies_plate",
+            "observed_enablement"
+          ],
+          [
+            "pit_becomes_passable",
+            "traverse_filled_pit",
+            "enablement"
+          ],
+          [
+            "pit_becomes_passable",
+            "traverse_filled_pit",
+            "observed_enablement"
+          ],
+          [
+            "traverse_filled_pit",
+            "goal_reached",
+            "observed_enablement"
+          ]
+        ],
+        "effect_sequence": [
+          "door_becomes_passable",
+          "block_occupies_plate",
+          "door_becomes_passable",
+          "block_enters_pit",
+          "pit_becomes_passable",
+          "traverse_filled_pit",
+          "goal_reached"
+        ],
+        "nodes": [
+          "block_enters_pit",
+          "block_occupies_plate",
+          "door_becomes_passable",
+          "goal_reached",
+          "pit_becomes_passable",
+          "traverse_filled_pit"
+        ],
+        "solution_family": ""
+      },
+      "graph_sha256": "370035c59a08e2c5c9541b55ecfc5d39ddefb4c96b318e3c142ebceaf4ace38d",
+      "irreversible_risk": 1,
+      "selection_reasons": [
+        "minimum_risk",
+        "structural_representative"
+      ]
+    },
+    {
+      "action_count": 19,
+      "actions_analysis_only": [
+        "MOVE_SOUTH",
+        "MOVE_WEST",
+        "MOVE_WEST",
+        "MOVE_WEST",
+        "MOVE_SOUTH",
+        "MOVE_SOUTH",
+        "MOVE_EAST",
+        "MOVE_NORTH",
+        "MOVE_NORTH",
+        "MOVE_WEST",
+        "MOVE_NORTH",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_SOUTH",
+        "MOVE_SOUTH",
+        "MOVE_SOUTH"
+      ],
+      "block_moves": 5,
+      "graph": {
+        "edges": [
+          [
+            "block_enters_pit",
+            "pit_becomes_passable",
+            "observed_enablement"
+          ],
+          [
+            "block_enters_pit",
+            "pit_becomes_passable",
+            "physical_effect"
+          ],
+          [
+            "door_becomes_passable",
+            "block_enters_pit",
+            "observed_enablement"
+          ],
+          [
+            "pit_becomes_passable",
+            "traverse_filled_pit",
+            "enablement"
+          ],
+          [
+            "pit_becomes_passable",
+            "traverse_filled_pit",
+            "observed_enablement"
+          ],
+          [
+            "traverse_filled_pit",
+            "goal_reached",
+            "observed_enablement"
+          ]
+        ],
+        "effect_sequence": [
+          "door_becomes_passable",
+          "block_enters_pit",
+          "pit_becomes_passable",
+          "traverse_filled_pit",
+          "goal_reached"
+        ],
+        "nodes": [
+          "block_enters_pit",
+          "door_becomes_passable",
+          "goal_reached",
+          "pit_becomes_passable",
+          "traverse_filled_pit"
+        ],
+        "solution_family": ""
+      },
+      "graph_sha256": "3daf255435a160d78b7f83a2c245e0c2aafff126761c2ffb7da2383518ac1371",
+      "irreversible_risk": 1,
+      "selection_reasons": [
+        "minimum_actions",
+        "minimum_block_moves",
+        "minimum_risk",
+        "structural_representative"
+      ]
+    },
+    {
+      "action_count": 29,
+      "actions_analysis_only": [
+        "MOVE_SOUTH",
+        "MOVE_WEST",
+        "MOVE_WEST",
+        "MOVE_WEST",
+        "MOVE_SOUTH",
+        "MOVE_SOUTH",
+        "MOVE_EAST",
+        "MOVE_NORTH",
+        "MOVE_NORTH",
+        "MOVE_WEST",
+        "MOVE_NORTH",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_SOUTH",
+        "MOVE_WEST",
+        "MOVE_WEST",
+        "MOVE_SOUTH",
+        "MOVE_SOUTH",
+        "MOVE_EAST",
+        "MOVE_NORTH",
+        "MOVE_NORTH",
+        "MOVE_EAST",
+        "MOVE_NORTH",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_SOUTH",
+        "MOVE_SOUTH",
+        "MOVE_SOUTH"
+      ],
+      "block_moves": 7,
+      "graph": {
+        "edges": [
+          [
+            "block_enters_pit",
+            "pit_becomes_passable",
+            "observed_enablement"
+          ],
+          [
+            "block_enters_pit",
+            "pit_becomes_passable",
+            "physical_effect"
+          ],
+          [
+            "door_becomes_passable",
+            "block_enters_pit",
+            "observed_enablement"
+          ],
+          [
+            "door_becomes_passable",
+            "traverse_filled_pit",
+            "observed_enablement"
+          ],
+          [
+            "pit_becomes_passable",
+            "door_becomes_passable",
+            "observed_enablement"
+          ],
+          [
+            "pit_becomes_passable",
+            "traverse_filled_pit",
+            "enablement"
+          ],
+          [
+            "traverse_filled_pit",
+            "goal_reached",
+            "observed_enablement"
+          ]
+        ],
+        "effect_sequence": [
+          "door_becomes_passable",
+          "block_enters_pit",
+          "pit_becomes_passable",
+          "door_becomes_passable",
+          "traverse_filled_pit",
+          "goal_reached"
+        ],
+        "nodes": [
+          "block_enters_pit",
+          "door_becomes_passable",
+          "goal_reached",
+          "pit_becomes_passable",
+          "traverse_filled_pit"
+        ],
+        "solution_family": ""
+      },
+      "graph_sha256": "b55246d613feea928d576c121cd577607a8258a493b1651b9409898c737189bb",
+      "irreversible_risk": 1,
+      "selection_reasons": [
+        "minimum_risk",
+        "structural_representative"
+      ]
+    },
+    {
+      "action_count": 19,
+      "actions_analysis_only": [
+        "MOVE_SOUTH",
+        "MOVE_WEST",
+        "MOVE_WEST",
+        "MOVE_SOUTH",
+        "MOVE_WEST",
+        "MOVE_SOUTH",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_NORTH",
+        "MOVE_NORTH",
+        "MOVE_WEST",
+        "MOVE_NORTH",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_SOUTH",
+        "MOVE_SOUTH",
+        "MOVE_SOUTH"
+      ],
+      "block_moves": 7,
+      "graph": {
+        "edges": [
+          [
+            "block_enters_pit",
+            "pit_becomes_passable",
+            "observed_enablement"
+          ],
+          [
+            "block_enters_pit",
+            "pit_becomes_passable",
+            "physical_effect"
+          ],
+          [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "observed_enablement"
+          ],
+          [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "physical_effect"
+          ],
+          [
+            "door_becomes_passable",
+            "block_enters_pit",
+            "observed_enablement"
+          ],
+          [
+            "pit_becomes_passable",
+            "traverse_filled_pit",
+            "enablement"
+          ],
+          [
+            "pit_becomes_passable",
+            "traverse_filled_pit",
+            "observed_enablement"
+          ],
+          [
+            "traverse_filled_pit",
+            "goal_reached",
+            "observed_enablement"
+          ]
+        ],
+        "effect_sequence": [
+          "block_occupies_plate",
+          "door_becomes_passable",
+          "block_enters_pit",
+          "pit_becomes_passable",
+          "traverse_filled_pit",
+          "goal_reached"
+        ],
+        "nodes": [
+          "block_enters_pit",
+          "block_occupies_plate",
+          "door_becomes_passable",
+          "goal_reached",
+          "pit_becomes_passable",
+          "traverse_filled_pit"
+        ],
+        "solution_family": ""
+      },
+      "graph_sha256": "bcfa71e773a25dbd7144cc3c63fd6692b065e1b0db82c08792a1d8758d892a3c",
+      "irreversible_risk": 2,
+      "selection_reasons": [
+        "minimum_actions",
+        "structural_representative"
+      ]
+    }
+  ],
+  "schema_version": 1,
+  "solver_explored_states": 1652,
+  "solver_truncated": false,
+  "source": "bounded_grid_solver",
+  "status": "frozen_before_agent_run",
+  "world_sha256": "5efe75fa25ae0a86c6f7b8278f414c858cc156966776404c5ea98d9c912d2d40"
+}

@@ -1,0 +1,9 @@
+{
+  "protocol_version": "paper-grid-push-core-development-v2.1",
+  "stage": "development_diagnostic",
+  "run_id": "third",
+  "config_sha256": "9aae1835da73a24f578287d841c01d7a05a9baded5e2f8da85de55687841fbce",
+  "seed_commitment_sha256": "3886bc371aefcd556246a1bf0258f57158685ae535ca346c7b8bc9e632e16ad7",
+  "causal_law_sha256": "4a3132c76a725c145a2af6edaaddf5293278722c4f521b5feef22b78709598ad",
+  "implementation_commit": "3981b4159528e096e5584ea4f72efb7582bba996"
+}

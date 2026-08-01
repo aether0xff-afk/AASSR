@@ -1,0 +1,79 @@
+{
+  "causal_law_sha256": "4a3132c76a725c145a2af6edaaddf5293278722c4f521b5feef22b78709598ad",
+  "maximum_actions": 35,
+  "reference_sha256": "d49dac17b0b636b67a4a59cc4a4c98687137b5bab232516e7028b8135fb69188",
+  "references": [
+    {
+      "action_count": 10,
+      "actions_analysis_only": [
+        "MOVE_SOUTH",
+        "MOVE_WEST",
+        "MOVE_NORTH",
+        "MOVE_NORTH",
+        "MOVE_SOUTH",
+        "MOVE_SOUTH",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_EAST",
+        "MOVE_NORTH"
+      ],
+      "block_moves": 2,
+      "graph": {
+        "edges": [
+          [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "observed_enablement"
+          ],
+          [
+            "block_occupies_plate",
+            "door_becomes_passable",
+            "physical_effect"
+          ],
+          [
+            "door_becomes_passable",
+            "traverse_open_door",
+            "enablement"
+          ],
+          [
+            "door_becomes_passable",
+            "traverse_open_door",
+            "observed_enablement"
+          ],
+          [
+            "traverse_open_door",
+            "goal_reached",
+            "observed_enablement"
+          ]
+        ],
+        "effect_sequence": [
+          "block_occupies_plate",
+          "door_becomes_passable",
+          "traverse_open_door",
+          "goal_reached"
+        ],
+        "nodes": [
+          "block_occupies_plate",
+          "door_becomes_passable",
+          "goal_reached",
+          "traverse_open_door"
+        ],
+        "solution_family": ""
+      },
+      "graph_sha256": "0823b5a2828ab33e640b3ae05ca59939aac6d1a7fd903e261769a97bea18a6f2",
+      "irreversible_risk": 0,
+      "selection_reasons": [
+        "minimum_actions",
+        "minimum_block_moves",
+        "minimum_risk",
+        "structural_representative"
+      ]
+    }
+  ],
+  "schema_version": 1,
+  "solver_explored_states": 39,
+  "solver_truncated": false,
+  "source": "bounded_grid_solver",
+  "status": "frozen_before_agent_run",
+  "world_sha256": "b89e96bcbc8ad11b957007febcee6cd94914568085ce57f69ac97a1405e32c12"
+}
