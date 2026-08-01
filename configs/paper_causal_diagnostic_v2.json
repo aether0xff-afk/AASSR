@@ -1,0 +1,50 @@
+{
+  "schema_version": 2,
+  "name": "paper_causal_diagnostic_v2",
+  "protocol_version": "paper-causal-diagnostic-v2.0",
+  "study_stage": "development_diagnostic",
+  "output_root": "paper_results_v2",
+  "reward_mode": "strict_sparse",
+  "causal_law_version": "causal-dependency-law-v2.0",
+  "causal_law_sha256": "45b252542897d4fad5be16993f9ef7e098d98040910927c8d468e40a699ec475",
+  "research_seeds": [2003, 2011, 2027],
+  "excluded_research_seeds": [131, 173, 211, 257, 307, 353, 401, 457, 503, 557, 601, 659, 701, 761, 809, 857, 907, 953, 1009, 1061, 1103, 1151, 1201, 1259, 1301, 1361, 1423, 1481, 1543, 1601],
+  "world_seeds": {
+    "train": [82001, 82002],
+    "isomorphic": [83001, 83002],
+    "unseen_composition": [84001, 84002],
+    "adaptation": [85001, 85002]
+  },
+  "phases": [
+    "training",
+    "evaluation_train_world_frozen",
+    "evaluation_isomorphic_world_zero_shot",
+    "evaluation_unseen_composition_zero_shot",
+    "adaptation",
+    "evaluation_unseen_after_adaptation"
+  ],
+  "phase_learning": {
+    "training": true,
+    "evaluation_train_world_frozen": false,
+    "evaluation_isomorphic_world_zero_shot": false,
+    "evaluation_unseen_composition_zero_shot": false,
+    "adaptation": true,
+    "evaluation_unseen_after_adaptation": false
+  },
+  "diagnostics": {
+    "development": ["diagnostic_1", "diagnostic_2a", "diagnostic_2b", "diagnostic_3", "diagnostic_4", "diagnostic_5"],
+    "training_episodes": 500,
+    "evaluation_episodes": 100,
+    "adaptation_budgets": [0, 1, 4, 16, 64],
+    "action_remap_probe_budgets": [1, 4, 16]
+  },
+  "thresholds": {
+    "contextual_advantage_over_random": 0.2,
+    "frozen_replay_gap": 0.1,
+    "random_success_maximum": 0.1,
+    "calibration_confidence_minimum": 0.8,
+    "uncertainty_maximum": 0.25,
+    "ood_maximum": 0.25,
+    "imagined_return_margin": 0.05
+  }
+}
