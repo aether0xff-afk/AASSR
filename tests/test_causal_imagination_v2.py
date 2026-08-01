@@ -8,6 +8,7 @@ from aassr_v2.causal_imagination import (
     RandomReturnModel,
 )
 from aassr_v2.causal_representation import RelationalEffectEncoder, RepresentedReturnAgent
+from aassr_v2.imagination_diagnostic_v2 import run_diagnostic_four
 
 
 def test_low_confidence_high_ood_blocks_intervention() -> None:
@@ -50,3 +51,13 @@ def test_policy_and_model_q_are_discounted_return_scale() -> None:
     )
     assert all(0.0 <= value <= 1.0 for value in record.root_policy_q.values())
     assert all(0.0 <= value <= 1.0 for value in record.root_model_q.values())
+
+
+def test_oracle_upper_bound_is_not_vetoed_by_learned_policy_q() -> None:
+    summary, _ = run_diagnostic_four(
+        research_seeds=[2027],
+        world_seeds=[84002],
+        training_episodes=100,
+        evaluation_episodes=5,
+    )
+    assert summary["engineering"]["oracle_root_action_optimality"] >= 0.95

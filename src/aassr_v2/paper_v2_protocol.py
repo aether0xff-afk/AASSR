@@ -5,7 +5,9 @@ import csv
 import gzip
 import hashlib
 import json
+import os
 import subprocess
+import uuid
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -74,6 +76,8 @@ def implementation_tree_sha256(
         for path in (
             root / "scripts" / "run_paper_suite_v2.py",
             root / "scripts" / "lock_paper_v2_protocol.py",
+            root / "scripts" / "run_minecraft_causal_suite.py",
+            root / "scripts" / "freeze_creativity_reference_v2.py",
         )
         if path.is_file()
     )
@@ -254,6 +258,72 @@ def reserve_run(
     with claim.open("x", encoding="utf-8") as stream:
         json.dump(payload, stream, ensure_ascii=False, indent=2)
     return claim
+
+
+def _pid_is_running(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    if os.name == "nt":
+        import ctypes
+
+        process = ctypes.windll.kernel32.OpenProcess(0x1000, False, pid)
+        if not process:
+            return False
+        ctypes.windll.kernel32.CloseHandle(process)
+        return True
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
+def acquire_run_execution_lock(directory: Path, *, resume: bool) -> tuple[Path, str]:
+    """Prevent two identical resume processes from writing the same run."""
+    path = directory / "run_active.json"
+    nonce = uuid.uuid4().hex
+    payload = {
+        "pid": os.getpid(),
+        "nonce": nonce,
+        "started_at_utc": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        with path.open("x", encoding="utf-8") as stream:
+            json.dump(payload, stream, indent=2)
+        return path, nonce
+    except FileExistsError:
+        existing = json.loads(path.read_text(encoding="utf-8"))
+        if _pid_is_running(int(existing.get("pid", -1))):
+            raise RuntimeError("an identical run is already executing")
+        if not resume:
+            raise FileExistsError("stale run lease requires --resume")
+        failed = directory / "failed_attempts"
+        failed.mkdir(parents=True, exist_ok=True)
+        archived = failed / f"stale_run_active_{uuid.uuid4().hex}.json"
+        path.replace(archived)
+        with path.open("x", encoding="utf-8") as stream:
+            json.dump(payload, stream, indent=2)
+        return path, nonce
+
+
+def release_run_execution_lock(path: Path, nonce: str) -> None:
+    if not path.exists():
+        raise RuntimeError("run execution lock disappeared")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("nonce") != nonce:
+        raise RuntimeError("run execution lock ownership changed")
+    path.unlink()
+
+
+def preserve_partial_directory(directory: Path, *, label: str) -> Path:
+    """Move a failed partial artifact under failed_attempts without deleting it."""
+    if not directory.exists():
+        raise FileNotFoundError(directory)
+    failed = directory.parent / "failed_attempts"
+    failed.mkdir(parents=True, exist_ok=True)
+    target = failed / f"{label}_{uuid.uuid4().hex}"
+    directory.replace(target)
+    return target
 
 
 def reserve_confirmation_once(

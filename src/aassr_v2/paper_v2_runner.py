@@ -10,8 +10,11 @@ from .causal_dependency_world import CausalDependencyWorldV2, certify_world
 from .causal_diagnostic import diagnostic_one_gates, run_diagnostic_one
 from .paper_v2_protocol import (
     V2ArtifactWriter,
+    acquire_run_execution_lock,
     build_run_identity,
+    preserve_partial_directory,
     replay_gzip_trace,
+    release_run_execution_lock,
     reserve_confirmation_once,
     reserve_run,
     sha256_json,
@@ -67,8 +70,13 @@ def run_paper_v2_suite(
             int(payload["episode_rows"]),
             int(payload["trace_rows"]),
         )
+    execution_lock, execution_nonce = acquire_run_execution_lock(
+        output, resume=resume
+    )
     if raw.exists():
-        raise FileExistsError("partial v2 raw output requires a future explicit recovery")
+        if not resume:
+            raise FileExistsError("partial v2 raw output requires --resume")
+        preserve_partial_directory(raw, label="raw")
     started = datetime.now(timezone.utc).isoformat()
     certifications: dict[str, list[dict[str, Any]]] = {}
     for world_set, seeds in config["world_seeds"].items():
@@ -134,11 +142,22 @@ def run_paper_v2_suite(
     creativity_budget = int(creativity_settings.get("interaction_budget", 500))
     if identity.stage.value == "development_diagnostic":
         reference_path = manifests / "development_baseline_reference.json"
-        freeze_baseline_reference(
-            reference_path,
-            world_seeds=config["world_seeds"]["unseen_composition"],
-            interaction_budget=creativity_budget,
-        )
+        if reference_path.exists():
+            if not resume:
+                raise FileExistsError("development reference already exists")
+            reference_payload = json.loads(
+                reference_path.read_text(encoding="utf-8")
+            )
+            if reference_payload.get("world_seeds") != [
+                int(seed) for seed in config["world_seeds"]["unseen_composition"]
+            ] or int(reference_payload.get("interaction_budget", -1)) != creativity_budget:
+                raise ValueError("partial development reference does not match config")
+        else:
+            freeze_baseline_reference(
+                reference_path,
+                world_seeds=config["world_seeds"]["unseen_composition"],
+                interaction_budget=creativity_budget,
+            )
     else:
         reference_path = Path(str(creativity_settings["reference_manifest"]))
         if not reference_path.is_absolute():
@@ -461,4 +480,5 @@ def run_paper_v2_suite(
         ),
         encoding="utf-8",
     )
+    release_run_execution_lock(execution_lock, execution_nonce)
     return V2RunArtifacts(output, manifest_path, report_path, episode_rows, trace_rows)

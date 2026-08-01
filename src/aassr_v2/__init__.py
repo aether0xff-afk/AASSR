@@ -148,6 +148,13 @@ from .paper_protocol import (
     validate_paper_config,
 )
 from .paper_runner import PaperArtifacts, run_paper_suite
+from .minecraft_causal_world import (
+    MinecraftAdapter,
+    MinecraftCausalWorld,
+    MinecraftSkillTrack,
+    MockMinecraftAdapter,
+    certify_minecraft_world,
+)
 
 __all__ = [name for name in globals() if not name.startswith("_")]
 

@@ -9,10 +9,12 @@ import pytest
 from aassr_v2.paper_types import ExperimentPhase
 from aassr_v2.paper_v2_protocol import (
     V2ArtifactWriter,
+    acquire_run_execution_lock,
     checkpoint_fingerprint,
     clone_agent_from_checkpoint,
     create_protocol_lock,
     replay_gzip_trace,
+    release_run_execution_lock,
     reserve_confirmation_once,
     reserve_run,
     seed_commitment,
@@ -151,6 +153,19 @@ def test_run_claim_rejects_identity_change(tmp_path: Path) -> None:
     with pytest.raises(FileExistsError):
         reserve_run(directory, identity)
     assert reserve_run(directory, identity, resume=True).is_file()
+
+
+def test_active_run_lease_blocks_concurrent_identical_resume(tmp_path: Path) -> None:
+    directory = tmp_path / "run"
+    directory.mkdir()
+    path, nonce = acquire_run_execution_lock(directory, resume=False)
+    with pytest.raises(RuntimeError, match="already executing"):
+        acquire_run_execution_lock(directory, resume=True)
+    release_run_execution_lock(path, nonce)
+    replacement, replacement_nonce = acquire_run_execution_lock(
+        directory, resume=False
+    )
+    release_run_execution_lock(replacement, replacement_nonce)
 
 
 def test_protocol_lock_commits_seed_and_thresholds() -> None:

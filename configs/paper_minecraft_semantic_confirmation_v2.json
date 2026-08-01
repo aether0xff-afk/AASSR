@@ -1,0 +1,19 @@
+{
+  "schema_version": 2,
+  "name": "paper_minecraft_semantic_confirmation_v2",
+  "protocol_version": "paper-minecraft-semantic-v2.0",
+  "study_stage": "locked_confirmation",
+  "output_root": "paper_results_v2",
+  "reward_mode": "strict_sparse",
+  "causal_law_version": "minecraft-causal-skills-v2.0",
+  "causal_law_sha256": "77577a59ab5140a5ee135bdcbb810437b5222a25a18786d2d4b25290266a8df2",
+  "research_seeds": [4109, 4127],
+  "excluded_research_seeds": [2003, 2011, 2027, 3109, 3119, 5101, 5107, 5113],
+  "seed_commitment_sha256": "7ef3756dc35d0870d2e822466f93b8a2d542b7e4eaadc23fc5508aba45fbc9e9",
+  "protocol_lock": "configs/locks/paper_minecraft_semantic_confirmation_v2.lock.json",
+  "world_seeds": {"train": [102001, 102002], "isomorphic": [103001], "unseen_composition": [104001], "adaptation": [105001]},
+  "phases": ["training", "evaluation_train_world_frozen", "evaluation_isomorphic_world_zero_shot", "evaluation_unseen_composition_zero_shot", "adaptation", "evaluation_unseen_after_adaptation"],
+  "phase_learning": {"training": true, "evaluation_train_world_frozen": false, "evaluation_isomorphic_world_zero_shot": false, "evaluation_unseen_composition_zero_shot": false, "adaptation": true, "evaluation_unseen_after_adaptation": false},
+  "minecraft": {"backend": "mock", "track": "semantic_skill", "interaction_budget": 8, "random_rollouts": 2000, "opaque_affordance_ablation": false, "real_runtime_enabled": false},
+  "thresholds": {"random_success_maximum": 0.10}
+}

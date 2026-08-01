@@ -89,8 +89,15 @@ def run_diagnostic_four(
             seed = int(world_seeds[episode % len(world_seeds)])
             for name in condition_metrics:
                 world = CausalDependencyWorldV2(world_seed=seed, token_seed=92001)
+                # The oracle is an explicitly excluded upper bound.  Its
+                # engineering test measures the exact planner, not whether a
+                # learned policy's potentially miscalibrated Q estimate vetoes
+                # that planner.  Learned and random models remain calibrated-
+                # gate conditions.
                 planner = None if name == "policy_only" else CausalImaginationPlanner(
-                    models[name], config=gate, gated=True
+                    models[name],
+                    config=gate,
+                    gated=name != "oracle_model_upper_bound",
                 )
                 episode_records = []
                 for step in range(8):
