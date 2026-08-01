@@ -502,6 +502,9 @@ class GridWorldCertification:
     minimum_actions: int | None
     solution_count: int
     structural_solution_count: int
+    all_solutions_fill_pit: bool
+    all_solutions_open_door: bool
+    multiple_blocks_available: bool
     bounded_dead_end_count: int
     requires_block_push: bool
     random_success_estimate: float
@@ -557,6 +560,12 @@ def certify_grid_world(
     )
     leaks = sum(value in serialized for value in forbidden)
     structures = {_structural_signature(solution) for solution in result.solutions}
+    all_fill_pit = bool(result.solutions) and all(
+        solution.pits_filled > 0 for solution in result.solutions
+    )
+    all_open_door = bool(result.solutions) and all(
+        solution.door_changes > 0 for solution in result.solutions
+    )
     issues: list[str] = []
     if not result.solutions:
         issues.append("unsolvable within bounded search")
@@ -578,6 +587,9 @@ def certify_grid_world(
         minimum_actions=result.minimum_actions,
         solution_count=len(result.solutions),
         structural_solution_count=len(structures),
+        all_solutions_fill_pit=all_fill_pit,
+        all_solutions_open_door=all_open_door,
+        multiple_blocks_available=len(world.analysis_spec.blocks) > 1,
         bounded_dead_end_count=result.bounded_dead_end_count,
         requires_block_push=not without_push.solutions,
         random_success_estimate=random_success,
@@ -604,7 +616,7 @@ class ProceduralGridPushGenerator:
             if x in {0, width - 1} or y in {0, height - 1}
         }
 
-    def _candidate(self, seed: int, attempt: int) -> GridPushSpec:
+    def _dual_route_candidate(self, seed: int, attempt: int) -> GridPushSpec:
         rng = random.Random((int(seed) << 16) ^ attempt ^ 0x47524944)
         width = rng.choice((7, 8))
         height = rng.choice((6, 7))
@@ -665,6 +677,51 @@ class ProceduralGridPushGenerator:
             plate_links={plate: (door,)},
             generator_seed=int(seed),
         )
+
+    def _combined_candidate(self, seed: int, attempt: int) -> GridPushSpec:
+        """Two randomized rooms whose constraints require pit and plate effects."""
+        rng = random.Random((int(seed) << 16) ^ attempt ^ 0x434F4D42)
+        width, height = 9, 7
+        pit_row = rng.choice((3, 4))
+        door_row = rng.choice(
+            [row for row in range(1, height - 1) if row != pit_row]
+        )
+        walls = self._boundary(width, height)
+        walls.update((3, y) for y in range(1, height - 1))
+        walls.update((6, y) for y in range(1, height - 1))
+        pit = (3, pit_row)
+        door = (6, door_row)
+        walls.discard(pit)
+        walls.discard(door)
+        plate = (5, pit_row)
+        # Blocks are ordinary and unlabeled. Their placements are sampled as
+        # part of the room constraints; no solution path or role is retained.
+        blocks = {(2, pit_row), (2, pit_row - 1)}
+        distractor_candidates = [
+            (1, row)
+            for row in range(1, height - 1)
+            if (1, row) != (1, pit_row)
+        ]
+        if attempt % 3 == 2:
+            blocks.add(rng.choice(distractor_candidates))
+        return GridPushSpec(
+            width=width,
+            height=height,
+            walls=frozenset(walls),
+            start=(1, pit_row),
+            goal=(7, door_row),
+            blocks=frozenset(blocks),
+            pits=frozenset({pit}),
+            plates=frozenset({plate}),
+            doors=frozenset({door}),
+            plate_links={plate: (door,)},
+            generator_seed=int(seed),
+        )
+
+    def _candidate(self, seed: int, attempt: int) -> GridPushSpec:
+        if int(seed) % 5 == 0:
+            return self._combined_candidate(seed, attempt)
+        return self._dual_route_candidate(seed, attempt)
 
     def generate(
         self,

@@ -49,3 +49,15 @@ def test_solver_paths_are_not_serialized_into_agent_observation() -> None:
     assert result.solutions
     observation = repr(GridPushWorld(spec).observe().to_dict())
     assert repr(result.solutions[0].actions) not in observation
+
+
+def test_generator_includes_multiroom_world_requiring_pit_and_plate() -> None:
+    spec, certification, result = ProceduralGridPushGenerator().generate(
+        76005, maximum_actions=35, random_rollouts=20
+    )
+    assert result.solutions
+    assert certification.all_solutions_fill_pit
+    assert certification.all_solutions_open_door
+    assert certification.multiple_blocks_available
+    assert len(spec.blocks) >= 2
+    assert len({x for x, _ in spec.walls if 0 < x < spec.width - 1}) >= 2

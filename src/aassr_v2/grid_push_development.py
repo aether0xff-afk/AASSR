@@ -252,12 +252,34 @@ def run_grid_push_development(
         )
     # Always record a transparent calculation example. It is selected from a
     # solver alternative but evaluated after the already-frozen reference.
-    example_solution = solver_results[0].solutions[-1]
-    example_normalized = normalize_grid_strategy(specs[0], example_solution.actions)
+    example_index = 0
+    example_solution = solver_results[0].solutions[0]
+    for index, (result, reference_payload) in enumerate(
+        zip(solver_results, reference_payloads)
+    ):
+        reference_actions = {
+            tuple(entry["actions_analysis_only"])
+            for entry in reference_payload["references"]
+        }
+        alternative = next(
+            (
+                solution
+                for solution in result.solutions
+                if tuple(solution.actions) not in reference_actions
+            ),
+            None,
+        )
+        if alternative is not None:
+            example_index = index
+            example_solution = alternative
+            break
+    example_normalized = normalize_grid_strategy(
+        specs[example_index], example_solution.actions
+    )
     example_score = score_grid_creativity(
         example_normalized,
-        reference=loaded_references[int(specs[0].generator_seed or 0)],
-        minimum_actions=int(certifications[0].minimum_actions or 1),
+        reference=loaded_references[int(specs[example_index].generator_seed or 0)],
+        minimum_actions=int(certifications[example_index].minimum_actions or 1),
         reproducibility=0.0,
         novelty_threshold=float(settings.get("novelty_threshold", 0.20)),
         utility_threshold=float(settings.get("utility_threshold", 0.80)),
@@ -265,10 +287,13 @@ def run_grid_push_development(
     )
     creativity_example = {
         "source": "posthoc_solver_alternative_example_not_agent_evidence",
-        "world_seed": specs[0].generator_seed,
+        "world_seed": specs[example_index].generator_seed,
         "actions_differ_from_first_reference": (
-            list(example_solution.actions)
-            != list(reference_payloads[0]["references"][0]["actions_analysis_only"])
+            tuple(example_solution.actions)
+            not in {
+                tuple(entry["actions_analysis_only"])
+                for entry in reference_payloads[example_index]["references"]
+            }
         ),
         "normalized": example_normalized.to_dict(),
         "score": example_score.to_dict(),
@@ -284,6 +309,13 @@ def run_grid_push_development(
     completed = datetime.now(timezone.utc).isoformat()
     engineering = {
         "all_20_worlds_certified": len(certifications) == 20 and all(item.adequate for item in certifications),
+        "structurally_distinct_solutions_present": sum(
+            item.structural_solution_count >= 2 for item in certifications
+        ) >= 10,
+        "combined_pit_and_plate_worlds_present": any(
+            item.all_solutions_fill_pit and item.all_solutions_open_door
+            for item in certifications
+        ),
         "private_observation_leaks_zero": all(item.private_observation_leaks == 0 for item in certifications),
         "only_general_movement_actions": all(
             set(GridPushWorld(spec).observe().available_actions)
