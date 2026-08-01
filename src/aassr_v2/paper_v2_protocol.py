@@ -76,6 +76,7 @@ def implementation_tree_sha256(
             root / "scripts" / "lock_paper_v2_protocol.py",
             root / "scripts" / "run_grid_push_development.py",
             root / "scripts" / "run_grid_push_core_development.py",
+            root / "scripts" / "run_grid_push_core_comparison_development.py",
         )
         if path.is_file()
     )

@@ -15,6 +15,7 @@ from .aassr_core import (
     TRAINABLE_CORE_MODULES,
     AASSRCore,
     AASSRCoreConfig,
+    build_tabular_fixed_goal_core,
 )
 from .grid_push_creativity import freeze_solver_reference
 from .grid_push_plugin import GridPushEnvironmentPlugin
@@ -121,7 +122,9 @@ def _run_module_probe(
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     spec = _module_probe_spec()
     specs = {88001: spec}
-    core = AASSRCore(config=_core_config(settings, probe=True), seed=88101)
+    core = build_tabular_fixed_goal_core(
+        config=_core_config(settings, probe=True), seed=88101
+    )
     records = [
         core.run_episode(
             _plugin_for(specs),
@@ -235,7 +238,7 @@ def run_grid_push_core_development(
     research_summaries: list[dict[str, Any]] = []
     episode_records: list[dict[str, Any]] = []
     for research_seed in config["research_seeds"]:
-        core = AASSRCore(
+        core = build_tabular_fixed_goal_core(
             config=_core_config(settings),
             seed=int(research_seed),
         )
@@ -251,7 +254,7 @@ def run_grid_push_core_development(
             )
             training.append(record)
             episode_records.append(
-                {"condition": "full_aassr", "research_seed": int(research_seed), **record.to_dict()}
+                {"condition": "tabular_fixed_goal_core", "research_seed": int(research_seed), **record.to_dict()}
             )
         checkpoint = core.export_checkpoint()
         clone = AASSRCore.from_checkpoint(checkpoint)
@@ -268,13 +271,13 @@ def run_grid_push_core_development(
             )
             frozen.append(record)
             episode_records.append(
-                {"condition": "full_aassr", "research_seed": int(research_seed), **record.to_dict()}
+                {"condition": "tabular_fixed_goal_core", "research_seed": int(research_seed), **record.to_dict()}
             )
         checkpoint_after = clone.checkpoint_fingerprint()
         tail = training[-min(20, len(training)) :]
         research_summaries.append(
             {
-                "condition": "full_aassr",
+                "condition": "tabular_fixed_goal_core",
                 "research_seed": int(research_seed),
                 "training_episodes": len(training),
                 "training_final_tail_success": fmean(item.success for item in tail),
@@ -378,8 +381,8 @@ def run_grid_push_core_development(
             "strict_sparse_environment_reward"
         ],
         "gzip_trace_replays": trace_replayed,
-        "only_plugin_core_condition_named_full_aassr": all(
-            row["condition"] == "full_aassr" for row in episode_records
+        "partial_core_condition_named_tabular_fixed_goal_core": all(
+            row["condition"] == "tabular_fixed_goal_core" for row in episode_records
         ),
     }
     completed = datetime.now(timezone.utc).isoformat()
@@ -392,7 +395,7 @@ def run_grid_push_core_development(
     manifest = {
         "schema_version": 2,
         **identity.to_dict(),
-        "suite": "grid_push_full_core_development",
+        "suite": "grid_push_tabular_fixed_goal_core_development",
         "development_only_not_research_evidence": True,
         "locked_confirmation_created": False,
         "pilot_executed": False,
@@ -423,12 +426,12 @@ def run_grid_push_core_development(
     mean_frozen = fmean(row["frozen_success_rate"] for row in research_summaries)
     report_path = output / "report.md"
     report_path.write_text(
-        "# GridPush full AASSRCore Development Diagnostic\n\n"
+        "# GridPush tabular fixed-goal core Development Diagnostic\n\n"
         "This is engineering/development evidence only. No Confirmation, Pilot, or Final was run.\n\n"
         f"- Certified worlds: {len(certifications)}/20\n"
         f"- Engineering gates: {'PASS' if all(engineering_gates.values()) else 'FAIL'}\n"
-        f"- Full AASSR training final-tail success: {mean_training:.4f}\n"
-        f"- Full AASSR frozen success: {mean_frozen:.4f}\n"
+        f"- Tabular fixed-goal training final-tail success: {mean_training:.4f}\n"
+        f"- Tabular fixed-goal frozen success: {mean_frozen:.4f}\n"
         f"- Episode rows: {episode_rows}\n"
         f"- Trace rows: {trace_rows}\n",
         encoding="utf-8",

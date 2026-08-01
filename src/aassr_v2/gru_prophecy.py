@@ -140,6 +140,17 @@ class OnlineGRUProphecy:
     def reset_sequence(self) -> None:
         self._train_memory = self.initial_memory()
 
+    def clone_training_memory(self) -> GRUMemory:
+        """Return an immutable branch seed without mutating real sequence state."""
+
+        return GRUMemory(tuple(self._train_memory.hidden))
+
+    def training_memory_fingerprint(self) -> str:
+        """Stable evidence that planning did not change real recurrent memory."""
+
+        encoded = repr(tuple(round(value, 16) for value in self._train_memory.hidden))
+        return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
     def _action_features(self, action: Action) -> tuple[float, ...]:
         vector = [0.0] * self.action_feature_size
         tokens = [action.verb_name, action.signature]

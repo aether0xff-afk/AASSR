@@ -1,0 +1,78 @@
+{
+  "schema_version": 2,
+  "name": "paper_grid_push_core_comparison_development_v2_2",
+  "protocol_version": "paper-grid-push-core-development-v2.2",
+  "study_stage": "development_diagnostic",
+  "output_root": "paper_results_v2",
+  "reward_mode": "strict_sparse",
+  "causal_law_version": "grid-push-physics-v2.0",
+  "causal_law_sha256": "4a3132c76a725c145a2af6edaaddf5293278722c4f521b5feef22b78709598ad",
+  "research_seeds": [9301],
+  "excluded_research_seeds": [2003, 2011, 2027, 3001, 3011, 3019, 4001, 4003, 4007, 4013, 4019, 9101, 9103, 9109, 9201, 9203, 9209],
+  "world_seeds": {
+    "train": [77001, 77002, 77003],
+    "isomorphic": [77101, 77102, 77103],
+    "unseen_composition": [77201, 77202, 77203],
+    "adaptation": [77301, 77302, 77303]
+  },
+  "phases": [
+    "training",
+    "evaluation_train_world_frozen",
+    "evaluation_isomorphic_world_zero_shot",
+    "evaluation_unseen_composition_zero_shot",
+    "adaptation",
+    "evaluation_unseen_after_adaptation"
+  ],
+  "phase_learning": {
+    "training": true,
+    "evaluation_train_world_frozen": false,
+    "evaluation_isomorphic_world_zero_shot": false,
+    "evaluation_unseen_composition_zero_shot": false,
+    "adaptation": true,
+    "evaluation_unseen_after_adaptation": false
+  },
+  "representation_comparison": {
+    "raw_observation_schema": "structured-grid-full-map-v1",
+    "identity_model_capacity": 50000,
+    "relational_model_capacity": 50000,
+    "identity_update_budget": 1,
+    "relational_update_budget": 1,
+    "exploration_schedule": "epsilon-0.8-to-0.05"
+  },
+  "grid_push_core_comparison": {
+    "certification_world_seeds": [77001, 77002, 77003],
+    "maximum_generation_attempts": 300,
+    "solver_maximum_actions": 35,
+    "certification_random_rollouts": 20,
+    "training_world_count": 3,
+    "training_episodes": 8,
+    "evaluation_episodes": 3,
+    "episode_maximum_steps": 30,
+    "module_fixture_episodes": 6,
+    "observation_mode": "full_map",
+    "core": {
+      "gamma": 0.97,
+      "epsilon_start": 0.8,
+      "epsilon_end": 0.05,
+      "epsilon_decay_episodes": 8,
+      "prophecy_samples": 1,
+      "replay_capacity": 512,
+      "holdout_stride": 5,
+      "skill_promotion_successes": 2,
+      "skill_maximum_length": 12,
+      "feature_dimension": 64,
+      "internal_goal_weight": 2.0,
+      "maximum_internal_goals": 128,
+      "gru_action_feature_size": 16,
+      "gru_hidden_size": 24,
+      "gru_learning_rate": 0.02,
+      "imagination_minimum_coverage": 0.25,
+      "imagination_branching_factor": 2,
+      "imagination_depth": 2,
+      "imagination_beam_width": 8,
+      "minimum_path_confidence": 0.10,
+      "uncertainty_penalty": 0.20,
+      "imagination_aggregation": "max"
+    }
+  }
+}

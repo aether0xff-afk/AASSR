@@ -5,10 +5,14 @@ import subprocess
 import sys
 
 from aassr_v2.aassr_core import (
+    FULL_CORE_EVIDENCE,
     CORE_MODULES,
     TRAINABLE_CORE_MODULES,
     AASSRCore,
     AASSRCoreConfig,
+    build_full_aassr_core,
+    build_no_imagination_core,
+    build_tabular_fixed_goal_core,
 )
 from aassr_v2.environment_plugin import (
     CoreEnvironmentSession,
@@ -208,3 +212,112 @@ def test_core_rejects_non_plugin_action() -> None:
         assert "different environment plugin" in str(exc)
     else:
         raise AssertionError("unregistered action was accepted")
+
+
+def test_factories_name_only_the_gru_dynamic_goal_path_full_aassr() -> None:
+    config = AASSRCoreConfig(
+        epsilon_start=0.0,
+        epsilon_end=0.0,
+        imagination_minimum_coverage=0.0,
+    )
+    tabular = build_tabular_fixed_goal_core(config=config, seed=1)
+    no_imagination = build_no_imagination_core(config=config, seed=1)
+    full = build_full_aassr_core(config=config, seed=1)
+    assert tabular.condition_name == "tabular_fixed_goal_core"
+    assert no_imagination.condition_name == "full_aassr_no_imagination"
+    assert full.condition_name == "full_aassr"
+    assert "TabularProphecy" in tabular.component_class_manifest()
+    assert "GoalGenerator" not in tabular.component_class_manifest()
+    for required in (
+        "GoalGenerator",
+        "OnlineGRUProphecy",
+        "SkillAwareProphecy",
+        "ImaginationTree",
+        "AdvancedTransitionEvaluator",
+    ):
+        assert required in full.component_class_manifest()
+    assert no_imagination.use_imagination is False
+    assert full.use_imagination is True
+
+
+def test_full_core_fixture_proves_dynamic_goal_gru_and_value_flow() -> None:
+    config = AASSRCoreConfig(
+        epsilon_start=0.0,
+        epsilon_end=0.0,
+        skill_promotion_successes=1,
+        imagination_minimum_coverage=0.0,
+        imagination=ImaginationConfig(
+            branching_factor=2,
+            maximum_depth=2,
+            beam_width=8,
+            outcome_samples=1,
+            minimum_path_confidence=0.0,
+            uncertainty_penalty=0.0,
+            update_policy=False,
+        ),
+    )
+    core = build_full_aassr_core(config=config, seed=19)
+    records = [
+        core.run_episode(
+            _plugin(),
+            world_seed=88001,
+            episode=episode,
+            maximum_steps=4,
+            training=True,
+            phase="development_full_core_connection_fixture",
+        )
+        for episode in range(6)
+    ]
+    evidence = core.audit.evidence
+    assert all(evidence[name] > 0 for name in FULL_CORE_EVIDENCE)
+    assert core.goal_runtime is not None
+    assert core.goal_runtime.records()
+    first_goal = core.goal_runtime.records()[0]
+    assert first_goal.evidence_observation
+    assert first_goal.selected
+    assert first_goal.achieved
+    assert any(record.information_flows for record in records)
+    flow = records[0].information_flows[0]
+    assert flow.feature_memory_value == flow.policy_update_value
+    assert all(
+        decision.real_hidden_unchanged is True
+        for record in records
+        for decision in record.decisions
+    )
+    assert any(
+        step.prediction_loss_after is not None
+        for record in records
+        for step in record.transitions
+    )
+
+
+def test_full_core_frozen_clone_preserves_complete_checkpoint() -> None:
+    core = build_full_aassr_core(
+        config=AASSRCoreConfig(
+            epsilon_start=0.0,
+            epsilon_end=0.0,
+            imagination_minimum_coverage=0.0,
+        ),
+        seed=23,
+    )
+    for episode in range(6):
+        core.run_episode(
+            _plugin(),
+            world_seed=88001,
+            episode=episode,
+            maximum_steps=4,
+            training=True,
+            phase="development_full_core_connection_fixture",
+        )
+    clone = AASSRCore.from_checkpoint(core.export_checkpoint())
+    before = clone.checkpoint_fingerprint()
+    clone.run_episode(
+        _plugin(),
+        world_seed=88001,
+        episode=0,
+        maximum_steps=4,
+        training=False,
+        phase="evaluation_train_world_frozen",
+    )
+    assert before == clone.checkpoint_fingerprint()
+    assert all(value == 0 for value in clone.audit.learning_updates.values())

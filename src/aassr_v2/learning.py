@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, Mapping
+from typing import Callable, Iterable, Mapping
 
 from .imagination import ImaginationBatch
 from .knowledge import KnowledgeEntry, KnowledgeStore
@@ -166,6 +166,10 @@ class AdvancedTransitionEvaluator:
         predictor: InformationValuePredictor | None = None,
         unlock_estimator: ActionUnlockValueEstimator | None = None,
         credit_assigner: DelayedCreditAssigner | None = None,
+        goal_progress_estimator: Callable[
+            [StateSnapshot, StateSnapshot], float
+        ]
+        | None = None,
         logger: JsonlLedgerWriter | None = None,
         samples: int = 4,
         intrinsic_cap: float = 1.0,
@@ -181,6 +185,7 @@ class AdvancedTransitionEvaluator:
             or ActionUnlockValueEstimator()
         )
         self.credit_assigner = credit_assigner or DelayedCreditAssigner()
+        self.goal_progress_estimator = goal_progress_estimator
         self.logger = logger
         self.samples = samples
         self.intrinsic_cap = intrinsic_cap
@@ -323,8 +328,9 @@ class AdvancedTransitionEvaluator:
             outcome.unlocked_actions
         )
         goal_gain = (
-            actual.goal_progress
-            - before.goal_progress
+            self.goal_progress_estimator(before, actual)
+            if self.goal_progress_estimator is not None
+            else actual.goal_progress - before.goal_progress
         )
         features = {
             "uncertainty_reduction": (
@@ -445,6 +451,7 @@ class AdvancedTransitionEvaluator:
                     reinforce(
                         evaluation.trace.action,
                         credited.credit
+                        + evaluation.predicted_information_value
                         + evaluation.immediate_information_value,
                     )
         return credits

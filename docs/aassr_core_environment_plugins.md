@@ -1,8 +1,12 @@
 # AASSRCore and EnvironmentPlugin
 
-`AASSRCore` is the only condition that may be named `full_aassr` in new
-GridPush runs.  The historical GridPush-specific causal agent remains available
-as `reduced_causal_agent`; its existing artifacts are not rewritten.
+`AASSRCore` is an injected orchestrator, not by itself a sufficient reason to
+use the condition name `full_aassr`.  New GridPush runs use that name only for
+`build_full_aassr_core()`, whose manifest contains `GoalGenerator`, dynamic
+`GoalSet`, `OnlineGRUProphecy`, recurrent branch memory and the complete module
+set.  The compatibility constructor and `build_tabular_fixed_goal_core()` are
+named `tabular_fixed_goal_core`.  The historical GridPush-specific causal agent
+remains `reduced_causal_agent`; existing artifacts are not rewritten.
 
 ## Runtime boundary
 
@@ -30,15 +34,15 @@ Every primitive transition follows one core-owned path:
 ```text
 plugin raw observation
   -> CoreObservationEncoder
-  -> GOAL / Knowledge / OnlineFeatureMemory queries
+  -> dynamic GOAL / Knowledge / OnlineFeatureMemory queries
   -> Policy and ImaginationTree action selection
   -> plugin primitive execution
   -> AdvancedTransitionEvaluator
   -> Prophecy + Replay/Holdout + Knowledge updates
-  -> OnlineFeatureMemory update
+  -> predicted and realized information value -> OnlineFeatureMemory
   -> terminal GOAL observation and SkillLibrary update
   -> DelayedCreditAssigner
-  -> InformationValuePredictor and Policy updates
+  -> delayed terminal credit -> OnlineFeatureMemory and Policy updates
 ```
 
 The encoder hashes only visible observation tokens.  It always writes
@@ -68,10 +72,12 @@ The audit separates three quantities:
 - `work_units`: non-trainable work such as imagined nodes, achieved GOAL events
   or assigned credit records was produced.
 
-The Development module-call probe requires every core module to have a positive
-call count, every trainable module to have a positive learning-update count, and
-GOAL, ImaginationTree and DelayedCreditAssigner to produce positive work.  The
-fixture is explicitly engineering evidence and is not a performance benchmark.
+The Development connection fixture additionally requires positive counts for
+GoalGenerator calls, internal-goal creation, OnlineGRUProphecy prediction and
+learning, GRU hidden updates and resets, branch-memory clones, unchanged real
+hidden memory after planning, Knowledge/FeatureMemory/information-value/policy
+updates, delayed credit, skill observations and imagined nodes.  The fixture is
+explicitly engineering evidence and is not a performance benchmark.
 
 ## Solver separation
 

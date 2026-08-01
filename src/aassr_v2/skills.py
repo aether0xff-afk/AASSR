@@ -217,6 +217,9 @@ class SkillAwareProphecy:
         )
 
     def initial_memory(self) -> Any:
+        clone_training_memory = getattr(self.base, "clone_training_memory", None)
+        if callable(clone_training_memory):
+            return clone_training_memory()
         factory = getattr(self.base, "initial_memory", None)
         return factory() if callable(factory) else None
 

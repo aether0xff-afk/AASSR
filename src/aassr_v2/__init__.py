@@ -20,13 +20,19 @@ from .action_plugins import (
 )
 from .aassr_core import (
     CORE_MODULES,
+    FULL_CORE_EVIDENCE,
     TRAINABLE_CORE_MODULES,
     AASSRCore,
+    AASSRCoreComponents,
     AASSRCoreConfig,
     AASSREpisodeRecord,
+    CoreInformationFlow,
     CoreCallAudit,
     CoreDecision,
     CorePrimitiveStep,
+    build_full_aassr_core,
+    build_no_imagination_core,
+    build_tabular_fixed_goal_core,
 )
 from .adapters import (
     AuthorizedAssessmentPlugin,
@@ -167,6 +173,11 @@ from .paper_runner import PaperArtifacts, run_paper_suite
 from .grid_push_world import (
     GridPushSpec,
     GridPushWorld,
+)
+from .goal_runtime import (
+    GoalLifecycleRecord,
+    ObservableGoalProgressEstimator,
+    ObservableGoalRuntime,
 )
 from .grid_push_plugin import GridPushEnvironmentPlugin
 
