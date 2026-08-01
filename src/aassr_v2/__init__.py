@@ -148,6 +148,13 @@ from .paper_protocol import (
     validate_paper_config,
 )
 from .paper_runner import PaperArtifacts, run_paper_suite
+from .grid_push_world import (
+    GridPushSpec,
+    GridPushWorld,
+    ProceduralGridPushGenerator,
+    certify_grid_world,
+    solve_grid_world,
+)
 
 __all__ = [name for name in globals() if not name.startswith("_")]
 

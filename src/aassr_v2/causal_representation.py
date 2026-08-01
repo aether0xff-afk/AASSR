@@ -156,12 +156,9 @@ class RelationalEffectEncoder:
 
     def state_key(self, observation: RawCausalObservation) -> str:
         # Opaque fact/action/spatial tokens are deliberately excluded.  The
-        # encoder only uses observable quantities and learned effect profiles.
-        known_profiles = sorted(
-            self.action_key(observation, action)
-            for action in observation.available_actions
-            if self.memory.profile(action) is not None
-        )
+        # state key uses stable observable quantities.  Learned action profiles
+        # belong in action keys; including them here would silently move every
+        # state whenever a profile was updated.
         return repr(
             (
                 tuple(sorted(observation.inventory.values())),
@@ -169,7 +166,6 @@ class RelationalEffectEncoder:
                 _bin(observation.damage),
                 observation.last_action_succeeded,
                 len(observation.available_actions),
-                tuple(known_profiles),
                 observation.terminal,
             )
         )
@@ -220,6 +216,7 @@ class RepresentedReturnAgent:
         self.counts: dict[tuple[str, str], int] = defaultdict(int)
         self.episode: list[tuple[str, str]] = []
         self.update_count = 0
+        self.key_migration_count = 0
 
     def select_action(self, observation: RawCausalObservation, *, epsilon: float) -> str:
         actions = observation.available_actions
@@ -248,6 +245,32 @@ class RepresentedReturnAgent:
         action = self.encoder.action_key(transition.before, transition.action)
         self.episode.append((state, action))
         self.encoder.observe(transition)
+        learned_state = self.encoder.state_key(transition.before)
+        learned_action = self.encoder.action_key(
+            transition.before, transition.action
+        )
+        self._migrate_key((state, action), (learned_state, learned_action))
+
+    def _migrate_key(
+        self, old_key: tuple[str, str], new_key: tuple[str, str]
+    ) -> None:
+        """Preserve credit when a visible effect replaces an unknown key."""
+        if old_key == new_key:
+            return
+        old_count = self.counts.pop(old_key, 0)
+        old_value = self.values.pop(old_key, 0.0)
+        new_count = self.counts.get(new_key, 0)
+        if old_count:
+            total = old_count + new_count
+            self.values[new_key] = (
+                self.values.get(new_key, 0.0) * new_count
+                + old_value * old_count
+            ) / total
+            self.counts[new_key] = total
+        self.episode = [
+            new_key if key == old_key else key for key in self.episode
+        ]
+        self.key_migration_count += 1
 
     def finish_episode(self, success: bool, *, gamma: float = 0.97) -> None:
         target = float(success)
@@ -268,6 +291,7 @@ class RepresentedReturnAgent:
                 "values": {repr(key): value for key, value in self.values.items()},
                 "counts": {repr(key): value for key, value in self.counts.items()},
                 "update_count": self.update_count,
+                "key_migration_count": self.key_migration_count,
                 "capacity": self.capacity,
             },
             rng=repr(self.rng.getstate()),
@@ -290,6 +314,9 @@ class RepresentedReturnAgent:
             },
         )
         self.update_count = int(checkpoint.policy.get("update_count", 0))
+        self.key_migration_count = int(
+            checkpoint.policy.get("key_migration_count", 0)
+        )
         self.capacity = int(checkpoint.policy.get("capacity", self.capacity))
         self.rng.setstate(ast.literal_eval(str(checkpoint.rng)))
         self.encoder.restore(checkpoint.relational_representation)

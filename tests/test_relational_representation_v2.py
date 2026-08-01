@@ -5,6 +5,7 @@ from aassr_v2.causal_representation import (
     IdentityEncoder,
     ObservableTransition,
     RelationalEffectEncoder,
+    RepresentedReturnAgent,
 )
 from aassr_v2.representation_diagnostic import (
     run_diagnostic_two_b,
@@ -97,3 +98,20 @@ def test_encoders_receive_same_raw_observation_instance() -> None:
     identity.state_key(observation)
     relational.state_key(observation)
     assert observation is observation
+
+
+def test_unknown_action_value_survives_learned_effect_key_transition() -> None:
+    world = CausalDependencyWorldV2(world_seed=82001, token_seed=92001)
+    transition = _observable_transition(world, "scan")
+    encoder = RelationalEffectEncoder()
+    agent = RepresentedReturnAgent(encoder, seed=7, learning_rate=1.0)
+    unknown_key = encoder.action_key(transition.before, transition.action)
+    assert unknown_key.startswith("unknown:")
+
+    agent.observe_transition(transition)
+    agent.finish_episode(True, gamma=1.0)
+
+    learned_key = encoder.action_key(transition.before, transition.action)
+    assert learned_key.startswith("effect:")
+    assert learned_key != unknown_key
+    assert agent.q_value(transition.before, transition.action) == 1.0

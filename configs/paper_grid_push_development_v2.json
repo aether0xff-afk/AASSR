@@ -1,0 +1,57 @@
+{
+  "schema_version": 2,
+  "name": "paper_grid_push_development_v2",
+  "protocol_version": "paper-grid-push-development-v2.0",
+  "study_stage": "development_diagnostic",
+  "output_root": "paper_results_v2",
+  "reward_mode": "strict_sparse",
+  "causal_law_version": "grid-push-physics-v2.0",
+  "causal_law_sha256": "4a3132c76a725c145a2af6edaaddf5293278722c4f521b5feef22b78709598ad",
+  "research_seeds": [9101, 9103, 9109],
+  "excluded_research_seeds": [2003, 2011, 2027, 3001, 3011, 3019, 4001, 4003, 4007, 4013, 4019],
+  "world_seeds": {
+    "train": [76001, 76002, 76003, 76004, 76005],
+    "isomorphic": [76101, 76102, 76103, 76104, 76105],
+    "unseen_composition": [76201, 76202, 76203, 76204, 76205],
+    "adaptation": [76301, 76302, 76303, 76304, 76305]
+  },
+  "phases": [
+    "training",
+    "evaluation_train_world_frozen",
+    "evaluation_isomorphic_world_zero_shot",
+    "evaluation_unseen_composition_zero_shot",
+    "adaptation",
+    "evaluation_unseen_after_adaptation"
+  ],
+  "phase_learning": {
+    "training": true,
+    "evaluation_train_world_frozen": false,
+    "evaluation_isomorphic_world_zero_shot": false,
+    "evaluation_unseen_composition_zero_shot": false,
+    "adaptation": true,
+    "evaluation_unseen_after_adaptation": false
+  },
+  "representation_comparison": {
+    "raw_observation_schema": "structured-grid-full-map-v1",
+    "identity_model_capacity": 50000,
+    "relational_model_capacity": 50000,
+    "identity_update_budget": 1,
+    "relational_update_budget": 1,
+    "exploration_schedule": "epsilon-0.8-to-0.05"
+  },
+  "grid_push": {
+    "certification_world_seeds": [76001, 76002, 76003, 76004, 76005, 76006, 76007, 76008, 76009, 76010, 76011, 76012, 76013, 76014, 76015, 76016, 76017, 76018, 76019, 76020],
+    "maximum_generation_attempts": 300,
+    "solver_maximum_actions": 35,
+    "certification_random_rollouts": 100,
+    "training_world_count": 5,
+    "training_episodes": 150,
+    "evaluation_episodes": 20,
+    "episode_maximum_steps": 35,
+    "observation_mode": "full_map",
+    "novelty_threshold": 0.20,
+    "utility_threshold": 0.80,
+    "reproduction_threshold": 0.50,
+    "creativity_as_training_reward": false
+  }
+}
