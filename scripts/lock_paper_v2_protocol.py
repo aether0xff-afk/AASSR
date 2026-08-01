@@ -13,7 +13,7 @@ def main() -> int:
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
     config = json.loads(Path(args.config).read_text(encoding="utf-8"))
-    payload = create_protocol_lock(config)
+    payload = create_protocol_lock(config, repository_root=Path.cwd())
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("x", encoding="utf-8") as stream:

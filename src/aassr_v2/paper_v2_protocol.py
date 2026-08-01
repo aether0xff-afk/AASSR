@@ -64,6 +64,28 @@ def current_git_commit(repository_root: str | Path | None = None) -> str:
     return completed.stdout.strip()
 
 
+def implementation_tree_sha256(
+    repository_root: str | Path | None = None,
+) -> str:
+    root = Path(repository_root or Path.cwd()).resolve()
+    sources = list((root / "src" / "aassr_v2").rglob("*.py"))
+    sources.extend(
+        path
+        for path in (
+            root / "scripts" / "run_paper_suite_v2.py",
+            root / "scripts" / "lock_paper_v2_protocol.py",
+        )
+        if path.is_file()
+    )
+    digest = hashlib.sha256()
+    for path in sorted(sources):
+        digest.update(path.relative_to(root).as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
 def validate_v2_config(
     config: Mapping[str, Any], *, repository_root: str | Path | None = None
 ) -> dict[str, Any]:
@@ -155,6 +177,28 @@ def validate_v2_config(
             {key: value for key, value in resolved.items() if key != "protocol_lock"}
         ):
             raise ValueError("protocol lock config hash mismatch")
+        if lock.get("implementation_tree_sha256") != implementation_tree_sha256(root):
+            raise ValueError("protocol lock implementation tree changed")
+    if stage is V2StudyStage.PILOT:
+        evidence_value = str(resolved.get("confirmation_artifact", "")).strip()
+        evidence_hash = str(resolved.get("confirmation_artifact_sha256", ""))
+        if not evidence_value or not evidence_hash:
+            raise ValueError("Pilot requires locked confirmation evidence")
+        evidence_path = Path(evidence_value)
+        if not evidence_path.is_absolute():
+            evidence_path = root / evidence_path
+        if not evidence_path.is_file():
+            raise FileNotFoundError(f"confirmation artifact not found: {evidence_path}")
+        actual_hash = hashlib.sha256(evidence_path.read_bytes()).hexdigest()
+        if actual_hash != evidence_hash:
+            raise ValueError("confirmation artifact hash mismatch")
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+        if evidence.get("stage") != V2StudyStage.LOCKED_CONFIRMATION.value:
+            raise ValueError("Pilot evidence is not a Locked Confirmation")
+        if not all(evidence.get("engineering_integrity_gates", {}).values()):
+            raise ValueError("Locked Confirmation engineering gates failed")
+        if not all(evidence.get("benchmark_adequacy_gates", {}).values()):
+            raise ValueError("Locked Confirmation adequacy gates failed")
     resolved["research_seeds"] = seeds
     resolved["world_seeds"] = materialized
     resolved["seed_commitment_sha256"] = actual_commitment
@@ -235,7 +279,9 @@ def reserve_confirmation_once(
     return path
 
 
-def create_protocol_lock(config: Mapping[str, Any]) -> dict[str, Any]:
+def create_protocol_lock(
+    config: Mapping[str, Any], *, repository_root: str | Path | None = None
+) -> dict[str, Any]:
     if str(config.get("study_stage")) == V2StudyStage.DEVELOPMENT_DIAGNOSTIC.value:
         raise ValueError("development diagnostics are not locked evidence")
     without_reference = {
@@ -252,6 +298,8 @@ def create_protocol_lock(config: Mapping[str, Any]) -> dict[str, Any]:
         "seed_commitment_sha256": seed_commitment(seeds),
         "causal_law_sha256": str(without_reference["causal_law_sha256"]),
         "thresholds_sha256": sha256_json(without_reference.get("thresholds", {})),
+        "implementation_tree_sha256": implementation_tree_sha256(repository_root),
+        "implementation_commit": current_git_commit(repository_root),
         "locked_at_utc": datetime.now(timezone.utc).isoformat(),
     }
 

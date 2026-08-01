@@ -1,0 +1,23 @@
+{
+  "schema_version": 2,
+  "name": "paper_creativity_open_pilot_v2",
+  "protocol_version": "paper-creativity-open-pilot-v2.0",
+  "study_stage": "pilot",
+  "protocol_lock": "configs/locks/paper_creativity_open_pilot_v2.lock.json",
+  "confirmation_artifact": "paper_results_v2/locked_confirmation/paper-causal-confirmation-v2.0/first/manifests/protocol_manifest.json",
+  "confirmation_artifact_sha256": "PENDING_CONFIRMATION",
+  "output_root": "paper_results_v2",
+  "reward_mode": "strict_sparse",
+  "causal_law_sha256": "45b252542897d4fad5be16993f9ef7e098d98040910927c8d468e40a699ec475",
+  "research_seeds": [4101, 4111, 4127, 4133, 4139],
+  "seed_commitment_sha256": "a721b2c5ad9a8970bf7176d12714ed4ffdd37e124f55ce2ef08d9d0103202a09",
+  "excluded_research_seeds": [2003, 2011, 2027, 3001, 3011, 3019, 4001, 4003, 4007, 4013, 4019],
+  "world_seeds": {"train": [89001, 89002], "isomorphic": [89101, 89102], "unseen_composition": [89201, 89202], "adaptation": [89301, 89302]},
+  "phases": ["training", "evaluation_train_world_frozen", "evaluation_isomorphic_world_zero_shot", "evaluation_unseen_composition_zero_shot", "adaptation", "evaluation_unseen_after_adaptation"],
+  "phase_learning": {"training": true, "evaluation_train_world_frozen": false, "evaluation_isomorphic_world_zero_shot": false, "evaluation_unseen_composition_zero_shot": false, "adaptation": true, "evaluation_unseen_after_adaptation": false},
+  "diagnostics": {"training_episodes": 500, "evaluation_episodes": 100, "adaptation_budgets": [0, 1, 4, 16, 64], "action_remap_probe_budgets": [1, 4, 16]},
+  "representation_comparison": {"raw_observation_schema": "raw-causal-observation-v2", "identity_model_capacity": 50000, "relational_model_capacity": 50000, "identity_update_budget": 1, "relational_update_budget": 1},
+  "prophecy": {"protocol": "v2.0", "model": "empirical", "return_target_mode": "monte_carlo", "gamma": 0.97, "reliability_bins": 10, "neural_model_enabled": false},
+  "creativity": {"environment": "open_creativity_v1", "interaction_budget": 500, "reference_source": "independent_equal_budget_baseline", "reference_manifest": "configs/locks/open_creativity_reference_v2.json", "reference_coverage_maximum": 0.25, "aassr_novelty_is_gate": false},
+  "thresholds": {"contextual_advantage_over_random": 0.2, "frozen_replay_gap": 0.1, "random_success_maximum": 0.1, "calibration_confidence_minimum": 0.8, "uncertainty_maximum": 0.25, "ood_maximum": 0.25, "imagined_return_margin": 0.05}
+}

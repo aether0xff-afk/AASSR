@@ -23,6 +23,13 @@ from .representation_diagnostic import (
 )
 from .causal_imagination import ImaginationGateConfig
 from .imagination_diagnostic_v2 import run_diagnostic_four
+from .open_creativity_v2 import (
+    creativity_environment_adequacy,
+    freeze_baseline_reference,
+    load_frozen_reference,
+    run_open_creativity_diagnostic,
+)
+from .transfer_diagnostic_v2 import run_transfer_diagnostic
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +122,40 @@ def run_paper_v2_suite(
             ),
         ),
     )
+    transfer_rows, transfer_metrics = run_transfer_diagnostic(
+        research_seeds=config["research_seeds"],
+        train_world_seeds=config["world_seeds"]["train"],
+        unseen_world_seeds=config["world_seeds"]["unseen_composition"],
+        pretraining_episodes=int(settings.get("training_episodes", 500)),
+        evaluation_episodes=int(settings.get("evaluation_episodes", 100)),
+        budgets=tuple(settings.get("adaptation_budgets", (0, 1, 4, 16, 64))),
+    )
+    creativity_settings = config.get("creativity", {})
+    creativity_budget = int(creativity_settings.get("interaction_budget", 500))
+    if identity.stage.value == "development_diagnostic":
+        reference_path = manifests / "development_baseline_reference.json"
+        freeze_baseline_reference(
+            reference_path,
+            world_seeds=config["world_seeds"]["unseen_composition"],
+            interaction_budget=creativity_budget,
+        )
+    else:
+        reference_path = Path(str(creativity_settings["reference_manifest"]))
+        if not reference_path.is_absolute():
+            reference_path = root / reference_path
+    references = load_frozen_reference(reference_path)
+    creativity_adequacy = [
+        creativity_environment_adequacy(
+            world_seed=int(seed), references=references
+        )
+        for seed in config["world_seeds"]["unseen_composition"]
+    ]
+    creative_candidates, creativity_metrics = run_open_creativity_diagnostic(
+        research_seeds=config["research_seeds"],
+        world_seeds=config["world_seeds"]["unseen_composition"],
+        references=references,
+        interaction_budget=creativity_budget,
+    )
     rows: list[dict[str, Any]] = []
     for item in diagnostic_rows:
         source = item.to_dict()
@@ -161,6 +202,46 @@ def run_paper_v2_suite(
         }
         for item in diagnostic_four["summaries"]
     )
+    rows.extend(
+        {
+            "diagnostic": "diagnostic_3",
+            "condition": item.condition,
+            "representation": "relational_effect_representation",
+            "research_seed": item.research_seed,
+            "adaptation_budget": item.adaptation_budget,
+            "training_final_tail": "",
+            "frozen_success": "",
+            "random_success": "",
+            "success_rate": item.success_rate,
+            "start_checkpoint_fingerprint": item.branch_start_fingerprint,
+            "evaluation_checkpoint_fingerprint": item.evaluation_fingerprint_before,
+            "final_checkpoint_fingerprint": item.evaluation_fingerprint_after,
+            "effect_updates": 0,
+        }
+        for item in transfer_rows
+    )
+    rows.extend(
+        {
+            "diagnostic": "diagnostic_5",
+            "condition": "full_aassr",
+            "representation": "relational_effect_representation",
+            "research_seed": "",
+            "adaptation_budget": 0,
+            "training_final_tail": "",
+            "frozen_success": "",
+            "random_success": "",
+            "success_rate": "",
+            "start_checkpoint_fingerprint": "",
+            "evaluation_checkpoint_fingerprint": "",
+            "final_checkpoint_fingerprint": "",
+            "effect_updates": 0,
+            "graph_sha256": item.graph_sha256,
+            "novelty_score": item.novelty_score,
+            "reusable_success_rate": item.reusable_success_rate,
+            "creative_candidate": item.candidate,
+        }
+        for item in creative_candidates
+    )
     columns = (
         "diagnostic",
         "condition",
@@ -179,6 +260,10 @@ def run_paper_v2_suite(
         "mean_decision_regret",
         "dead_end_entry_rate",
         "root_action_optimality",
+        "graph_sha256",
+        "novelty_score",
+        "reusable_success_rate",
+        "creative_candidate",
     )
     with V2ArtifactWriter(raw, columns) as writer:
         for payload in rows:
@@ -196,6 +281,15 @@ def run_paper_v2_suite(
                 {
                     "record_type": "imagination_decision",
                     **decision,
+                    "private_state_included": False,
+                    "learning_enabled": False,
+                }
+            )
+        for candidate in creative_candidates:
+            writer.write_trace(
+                {
+                    "record_type": "creativity_graph_summary",
+                    **candidate.to_dict(),
                     "private_state_included": False,
                     "learning_enabled": False,
                 }
@@ -254,6 +348,22 @@ def run_paper_v2_suite(
             diagnostic_four["engineering"]["random_model_intervention_rate"]
         )
         == 0.0,
+        "transfer_branches_share_checkpoint": all(
+            len(
+                {
+                    row.branch_start_fingerprint
+                    for row in transfer_rows
+                    if row.condition == condition and row.research_seed == seed
+                }
+            )
+            == 1
+            for condition in {row.condition for row in transfer_rows}
+            for seed in config["research_seeds"]
+        ),
+        "transfer_frozen_evaluation_immutable": all(
+            row.evaluation_fingerprint_before == row.evaluation_fingerprint_after
+            for row in transfer_rows
+        ),
     }
     def mean_success(items: list[Any], representation: str, budget: int) -> float:
         selected = [
@@ -283,6 +393,8 @@ def run_paper_v2_suite(
             mean_success(diagnostic_two_b, "relational_effect_representation", 16)
             - mean_success(diagnostic_two_b, "identity_representation", 16)
         ),
+        "transfer": transfer_metrics,
+        "creativity": creativity_metrics,
     }
     adequacy = {
         "world_certification": certification_ok,
@@ -294,6 +406,9 @@ def run_paper_v2_suite(
         ),
         "contextual_replay_gap": bool(gates["contextual_replay_gap_within_0_10"]),
         "full_replay_gap": bool(gates["full_replay_gap_within_0_10"]),
+        "open_creativity_world_adequate": all(
+            bool(item["adequate"]) for item in creativity_adequacy
+        ),
     }
     completed = datetime.now(timezone.utc).isoformat()
     manifest = {
@@ -310,6 +425,10 @@ def run_paper_v2_suite(
         "empirical_hypotheses": empirical,
         "diagnostic_1_metrics": gates["metrics"],
         "world_certifications": certifications,
+        "creativity_environment_adequacy": creativity_adequacy,
+        "creativity_reference_sha256": json.loads(
+            reference_path.read_text(encoding="utf-8")
+        )["reference_sha256"],
         "config_sha256_runtime": sha256_json(config),
         "final_executed": False,
     }
@@ -323,7 +442,7 @@ def run_paper_v2_suite(
             (
                 f"# {identity.protocol_version} — {identity.stage.value}",
                 "",
-                "Development Diagnostic results are not paper performance evidence.",
+                f"{identity.stage.value} results are not Final performance evidence.",
                 "",
                 "## Engineering integrity",
                 *[f"- {key}: {value}" for key, value in engineering.items()],

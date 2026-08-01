@@ -160,6 +160,7 @@ def test_protocol_lock_commits_seed_and_thresholds() -> None:
     lock = create_protocol_lock(config)
     assert lock["status"] == "locked"
     assert lock["seed_commitment_sha256"] == config["seed_commitment_sha256"]
+    assert len(lock["implementation_tree_sha256"]) == 64
 
 
 def test_representation_comparison_requires_equal_capacity() -> None:

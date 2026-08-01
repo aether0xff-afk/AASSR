@@ -56,6 +56,13 @@
     "reliability_bins": 10,
     "neural_model_enabled": false
   },
+  "creativity": {
+    "environment": "open_creativity_v1",
+    "interaction_budget": 500,
+    "reference_source": "independent_equal_budget_baseline",
+    "reference_coverage_maximum": 0.25,
+    "aassr_novelty_is_gate": false
+  },
   "thresholds": {
     "contextual_advantage_over_random": 0.2,
     "frozen_replay_gap": 0.1,

@@ -236,7 +236,8 @@ class CausalDependencyWorldV2:
         for law in ACTION_LAWS:
             if law.key in completed and not law.distractor:
                 continue
-            if law.prerequisites and not set(law.prerequisites) <= completed:
+            prerequisites = self._prerequisites(law)
+            if prerequisites and not set(prerequisites) <= completed:
                 continue
             if law.location_from and self._state.location != law.location_from:
                 continue
@@ -244,6 +245,25 @@ class CausalDependencyWorldV2:
                 continue
             available.append(law.key)
         return tuple(available)
+
+    def _prerequisites(self, law: _ActionLaw) -> tuple[str, ...]:
+        """Composition changes relations, never primitive action semantics."""
+        if self.composition_template == "novel_composition_v1":
+            overrides = {
+                "open_gate": ("bind", "stabilize"),
+                "safe_traverse": ("stabilize", "scan"),
+                "place_bridge": ("collect_wood", "scan"),
+            }
+            return overrides.get(law.key, law.prerequisites)
+        if self.composition_template == "open_creativity_v1":
+            overrides = {
+                "open_gate": ("bind", "collect_metal"),
+                "safe_traverse": ("stabilize", "scan"),
+                "place_bridge": ("collect_wood", "bind"),
+                "remove_obstacle": ("craft_tool", "stabilize"),
+            }
+            return overrides.get(law.key, law.prerequisites)
+        return law.prerequisites
 
     def observe(self) -> RawCausalObservation:
         facts = {self._fact_token(f"location:{self._state.location}")}
@@ -376,6 +396,12 @@ class CausalDependencyWorldV2:
 
     def private_action_key(self, action_token: str) -> str:
         return self._keys[action_token]
+
+    def analysis_effect_for_action(self, action_token: str) -> tuple[str, tuple[str, ...]]:
+        law = self._law_for_token(action_token)
+        if law is None:
+            raise KeyError(action_token)
+        return law.effect, self._prerequisites(law)
 
 
 @dataclass(frozen=True, slots=True)
