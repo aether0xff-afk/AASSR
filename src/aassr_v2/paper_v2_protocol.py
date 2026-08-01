@@ -123,6 +123,20 @@ def validate_v2_config(
         "observable_progress",
     }:
         raise ValueError("invalid reward_mode")
+    comparison = resolved.get("representation_comparison", {})
+    if comparison:
+        if not isinstance(comparison, Mapping):
+            raise ValueError("representation_comparison must be an object")
+        if int(comparison.get("identity_model_capacity", -1)) != int(
+            comparison.get("relational_model_capacity", -2)
+        ):
+            raise ValueError("identity and relational model capacity must match")
+        if int(comparison.get("identity_update_budget", -1)) != int(
+            comparison.get("relational_update_budget", -2)
+        ):
+            raise ValueError("identity and relational update budgets must match")
+        if not str(comparison.get("raw_observation_schema", "")).strip():
+            raise ValueError("representation comparison needs a shared raw schema")
     if stage is not V2StudyStage.DEVELOPMENT_DIAGNOSTIC:
         lock_value = str(resolved.get("protocol_lock", "")).strip()
         if not lock_value:

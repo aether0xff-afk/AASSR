@@ -160,3 +160,16 @@ def test_protocol_lock_commits_seed_and_thresholds() -> None:
     lock = create_protocol_lock(config)
     assert lock["status"] == "locked"
     assert lock["seed_commitment_sha256"] == config["seed_commitment_sha256"]
+
+
+def test_representation_comparison_requires_equal_capacity() -> None:
+    config = base_config()
+    config["representation_comparison"] = {
+        "raw_observation_schema": "raw-v2",
+        "identity_model_capacity": 10,
+        "relational_model_capacity": 11,
+        "identity_update_budget": 1,
+        "relational_update_budget": 1,
+    }
+    with pytest.raises(ValueError, match="model capacity"):
+        validate_v2_config(config)

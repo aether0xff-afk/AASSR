@@ -38,6 +38,14 @@
     "adaptation_budgets": [0, 1, 4, 16, 64],
     "action_remap_probe_budgets": [1, 4, 16]
   },
+  "representation_comparison": {
+    "raw_observation_schema": "raw-causal-observation-v2",
+    "identity_model_capacity": 50000,
+    "relational_model_capacity": 50000,
+    "identity_update_budget": 1,
+    "relational_update_budget": 1,
+    "exploration_schedule": "epsilon-0.8-to-0.05-over-400"
+  },
   "thresholds": {
     "contextual_advantage_over_random": 0.2,
     "frozen_replay_gap": 0.1,
