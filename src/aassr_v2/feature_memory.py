@@ -195,29 +195,30 @@ class OnlineFeatureMemory:
             return ()
         scored = []
         for information_id in candidate_ids:
-            record = self._records.get(information_id)
-            if record is None:
-                score = 0.0
-            else:
-                cluster = self._role_values.get(
-                    (action_id, slot, record.cluster_id)
-                )
-                item = self._item_values.get(
-                    (action_id, slot, information_id)
-                )
-                cluster_score = 0.0 if cluster is None else cluster.mean
-                item_score = 0.0 if item is None else item.mean
-                novelty = 1.0 / (1.0 + record.observations)
-                score = (
-                    0.6 * cluster_score
-                    + 0.3 * item_score
-                    + 0.1 * novelty
-                )
+            score = self.estimated_value(action_id, slot, information_id)
             scored.append((score, information_id))
         scored.sort(key=lambda item: (-item[0], item[1]))
         return tuple(
             information_id for _, information_id in scored[:limit]
         )
+
+    def estimated_value(
+        self,
+        action_id: str,
+        slot: str,
+        information_id: str,
+    ) -> float:
+        """Return the learned value of an observed item for a generic slot."""
+
+        record = self._records.get(information_id)
+        if record is None:
+            return 0.0
+        cluster = self._role_values.get((action_id, slot, record.cluster_id))
+        item = self._item_values.get((action_id, slot, information_id))
+        cluster_score = 0.0 if cluster is None else cluster.mean
+        item_score = 0.0 if item is None else item.mean
+        novelty = 1.0 / (1.0 + record.observations)
+        return 0.6 * cluster_score + 0.3 * item_score + 0.1 * novelty
 
     def cluster_count(self) -> int:
         return len(self._clusters)

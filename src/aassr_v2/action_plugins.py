@@ -83,6 +83,8 @@ class PluginOutcome:
     error: bool = False
     error_code: str | None = None
     cost: float = 1.0
+    reward: float = 0.0
+    terminal: bool = False
     raw: Mapping[str, Any] = field(default_factory=dict)
 
 

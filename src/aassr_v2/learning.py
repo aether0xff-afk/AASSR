@@ -165,6 +165,7 @@ class AdvancedTransitionEvaluator:
         validator: PredictionValidator | None = None,
         predictor: InformationValuePredictor | None = None,
         unlock_estimator: ActionUnlockValueEstimator | None = None,
+        credit_assigner: DelayedCreditAssigner | None = None,
         logger: JsonlLedgerWriter | None = None,
         samples: int = 4,
         intrinsic_cap: float = 1.0,
@@ -179,6 +180,7 @@ class AdvancedTransitionEvaluator:
             unlock_estimator
             or ActionUnlockValueEstimator()
         )
+        self.credit_assigner = credit_assigner or DelayedCreditAssigner()
         self.logger = logger
         self.samples = samples
         self.intrinsic_cap = intrinsic_cap
@@ -216,6 +218,8 @@ class AdvancedTransitionEvaluator:
         environment: object,
         action: Action,
         knowledge: KnowledgeStore,
+        *,
+        learn: bool = True,
     ) -> AdvancedEvaluation:
         before = environment.snapshot()
         knowledge_before = knowledge.clone()
@@ -241,8 +245,11 @@ class AdvancedTransitionEvaluator:
             actual.vector,
         )
 
-        self._index += 1
-        trace_id = f"aseq-{self._index:06d}"
+        if learn:
+            self._index += 1
+            trace_id = f"aseq-{self._index:06d}"
+        else:
+            trace_id = "frozen-evaluation"
         enabled = tuple(
             candidate.signature
             for candidate in outcome.unlocked_actions
@@ -256,10 +263,8 @@ class AdvancedTransitionEvaluator:
             )
             for fact in outcome.added_facts
         )
-        knowledge.apply(
-            entries,
-            outcome.removed_facts,
-        )
+        if learn:
+            knowledge.apply(entries, outcome.removed_facts)
 
         context_predictions = self._predict(
             before,
@@ -277,7 +282,7 @@ class AdvancedTransitionEvaluator:
             actual,
             trace_id,
         )
-        train_sample = self.replay.add(sample)
+        train_sample = self.replay.add(sample) if learn else False
         if train_sample:
             self.prophecy.learn(
                 before,
@@ -312,7 +317,8 @@ class AdvancedTransitionEvaluator:
             if repeat_key in self._recent_pairs[-16:]
             else 0.0
         )
-        self._recent_pairs.append(repeat_key)
+        if learn:
+            self._recent_pairs.append(repeat_key)
         unlock_value = self.unlock_estimator.estimate(
             outcome.unlocked_actions
         )
@@ -403,15 +409,18 @@ class AdvancedTransitionEvaluator:
         *,
         final_return: float,
         policy: object | None = None,
+        learn: bool = True,
     ) -> tuple[CreditedTrace, ...]:
         materialized = tuple(evaluations)
-        credits = DelayedCreditAssigner().assign(
+        credits = self.credit_assigner.assign(
             (
                 item.trace
                 for item in materialized
             ),
             final_return,
         )
+        if not learn:
+            return credits
         by_id = {
             item.trace.trace_id: item
             for item in materialized

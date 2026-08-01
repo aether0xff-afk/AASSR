@@ -7,12 +7,8 @@ from statistics import fmean
 from typing import Any, Mapping, Sequence
 
 from .creativity import novelty_against_references
-from .grid_push_world import (
-    GridPushSpec,
-    GridPushWorld,
-    GridSolution,
-    SolverResult,
-)
+from .grid_push_solver import GridSolution, SolverResult
+from .grid_push_world import GridPushSpec, GridPushWorld
 from .paper_types import CausalEffectGraph
 from .paper_v2_protocol import sha256_json
 

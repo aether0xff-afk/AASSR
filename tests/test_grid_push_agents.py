@@ -52,7 +52,7 @@ def test_small_diagnostic_executes_real_policy_prophecy_imagination_path() -> No
         maximum_steps=20,
     )
     assert {summary.condition for summary in summaries} == {
-        "random", "contextual_policy", "full_aassr"
+        "random", "contextual_policy", "reduced_causal_agent"
     }
     assert len(episodes) == 6
     assert decisions  # CausalImaginationPlanner was called.

@@ -21,9 +21,8 @@ from .grid_push_world import (
     GRID_PUSH_LAW_SHA256,
     GridPushSpec,
     GridPushWorld,
-    ProceduralGridPushGenerator,
-    SolverResult,
 )
+from .grid_push_solver import ProceduralGridPushGenerator, SolverResult
 from .paper_v2_protocol import (
     V2ArtifactWriter,
     build_run_identity,

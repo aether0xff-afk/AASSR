@@ -372,7 +372,7 @@ def run_small_grid_diagnostic(
                 return decision.final_selected_action, decision.intervened
 
             record = _episode(
-                condition="full_aassr",
+                condition="reduced_causal_agent",
                 research_seed=int(seed),
                 phase="training",
                 episode=episode,
@@ -402,7 +402,7 @@ def run_small_grid_diagnostic(
 
         full_rows = [
             _episode(
-                condition="full_aassr",
+                condition="reduced_causal_agent",
                 research_seed=int(seed),
                 phase="evaluation_train_world_frozen",
                 episode=episode,
@@ -420,7 +420,7 @@ def run_small_grid_diagnostic(
         episodes.extend(full_rows)
         summaries.append(
             _summarize(
-                condition="full_aassr",
+                condition="reduced_causal_agent",
                 research_seed=int(seed),
                 training_successes=full_training,
                 evaluation=full_rows,

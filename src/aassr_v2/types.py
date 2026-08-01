@@ -27,6 +27,40 @@ def _stable_value(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
 
 
+def _restore_action(
+    verb: ActionVerb | str,
+    target: str | None,
+    tool: str | None,
+    destination: str | None,
+    metadata: Mapping[str, Any],
+    parameters: Mapping[str, Any],
+) -> "Action":
+    return Action(
+        verb,
+        target,
+        tool,
+        destination,
+        metadata=dict(metadata),
+        parameters=dict(parameters),
+    )
+
+
+def _restore_snapshot(
+    vector: tuple[float, ...],
+    facts: frozenset[str],
+    available_actions: tuple["Action", ...],
+    goal_progress: float,
+    metadata: Mapping[str, Any],
+) -> "StateSnapshot":
+    return StateSnapshot(
+        vector,
+        facts,
+        available_actions,
+        goal_progress,
+        metadata=dict(metadata),
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class Action:
     """One structured action.
@@ -46,6 +80,21 @@ class Action:
     def __post_init__(self) -> None:
         object.__setattr__(self, "metadata", MappingProxyType(dict(self.metadata)))
         object.__setattr__(self, "parameters", MappingProxyType(dict(self.parameters)))
+
+    def __reduce__(self):
+        """Keep immutable mapping fields checkpoint/deepcopy compatible."""
+
+        return (
+            _restore_action,
+            (
+                self.verb,
+                self.target,
+                self.tool,
+                self.destination,
+                dict(self.metadata),
+                dict(self.parameters),
+            ),
+        )
 
     @property
     def verb_name(self) -> str:
@@ -76,6 +125,20 @@ class StateSnapshot:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "metadata", MappingProxyType(dict(self.metadata)))
+
+    def __reduce__(self):
+        """Keep snapshots usable in complete, trusted local checkpoints."""
+
+        return (
+            _restore_snapshot,
+            (
+                self.vector,
+                self.facts,
+                self.available_actions,
+                self.goal_progress,
+                dict(self.metadata),
+            ),
+        )
 
     def with_actions(self, actions: tuple[Action, ...]) -> StateSnapshot:
         return replace(self, available_actions=actions)

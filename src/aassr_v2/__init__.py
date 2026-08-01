@@ -18,6 +18,16 @@ from .action_plugins import (
     SlotCandidateResolver,
     parameter_lessons,
 )
+from .aassr_core import (
+    CORE_MODULES,
+    TRAINABLE_CORE_MODULES,
+    AASSRCore,
+    AASSRCoreConfig,
+    AASSREpisodeRecord,
+    CoreCallAudit,
+    CoreDecision,
+    CorePrimitiveStep,
+)
 from .adapters import (
     AuthorizedAssessmentPlugin,
     DryRunTransport,
@@ -58,6 +68,12 @@ from .evaluation import (
     ImaginationTransitionEvaluator,
     PlannedTransition,
     TransitionEvaluator,
+)
+from .environment_plugin import (
+    CoreEnvironmentSession,
+    CoreObservationEncoder,
+    EnvironmentPlugin,
+    ObservableEnvironmentTransition,
 )
 from .feature_memory import (
     FeatureRecord,
@@ -151,11 +167,25 @@ from .paper_runner import PaperArtifacts, run_paper_suite
 from .grid_push_world import (
     GridPushSpec,
     GridPushWorld,
-    ProceduralGridPushGenerator,
-    certify_grid_world,
-    solve_grid_world,
 )
+from .grid_push_plugin import GridPushEnvironmentPlugin
 
-__all__ = [name for name in globals() if not name.startswith("_")]
+_LAZY_GRID_SOLVER_EXPORTS = {
+    "ProceduralGridPushGenerator",
+    "certify_grid_world",
+    "solve_grid_world",
+}
+
+
+def __getattr__(name: str):
+    if name in _LAZY_GRID_SOLVER_EXPORTS:
+        from . import grid_push_solver
+
+        return getattr(grid_push_solver, name)
+    raise AttributeError(name)
+
+__all__ = [name for name in globals() if not name.startswith("_")] + sorted(
+    _LAZY_GRID_SOLVER_EXPORTS
+)
 
 __version__ = "0.3.0"
