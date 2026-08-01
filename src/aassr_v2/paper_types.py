@@ -11,6 +11,16 @@ class ExperimentPhase(str, Enum):
     EVALUATION_UNSEEN_ZERO_SHOT = "evaluation_unseen_zero_shot"
     ADAPTATION = "adaptation"
     EVALUATION_UNSEEN_ADAPTATION = "evaluation_unseen_adaptation"
+    EVALUATION_TRAIN_WORLD_FROZEN = "evaluation_train_world_frozen"
+    EVALUATION_ISOMORPHIC_WORLD_ZERO_SHOT = (
+        "evaluation_isomorphic_world_zero_shot"
+    )
+    EVALUATION_UNSEEN_COMPOSITION_ZERO_SHOT = (
+        "evaluation_unseen_composition_zero_shot"
+    )
+    EVALUATION_UNSEEN_AFTER_ADAPTATION = (
+        "evaluation_unseen_after_adaptation"
+    )
 
     @property
     def permits_learning(self) -> bool:
