@@ -154,6 +154,9 @@ def test_complete_core_modules_are_exercised_before_frozen_evaluation() -> None:
     assert len(core.replay.holdout()) > 0
     assert core.skills.all()
     assert not core.checkpoint_contains_forbidden_environment_data()
+    serialized = records[0].to_dict()
+    assert serialized["decisions"][0]["selected_action"].startswith("MOVE_EAST")
+    assert serialized["transitions"][0]["raw_observation_before"]
 
 
 def test_frozen_core_clone_calls_modules_without_learning_or_state_change() -> None:

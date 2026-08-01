@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import pickle
 import random
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from typing import Any, Mapping
 
 from .environment_plugin import (
@@ -137,10 +137,14 @@ class CoreDecision:
     expanded_nodes: int
 
     def to_dict(self) -> dict[str, Any]:
-        payload = asdict(self)
-        payload["policy_action"] = self.policy_action.signature
-        payload["selected_action"] = self.selected_action.signature
-        return payload
+        return {
+            "policy_action": self.policy_action.signature,
+            "selected_action": self.selected_action.signature,
+            "used_imagination": self.used_imagination,
+            "model_coverage": self.model_coverage,
+            "imagined_nodes": self.imagined_nodes,
+            "expanded_nodes": self.expanded_nodes,
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -155,7 +159,16 @@ class CorePrimitiveStep:
     raw_observation_after: Mapping[str, Any]
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return {
+            "decision_action": self.decision_action,
+            "executed_action": self.executed_action,
+            "used_skill": self.used_skill,
+            "action_succeeded": self.action_succeeded,
+            "reward": self.reward,
+            "terminal": self.terminal,
+            "raw_observation_before": dict(self.raw_observation_before),
+            "raw_observation_after": dict(self.raw_observation_after),
+        }
 
 
 @dataclass(frozen=True, slots=True)
