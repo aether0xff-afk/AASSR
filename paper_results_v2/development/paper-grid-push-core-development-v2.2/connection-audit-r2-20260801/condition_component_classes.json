@@ -1,0 +1,71 @@
+{
+  "contextual_policy": [
+    "ContextualPolicy",
+    "CoreObservationEncoder",
+    "GridPushEnvironmentPlugin"
+  ],
+  "full_aassr": [
+    "KnowledgeStore",
+    "OnlineFeatureMemory",
+    "GoalSet",
+    "GoalGenerator",
+    "ObservableGoalRuntime",
+    "WeightedPolicy",
+    "OnlineGRUProphecy",
+    "ImaginationTree",
+    "AdvancedTransitionEvaluator",
+    "ReplayBuffer",
+    "PredictionValidator",
+    "InformationValuePredictor",
+    "DelayedCreditAssigner",
+    "SkillLibrary",
+    "SkillAwareProphecy",
+    "GridPushEnvironmentPlugin"
+  ],
+  "full_aassr_no_imagination": [
+    "KnowledgeStore",
+    "OnlineFeatureMemory",
+    "GoalSet",
+    "GoalGenerator",
+    "ObservableGoalRuntime",
+    "WeightedPolicy",
+    "OnlineGRUProphecy",
+    "ImaginationTree",
+    "AdvancedTransitionEvaluator",
+    "ReplayBuffer",
+    "PredictionValidator",
+    "InformationValuePredictor",
+    "DelayedCreditAssigner",
+    "SkillLibrary",
+    "SkillAwareProphecy",
+    "GridPushEnvironmentPlugin"
+  ],
+  "random": [
+    "random.Random",
+    "GridPushEnvironmentPlugin"
+  ],
+  "reduced_causal_agent": [
+    "CausalAASSRAgent",
+    "GridRelationalEffectEncoder",
+    "RepresentedReturnAgent",
+    "EmpiricalCausalProphecy",
+    "CausalImaginationPlanner",
+    "GridPushEnvironmentPlugin"
+  ],
+  "tabular_fixed_goal_core": [
+    "KnowledgeStore",
+    "OnlineFeatureMemory",
+    "GoalSet",
+    "WeightedPolicy",
+    "TabularProphecy",
+    "ImaginationTree",
+    "AdvancedTransitionEvaluator",
+    "ReplayBuffer",
+    "PredictionValidator",
+    "InformationValuePredictor",
+    "DelayedCreditAssigner",
+    "SkillLibrary",
+    "SkillAwareProphecy",
+    "GridPushEnvironmentPlugin"
+  ]
+}

@@ -2,8 +2,8 @@
 
 This report is a correction and a Development-only engineering record.  The
 final code-matched run is under
-`paper_results_v2/development/paper-grid-push-core-development-v2.2/connection-audit-r3-20260801`;
-no Locked Confirmation, Pilot or Final was run.  The earlier r1/r2 runs are
+`paper_results_v2/development/paper-grid-push-core-development-v2.2/connection-audit-r4-20260801`;
+no Locked Confirmation, Pilot or Final was run.  The earlier r1/r2/r3 runs are
 also preserved and were not overwritten.
 
 ## 1. Structures missing from the preceding implementation
