@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "status": "read_only_baseline",
+  "purpose": "Final v1 diagnostic and reproducibility baseline for Paper Protocol v2",
+  "files": [
+    {"path": "configs/paper_autonomy_final_v1.json", "sha256": "00b7d9c90776c2201e5cbf3db0baa4d208bc0380ec7456785d9dd018e83543c0"},
+    {"path": "configs/paper_ablation_final_v1.json", "sha256": "282fc9dfec18ab5cf2421d7a4004b23cac723257ec9c8efe10e53f48a2c1e209"},
+    {"path": "configs/paper_transfer_final_v1.json", "sha256": "6183bbb8930d26f42a07ec22ce8c8b45b4c678044cbe849f268a07f4bbafc2a5"},
+    {"path": "configs/paper_creativity_final_v1.json", "sha256": "d6a7897bf531b5a4f4b9dba0e36d28e82d2f7ad226715c8a345776948101d60f"},
+    {"path": "configs/paper_safe_application_final_v1.json", "sha256": "f863dd7464eb10d9c01c34251f9faec926ad794a70aba32a6df4e48a39c0c721"},
+    {"path": "paper_results/paper-autonomy-final-v1/manifests/protocol_manifest.json", "sha256": "5edfd17098131ef8fc688f960c59aecf803c4dbf527f14786a601c7b50ba57f7"},
+    {"path": "paper_results/paper-ablation-final-v1/manifests/protocol_manifest.json", "sha256": "5bbd5529e435659287ec1facdfe10ea11b3d29cb7960ddeee471a8c6199e4a2f"},
+    {"path": "paper_results/paper-transfer-final-v1/manifests/protocol_manifest.json", "sha256": "efbb7c11ca4cd875e6e100df623aeca12296c054d32ea859fc8c613a0480d747"},
+    {"path": "paper_results/paper-creativity-final-v1/manifests/protocol_manifest.json", "sha256": "797b5f9ac79c42aaddbbc0a30c9bd17615d5062740a3cf6bd14116e984b1ded1"},
+    {"path": "paper_results/paper-safe-application-final-v1/manifests/protocol_manifest.json", "sha256": "6682e1424d31b595ebdee8a153b2e0db9e626a54ad5f8d9788b0e3d373d02353"},
+    {"path": "paper_final_review/manifests/review_manifest.json", "sha256": "4deb1585a427f97b6f3727dc9c33005b76bfbf8f7b46ade77144bbd05ca635f9"}
+  ]
+}
