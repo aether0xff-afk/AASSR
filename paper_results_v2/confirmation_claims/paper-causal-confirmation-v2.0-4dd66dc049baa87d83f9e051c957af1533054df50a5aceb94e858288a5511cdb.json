@@ -1,0 +1,9 @@
+{
+  "protocol_version": "paper-causal-confirmation-v2.0",
+  "stage": "locked_confirmation",
+  "run_id": "first",
+  "config_sha256": "0ad24c31b91ef19b8f350ef77ae0f439e1bac9fab6b3dc6b188bfc7e994b50e8",
+  "seed_commitment_sha256": "4dd66dc049baa87d83f9e051c957af1533054df50a5aceb94e858288a5511cdb",
+  "causal_law_sha256": "45b252542897d4fad5be16993f9ef7e098d98040910927c8d468e40a699ec475",
+  "implementation_commit": "e0e070ea9c7deea4622ab336117fc00d13d37bfa"
+}

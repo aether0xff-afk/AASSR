@@ -1,0 +1,40 @@
+{
+  "artifacts": {
+    "episodes_csv_sha256": "952651d5fd37a19643e7521f56317f8c1f693dfe6defb3e523590d5b4067b634",
+    "trace_gzip_sha256": "4693eeaf37df4c898d125ba4e47cfa0d907379068f40ce47aaafb175360992e9"
+  },
+  "benchmark_adequacy_gates": {
+    "all_worlds_solver_certified": true,
+    "multiple_causal_families": true,
+    "random_success_below_ceiling": true
+  },
+  "causal_law_sha256": "77577a59ab5140a5ee135bdcbb810437b5222a25a18786d2d4b25290266a8df2",
+  "certifications_sha256": "f116f24b1f30446ecb6780fd73d0df012459d8fb63b6605121a14b415bc50303",
+  "completed_at_utc": "2026-08-01T03:13:54.438288+00:00",
+  "config_sha256": "3ffaefdbd16f6cb53050e037282e34431f7015bae4399b2f9e8e3341d4f125f7",
+  "empirical_hypotheses": {
+    "opaque_track_learns_action_effects": "not_tested_by_environment_diagnostic",
+    "semantic_track_improves_long_horizon_planning": "not_tested_by_environment_diagnostic"
+  },
+  "engineering_integrity_gates": {
+    "gzip_trace_replays": true,
+    "mock_adapter_contract": true,
+    "private_information_leak_zero": true,
+    "same_causal_law_across_tracks": true,
+    "semantic_and_opaque_tokens_separate": true,
+    "single_track_result_contract": true,
+    "strict_sparse_terminal_reward_only": true
+  },
+  "episode_rows": 4,
+  "implementation_commit": "e0e070ea9c7deea4622ab336117fc00d13d37bfa",
+  "protocol_version": "paper-minecraft-opaque-v2.0",
+  "real_minecraft_runtime_executed": false,
+  "run_id": "first",
+  "schema_version": 2,
+  "seed_commitment_sha256": "7ef3756dc35d0870d2e822466f93b8a2d542b7e4eaadc23fc5508aba45fbc9e9",
+  "stage": "locked_confirmation",
+  "started_at_utc": "2026-08-01T03:13:53.352433+00:00",
+  "suite": "minecraft_like_mock",
+  "trace_rows": 4,
+  "track_claims_must_remain_separate": true
+}

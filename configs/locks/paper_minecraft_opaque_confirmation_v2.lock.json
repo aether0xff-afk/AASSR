@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "status": "locked",
+  "protocol_version": "paper-minecraft-opaque-v2.0",
+  "study_stage": "locked_confirmation",
+  "config_sha256": "6c80766512370922fe884db8616e544846f6a5959536675313d91dabcbc473be",
+  "seed_commitment_sha256": "7ef3756dc35d0870d2e822466f93b8a2d542b7e4eaadc23fc5508aba45fbc9e9",
+  "causal_law_sha256": "77577a59ab5140a5ee135bdcbb810437b5222a25a18786d2d4b25290266a8df2",
+  "thresholds_sha256": "c977e65c64dab31a603decbb9d033b71e07005a6ebb4c26f946cc48a2fedaa8f",
+  "implementation_tree_sha256": "aa55546d8a96c76e8bfda79e912fe9db59c10dd0dbb363c398c9a6242107db91",
+  "implementation_commit": "e0e070ea9c7deea4622ab336117fc00d13d37bfa",
+  "locked_at_utc": "2026-08-01T03:13:29.185414+00:00"
+}

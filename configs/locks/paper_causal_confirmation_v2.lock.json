@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "status": "locked",
+  "protocol_version": "paper-causal-confirmation-v2.0",
+  "study_stage": "locked_confirmation",
+  "config_sha256": "1af8ccff3849c12f3d77cc69cd4fa5780df26d8c234d77a1ac6ea21800b7b114",
+  "seed_commitment_sha256": "4dd66dc049baa87d83f9e051c957af1533054df50a5aceb94e858288a5511cdb",
+  "causal_law_sha256": "45b252542897d4fad5be16993f9ef7e098d98040910927c8d468e40a699ec475",
+  "thresholds_sha256": "915ccd55e6550d6c3fcf33fc5e10ba0877d9a8dae3692485384d465ea734980d",
+  "implementation_tree_sha256": "aa55546d8a96c76e8bfda79e912fe9db59c10dd0dbb363c398c9a6242107db91",
+  "implementation_commit": "e0e070ea9c7deea4622ab336117fc00d13d37bfa",
+  "locked_at_utc": "2026-08-01T03:13:28.789262+00:00"
+}

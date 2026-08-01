@@ -1,0 +1,9 @@
+{
+  "protocol_version": "paper-minecraft-opaque-v2.0",
+  "stage": "locked_confirmation",
+  "run_id": "first",
+  "config_sha256": "3ffaefdbd16f6cb53050e037282e34431f7015bae4399b2f9e8e3341d4f125f7",
+  "seed_commitment_sha256": "7ef3756dc35d0870d2e822466f93b8a2d542b7e4eaadc23fc5508aba45fbc9e9",
+  "causal_law_sha256": "77577a59ab5140a5ee135bdcbb810437b5222a25a18786d2d4b25290266a8df2",
+  "implementation_commit": "e0e070ea9c7deea4622ab336117fc00d13d37bfa"
+}

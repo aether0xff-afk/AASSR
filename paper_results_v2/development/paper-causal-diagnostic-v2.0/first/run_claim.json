@@ -1,0 +1,9 @@
+{
+  "protocol_version": "paper-causal-diagnostic-v2.0",
+  "stage": "development_diagnostic",
+  "run_id": "first",
+  "config_sha256": "89d7e8dc32447bfb02e75087c3068a248dd4dd6187a5fef207931df3190a27ed",
+  "seed_commitment_sha256": "24acc86d28f5604d595649bc51faee76026f1e071c76596d694b7ae2c66dfeda",
+  "causal_law_sha256": "45b252542897d4fad5be16993f9ef7e098d98040910927c8d468e40a699ec475",
+  "implementation_commit": "b990ca3ace18957aeed0adbc646b4200243fc0af"
+}

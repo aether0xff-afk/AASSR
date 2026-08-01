@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "status": "locked",
+  "protocol_version": "paper-minecraft-semantic-v2.0",
+  "study_stage": "pilot",
+  "config_sha256": "6ed6f631b9ff2247868f3a41489702c2fbc6fe6292a530bdf03c85c23d2fd210",
+  "seed_commitment_sha256": "fce3a514945d3c4fd30d49651aba17006375755597344490f58b38c5fedd7eb6",
+  "causal_law_sha256": "77577a59ab5140a5ee135bdcbb810437b5222a25a18786d2d4b25290266a8df2",
+  "thresholds_sha256": "c977e65c64dab31a603decbb9d033b71e07005a6ebb4c26f946cc48a2fedaa8f",
+  "implementation_tree_sha256": "aa55546d8a96c76e8bfda79e912fe9db59c10dd0dbb363c398c9a6242107db91",
+  "implementation_commit": "e0e070ea9c7deea4622ab336117fc00d13d37bfa",
+  "locked_at_utc": "2026-08-01T03:17:33.585268+00:00"
+}

@@ -12,7 +12,7 @@
   "seed_commitment_sha256": "fce3a514945d3c4fd30d49651aba17006375755597344490f58b38c5fedd7eb6",
   "protocol_lock": "configs/locks/paper_minecraft_semantic_pilot_v2.lock.json",
   "confirmation_artifact": "paper_results_v2/locked_confirmation/paper-minecraft-semantic-v2.0/first/manifests/protocol_manifest.json",
-  "confirmation_artifact_sha256": "PENDING_CONFIRMATION",
+  "confirmation_artifact_sha256": "0ea769563150356809096df14576567778f4405e59608b858accd704e4b41fcf",
   "world_seeds": {"train": [112001, 112002], "isomorphic": [113001], "unseen_composition": [114001], "adaptation": [115001]},
   "phases": ["training", "evaluation_train_world_frozen", "evaluation_isomorphic_world_zero_shot", "evaluation_unseen_composition_zero_shot", "adaptation", "evaluation_unseen_after_adaptation"],
   "phase_learning": {"training": true, "evaluation_train_world_frozen": false, "evaluation_isomorphic_world_zero_shot": false, "evaluation_unseen_composition_zero_shot": false, "adaptation": true, "evaluation_unseen_after_adaptation": false},

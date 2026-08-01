@@ -1,0 +1,5 @@
+research_seed,world_seed,track,affordance_ablation,solvable,minimum_plan_length,valid_solution_count,causal_family_count,dead_end_count,random_success,adequate
+4109,102001,semantic_skill,0,1,4,104,104,370,0.018,1
+4109,102002,semantic_skill,0,1,4,104,104,370,0.018,1
+4127,102001,semantic_skill,0,1,4,104,104,370,0.018,1
+4127,102002,semantic_skill,0,1,4,104,104,370,0.018,1

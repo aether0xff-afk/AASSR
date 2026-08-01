@@ -1,0 +1,5 @@
+research_seed,world_seed,track,affordance_ablation,solvable,minimum_plan_length,valid_solution_count,causal_family_count,dead_end_count,random_success,adequate
+3109,92001,opaque_skill,0,1,4,104,104,370,0.017,1
+3109,92002,opaque_skill,0,1,4,104,104,370,0.014,1
+3119,92001,opaque_skill,0,1,4,104,104,370,0.017,1
+3119,92002,opaque_skill,0,1,4,104,104,370,0.014,1

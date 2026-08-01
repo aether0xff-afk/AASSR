@@ -1,0 +1,9 @@
+{
+  "protocol_version": "paper-minecraft-semantic-v2.0",
+  "stage": "development_diagnostic",
+  "run_id": "first",
+  "config_sha256": "bcd8403a2077be88edc19393d8016562b5975f9455a616e1693296f798b42391",
+  "seed_commitment_sha256": "12b86ecebd4591a0822964074a68b4468cd45a0f73844cf3312ab81b9e370850",
+  "causal_law_sha256": "77577a59ab5140a5ee135bdcbb810437b5222a25a18786d2d4b25290266a8df2",
+  "implementation_commit": "4b4733c56b7a6cb9c7d1897ecff1bb53f10599be"
+}
