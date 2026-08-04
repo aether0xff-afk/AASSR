@@ -1,43 +1,63 @@
 from __future__ import annotations
 
-from aassr_v2.goal_gridpush_experiment import GoalGridPushWorld
+from typing import cast
+
+from aassr_v2.goal_gridpush_experiment import (
+    GoalGridPushWorld,
+    GoalProposal,
+)
+from aassr_v2.goals import GoalSet
+from aassr_v2.imagination_tree import ImaginationResult
 from aassr_v2.persistent_goal_agent import PersistentGoalSeparatedAgent
+from aassr_v2.types import StateSnapshot
 
 
-def test_goal_is_reused_instead_of_rebuilt_every_step() -> None:
+def test_active_goal_survives_a_reality_step_when_not_reached() -> None:
     agent = PersistentGoalSeparatedAgent(7)
     world = GoalGridPushWorld(7)
-
-    # Give Prophecy enough real transitions for the Maker to form a GOAL.
-    for episode in range(8):
-        training_world = GoalGridPushWorld(7)
-        while training_world.snapshot().available_actions:
-            before = training_world.snapshot()
-            decision = agent.base.select_action(before, episode=episode, explore=True)
-            outcome = training_world.step(decision.action)
-            agent.base.observe(before, decision.action, outcome)
-            if not outcome.snapshot.available_actions:
-                break
-        agent.base.finish_episode(
-            final_return=1.0 if training_world.success else 0.0
-        )
-
     before = world.snapshot()
-    first = agent.select_action(before, episode=20, explore=False)
-    first_proposals = agent.goal_proposals
-    if agent.active_goal is None:
-        # The learned model may still reject a GOAL; this is a valid safe state.
-        assert not first.imagination_changed_action
-        return
+    desired = StateSnapshot(
+        tuple(value + 10.0 for value in before.vector),
+        frozenset({"unreached_target"}),
+        before.available_actions,
+        0.0,
+    )
+    proposal = GoalProposal(
+        GoalSet(),
+        desired,
+        cast(ImaginationResult, object()),
+        1.0,
+    )
+    agent.active_goal = proposal
 
-    outcome = world.step(first.action)
-    agent.observe(before, first.action, outcome)
-    agent.select_action(outcome.snapshot, episode=20, explore=False)
+    action = before.available_actions[0]
+    outcome = world.step(action)
+    agent.observe(before, action, outcome)
 
-    assert agent.goal_proposals == first_proposals
-    assert agent.goal_reuses >= 1
+    assert agent.active_goal is proposal
+    assert agent.active_goal_age == 1
 
 
-def test_goal_age_limit_discards_stale_goal() -> None:
+def test_reached_goal_is_cleared_after_observation() -> None:
+    agent = PersistentGoalSeparatedAgent(7)
+    world = GoalGridPushWorld(7)
+    before = world.snapshot()
+    action = before.available_actions[0]
+    outcome = world.step(action)
+    proposal = GoalProposal(
+        GoalSet(),
+        outcome.snapshot,
+        cast(ImaginationResult, object()),
+        1.0,
+    )
+    agent.active_goal = proposal
+
+    agent.observe(before, action, outcome)
+
+    assert agent.active_goal is None
+    assert agent.goal_completions == 1
+
+
+def test_goal_age_limit_is_configurable() -> None:
     agent = PersistentGoalSeparatedAgent(7, maximum_goal_age=1)
     assert agent.maximum_goal_age == 1
