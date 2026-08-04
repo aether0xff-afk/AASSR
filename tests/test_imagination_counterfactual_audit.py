@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from types import SimpleNamespace
 
-from aassr_v2.autonomous_experiment import _run_episode
+from aassr_v2.autonomous_experiment import (
+    _run_episode,
+    run_autonomous_experiment,
+)
 from aassr_v2.experiment_runner import RESULT_FIELDS, SUMMARY_METRICS
 
 
@@ -127,3 +132,58 @@ def test_standard_schemas_include_counterfactual_audit_metrics() -> None:
 
     assert metrics <= set(RESULT_FIELDS)
     assert metrics <= set(SUMMARY_METRICS)
+
+
+def test_protocol_manifest_declares_oracle_analysis_boundaries(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "oracle-manifest"
+    config = {
+        "name": "oracle_manifest_regression",
+        "runner": "autonomous_main",
+        "seeds": [7],
+        "train_episodes": 1,
+        "eval_episodes": 1,
+        "evaluation_modes": ["seen"],
+        "execution": {
+            "workers": 1,
+            "cuda_workers": 1,
+            "device": "cpu",
+            "allow_cpu_fallback": True,
+        },
+        "progress": {"every_episodes": 1, "every_seconds": 1},
+        "environments": [
+            {
+                "name": "opaque_dependency_l2",
+                "length": 2,
+                "seed_offset": 2000,
+                "train_worlds_per_seed": 1,
+                "eval_worlds_per_seed": 1,
+            }
+        ],
+        "conditions": [
+            {
+                "name": "contextual_policy",
+                "algorithm": "contextual_policy",
+                "model": "tabular",
+                "learn_policy": True,
+                "learn_prophecy": False,
+                "use_imagination": False,
+                "validated_gain_weight": 0.0,
+            }
+        ],
+    }
+
+    run_autonomous_experiment(
+        config,
+        output_dir=output,
+        overwrite=False,
+        progress_console=False,
+    )
+    manifest = json.loads(
+        (output / "protocol_manifest.json").read_text(encoding="utf-8")
+    )
+
+    assert manifest["privileged_oracle_analysis_only"] is True
+    assert manifest["oracle_labels_agent_visible"] is False
+    assert manifest["oracle_labels_used_for_learning"] is False
