@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from .autonomous_agent_core import AutonomousAgentConfig, AutonomousLearningAgent
-from .goal_gridpush_experiment import ImaginedGoalMaker, GoalExecutor
+from .collapsing_gridpush_world import CollapsingGridPushWorld
+from .goal_gridpush_experiment import GoalExecutor, ImaginedGoalMaker
 from .imagination_tree import StateDeltaScorer
 from .persistent_goal_agent import PersistentGoalSeparatedAgent
 from .tabular_prophecy import TabularProphecy
@@ -66,7 +67,7 @@ def _diagnostic_standard_agent(
             imagination_minimum_coverage=0.0,
             imagination_intervention_margin=0.02,
             imagination_uncertainty_margin=0.25,
-            imagination_aggregation="risk-adjusted",
+            imagination_aggregation="risk_adjusted",
             epsilon_start=0.9,
             epsilon_end=0.05,
             epsilon_decay_episodes=250,
@@ -84,9 +85,10 @@ def _diagnostic_standard_agent(
 
 
 def install_goal_gridpush_diagnostic_agents() -> None:
-    """Install matched bounded agents in the experiment factory."""
+    """Install matched bounded agents and the no-tick-limit world."""
 
     from . import goal_gridpush_experiment
 
+    goal_gridpush_experiment.GoalGridPushWorld = CollapsingGridPushWorld
     goal_gridpush_experiment.GoalSeparatedAgent = DiagnosticPersistentGoalAgent
     goal_gridpush_experiment._standard_agent = _diagnostic_standard_agent
