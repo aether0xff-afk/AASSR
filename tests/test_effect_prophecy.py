@@ -160,7 +160,7 @@ def test_agent_learns_effects_only_from_training_transitions() -> None:
             epsilon_start=0.0,
             epsilon_end=0.0,
             holdout_stride=1000,
-            effect_minimum_samples=1,
+            effect_minimum_samples=2,
         ),
         seed=9,
     )
@@ -171,7 +171,8 @@ def test_agent_learns_effects_only_from_training_transitions() -> None:
     )
 
     agent.observe(before, action, outcome)
+    agent.observe(before, action, outcome)
 
-    assert agent.prophecy_diagnostics()["effect_observations"] == 1
+    assert agent.prophecy_diagnostics()["effect_observations"] == 2
     prediction = agent.prophecy.predict(before, action, samples=1)[0]
     assert prediction.next_state.vector == pytest.approx((1.0,))
