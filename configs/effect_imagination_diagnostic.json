@@ -67,7 +67,7 @@
       "use_effect_composition": false,
       "imagination_minimum_coverage": 0.35,
       "imagination_intervention_margin": 0.05,
-      "imagination_uncertainty_margin": 0.20,
+      "imagination_uncertainty_margin": 0.40,
       "imagination_interval": 1,
       "validated_gain_weight": 0.2,
       "minimum_holdout_count": 4
@@ -99,7 +99,7 @@
       "effect_minimum_samples": 2,
       "imagination_minimum_coverage": 0.35,
       "imagination_intervention_margin": 0.05,
-      "imagination_uncertainty_margin": 0.20,
+      "imagination_uncertainty_margin": 0.40,
       "imagination_interval": 1,
       "validated_gain_weight": 0.2,
       "minimum_holdout_count": 4
