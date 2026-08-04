@@ -225,7 +225,7 @@ class AutonomousAgentConfig:
     imagination_beam_width: int = 32
     imagination_minimum_coverage: float = 0.35
     imagination_intervention_margin: float = 0.05
-    imagination_uncertainty_margin: float = 0.20
+    imagination_uncertainty_margin: float = 0.40
     validated_gain_weight: float = 0.2
     repeat_penalty: float = 0.05
     error_penalty: float = 0.2

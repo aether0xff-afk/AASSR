@@ -193,7 +193,7 @@ def _agent_config(
             condition.get("imagination_intervention_margin", 0.05)
         ),
         imagination_uncertainty_margin=float(
-            condition.get("imagination_uncertainty_margin", 0.20)
+            condition.get("imagination_uncertainty_margin", 0.40)
         ),
         validated_gain_weight=float(
             condition.get("validated_gain_weight", 0.2)
