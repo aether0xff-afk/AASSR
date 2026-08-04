@@ -6,8 +6,10 @@ on:
     paths:
       - "src/aassr_v2/hierarchical_code_world.py"
       - "src/aassr_v2/hierarchical_code_experiment_setup.py"
+      - "src/aassr_v2/hierarchical_code_proof_experiment.py"
       - "tests/test_hierarchical_code_world.py"
       - "tests/test_hierarchical_code_experiment_setup.py"
+      - "tests/test_hierarchical_code_proof_experiment.py"
       - ".github/workflows/hierarchical-code-goal-proof.yml"
   workflow_dispatch:
 
@@ -44,25 +46,21 @@ jobs:
           pytest -q \
             tests/test_hierarchical_code_world.py \
             tests/test_hierarchical_code_experiment_setup.py \
+            tests/test_hierarchical_code_proof_experiment.py \
             tests/test_state_distance_goal_executor.py
       - name: Run one matched condition
         shell: bash
         run: |
           python - <<'PY'
-          from aassr_v2.hierarchical_code_world import install_hierarchical_code_world
-          from aassr_v2.hierarchical_code_experiment_setup import install_hierarchical_code_agents
-          from aassr_v2.long_horizon_goal_experiment import run_long_horizon_goal_experiment
+          from aassr_v2.hierarchical_code_proof_experiment import run_hierarchical_code_proof
 
-          install_hierarchical_code_world()
-          install_hierarchical_code_agents()
-          run_long_horizon_goal_experiment(
+          run_hierarchical_code_proof(
               "runs/code_${{ matrix.seed }}_${{ matrix.condition }}",
               seeds=(${{ matrix.seed }},),
               conditions=("${{ matrix.condition }}",),
-              train_episodes=800,
-              train_map_count=32,
+              pretrain_episodes=5000,
+              pretrain_map_count=256,
               evaluation_episodes=100,
-              training_tail=200,
               stage_count=20,
               room_length=4,
           )
