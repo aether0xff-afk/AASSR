@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 from .autonomous_agent_core import AutonomousAgentConfig, AutonomousLearningAgent
 from .effect_prophecy import EffectComposedProphecy
+from .goal_gridpush_experiment import GoalProposal
+from .goals import Goal, GoalGenerator, GoalKind, GoalSet
 from .imagination_tree import ImaginationConfig, ImaginationTree, StateDeltaScorer
 from .long_horizon_goal_experiment import HierarchicalGoalAgent, WaypointGoalMaker
 from .state_distance_goal_executor import StateDistanceGoalExecutor
@@ -76,7 +78,7 @@ def _code_scorer() -> CheckpointScorer:
 
 
 class CheckpointWaypointGoalMaker(WaypointGoalMaker):
-    """Keep the waypoint before a state-resetting checkpoint transition."""
+    """Choose a valuable imagined path and hand off a pre-reset waypoint."""
 
     def _waypoint_for(self, selected_id, plan):
         by_id = {node.node_id: node for node in plan.nodes}
@@ -100,6 +102,61 @@ class CheckpointWaypointGoalMaker(WaypointGoalMaker):
         else:
             target_depth = min(self.waypoint_depth, len(path))
         return path[target_depth - 1].state
+
+    def propose(self, state: StateSnapshot) -> GoalProposal | None:
+        plan = self.planner.plan(state)
+        candidates = [
+            node
+            for node in plan.nodes
+            if node.depth > 0
+            and "failed" not in node.state.facts
+            and node.cumulative_value > 0.0
+        ]
+        if not candidates:
+            return None
+        selected = max(
+            candidates,
+            key=lambda node: (
+                node.cumulative_value,
+                node.cumulative_confidence,
+                -node.depth,
+            ),
+        )
+        waypoint = self._waypoint_for(selected.node_id, plan)
+        goals = GoalSet()
+        goals.add(
+            Goal(
+                "final:success",
+                GoalKind.GOAL_PROGRESS,
+                1.0,
+                priority=5.0,
+                source="external",
+                final=True,
+            )
+        )
+        goals.add(
+            Goal(
+                "maker:waypoint",
+                GoalKind.VECTOR_TARGET,
+                waypoint.vector,
+                priority=4.0,
+                threshold=0.999,
+                source="imagined_path",
+            )
+        )
+        for goal in GoalGenerator.from_desired_state(
+            state,
+            waypoint,
+            parent_goal_id="final:success",
+            prefix="maker",
+        ):
+            goals.add(goal)
+        return GoalProposal(
+            goals,
+            waypoint,
+            plan,
+            selected.cumulative_value,
+        )
 
 
 def make_code_direct_agent(
@@ -162,6 +219,7 @@ class HierarchicalCodeGoalAgent(HierarchicalGoalAgent):
             search_depth=4,
             waypoint_depth=2,
         )
+        self.maker.planner.scorer = _code_scorer()
         self.state_executor = StateDistanceGoalExecutor(
             self.base.prophecy,
             samples=2,
