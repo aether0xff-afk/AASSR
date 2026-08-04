@@ -1,0 +1,63 @@
+name: long-horizon-goal-proof
+
+on:
+  pull_request:
+    branches: [aassr-v2]
+    paths:
+      - ".github/workflows/long-horizon-goal-proof.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  proof:
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        seed: [7, 13, 21, 42, 100]
+        condition:
+          - policy_only
+          - short_imagination
+          - deep_imagination
+          - goal_maker_executor
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e ".[dev]"
+      - name: Run one matched condition
+        shell: bash
+        run: |
+          python - <<'PY'
+          from aassr_v2.compositional_long_horizon_world import install_compositional_long_horizon_world
+          from aassr_v2.long_horizon_goal_experiment import run_long_horizon_goal_experiment
+
+          install_compositional_long_horizon_world()
+          run_long_horizon_goal_experiment(
+              "runs/proof_${{ matrix.seed }}_${{ matrix.condition }}",
+              seeds=(${{ matrix.seed }},),
+              conditions=("${{ matrix.condition }}",),
+              train_episodes=800,
+              train_map_count=32,
+              evaluation_episodes=100,
+              training_tail=200,
+              stage_count=10,
+              room_length=6,
+          )
+          PY
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: proof-${{ matrix.seed }}-${{ matrix.condition }}-${{ github.sha }}
+          path: runs/proof_${{ matrix.seed }}_${{ matrix.condition }}
+          retention-days: 30
