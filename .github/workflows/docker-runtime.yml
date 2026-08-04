@@ -1,0 +1,32 @@
+name: docker-runtime-isolation
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "docker/paper_safe_application/**"
+      - "src/aassr_v2/safe_application.py"
+      - "tests/test_docker_safe_application.py"
+      - ".github/workflows/docker-runtime.yml"
+
+jobs:
+  docker-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e ".[dev]"
+      - name: Show Docker diagnostics
+        run: |
+          docker version
+          docker compose version
+          docker info
+      - name: Run isolated Docker runtime test
+        run: pytest -q -m docker tests/test_docker_safe_application.py -vv
