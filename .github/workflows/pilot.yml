@@ -66,10 +66,10 @@ jobs:
           python scripts/run_goal_gridpush_experiment.py \
             --output runs/goal_gridpush \
             --seeds 7,13,21,42,100 \
-            --train-episodes 300 \
-            --train-maps 24 \
-            --eval-episodes 80 \
-            --training-tail 80
+            --train-episodes 120 \
+            --train-maps 16 \
+            --eval-episodes 40 \
+            --training-tail 40
       - name: Run matched effect and Imagination intervention diagnostic
         if: github.head_ref == 'codex/aassr-v2-imagination-counterfactual-audit'
         run: |
