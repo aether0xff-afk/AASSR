@@ -885,6 +885,9 @@ def run_autonomous_experiment(
         "no_oracle_pretraining": True,
         "opaque_action_names": True,
         "terminal_reward_only": True,
+        "privileged_oracle_analysis_only": True,
+        "oracle_labels_agent_visible": False,
+        "oracle_labels_used_for_learning": False,
         "train_test_world_separation": any(
             mode in {"unseen", "evaluation_unseen_zero_shot"}
             for mode in modes
