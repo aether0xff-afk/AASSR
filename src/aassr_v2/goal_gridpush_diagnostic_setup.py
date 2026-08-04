@@ -1,11 +1,16 @@
 from __future__ import annotations
 
-from .autonomous_agent_core import AutonomousAgentConfig, AutonomousLearningAgent
+from .autonomous_agent_core import (
+    ActionDecision,
+    AutonomousAgentConfig,
+    AutonomousLearningAgent,
+)
 from .collapsing_gridpush_world import CollapsingGridPushWorld
 from .goal_gridpush_experiment import GoalExecutor, ImaginedGoalMaker
 from .imagination_tree import StateDeltaScorer
 from .persistent_goal_agent import PersistentGoalSeparatedAgent
 from .tabular_prophecy import TabularProphecy
+from .types import StateSnapshot
 
 
 class DiagnosticPersistentGoalAgent(PersistentGoalSeparatedAgent):
@@ -13,6 +18,7 @@ class DiagnosticPersistentGoalAgent(PersistentGoalSeparatedAgent):
 
     def __init__(self, seed: int) -> None:
         super().__init__(seed, maximum_goal_age=6)
+        self._active_episode_token: tuple[int, int, bool] | None = None
         self.maker = ImaginedGoalMaker(
             self.base.policy,
             self.base.prophecy,
@@ -38,6 +44,28 @@ class DiagnosticPersistentGoalAgent(PersistentGoalSeparatedAgent):
             update_policy=False,
             expand_all_root_actions=True,
         )
+
+    def select_action(
+        self,
+        state: StateSnapshot,
+        *,
+        episode: int,
+        explore: bool,
+    ) -> ActionDecision:
+        token = (
+            int(episode),
+            int(state.metadata.get("map_seed", -1)),
+            bool(explore),
+        )
+        if token != self._active_episode_token:
+            self.active_goal = None
+            self.active_goal_age = 0
+            self._active_episode_token = token
+        return super().select_action(state, episode=episode, explore=explore)
+
+    def finish_episode(self, *, final_return: float) -> None:
+        super().finish_episode(final_return=final_return)
+        self._active_episode_token = None
 
 
 def _diagnostic_standard_agent(
