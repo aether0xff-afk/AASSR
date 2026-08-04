@@ -4,13 +4,16 @@ from aassr_v2.effect_prophecy import effect_context_key
 from aassr_v2.hierarchical_code_world import HierarchicalCodeWorld
 
 
-def _correct_action(world: HierarchicalCodeWorld):
-    expected = world.code[world.position]
+def _action_for_bit(world: HierarchicalCodeWorld, bit: int):
     return next(
         action
         for action in world.snapshot().available_actions
-        if action.parameters.get("bit") == expected
+        if action.parameters.get("bit") == bit
     )
+
+
+def _correct_action(world: HierarchicalCodeWorld):
+    return _action_for_bit(world, world.code[world.position])
 
 
 def test_only_last_of_twenty_checkpoints_emits_reward() -> None:
@@ -28,23 +31,24 @@ def test_only_last_of_twenty_checkpoints_emits_reward() -> None:
     assert world.snapshot().goal_progress == 1.0
 
 
-def test_wrong_bit_irreversibly_ends_episode() -> None:
+def test_wrong_choice_is_hidden_until_fourth_entry() -> None:
     world = HierarchicalCodeWorld(13, stage_count=20, room_length=4)
-    expected = world.code[world.position]
-    wrong = 1 - expected
-    action = next(
-        item
-        for item in world.snapshot().available_actions
-        if item.parameters.get("bit") == wrong
-    )
+    wrong = 1 - world.code[0]
 
-    outcome = world.step(action)
+    first = world.step(_action_for_bit(world, wrong))
 
-    assert outcome.error
+    assert not first.error
+    assert not world.failed
+    assert "failed" not in first.snapshot.facts
+    assert first.reward == 0.0
+
+    while world.position < world.room_length:
+        world.step(_correct_action(world))
+
     assert world.failed
     assert not world.success
-    assert outcome.reward == 0.0
-    assert not outcome.snapshot.available_actions
+    assert not world.snapshot().available_actions
+    assert "failed" in world.snapshot().facts
 
 
 def test_local_prophecy_context_is_reused_across_stage_identity() -> None:
