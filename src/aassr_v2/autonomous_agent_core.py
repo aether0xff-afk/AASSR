@@ -223,7 +223,10 @@ class AutonomousAgentConfig:
     imagination_depth: int = 8
     imagination_branching_factor: int = 2
     imagination_beam_width: int = 32
+    imagination_outcome_samples: int = 2
     imagination_minimum_coverage: float = 0.35
+    imagination_intervention_margin: float = 0.05
+    imagination_uncertainty_margin: float = 0.40
     validated_gain_weight: float = 0.2
     repeat_penalty: float = 0.05
     error_penalty: float = 0.2
@@ -232,7 +235,7 @@ class AutonomousAgentConfig:
     holdout_evaluation_limit: int = 32
     validation_interval: int = 8
     imagination_interval: int = 1
-    imagination_aggregation: str = "max"
+    imagination_aggregation: str = "risk-adjusted"
     effect_novelty_weight: float = 0.0
     extrinsic_reward_weight: float = 1.0
     use_effect_composition: bool = True
@@ -247,6 +250,8 @@ class AutonomousAgentConfig:
             raise ValueError("epsilon_decay_episodes must be positive")
         if self.imagination_depth <= 0:
             raise ValueError("imagination_depth must be positive")
+        if self.imagination_outcome_samples <= 0:
+            raise ValueError("imagination_outcome_samples must be positive")
         if self.holdout_evaluation_limit <= 0:
             raise ValueError("holdout_evaluation_limit must be positive")
         if self.validation_interval <= 0 or self.imagination_interval <= 0:
@@ -254,6 +259,14 @@ class AutonomousAgentConfig:
         if not 0.0 <= self.imagination_minimum_coverage <= 1.0:
             raise ValueError(
                 "imagination_minimum_coverage must be in [0, 1]"
+            )
+        if self.imagination_intervention_margin < 0.0:
+            raise ValueError(
+                "imagination_intervention_margin must be non-negative"
+            )
+        if self.imagination_uncertainty_margin < 0.0:
+            raise ValueError(
+                "imagination_uncertainty_margin must be non-negative"
             )
         if self.imagination_aggregation not in {
             "max",
@@ -284,6 +297,13 @@ class ActionDecision:
     imagination_gate_reason: str = "disabled"
     imagination_changed_action: bool = False
     model_coverage: float = 0.0
+    imagination_preferred_action_signature: str = ""
+    imagination_policy_value: float = 0.0
+    imagination_preferred_value: float = 0.0
+    imagination_advantage: float = 0.0
+    imagination_required_advantage: float = 0.0
+    imagination_switch_candidate: bool = False
+    imagination_intervention_allowed: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -356,7 +376,7 @@ class AutonomousLearningAgent:
                 branching_factor=self.config.imagination_branching_factor,
                 maximum_depth=self.config.imagination_depth,
                 beam_width=self.config.imagination_beam_width,
-                outcome_samples=1,
+                outcome_samples=self.config.imagination_outcome_samples,
                 minimum_path_confidence=0.1,
                 uncertainty_penalty=0.2,
                 aggregation=(
@@ -412,6 +432,15 @@ class AutonomousLearningAgent:
             self._imagination_diagnostics["eligible"] += 1
         if decision.used_imagination:
             self._imagination_diagnostics["runs"] += 1
+        if decision.imagination_switch_candidate:
+            self._imagination_diagnostics["switch_candidates"] += 1
+        if decision.imagination_intervention_allowed:
+            self._imagination_diagnostics["interventions"] += 1
+        if (
+            decision.imagination_switch_candidate
+            and not decision.imagination_intervention_allowed
+        ):
+            self._imagination_diagnostics["suppressed_switches"] += 1
         if decision.imagination_changed_action:
             self._imagination_diagnostics["changed_actions"] += 1
         self._imagination_diagnostics[
@@ -426,6 +455,12 @@ class AutonomousLearningAgent:
         return {
             **dict(self._imagination_diagnostics),
             "change_rate_per_run": changed / runs if runs else 0.0,
+            "intervention_rate_per_candidate": (
+                self._imagination_diagnostics["interventions"]
+                / self._imagination_diagnostics["switch_candidates"]
+                if self._imagination_diagnostics["switch_candidates"]
+                else 0.0
+            ),
             "eligibility_rate": (
                 self._imagination_diagnostics["eligible"] / opportunities
                 if opportunities
@@ -523,29 +558,84 @@ class AutonomousLearningAgent:
                 for item in plan.root_evaluations
                 if abs(item.aggregate_value - best_imagined) <= 1e-12
             ]
-            selected = min(
+            preferred = min(
                 candidates,
                 key=lambda item: (
                     -self.policy.value(state, item.action),
                     item.action.signature,
                 ),
             )
+            policy_evaluation = next(
+                (
+                    item
+                    for item in plan.root_evaluations
+                    if item.action.signature == policy_action.signature
+                ),
+                None,
+            )
+            switch_candidate = (
+                preferred.action.signature != policy_action.signature
+            )
+            policy_value = (
+                policy_evaluation.aggregate_value
+                if policy_evaluation is not None
+                else preferred.aggregate_value
+            )
+            advantage = (
+                preferred.aggregate_value - policy_value
+                if policy_evaluation is not None
+                else 0.0
+            )
+            required_advantage = (
+                self.config.imagination_intervention_margin
+                + self.config.imagination_uncertainty_margin
+                * (1.0 - coverage)
+            )
+            intervention_allowed = (
+                switch_candidate
+                and policy_evaluation is not None
+                and advantage >= required_advantage
+            )
+            if not switch_candidate:
+                intervention_reason = "policy_agreement"
+            elif policy_evaluation is None:
+                intervention_reason = "policy_not_evaluated"
+            elif intervention_allowed:
+                intervention_reason = "intervention"
+            else:
+                intervention_reason = "insufficient_advantage"
+            executed_action = (
+                preferred.action if intervention_allowed else policy_action
+            )
+            executed_value = (
+                preferred.aggregate_value
+                if intervention_allowed
+                else policy_value
+            )
             return self._record_decision(
                 ActionDecision(
-                    selected.action,
+                    executed_action,
                     True,
                     imagined_nodes=len(plan.nodes),
                     imagination_depth=plan.maximum_depth_reached,
-                    root_imagined_value=selected.aggregate_value,
+                    root_imagined_value=executed_value,
                     policy_action_signature=policy_action.signature,
                     imagination_opportunity=True,
                     imagination_eligible=True,
-                    imagination_gate_reason="eligible",
-                    imagination_changed_action=(
-                        selected.action.signature
-                        != policy_action.signature
-                    ),
+                    imagination_gate_reason=intervention_reason,
+                    imagination_changed_action=intervention_allowed,
                     model_coverage=coverage,
+                    imagination_preferred_action_signature=(
+                        preferred.action.signature
+                    ),
+                    imagination_policy_value=policy_value,
+                    imagination_preferred_value=(
+                        preferred.aggregate_value
+                    ),
+                    imagination_advantage=advantage,
+                    imagination_required_advantage=required_advantage,
+                    imagination_switch_candidate=switch_candidate,
+                    imagination_intervention_allowed=intervention_allowed,
                 )
             )
 

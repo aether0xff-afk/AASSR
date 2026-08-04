@@ -186,8 +186,17 @@ def _agent_config(
         imagination_beam_width=int(
             condition.get("imagination_beam_width", 32)
         ),
+        imagination_outcome_samples=int(
+            condition.get("imagination_outcome_samples", 2)
+        ),
         imagination_minimum_coverage=float(
             condition.get("imagination_minimum_coverage", 0.35)
+        ),
+        imagination_intervention_margin=float(
+            condition.get("imagination_intervention_margin", 0.05)
+        ),
+        imagination_uncertainty_margin=float(
+            condition.get("imagination_uncertainty_margin", 0.40)
         ),
         validated_gain_weight=float(
             condition.get("validated_gain_weight", 0.2)
@@ -208,7 +217,7 @@ def _agent_config(
             condition.get("imagination_interval", 1)
         ),
         imagination_aggregation=str(
-            condition.get("imagination_aggregation", "max")
+            condition.get("imagination_aggregation", "risk-adjusted")
         ),
         effect_novelty_weight=float(
             condition.get("effect_novelty_weight", 0.0)
@@ -324,7 +333,17 @@ def _run_episode(
     imagination_runs = 0
     imagination_changed_actions = 0
     imagination_coverages: list[float] = []
+    imagination_advantages: list[float] = []
+    imagination_required_advantages: list[float] = []
     imagination_gate_reasons: Counter[str] = Counter()
+    imagination_switch_candidates = 0
+    imagination_interventions = 0
+    imagination_suppressed_switches = 0
+    policy_oracle_agreements = 0
+    executed_oracle_agreements = 0
+    imagination_corrections = 0
+    imagination_harms = 0
+    imagination_neutral_changes = 0
     errors = 0
     repeats = 0
     steps = 0
@@ -358,6 +377,53 @@ def _run_episode(
             getattr(decision, "imagination_gate_reason", "not_supported")
         )
         coverage = float(getattr(decision, "model_coverage", 0.0))
+        switch_candidate = bool(
+            getattr(decision, "imagination_switch_candidate", False)
+        )
+        intervention_allowed = bool(
+            getattr(decision, "imagination_intervention_allowed", False)
+        )
+        advantage = float(
+            getattr(decision, "imagination_advantage", 0.0)
+        )
+        required_advantage = float(
+            getattr(decision, "imagination_required_advantage", 0.0)
+        )
+        imagination_switch_candidates += int(switch_candidate)
+        imagination_interventions += int(intervention_allowed)
+        imagination_suppressed_switches += int(
+            switch_candidate and not intervention_allowed
+        )
+        if decision.used_imagination:
+            imagination_advantages.append(advantage)
+            imagination_required_advantages.append(required_advantage)
+        policy_action_signature = str(
+            getattr(
+                decision,
+                "policy_action_signature",
+                decision.action.signature,
+            )
+        )
+        oracle_action_signature = environment.oracle_action().signature
+        policy_oracle_agreement = (
+            policy_action_signature == oracle_action_signature
+        )
+        executed_oracle_agreement = (
+            decision.action.signature == oracle_action_signature
+        )
+        imagination_oracle_delta = (
+            int(executed_oracle_agreement)
+            - int(policy_oracle_agreement)
+        )
+        policy_oracle_agreements += int(policy_oracle_agreement)
+        executed_oracle_agreements += int(executed_oracle_agreement)
+        if changed_action:
+            if imagination_oracle_delta > 0:
+                imagination_corrections += 1
+            elif imagination_oracle_delta < 0:
+                imagination_harms += 1
+            else:
+                imagination_neutral_changes += 1
         imagination_opportunities += int(opportunity)
         imagination_eligible += int(eligible)
         imagination_runs += int(decision.used_imagination)
@@ -400,16 +466,33 @@ def _run_episode(
                 "error": outcome.error,
                 "learning_enabled": learn,
                 "imagined_nodes": decision.imagined_nodes,
-                "policy_action_signature": getattr(
-                    decision,
-                    "policy_action_signature",
-                    decision.action.signature,
-                ),
+                "policy_action_signature": policy_action_signature,
                 "imagination_opportunity": opportunity,
                 "imagination_eligible": eligible,
                 "imagination_gate_reason": gate_reason,
                 "imagination_changed_action": changed_action,
                 "model_coverage": coverage,
+                "imagination_preferred_action_signature": getattr(
+                    decision,
+                    "imagination_preferred_action_signature",
+                    decision.action.signature,
+                ),
+                "imagination_policy_value": float(
+                    getattr(decision, "imagination_policy_value", 0.0)
+                ),
+                "imagination_preferred_value": float(
+                    getattr(decision, "imagination_preferred_value", 0.0)
+                ),
+                "imagination_advantage": advantage,
+                "imagination_required_advantage": required_advantage,
+                "imagination_switch_candidate": switch_candidate,
+                "imagination_intervention_allowed": intervention_allowed,
+                "privileged_analysis": {
+                    "oracle_action_signature": oracle_action_signature,
+                    "policy_oracle_agreement": policy_oracle_agreement,
+                    "executed_oracle_agreement": executed_oracle_agreement,
+                    "imagination_oracle_delta": imagination_oracle_delta,
+                },
             }
         )
         final_return = outcome.reward
@@ -485,6 +568,53 @@ def _run_episode(
         "imagination_gate_reasons": json.dumps(
             dict(sorted(imagination_gate_reasons.items())),
             sort_keys=True,
+        ),
+        "imagination_switch_candidates": imagination_switch_candidates,
+        "imagination_interventions": imagination_interventions,
+        "imagination_suppressed_switches": (
+            imagination_suppressed_switches
+        ),
+        "imagination_intervention_rate": (
+            imagination_interventions / imagination_switch_candidates
+            if imagination_switch_candidates
+            else 0.0
+        ),
+        "imagination_advantage_mean": (
+            fmean(imagination_advantages)
+            if imagination_advantages
+            else 0.0
+        ),
+        "imagination_required_advantage_mean": (
+            fmean(imagination_required_advantages)
+            if imagination_required_advantages
+            else 0.0
+        ),
+        "policy_oracle_agreements": policy_oracle_agreements,
+        "executed_oracle_agreements": executed_oracle_agreements,
+        "policy_oracle_agreement_rate": (
+            policy_oracle_agreements / steps if steps else 0.0
+        ),
+        "executed_oracle_agreement_rate": (
+            executed_oracle_agreements / steps if steps else 0.0
+        ),
+        "imagination_corrections": imagination_corrections,
+        "imagination_harms": imagination_harms,
+        "imagination_neutral_changes": imagination_neutral_changes,
+        "imagination_net_corrections": (
+            imagination_corrections - imagination_harms
+        ),
+        "imagination_oracle_gain": (
+            executed_oracle_agreements - policy_oracle_agreements
+        ),
+        "imagination_correction_rate": (
+            imagination_corrections / imagination_changed_actions
+            if imagination_changed_actions
+            else 0.0
+        ),
+        "imagination_harm_rate": (
+            imagination_harms / imagination_changed_actions
+            if imagination_changed_actions
+            else 0.0
         ),
         "imagination_depth": imagination_depth,
         "root_imagined_value": fmean(root_values) if root_values else "",
@@ -824,6 +954,9 @@ def run_autonomous_experiment(
         "no_oracle_pretraining": True,
         "opaque_action_names": True,
         "terminal_reward_only": True,
+        "privileged_oracle_analysis_only": True,
+        "oracle_labels_agent_visible": False,
+        "oracle_labels_used_for_learning": False,
         "train_test_world_separation": any(
             mode in {"unseen", "evaluation_unseen_zero_shot"}
             for mode in modes

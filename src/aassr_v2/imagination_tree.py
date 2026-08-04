@@ -64,6 +64,7 @@ class ImaginationConfig:
     aggregation: Aggregation = "max"
     top_mean_count: int = 2
     update_policy: bool = True
+    expand_all_root_actions: bool = True
 
     def __post_init__(self) -> None:
         positive = (
@@ -228,9 +229,12 @@ class ImaginationTree:
         for depth in range(1, depth_limit + 1):
             children: list[ImaginationNode] = []
             for node in frontier:
+                rank_limit = self.config.branching_factor
+                if depth == 1 and self.config.expand_all_root_actions:
+                    rank_limit = len(node.state.available_actions)
                 ranked = self.policy.rank(
                     node.state,
-                    limit=self.config.branching_factor,
+                    limit=rank_limit,
                     memory=node.policy_memory,
                 )
                 if not ranked:

@@ -12,6 +12,8 @@ AASSR v2는 기존 구현을 복사하지 않고 처음부터 다시 설계한 �
 
 목표는 에이전트에게 사물별 정답 규칙이나 행동 순서를 직접 가르치는 것이 아니다. 플러그인은 명령 문법과 기본 조작만 제공하고, 어떤 정보와 행동 조합이 목표에 유용한지는 실제 경험·Prophecy·Imagination을 통해 학습한다.
 
+현재 연구와 우위 검증의 범위는 **Policy·Prophecy·Imagination**까지다. GOAL 생성·수행 분리와 자율 Skill은 핵심 구조의 우위가 먼저 확정된 뒤 추가할 후속 확장 기능으로 분리한다.
+
 ## Escape GridWorld 연구 GUI
 
 현재 가장 쉽게 AASSR의 학습 과정을 관찰할 수 있는 실행 환경은 색 열쇠·색 문 Escape GridWorld다.
@@ -148,11 +150,10 @@ python scripts/run_escape_gridworld.py \
 관측
 → 원본 경험과 Knowledge Store 기록
 → 정보 특징 생성 및 온라인 비지도 군집화
-→ GOAL 상태 차이 계산
-→ Policy 상위 행동과 학습된 Skill 후보 생성
+→ Policy 상위 행동 후보 생성
 → Prophecy 기반 평행우주 나무 생성
 → 가장 높은 가치의 미래로 이어지는 첫 행동 선택
-→ 현실에서 첫 행동 또는 Skill의 원시 행동 실행
+→ 현실에서 선택된 첫 행동 실행
 → 실제 다음 상태로 Prophecy 학습
 → 검증 전이에서 예측 개선 측정
 → 정보 가치와 지연 기여를 Policy에 반영
@@ -182,16 +183,19 @@ python scripts/run_escape_gridworld.py \
 - 대규모 관측에서만 임베딩을 쓰는 선택적 라우터
 - 경험 특징·임베딩·혼합 표현 기능 제거 설정
 
-### GOAL과 자율 Skill
+### 후속 확장 기능: GOAL과 자율 Skill
 
-GOAL은 행동 명령이 아니라 현재 상태와 원하는 상태의 차이다.
+GOAL과 자율 Skill은 현재 AASSR v2의 필수 코어와 우위 주장에 포함하지 않는다. 관련 구현과 진단 코드는 연구 중인 후보로만 유지하며, Policy·Prophecy·Imagination의 성능과 일반성이 먼저 독립적으로 검증된 뒤 정식 기능으로 추가한다.
 
-- 사실 보유·부재, 행동 가능성, 최종 진행도, 지식 필요, 벡터 목표
-- 막힌 행동이나 원하는 상태로부터 내부 GOAL 생성
-- GOAL 진전을 직접 평가하는 Imagination scorer
-- 같은 GOAL을 반복해서 해결한 ASeq만 Skill 후보로 승격
-- Skill을 하나의 행동처럼 Policy와 Imagination 후보에 포함
-- Skill 실패 시 신뢰도 하락 및 원시 행동 수준으로 복귀
+후속 설계 방향은 다음과 같다.
+
+- GOAL Maker는 Imagination으로 도달할 중간 상태를 생성
+- GOAL Executor는 전달받은 상태에 가까워지는 행동을 수행
+- Maker와 Executor를 분리해 GOAL 생성과 실행을 독립적으로 평가
+- 같은 GOAL을 반복해서 해결한 ASeq를 이후 Skill 후보로 확장
+- GOAL 남발, 잘못된 GOAL 고착, 계산량 증가를 별도 실험으로 검증
+
+현재 README의 핵심 폐루프와 본 실험 결과를 해석할 때 GOAL·Skill 성능을 AASSR의 입증된 장점으로 사용하지 않는다.
 
 ### 순환형 Prophecy와 평행우주 Imagination
 
@@ -246,9 +250,11 @@ Minecraft와 모의 침투 테스트 항목은 **코어 호환성과 안전한 �
 - 분기 수 `1/2/3`
 - 깊이 `1/2/3` 및 적응형 깊이
 - 우주 집계 `max/mean/risk_adjusted`
-- GOAL, Skill, 정보 가치 제거
+- 정보 가치 제거
 - 특징 없음, 특징만, 군집, 2단계 선택, 온라인 재군집, 행동-슬롯 문맥
 - 경험 특징, 임베딩 특징, 혼합 특징
+
+GOAL·Skill 관련 제거 설정은 후속 확장 진단용으로만 남기며, 현재 본 실험의 우위 판정에서는 제외한다.
 
 ## 시범 없는 자율 본 실험
 
@@ -352,7 +358,7 @@ runs/<experiment>/
 - `configs/prophecy.json`
 - `configs/imagination.json`
 - `configs/dependency.json`
-- `configs/goals_skills.json`
+- `configs/goals_skills.json` — 후속 GOAL·Skill 확장 진단용
 - `configs/information_value.json`
 
 자세한 기존 명령은 [`docs/experiments.md`](docs/experiments.md)를 참고한다.

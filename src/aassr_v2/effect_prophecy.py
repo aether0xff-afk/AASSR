@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import sqrt
 from typing import Any, Iterable, Mapping
 
+from .empirical_confidence import empirical_confidence
 from .prophecy import ProphecyStep
 from .types import Action, Prediction, StateSnapshot
 
@@ -381,9 +383,14 @@ class EffectComposedProphecy:
             bucket.values(),
             key=lambda entry: (-entry.count, repr(entry.effect.fingerprint)),
         )[:samples]
-        observation_count = sum(entry.count for entry in bucket.values())
-        experience = observation_count / (observation_count + 1.0)
-        effect_mass = min(0.95, max(0.0, tier * experience))
+        effect_mass = min(
+            0.95,
+            empirical_confidence(
+                (entry.count for entry in bucket.values()),
+                prior_strength=1.0,
+                tier=tier,
+            ),
+        )
         base_mass = 1.0 - effect_mass
         scaffold = max(
             base_step.predictions,
@@ -456,8 +463,11 @@ class EffectComposedProphecy:
         bucket, tier, _, _ = self._select_bucket(state, action)
         if not bucket:
             return 0.0
-        observations = sum(entry.count for entry in bucket.values())
-        return min(1.0, tier * observations / (observations + 1.0))
+        return empirical_confidence(
+            (entry.count for entry in bucket.values()),
+            prior_strength=1.0,
+            tier=tier,
+        )
 
     def confidence(self, state: StateSnapshot, action: Action) -> float:
         base_confidence = 0.0
@@ -474,7 +484,15 @@ class EffectComposedProphecy:
                 elif source.endswith(":action-family"):
                     value *= 0.5
                 base_confidence = max(base_confidence, value)
-        return max(base_confidence, self._effect_confidence(state, action))
+        bucket, _, _, _ = self._select_bucket(state, action)
+        if not bucket:
+            return base_confidence
+        effect_confidence = self._effect_confidence(state, action)
+        if base_confidence <= 0.0:
+            return effect_confidence
+        if effect_confidence <= 0.0:
+            return 0.0
+        return sqrt(base_confidence * effect_confidence)
 
     def coverage(
         self,
