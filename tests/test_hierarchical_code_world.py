@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from aassr_v2.effect_prophecy import effect_context_key
-from aassr_v2.hierarchical_code_world import HierarchicalCodeWorld
+from aassr_v2.hierarchical_code_world import (
+    HierarchicalCodeWorld,
+    next_code,
+)
 
 
 def _action_for_bit(world: HierarchicalCodeWorld, bit: int):
@@ -51,20 +54,31 @@ def test_wrong_choice_is_hidden_until_fourth_entry() -> None:
     assert "failed" in world.snapshot().facts
 
 
-def test_local_prophecy_context_is_reused_across_stage_identity() -> None:
-    world = HierarchicalCodeWorld(21, stage_count=2, room_length=4)
-    repeated_code = (1, 0, 1, 1)
-    world.codes = (repeated_code, repeated_code)
-
-    stage_zero = world.snapshot()
-    context_zero = effect_context_key(stage_zero)
-    assert "stage:0" in stage_zero.facts
+def test_checkpoint_uses_one_reusable_code_transition_rule() -> None:
+    world = HierarchicalCodeWorld(21, stage_count=20, room_length=4)
+    before_code = world.code
 
     for _ in range(world.room_length):
         world.step(_correct_action(world))
 
-    stage_one = world.snapshot()
-    assert "stage:1" in stage_one.facts
-    assert "stage:0" not in stage_one.facts
-    assert effect_context_key(stage_one) == context_zero
-    assert "checkpoint_transition" in stage_one.facts
+    assert world.code == next_code(before_code)
+    assert world.snapshot().metadata["stage"] == 1
+    assert "checkpoint_transition" in world.snapshot().facts
+    assert not any(fact.startswith("stage:") for fact in world.snapshot().facts)
+
+
+def test_same_local_state_has_same_prophecy_context_at_different_stages() -> None:
+    world = HierarchicalCodeWorld(42, stage_count=20, room_length=4)
+    first = world.snapshot()
+    first_context = effect_context_key(first)
+
+    # The binary-increment rule cycles after all sixteen four-bit codes.
+    world.stage = 16
+    world.entered.clear()
+    world.just_opened_checkpoint = False
+    repeated = world.snapshot()
+
+    assert repeated.metadata["stage"] == 16
+    assert repeated.vector == first.vector
+    assert repeated.facts == first.facts
+    assert effect_context_key(repeated) == first_context
