@@ -67,7 +67,7 @@ def _diagnostic_standard_agent(
             imagination_minimum_coverage=0.0,
             imagination_intervention_margin=0.02,
             imagination_uncertainty_margin=0.25,
-            imagination_aggregation="risk_adjusted",
+            imagination_aggregation="risk-adjusted",
             epsilon_start=0.9,
             epsilon_end=0.05,
             epsilon_decay_episodes=250,
