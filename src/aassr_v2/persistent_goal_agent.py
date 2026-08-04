@@ -118,6 +118,7 @@ class PersistentGoalSeparatedAgent(GoalSeparatedAgent):
         if policy_evaluation is None:
             return policy_decision
 
+        self.active_goal_age += 1
         advantage = preferred.aggregate_value - policy_evaluation.aggregate_value
         changed = (
             preferred.action.signature != policy_decision.action.signature
@@ -166,7 +167,6 @@ class PersistentGoalSeparatedAgent(GoalSeparatedAgent):
     ) -> object:
         metrics = self.base.observe(before, action, outcome)
         if self.active_goal is not None:
-            self.active_goal_age += 1
             if self._target_reached(self.active_goal, outcome.snapshot):
                 self._clear_goal(completed=True)
             elif not outcome.snapshot.available_actions:
