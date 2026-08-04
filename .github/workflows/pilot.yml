@@ -69,6 +69,16 @@ jobs:
             --overwrite \
             --workers 4 \
             --device cpu
+      - name: Run matched GridPush GOAL Maker and Executor diagnostic
+        if: github.head_ref == 'codex/aassr-v2-imagination-counterfactual-audit'
+        run: |
+          python scripts/run_goal_gridpush_experiment.py \
+            --output runs/goal_gridpush \
+            --seeds 7,13,21,42,100 \
+            --train-episodes 300 \
+            --train-maps 24 \
+            --eval-episodes 80 \
+            --training-tail 80
       - name: Upload experiment outputs
         uses: actions/upload-artifact@v4
         with:
@@ -77,5 +87,6 @@ jobs:
             runs/autonomous_smoke
             runs/final_pilot
             runs/effect_imagination_diagnostic
+            runs/goal_gridpush
           if-no-files-found: warn
           retention-days: 30
