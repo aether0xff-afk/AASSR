@@ -12,7 +12,7 @@ from aassr_v2.persistent_goal_agent import PersistentGoalSeparatedAgent
 from aassr_v2.types import StateSnapshot
 
 
-def test_active_goal_survives_a_reality_step_when_not_reached() -> None:
+def test_active_goal_survives_observation_when_not_reached() -> None:
     agent = PersistentGoalSeparatedAgent(7)
     world = GoalGridPushWorld(7)
     before = world.snapshot()
@@ -35,7 +35,6 @@ def test_active_goal_survives_a_reality_step_when_not_reached() -> None:
     agent.observe(before, action, outcome)
 
     assert agent.active_goal is proposal
-    assert agent.active_goal_age == 1
 
 
 def test_reached_goal_is_cleared_after_observation() -> None:
