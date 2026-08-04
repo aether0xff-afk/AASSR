@@ -3,6 +3,9 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from aassr_v2.compositional_long_horizon_world import (
+    install_compositional_long_horizon_world,
+)
 from aassr_v2.long_horizon_goal_experiment import run_long_horizon_goal_experiment
 
 
@@ -27,6 +30,7 @@ def main() -> None:
     parser.add_argument("--room-length", type=int, default=6)
     args = parser.parse_args()
 
+    install_compositional_long_horizon_world()
     payload = run_long_horizon_goal_experiment(
         args.output,
         seeds=args.seeds,
