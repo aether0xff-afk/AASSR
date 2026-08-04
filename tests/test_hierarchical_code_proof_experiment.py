@@ -36,10 +36,15 @@ def test_policy_and_goal_receive_same_random_transition_stream() -> None:
 
 
 def test_random_pretraining_does_not_update_policy_values() -> None:
-    policy = make_code_direct_agent("policy_only", 13)
+    agent = make_code_direct_agent("policy_only", 13)
+    before = (
+        dict(agent.policy._local),
+        dict(agent.policy._global),
+        dict(agent.policy._state_visits),
+    )
 
     pretrain_prophecy_from_random_actions(
-        policy,
+        agent,
         seed=13,
         episodes=40,
         map_count=16,
@@ -47,4 +52,9 @@ def test_random_pretraining_does_not_update_policy_values() -> None:
         room_length=4,
     )
 
-    assert policy.policy.diagnostics()["updates"] == 0
+    after = (
+        dict(agent.policy._local),
+        dict(agent.policy._global),
+        dict(agent.policy._state_visits),
+    )
+    assert after == before == ({}, {}, {})
