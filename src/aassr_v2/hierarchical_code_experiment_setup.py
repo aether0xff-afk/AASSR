@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from .autonomous_agent_core import AutonomousAgentConfig, AutonomousLearningAgent
 from .effect_prophecy import EffectComposedProphecy
 from .imagination_tree import ImaginationConfig, ImaginationTree, StateDeltaScorer
 from .long_horizon_goal_experiment import HierarchicalGoalAgent, WaypointGoalMaker
 from .state_distance_goal_executor import StateDistanceGoalExecutor
 from .tabular_prophecy import TabularProphecy
+from .types import Action, StateSnapshot
 
 
 def _code_prophecy() -> EffectComposedProphecy:
@@ -41,13 +44,32 @@ def _code_config(*, use_imagination: bool, depth: int) -> AutonomousAgentConfig:
     )
 
 
-def _code_scorer() -> StateDeltaScorer:
-    return StateDeltaScorer(
+@dataclass(frozen=True, slots=True)
+class CheckpointScorer:
+    """Reward observed progress facts while strongly rejecting failed states."""
+
+    base: StateDeltaScorer = StateDeltaScorer(
         goal_progress_weight=100.0,
         new_fact_weight=8.0,
         unlocked_action_weight=2.0,
         step_cost=0.01,
     )
+    failure_cost: float = 100.0
+
+    def score(
+        self,
+        before: StateSnapshot,
+        action: Action,
+        after: StateSnapshot,
+    ) -> float:
+        value = self.base.score(before, action, after)
+        if "failed" in after.facts and "failed" not in before.facts:
+            value -= self.failure_cost
+        return value
+
+
+def _code_scorer() -> CheckpointScorer:
+    return CheckpointScorer()
 
 
 def make_code_direct_agent(
