@@ -1,0 +1,40 @@
+name: apply-bounded-logging-patch
+
+on:
+  push:
+    branches: [codex/aassr-v2-durable-bounded-logging]
+    paths:
+      - "scripts/_apply_bounded_logging_patch.py"
+      - ".github/workflows/_apply-bounded-logging-patch.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/aassr-v2-durable-bounded-logging
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Apply verified patch
+        run: python scripts/_apply_bounded_logging_patch.py
+      - name: Compile patched modules
+        run: python -m compileall -q src/aassr_v2/escape_training.py src/aassr_v2/escape_reporting.py scripts/run_escape_gridworld.py tests/test_escape_gridworld.py
+      - name: Remove one-time patch machinery
+        run: |
+          git rm scripts/_apply_bounded_logging_patch.py
+          git rm .github/workflows/_apply-bounded-logging-patch.yml
+      - name: Commit patched sources
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/aassr_v2/escape_training.py src/aassr_v2/escape_reporting.py scripts/run_escape_gridworld.py tests/test_escape_gridworld.py
+          git commit -m "Bound escape traces and checkpoint retention"
+          git push origin HEAD:codex/aassr-v2-durable-bounded-logging
