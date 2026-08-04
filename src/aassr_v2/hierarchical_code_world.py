@@ -9,14 +9,15 @@ from .types import Action, StateSnapshot
 class HierarchicalCodeWorld:
     """Twenty reusable four-choice checkpoints with one final reward.
 
-    Every stage exposes a four-bit code. At every reality step the agent must
-    choose bit 0 or bit 1. A wrong choice irreversibly ends the episode. Four
-    correct choices open the next checkpoint. Only the twentieth checkpoint
-    emits external reward.
+    Every stage exposes a four-bit code. At every reality step the agent enters
+    bit 0 or bit 1, but the world does not reveal whether that choice was right
+    until all four bits have been entered. A wrong four-bit sequence then ends
+    the episode; a correct sequence opens the next checkpoint. Only the
+    twentieth checkpoint emits external reward.
 
-    Stage identity is kept in facts for Policy and logs, while the numerical
-    state contains only the reusable local code and current position. Prophecy
-    can therefore reuse a learned local transition in a new stage order.
+    Stage identity is kept in facts for Policy and logs. The numerical state
+    contains the reusable local code, current position and entered prefix, so
+    Prophecy can reuse a learned local transition in a new stage order.
     """
 
     def __init__(
@@ -39,11 +40,15 @@ class HierarchicalCodeWorld:
             for _ in range(self.stage_count)
         )
         self.stage = 0
-        self.position = 0
+        self.entered: list[int] = []
         self.just_opened_checkpoint = False
         self.success = False
         self.failed = False
         self.optimal_steps = self.stage_count * self.room_length
+
+    @property
+    def position(self) -> int:
+        return len(self.entered)
 
     @property
     def code(self) -> tuple[int, ...]:
@@ -69,12 +74,17 @@ class HierarchicalCodeWorld:
         return frozenset(facts)
 
     def snapshot(self) -> StateSnapshot:
-        # The full local code is observable. Stage identity is intentionally
-        # excluded from the vector so Prophecy can reuse the same code effect
-        # at any position in the 80-step dependency chain.
+        # -1 means that position has not been entered yet. Entered 0 and 1 are
+        # retained explicitly, allowing Prophecy and Imagination to carry the
+        # complete branch-local prefix without receiving any correctness label.
+        entered_slots = tuple(
+            float(self.entered[index]) if index < len(self.entered) else -1.0
+            for index in range(self.room_length)
+        )
         vector = (
             self.position / float(self.room_length),
-            *(1.0 if bit else -1.0 for bit in self.code),
+            *(float(bit) for bit in self.code),
+            *entered_slots,
         )
         return StateSnapshot(
             vector,
@@ -87,7 +97,7 @@ class HierarchicalCodeWorld:
                 "stage_count": self.stage_count,
                 "code_length": self.room_length,
                 "optimal_steps": self.optimal_steps,
-                "termination": "wrong_bit_or_final_checkpoint",
+                "termination": "wrong_code_or_final_checkpoint",
                 "prophecy_scope": "reusable_local_code",
             },
         )
@@ -102,21 +112,24 @@ class HierarchicalCodeWorld:
             error = True
         else:
             bit = int(action.parameters.get("bit", -1))
-            expected = self.code[self.position]
-            self.just_opened_checkpoint = False
-            if bit != expected:
+            if bit not in {0, 1}:
                 self.failed = True
                 error = True
             else:
-                self.position += 1
-                if self.position >= self.room_length:
-                    self.stage += 1
-                    if self.stage >= self.stage_count:
-                        self.success = True
-                        reward = 1.0
+                self.just_opened_checkpoint = False
+                self.entered.append(bit)
+                if len(self.entered) >= self.room_length:
+                    if tuple(self.entered) != self.code:
+                        self.failed = True
+                        error = True
                     else:
-                        self.position = 0
-                        self.just_opened_checkpoint = True
+                        self.stage += 1
+                        if self.stage >= self.stage_count:
+                            self.success = True
+                            reward = 1.0
+                        else:
+                            self.entered.clear()
+                            self.just_opened_checkpoint = True
 
         after = self.snapshot()
         before_actions = {item.signature for item in before.available_actions}
