@@ -325,6 +325,11 @@ def _run_episode(
     imagination_changed_actions = 0
     imagination_coverages: list[float] = []
     imagination_gate_reasons: Counter[str] = Counter()
+    policy_oracle_agreements = 0
+    executed_oracle_agreements = 0
+    imagination_corrections = 0
+    imagination_harms = 0
+    imagination_neutral_changes = 0
     errors = 0
     repeats = 0
     steps = 0
@@ -358,6 +363,33 @@ def _run_episode(
             getattr(decision, "imagination_gate_reason", "not_supported")
         )
         coverage = float(getattr(decision, "model_coverage", 0.0))
+        policy_action_signature = str(
+            getattr(
+                decision,
+                "policy_action_signature",
+                decision.action.signature,
+            )
+        )
+        oracle_action_signature = environment.oracle_action().signature
+        policy_oracle_agreement = (
+            policy_action_signature == oracle_action_signature
+        )
+        executed_oracle_agreement = (
+            decision.action.signature == oracle_action_signature
+        )
+        imagination_oracle_delta = (
+            int(executed_oracle_agreement)
+            - int(policy_oracle_agreement)
+        )
+        policy_oracle_agreements += int(policy_oracle_agreement)
+        executed_oracle_agreements += int(executed_oracle_agreement)
+        if changed_action:
+            if imagination_oracle_delta > 0:
+                imagination_corrections += 1
+            elif imagination_oracle_delta < 0:
+                imagination_harms += 1
+            else:
+                imagination_neutral_changes += 1
         imagination_opportunities += int(opportunity)
         imagination_eligible += int(eligible)
         imagination_runs += int(decision.used_imagination)
@@ -400,16 +432,18 @@ def _run_episode(
                 "error": outcome.error,
                 "learning_enabled": learn,
                 "imagined_nodes": decision.imagined_nodes,
-                "policy_action_signature": getattr(
-                    decision,
-                    "policy_action_signature",
-                    decision.action.signature,
-                ),
+                "policy_action_signature": policy_action_signature,
                 "imagination_opportunity": opportunity,
                 "imagination_eligible": eligible,
                 "imagination_gate_reason": gate_reason,
                 "imagination_changed_action": changed_action,
                 "model_coverage": coverage,
+                "privileged_analysis": {
+                    "oracle_action_signature": oracle_action_signature,
+                    "policy_oracle_agreement": policy_oracle_agreement,
+                    "executed_oracle_agreement": executed_oracle_agreement,
+                    "imagination_oracle_delta": imagination_oracle_delta,
+                },
             }
         )
         final_return = outcome.reward
@@ -485,6 +519,33 @@ def _run_episode(
         "imagination_gate_reasons": json.dumps(
             dict(sorted(imagination_gate_reasons.items())),
             sort_keys=True,
+        ),
+        "policy_oracle_agreements": policy_oracle_agreements,
+        "executed_oracle_agreements": executed_oracle_agreements,
+        "policy_oracle_agreement_rate": (
+            policy_oracle_agreements / steps if steps else 0.0
+        ),
+        "executed_oracle_agreement_rate": (
+            executed_oracle_agreements / steps if steps else 0.0
+        ),
+        "imagination_corrections": imagination_corrections,
+        "imagination_harms": imagination_harms,
+        "imagination_neutral_changes": imagination_neutral_changes,
+        "imagination_net_corrections": (
+            imagination_corrections - imagination_harms
+        ),
+        "imagination_oracle_gain": (
+            executed_oracle_agreements - policy_oracle_agreements
+        ),
+        "imagination_correction_rate": (
+            imagination_corrections / imagination_changed_actions
+            if imagination_changed_actions
+            else 0.0
+        ),
+        "imagination_harm_rate": (
+            imagination_harms / imagination_changed_actions
+            if imagination_changed_actions
+            else 0.0
         ),
         "imagination_depth": imagination_depth,
         "root_imagined_value": fmean(root_values) if root_values else "",
