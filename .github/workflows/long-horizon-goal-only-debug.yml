@@ -5,6 +5,10 @@ on:
     branches: [codex/aassr-v2-imagination-counterfactual-audit]
     paths:
       - ".github/workflows/long-horizon-goal-only-debug.yml"
+  pull_request:
+    branches: [aassr-v2]
+    paths:
+      - ".github/workflows/long-horizon-goal-only-debug.yml"
   workflow_dispatch:
 
 jobs:
