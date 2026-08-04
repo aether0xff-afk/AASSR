@@ -5,15 +5,19 @@ on:
     branches: [codex/aassr-v2-imagination-counterfactual-audit]
     paths:
       - "src/aassr_v2/long_horizon_goal_experiment.py"
+      - "src/aassr_v2/compositional_long_horizon_world.py"
       - "scripts/run_long_horizon_goal_experiment.py"
       - "tests/test_long_horizon_goal_experiment.py"
+      - "tests/test_compositional_long_horizon_world.py"
       - ".github/workflows/long-horizon-goal-diagnostic.yml"
   pull_request:
     branches: [aassr-v2]
     paths:
       - "src/aassr_v2/long_horizon_goal_experiment.py"
+      - "src/aassr_v2/compositional_long_horizon_world.py"
       - "scripts/run_long_horizon_goal_experiment.py"
       - "tests/test_long_horizon_goal_experiment.py"
+      - "tests/test_compositional_long_horizon_world.py"
       - ".github/workflows/long-horizon-goal-diagnostic.yml"
   workflow_dispatch:
 
@@ -40,7 +44,10 @@ jobs:
           python -m pip install --upgrade pip setuptools
           python -m pip install -e ".[dev]"
       - name: Run focused tests
-        run: pytest -q tests/test_long_horizon_goal_experiment.py
+        run: |
+          pytest -q \
+            tests/test_long_horizon_goal_experiment.py \
+            tests/test_compositional_long_horizon_world.py
       - name: Run one-seed long-horizon diagnostic
         run: |
           python scripts/run_long_horizon_goal_experiment.py \
