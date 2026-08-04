@@ -28,7 +28,7 @@ jobs:
       matrix:
         seed: [7, 13, 21, 42, 100]
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -46,10 +46,10 @@ jobs:
           python scripts/run_long_horizon_goal_experiment.py \
             --output runs/long_horizon_seed_${{ matrix.seed }} \
             --seeds ${{ matrix.seed }} \
-            --train-episodes 300 \
+            --train-episodes 2000 \
             --train-maps 32 \
-            --eval-episodes 40 \
-            --training-tail 80 \
+            --eval-episodes 80 \
+            --training-tail 200 \
             --stages 10 \
             --room-length 6
       - name: Upload result
