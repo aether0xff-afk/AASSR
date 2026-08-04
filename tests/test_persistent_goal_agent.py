@@ -22,7 +22,8 @@ def test_goal_is_reused_instead_of_rebuilt_every_step() -> None:
             final_return=1.0 if training_world.success else 0.0
         )
 
-    first = agent.select_action(world.snapshot(), episode=20, explore=False)
+    before = world.snapshot()
+    first = agent.select_action(before, episode=20, explore=False)
     first_proposals = agent.goal_proposals
     if agent.active_goal is None:
         # The learned model may still reject a GOAL; this is a valid safe state.
@@ -30,7 +31,7 @@ def test_goal_is_reused_instead_of_rebuilt_every_step() -> None:
         return
 
     outcome = world.step(first.action)
-    agent.observe(world.snapshot(), first.action, outcome)
+    agent.observe(before, first.action, outcome)
     agent.select_action(outcome.snapshot, episode=20, explore=False)
 
     assert agent.goal_proposals == first_proposals
