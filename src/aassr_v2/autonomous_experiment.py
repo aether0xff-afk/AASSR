@@ -7,7 +7,7 @@ import multiprocessing
 import os
 import shutil
 import time
-from collections import deque
+from collections import Counter, deque
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -187,7 +187,7 @@ def _agent_config(
             condition.get("imagination_beam_width", 32)
         ),
         imagination_minimum_coverage=float(
-            condition.get("imagination_minimum_coverage", 0.75)
+            condition.get("imagination_minimum_coverage", 0.35)
         ),
         validated_gain_weight=float(
             condition.get("validated_gain_weight", 0.2)
@@ -215,6 +215,12 @@ def _agent_config(
         ),
         extrinsic_reward_weight=float(
             condition.get("extrinsic_reward_weight", 1.0)
+        ),
+        use_effect_composition=bool(
+            condition.get("use_effect_composition", True)
+        ),
+        effect_minimum_samples=int(
+            condition.get("effect_minimum_samples", 2)
         ),
     )
 
@@ -313,6 +319,12 @@ def _run_episode(
     imagined_nodes = 0
     imagination_depth = 0
     root_values: list[float] = []
+    imagination_opportunities = 0
+    imagination_eligible = 0
+    imagination_runs = 0
+    imagination_changed_actions = 0
+    imagination_coverages: list[float] = []
+    imagination_gate_reasons: Counter[str] = Counter()
     errors = 0
     repeats = 0
     steps = 0
@@ -333,6 +345,26 @@ def _run_episode(
             decision = agent.select_action(
                 state, episode=episode, explore=learn
             )
+        opportunity = bool(
+            getattr(decision, "imagination_opportunity", False)
+        )
+        eligible = bool(
+            getattr(decision, "imagination_eligible", False)
+        )
+        changed_action = bool(
+            getattr(decision, "imagination_changed_action", False)
+        )
+        gate_reason = str(
+            getattr(decision, "imagination_gate_reason", "not_supported")
+        )
+        coverage = float(getattr(decision, "model_coverage", 0.0))
+        imagination_opportunities += int(opportunity)
+        imagination_eligible += int(eligible)
+        imagination_runs += int(decision.used_imagination)
+        imagination_changed_actions += int(changed_action)
+        imagination_gate_reasons[gate_reason] += 1
+        if opportunity:
+            imagination_coverages.append(coverage)
         imagined_nodes += decision.imagined_nodes
         imagination_depth = max(
             imagination_depth, decision.imagination_depth
@@ -368,6 +400,16 @@ def _run_episode(
                 "error": outcome.error,
                 "learning_enabled": learn,
                 "imagined_nodes": decision.imagined_nodes,
+                "policy_action_signature": getattr(
+                    decision,
+                    "policy_action_signature",
+                    decision.action.signature,
+                ),
+                "imagination_opportunity": opportunity,
+                "imagination_eligible": eligible,
+                "imagination_gate_reason": gate_reason,
+                "imagination_changed_action": changed_action,
+                "model_coverage": coverage,
             }
         )
         final_return = outcome.reward
@@ -421,6 +463,29 @@ def _run_episode(
         "holdout_score": fmean(holdout_scores) if holdout_scores else "",
         "holdout_gain": fmean(holdout_gains) if holdout_gains else "",
         "imagined_nodes": imagined_nodes,
+        "imagination_opportunities": imagination_opportunities,
+        "imagination_eligible": imagination_eligible,
+        "imagination_runs": imagination_runs,
+        "imagination_changed_actions": imagination_changed_actions,
+        "imagination_change_rate": (
+            imagination_changed_actions / imagination_runs
+            if imagination_runs
+            else 0.0
+        ),
+        "imagination_eligibility_rate": (
+            imagination_eligible / imagination_opportunities
+            if imagination_opportunities
+            else 0.0
+        ),
+        "imagination_coverage_mean": (
+            fmean(imagination_coverages)
+            if imagination_coverages
+            else 0.0
+        ),
+        "imagination_gate_reasons": json.dumps(
+            dict(sorted(imagination_gate_reasons.items())),
+            sort_keys=True,
+        ),
         "imagination_depth": imagination_depth,
         "root_imagined_value": fmean(root_values) if root_values else "",
         "actual_return": final_return,
