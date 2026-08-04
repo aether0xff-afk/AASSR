@@ -64,7 +64,7 @@ class EscapeTrainingConfig:
     imagination_depth: int = 5
     imagination_branching_factor: int = 2
     imagination_beam_width: int = 16
-    imagination_minimum_coverage: float = 0.75
+    imagination_minimum_coverage: float = 0.35
     validated_gain_weight: float = 0.2
     repeat_penalty: float = 0.05
     error_penalty: float = 0.2
@@ -76,6 +76,10 @@ class EscapeTrainingConfig:
     rolling_window: int = 100
     efficiency_bonus_scale: float = 1.0
     save_episode_checkpoints: bool = True
+    checkpoint_interval: int = 100
+    checkpoint_retention: int = 10
+    step_flush_interval: int = 64
+    max_step_log_bytes: int = 1_073_741_824
 
     def __post_init__(self) -> None:
         if self.episodes <= 0:
@@ -102,6 +106,14 @@ class EscapeTrainingConfig:
             raise ValueError("rolling_window must be positive")
         if self.efficiency_bonus_scale < 0.0:
             raise ValueError("efficiency_bonus_scale must be non-negative")
+        if self.checkpoint_interval <= 0:
+            raise ValueError("checkpoint_interval must be positive")
+        if self.checkpoint_retention < 0:
+            raise ValueError("checkpoint_retention must be non-negative")
+        if self.step_flush_interval <= 0:
+            raise ValueError("step_flush_interval must be positive")
+        if self.max_step_log_bytes < 0:
+            raise ValueError("max_step_log_bytes must be non-negative")
 
 
 @dataclass(frozen=True, slots=True)
@@ -579,7 +591,10 @@ def train_escape_agent(
                 event_counts=dict(event_counts),
             )
             recorder.record_episode(record)
-            if config.save_episode_checkpoints:
+            if config.save_episode_checkpoints and (
+                episode == 1
+                or episode % config.checkpoint_interval == 0
+            ):
                 recorder.write_checkpoint(agent, episode=episode)
 
             recent_outcomes = outcomes[-config.rolling_window :]

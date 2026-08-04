@@ -30,9 +30,9 @@ GUI는 기본 GridWorld 창과 `AASSR Imagination Viewer` 창을 함께 연다.
 
 최단 경로 성공은 `2.0x`, 더 오래 걸릴수록 `1.0x`에 가까워진다.
 
-## 전체 기록과 통계
+## 기록과 통계
 
-모든 step과 episode는 실행 중 즉시 디스크에 기록된다.
+모든 행동과 이벤트는 실행 중 집계된다. 전체 step trace는 메모리에 쌓아 두지 않고 JSONL에 순차 기록하며, 기본적으로 64개 record마다 flush하고 episode가 끝날 때 반드시 flush한다.
 
 ```text
 runs/escape_gridworld/<session>/
@@ -53,6 +53,19 @@ runs/escape_gridworld/<session>/
 └─ charts/
 ```
 
+장시간 실패 루프가 디스크를 모두 사용하는 것을 막기 위해 다음 기본 정책을 사용한다.
+
+```text
+step flush interval = 64 records
+steps.jsonl maximum = 1 GiB
+recovery checkpoint interval = 100 episodes
+historical checkpoint retention = latest 10
+```
+
+`steps.jsonl`이 상한에 도달해도 학습은 중단되지 않는다. 이후 full step payload만 생략하고 action/event 집계, episode CSV/JSONL, summary, statistics, `latest.json.gz`, `final.json.gz`는 계속 저장한다. 생략된 record 수와 trace 절단 여부는 `summary.json`과 `session.json`의 `storage` 항목에 남는다.
+
+복구 checkpoint는 `latest.json.gz`를 매 저장 시점마다 갱신하고, historical `episode_*.json.gz`는 설정된 개수만 유지한다. 최종 checkpoint와 portable final model은 별도 파일이라 retention의 영향을 받지 않는다.
+
 학습 완료 또는 중지 후 별도 통계 창이 자동으로 열린다. 필수 그래프인 episode별 step 수와 이동평균 외에도 점수, 효율, 시간, Prediction, holdout, intrinsic value, Imagination, 오류·반복, 행동·이벤트 분포를 볼 수 있다. 그래프는 SVG 파일로도 저장된다.
 
 ## Imagination Viewer
@@ -64,7 +77,7 @@ runs/escape_gridworld/<session>/
 - interval 조건 충족
 - Prophecy coverage가 기본 임계값 이상
 
-상상 창은 실제 트리의 전체 노드, 부모 관계, 깊이, 누적 가치, 신뢰도, 종료 이유, 루트 행동별 평가, 선택된 첫 행동과 최선 경로를 표시한다. 최대속도 모드에서는 화면은 최신 트리로 갱신하지만 모든 상상 트리는 `imaginations.jsonl`에 빠짐없이 저장된다.
+상상 창은 실제 트리의 전체 노드, 부모 관계, 깊이, 누적 가치, 신뢰도, 종료 이유, 루트 행동별 평가, 선택된 첫 행동과 최선 경로를 표시한다. 최대속도 모드에서는 화면은 최신 트리로 갱신하지만 상상 기록은 파일에 순차 저장된다.
 
 ## 모델 저장과 불러오기
 
@@ -104,6 +117,19 @@ python scripts/run_escape_gridworld.py \
   --seed 7 \
   --mode fast
 ```
+
+저장 정책을 직접 지정하는 예:
+
+```bash
+python scripts/run_escape_gridworld.py \
+  --episodes 2000 \
+  --checkpoint-every 50 \
+  --checkpoint-retention 20 \
+  --step-flush-interval 32 \
+  --max-step-log-gb 2
+```
+
+전체 step trace 상한을 해제하려면 `--max-step-log-gb 0`을 사용한다. 매 episode 복구 checkpoint가 필요하면 `--checkpoint-every 1`을 사용한다. periodic checkpoint를 모두 끄더라도 final checkpoint는 유지된다.
 
 Imagination 제거 비교:
 

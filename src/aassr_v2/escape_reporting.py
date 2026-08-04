@@ -508,7 +508,7 @@ def serialize_agent_checkpoint(agent: object, *, episode: int) -> dict[str, Any]
 
 
 class EscapeSessionRecorder:
-    """Durable, flush-on-write recorder for every escape session event."""
+    """Durable recorder with bounded full-trace and checkpoint storage."""
 
     def __init__(
         self,
@@ -536,8 +536,25 @@ class EscapeSessionRecorder:
         self.event_counts: Counter[str] = Counter()
         self.mode_counts: Counter[str] = Counter({initial_mode: 1})
         self._closed = False
+        self._step_flush_interval = int(
+            getattr(config, "step_flush_interval", 64)
+        )
+        self._max_step_log_bytes = int(
+            getattr(config, "max_step_log_bytes", 1_073_741_824)
+        )
+        self._checkpoint_retention = int(
+            getattr(config, "checkpoint_retention", 10)
+        )
+        self._pending_step_records = 0
+        self._step_records_written = 0
+        self._step_records_dropped = 0
+        self._step_bytes_written = 0
+        self._trace_truncated = False
+        self._checkpoint_files_pruned = 0
 
-        self._steps_file = (self.output_dir / "steps.jsonl").open("w", encoding="utf-8", buffering=1)
+        self._steps_file = (self.output_dir / "steps.jsonl").open(
+            "w", encoding="utf-8", buffering=1024 * 1024
+        )
         self._episodes_jsonl = (self.output_dir / "episodes.jsonl").open("w", encoding="utf-8", buffering=1)
         self._episodes_csv_handle = (self.output_dir / "episodes.csv").open("w", encoding="utf-8", newline="", buffering=1)
         self._episodes_csv = csv.DictWriter(self._episodes_csv_handle, fieldnames=EPISODE_COLUMNS)
@@ -554,6 +571,11 @@ class EscapeSessionRecorder:
             "oracle_steps": oracle_steps,
             "config": _json_safe(config),
             "world": serialize_world_spec(spec),
+            "storage_policy": {
+                "step_flush_interval": self._step_flush_interval,
+                "max_step_log_bytes": self._max_step_log_bytes,
+                "checkpoint_retention": self._checkpoint_retention,
+            },
             "files": {
                 "steps": "steps.jsonl",
                 "episodes_csv": "episodes.csv",
@@ -604,6 +626,26 @@ class EscapeSessionRecorder:
         self.mode_counts[new_mode] += 1
         self.log(f"mode switch {previous_mode} -> {new_mode} at E{episode} step={step}")
 
+    def flush_steps(self) -> None:
+        if self._pending_step_records <= 0:
+            return
+        self._steps_file.flush()
+        self._pending_step_records = 0
+
+    def storage_status(self) -> dict[str, Any]:
+        return {
+            "step_records_written": self._step_records_written,
+            "step_records_dropped": self._step_records_dropped,
+            "step_bytes_written": self._step_bytes_written,
+            "max_step_log_bytes": self._max_step_log_bytes,
+            "trace_truncated": self._trace_truncated,
+            "checkpoint_retention": self._checkpoint_retention,
+            "checkpoint_files_pruned": self._checkpoint_files_pruned,
+            "retained_episode_checkpoints": len(
+                tuple(self.checkpoints_dir.glob("episode_*.json.gz"))
+            ),
+        }
+
     def record_step(self, payload: Mapping[str, Any]) -> None:
         enriched = {
             "schema_version": SCHEMA_VERSION,
@@ -617,10 +659,35 @@ class EscapeSessionRecorder:
         event = str(payload.get("event", ""))
         if event:
             self.event_counts[event] += 1
-        self._steps_file.write(json.dumps(_json_safe(enriched), ensure_ascii=False) + "\n")
-        self._steps_file.flush()
+
+        if self._trace_truncated:
+            self._step_records_dropped += 1
+            return
+        line = json.dumps(_json_safe(enriched), ensure_ascii=False) + "\n"
+        encoded_size = len(line.encode("utf-8"))
+        if (
+            self._max_step_log_bytes > 0
+            and self._step_bytes_written + encoded_size
+            > self._max_step_log_bytes
+        ):
+            self._trace_truncated = True
+            self._step_records_dropped += 1
+            self.flush_steps()
+            self.log(
+                "full step trace reached max_step_log_bytes; "
+                "continuing with episode summaries and bounded checkpoints"
+            )
+            return
+
+        self._steps_file.write(line)
+        self._step_bytes_written += encoded_size
+        self._step_records_written += 1
+        self._pending_step_records += 1
+        if self._pending_step_records >= self._step_flush_interval:
+            self.flush_steps()
 
     def record_episode(self, record: EscapeEpisodeRecord) -> None:
+        self.flush_steps()
         self.records.append(record)
         payload = asdict(record)
         self._episodes_jsonl.write(json.dumps(_json_safe(payload), ensure_ascii=False) + "\n")
@@ -631,6 +698,13 @@ class EscapeSessionRecorder:
             f"episode={record.episode} success={int(record.success)} steps={record.steps} "
             f"score={record.score:.6f} duration={record.duration_seconds:.6f}s"
         )
+
+    def _prune_episode_checkpoints(self) -> None:
+        checkpoints = sorted(self.checkpoints_dir.glob("episode_*.json.gz"))
+        excess = max(0, len(checkpoints) - self._checkpoint_retention)
+        for path in checkpoints[:excess]:
+            path.unlink(missing_ok=True)
+            self._checkpoint_files_pruned += 1
 
     def write_checkpoint(self, agent: object, *, episode: int, final: bool = False) -> Path:
         payload = serialize_agent_checkpoint(agent, episode=episode)
@@ -643,6 +717,8 @@ class EscapeSessionRecorder:
         latest = self.checkpoints_dir / "latest.json.gz"
         with gzip.open(latest, "wb", compresslevel=6) as handle:
             handle.write(encoded)
+        if not final:
+            self._prune_episode_checkpoints()
         return path
 
     def finalize(
@@ -658,6 +734,7 @@ class EscapeSessionRecorder:
             action_counts=self.action_counts,
             event_counts=self.event_counts,
         )
+        self.flush_steps()
         final_payload = {
             **_json_safe(summary),
             "schema_version": SCHEMA_VERSION,
@@ -668,6 +745,7 @@ class EscapeSessionRecorder:
             "output_dir": str(self.output_dir),
             "statistics": statistics_payload,
             "mode_selection_counts": dict(self.mode_counts),
+            "storage": self.storage_status(),
             "error": error,
         }
         self._write_json(self.output_dir / "summary.json", final_payload)
@@ -681,6 +759,9 @@ class EscapeSessionRecorder:
             f"median_steps: {statistics_payload['steps']['median']:.6f}",
             f"mean_score: {statistics_payload['scores']['mean']:.6f}",
             f"mean_duration_seconds: {statistics_payload['durations_seconds']['mean']:.6f}",
+            f"trace_truncated: {int(self._trace_truncated)}",
+            f"step_records_written: {self._step_records_written}",
+            f"step_records_dropped: {self._step_records_dropped}",
             f"output_dir: {self.output_dir}",
         ]
         (self.output_dir / "summary.txt").write_text("\n".join(summary_lines) + "\n", encoding="utf-8")
@@ -696,6 +777,7 @@ class EscapeSessionRecorder:
                 "ended_at_utc": final_payload["ended_at_utc"],
                 "status": final_payload["status"],
                 "summary_file": "summary.json",
+                "storage": self.storage_status(),
             }
         )
         self._write_json(self.output_dir / "session.json", self._manifest)
@@ -709,6 +791,7 @@ class EscapeSessionRecorder:
         if self._closed:
             return
         self._closed = True
+        self.flush_steps()
         for handle in (
             self._steps_file,
             self._episodes_jsonl,

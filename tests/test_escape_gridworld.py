@@ -158,6 +158,7 @@ def test_complete_session_persists_steps_episodes_checkpoints_and_charts(
         live_step_delay=0.0,
         minimum_holdout_count=2,
         save_episode_checkpoints=True,
+        checkpoint_interval=1,
     )
     summary = train_escape_agent(
         config,
@@ -235,6 +236,79 @@ def test_complete_session_persists_steps_episodes_checkpoints_and_charts(
     assert saved_summary["episodes"] == 2
     assert saved_summary["total_steps"] == summary.total_steps
     assert saved_summary["statistics"]["steps"]["count"] == 2
+
+
+def test_step_trace_is_bounded_without_stopping_training(tmp_path: Path) -> None:
+    output = tmp_path / "bounded-trace"
+    config = EscapeTrainingConfig(
+        episodes=2,
+        seed=19,
+        color_count=1,
+        distractor_boxes=0,
+        use_imagination=False,
+        live_step_delay=0.0,
+        minimum_holdout_count=2,
+        save_episode_checkpoints=False,
+        step_flush_interval=64,
+        max_step_log_bytes=512,
+    )
+
+    summary = train_escape_agent(
+        config,
+        mode=TrainingMode.FAST,
+        output_dir=output,
+    )
+    saved = json.loads((output / "summary.json").read_text(encoding="utf-8"))
+
+    assert summary.episodes == 2
+    assert saved["storage"]["trace_truncated"]
+    assert saved["storage"]["step_records_dropped"] > 0
+    assert (output / "steps.jsonl").stat().st_size <= 512
+    assert (output / "episodes.csv").exists()
+    assert (output / "checkpoints" / "final.json.gz").exists()
+
+
+def test_periodic_checkpoints_keep_only_recent_history(tmp_path: Path) -> None:
+    output = tmp_path / "checkpoint-retention"
+    config = EscapeTrainingConfig(
+        episodes=4,
+        seed=19,
+        color_count=1,
+        distractor_boxes=0,
+        use_imagination=False,
+        live_step_delay=0.0,
+        minimum_holdout_count=2,
+        save_episode_checkpoints=True,
+        checkpoint_interval=1,
+        checkpoint_retention=2,
+    )
+
+    train_escape_agent(
+        config,
+        mode=TrainingMode.FAST,
+        output_dir=output,
+    )
+    history = sorted(
+        path.name for path in (output / "checkpoints").glob("episode_*.json.gz")
+    )
+    saved = json.loads((output / "summary.json").read_text(encoding="utf-8"))
+
+    assert history == ["episode_000003.json.gz", "episode_000004.json.gz"]
+    assert saved["storage"]["checkpoint_files_pruned"] == 2
+    assert saved["storage"]["retained_episode_checkpoints"] == 2
+    assert (output / "checkpoints" / "latest.json.gz").exists()
+    assert (output / "checkpoints" / "final.json.gz").exists()
+
+
+def test_storage_policy_validation() -> None:
+    with pytest.raises(ValueError, match="checkpoint_interval"):
+        EscapeTrainingConfig(checkpoint_interval=0)
+    with pytest.raises(ValueError, match="checkpoint_retention"):
+        EscapeTrainingConfig(checkpoint_retention=-1)
+    with pytest.raises(ValueError, match="step_flush_interval"):
+        EscapeTrainingConfig(step_flush_interval=0)
+    with pytest.raises(ValueError, match="max_step_log_bytes"):
+        EscapeTrainingConfig(max_step_log_bytes=-1)
 
 
 def test_descriptive_statistics_and_rolling_mean() -> None:
