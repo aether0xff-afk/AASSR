@@ -54,13 +54,45 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--no-episode-checkpoints",
         action="store_true",
-        help="skip per-episode compressed recovery checkpoints; final checkpoint is still saved",
+        help="skip periodic compressed recovery checkpoints; final checkpoint is still saved",
+    )
+    parser.add_argument(
+        "--checkpoint-every",
+        type=int,
+        default=100,
+        help="save a recovery checkpoint every N completed episodes",
+    )
+    parser.add_argument(
+        "--checkpoint-retention",
+        type=int,
+        default=10,
+        help="retain at most this many historical episode checkpoints",
+    )
+    parser.add_argument(
+        "--step-flush-interval",
+        type=int,
+        default=64,
+        help="flush the full step JSONL after this many records; episodes always flush",
+    )
+    parser.add_argument(
+        "--max-step-log-gb",
+        type=float,
+        default=1.0,
+        help="maximum steps.jsonl size in GiB; 0 means unlimited",
     )
     return parser
 
 
 def main() -> None:
     args = build_parser().parse_args()
+    if args.checkpoint_every <= 0:
+        raise SystemExit("--checkpoint-every must be positive")
+    if args.checkpoint_retention < 0:
+        raise SystemExit("--checkpoint-retention must be non-negative")
+    if args.step_flush_interval <= 0:
+        raise SystemExit("--step-flush-interval must be positive")
+    if args.max_step_log_gb < 0.0:
+        raise SystemExit("--max-step-log-gb must be non-negative")
     if args.gui:
         launch_escape_gui()
         return
@@ -72,6 +104,10 @@ def main() -> None:
         distractor_boxes=args.distractors,
         use_imagination=not args.no_imagination,
         save_episode_checkpoints=not args.no_episode_checkpoints,
+        checkpoint_interval=args.checkpoint_every,
+        checkpoint_retention=args.checkpoint_retention,
+        step_flush_interval=args.step_flush_interval,
+        max_step_log_bytes=int(args.max_step_log_gb * 1024**3),
     )
 
     def print_frame(frame: object) -> None:
