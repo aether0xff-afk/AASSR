@@ -1,13 +1,9 @@
 name: effect-imagination-diagnostic
 
 on:
-  push:
-    branches: [codex/aassr-v2-imagination-counterfactual-audit]
-    paths:
-      - ".github/workflows/effect-imagination-diagnostic.yml"
   workflow_dispatch:
 
-# Fixed-seed matched intervention audit; this workflow is manual after merge.
+# Fixed-seed matched intervention audit; intentionally manual after merge.
 jobs:
   diagnostic:
     runs-on: ubuntu-latest
