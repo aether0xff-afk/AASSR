@@ -66,6 +66,24 @@
       "use_imagination": true,
       "use_effect_composition": false,
       "imagination_minimum_coverage": 0.35,
+      "imagination_intervention_margin": 0.05,
+      "imagination_uncertainty_margin": 0.20,
+      "imagination_interval": 1,
+      "validated_gain_weight": 0.2,
+      "minimum_holdout_count": 4
+    },
+    {
+      "name": "unfiltered_effect_imagination",
+      "algorithm": "aassr",
+      "model": "tabular",
+      "learn_policy": true,
+      "learn_prophecy": true,
+      "use_imagination": true,
+      "use_effect_composition": true,
+      "effect_minimum_samples": 2,
+      "imagination_minimum_coverage": 0.35,
+      "imagination_intervention_margin": 0.0,
+      "imagination_uncertainty_margin": 0.0,
       "imagination_interval": 1,
       "validated_gain_weight": 0.2,
       "minimum_holdout_count": 4
@@ -80,6 +98,8 @@
       "use_effect_composition": true,
       "effect_minimum_samples": 2,
       "imagination_minimum_coverage": 0.35,
+      "imagination_intervention_margin": 0.05,
+      "imagination_uncertainty_margin": 0.20,
       "imagination_interval": 1,
       "validated_gain_weight": 0.2,
       "minimum_holdout_count": 4
