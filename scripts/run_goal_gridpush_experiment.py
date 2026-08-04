@@ -3,8 +3,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from aassr_v2.goal_gridpush_diagnostic_setup import (
+    install_goal_gridpush_diagnostic_agents,
+)
 from aassr_v2.goal_gridpush_experiment import run_goal_gridpush_experiment
-from aassr_v2.persistent_goal_agent import install_persistent_goal_agent
 
 
 def _parse_seeds(value: str) -> tuple[int, ...]:
@@ -26,7 +28,7 @@ def main() -> None:
     parser.add_argument("--training-tail", type=int, default=80)
     args = parser.parse_args()
 
-    install_persistent_goal_agent()
+    install_goal_gridpush_diagnostic_agents()
     payload = run_goal_gridpush_experiment(
         args.output,
         seeds=args.seeds,
