@@ -6,6 +6,26 @@ from .goal_gridpush_experiment import GridPushStep
 from .types import Action, StateSnapshot
 
 
+def _code_to_int(code: tuple[int, ...]) -> int:
+    value = 0
+    for bit in code:
+        value = (value << 1) | int(bit)
+    return value
+
+
+def _int_to_code(value: int, *, length: int = 4) -> tuple[int, ...]:
+    return tuple(
+        (value >> shift) & 1
+        for shift in range(length - 1, -1, -1)
+    )
+
+
+def next_code(code: tuple[int, ...]) -> tuple[int, ...]:
+    """Apply the environment's reusable checkpoint transition rule."""
+
+    return _int_to_code((_code_to_int(code) + 1) % (1 << len(code)), length=len(code))
+
+
 class HierarchicalCodeWorld:
     """Twenty reusable four-choice checkpoints with one final reward.
 
@@ -15,9 +35,11 @@ class HierarchicalCodeWorld:
     the episode; a correct sequence opens the next checkpoint. Only the
     twentieth checkpoint emits external reward.
 
-    Stage identity is kept in facts for Policy and logs. The numerical state
-    contains the reusable local code, current position and entered prefix, so
-    Prophecy can reuse a learned local transition in a new stage order.
+    The first code varies by map. Later codes follow one reusable transition
+    rule, so Prophecy can learn the checkpoint effect from random real
+    transitions and apply it at any point in the 80-step chain. The stage index
+    remains in metadata for logging only; it is not an agent fact or vector
+    entry.
     """
 
     def __init__(
@@ -35,10 +57,11 @@ class HierarchicalCodeWorld:
         self.stage_count = int(stage_count)
         self.room_length = 4
         randomizer = random.Random(seed)
-        self.codes = tuple(
-            tuple(randomizer.randrange(2) for _ in range(self.room_length))
-            for _ in range(self.stage_count)
-        )
+        initial = tuple(randomizer.randrange(2) for _ in range(self.room_length))
+        codes = [initial]
+        for _ in range(1, self.stage_count):
+            codes.append(next_code(codes[-1]))
+        self.codes = tuple(codes)
         self.stage = 0
         self.entered: list[int] = []
         self.just_opened_checkpoint = False
@@ -64,7 +87,7 @@ class HierarchicalCodeWorld:
         return (self._action(0), self._action(1))
 
     def _facts(self) -> frozenset[str]:
-        facts = {f"stage:{self.stage}"}
+        facts: set[str] = set()
         if self.just_opened_checkpoint:
             facts.add("checkpoint_transition")
         if self.success:
@@ -99,6 +122,7 @@ class HierarchicalCodeWorld:
                 "optimal_steps": self.optimal_steps,
                 "termination": "wrong_code_or_final_checkpoint",
                 "prophecy_scope": "reusable_local_code",
+                "checkpoint_rule": "binary_increment_mod_16",
             },
         )
 
