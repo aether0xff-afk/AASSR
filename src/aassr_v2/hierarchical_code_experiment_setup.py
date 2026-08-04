@@ -34,7 +34,10 @@ def _code_config(*, use_imagination: bool, depth: int) -> AutonomousAgentConfig:
         imagination_minimum_coverage=0.0,
         imagination_intervention_margin=0.0,
         imagination_uncertainty_margin=0.10,
-        imagination_aggregation="risk-adjusted",
+        # The later branches are actions the agent can still choose, not
+        # uncontrollable outcomes. Select the best executable path here; each
+        # Prophecy action prediction can still contain multiple real outcomes.
+        imagination_aggregation="max",
         validated_gain_weight=0.0,
         repeat_penalty=0.0,
         error_penalty=0.0,
@@ -72,6 +75,33 @@ def _code_scorer() -> CheckpointScorer:
     return CheckpointScorer()
 
 
+class CheckpointWaypointGoalMaker(WaypointGoalMaker):
+    """Keep the waypoint before a state-resetting checkpoint transition."""
+
+    def _waypoint_for(self, selected_id, plan):
+        by_id = {node.node_id: node for node in plan.nodes}
+        path = []
+        node = by_id[selected_id]
+        while node.parent_id is not None:
+            path.append(node)
+            node = by_id[node.parent_id]
+        path.reverse()
+        if not path:
+            raise RuntimeError("selected GOAL path is empty")
+
+        selected_state = path[-1].state
+        resets_local_state = (
+            "checkpoint_transition" in selected_state.facts
+            or "success" in selected_state.facts
+        )
+        if resets_local_state and len(path) > 1:
+            # Never hand the Executor a waypoint beyond the local state reset.
+            target_depth = min(self.waypoint_depth, len(path) - 1)
+        else:
+            target_depth = min(self.waypoint_depth, len(path))
+        return path[target_depth - 1].state
+
+
 def make_code_direct_agent(
     condition: str,
     seed: int,
@@ -104,7 +134,7 @@ def make_code_direct_agent(
                 outcome_samples=2,
                 minimum_path_confidence=0.0,
                 uncertainty_penalty=0.10,
-                aggregation="risk_adjusted",
+                aggregation="max",
                 update_policy=False,
                 expand_all_root_actions=True,
             ),
@@ -120,16 +150,13 @@ class HierarchicalCodeGoalAgent(HierarchicalGoalAgent):
         if room_length != 4:
             raise ValueError("HierarchicalCodeGoalAgent requires four-step checkpoints")
 
-        # Build the same public counters and episode lifecycle as the generic
-        # hierarchical agent, then replace every learned component with the
-        # matched code-task versions below.
         super().__init__(seed, room_length=room_length)
         self.base = AutonomousLearningAgent(
             _code_prophecy(),
             config=_code_config(use_imagination=False, depth=1),
             seed=seed,
         )
-        self.maker = WaypointGoalMaker(
+        self.maker = CheckpointWaypointGoalMaker(
             self.base.policy,
             self.base.prophecy,
             search_depth=4,
