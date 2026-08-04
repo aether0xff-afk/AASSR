@@ -7,6 +7,9 @@ from aassr_v2.compositional_long_horizon_world import (
     install_compositional_long_horizon_world,
 )
 from aassr_v2.long_horizon_goal_experiment import run_long_horizon_goal_experiment
+from aassr_v2.state_distance_goal_executor import (
+    install_state_distance_goal_executor,
+)
 
 
 def _parse_seeds(value: str) -> tuple[int, ...]:
@@ -31,6 +34,7 @@ def main() -> None:
     args = parser.parse_args()
 
     install_compositional_long_horizon_world()
+    install_state_distance_goal_executor()
     payload = run_long_horizon_goal_experiment(
         args.output,
         seeds=args.seeds,
