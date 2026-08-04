@@ -1,0 +1,40 @@
+name: apply-conservative-imagination-patch
+
+on:
+  push:
+    branches: [codex/aassr-v2-imagination-counterfactual-audit]
+    paths:
+      - "scripts/_apply_conservative_imagination_patch.py"
+      - ".github/workflows/_apply-conservative-imagination-patch.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/aassr-v2-imagination-counterfactual-audit
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Apply verified patch
+        run: python scripts/_apply_conservative_imagination_patch.py
+      - name: Compile patched modules
+        run: python -m compileall -q src/aassr_v2/autonomous_agent_core.py src/aassr_v2/autonomous_experiment.py src/aassr_v2/experiment_runner.py
+      - name: Remove one-time patch machinery
+        run: |
+          git rm scripts/_apply_conservative_imagination_patch.py
+          git rm .github/workflows/_apply-conservative-imagination-patch.yml
+      - name: Commit patched sources
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/aassr_v2/autonomous_agent_core.py src/aassr_v2/autonomous_experiment.py src/aassr_v2/experiment_runner.py
+          git commit -m "Require confidence-adjusted advantage for Imagination intervention"
+          git push origin HEAD:codex/aassr-v2-imagination-counterfactual-audit
