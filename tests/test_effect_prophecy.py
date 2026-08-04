@@ -108,7 +108,12 @@ def test_verb_family_fallback_does_not_copy_stale_symbolic_bindings() -> None:
         facts=frozenset({"stage:unknown"}),
         available_actions=(second,),
     )
-    composed = prophecy.predict(novel, second, samples=1)[0].next_state
+    predictions = prophecy.predict(novel, second, samples=1)
+    composed = next(
+        prediction.next_state
+        for prediction in predictions
+        if prediction.source.startswith("effect-composed")
+    )
 
     assert composed.vector == pytest.approx((6.0,))
     assert composed.facts == novel.facts
