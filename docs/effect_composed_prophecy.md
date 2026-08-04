@@ -114,6 +114,41 @@ A dedicated regression test constructs a two-step dependency where the
 myopic policy chooses a locally attractive dead end and Imagination changes the
 choice to the setup action that reaches the final goal.
 
+## Standard experiment output
+
+The autonomous experiment runner writes the intervention counters into every
+episode row and aggregates the numeric fields into the standard summary:
+
+```text
+imagination_opportunities
+imagination_eligible
+imagination_runs
+imagination_changed_actions
+imagination_change_rate
+imagination_eligibility_rate
+imagination_coverage_mean
+imagination_gate_reasons
+```
+
+Each transition record also stores the policy's original action, the executed
+action, coverage, gate reason and whether planning changed the action.  The
+JSON condition fields `use_effect_composition` and `effect_minimum_samples`
+allow the effect layer to be ablated without changing the wrapped model or the
+interaction budget.
+
+The matched configuration `configs/effect_imagination_diagnostic.json`
+compares:
+
+```text
+contextual policy
+effect Prophecy without Imagination
+legacy whole-snapshot Imagination
+full effect-composed Imagination
+```
+
+All four conditions use the same research seeds, world families, training and
+evaluation episode counts, and real-transition protocol.
+
 ## Portable model persistence
 
 For Tabular Prophecy, learned effects are stored as compact deduplicated records
@@ -137,6 +172,30 @@ files change or when manually dispatched.  This prevents transient Compose
 startup failures from hiding failures in the agent core while preserving the
 actual runtime-isolation test.
 
+## Validation snapshot
+
+The post-change autonomous smoke artifact recorded the following for the
+`full_aassr` condition:
+
+```text
+training episodes: 640
+training Imagination opportunities: 581
+training eligible/runs: 288 / 288
+training changed actions: 19
+training imagined nodes: 3236
+
+evaluation episodes: 80
+evaluation Imagination opportunities: 280
+evaluation eligible/runs: 60 / 60
+evaluation changed actions: 0
+evaluation imagined nodes: 500
+```
+
+These numbers verify that the planner is active and can alter real training
+decisions.  They do not establish a performance advantage.  In particular,
+the zero evaluation action changes show why generated-node counts alone are not
+a sufficient planning-effect metric.
+
 ## Current interpretation boundary
 
 This implementation establishes that:
@@ -144,7 +203,8 @@ This implementation establishes that:
 - novel imagined state combinations can be composed from observed effects;
 - Imagination can alter a policy decision in a controlled dependency test;
 - effect memory survives the supported portable Tabular model format;
-- the autonomous smoke suite actually produces imagined nodes.
+- the autonomous smoke suite actually produces imagined nodes and records
+  real action changes.
 
 It does not by itself establish that Full AASSR is statistically better than
 all no-Imagination baselines.  That remains an empirical result to be measured
