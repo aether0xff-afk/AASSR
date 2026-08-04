@@ -35,14 +35,18 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools
           python -m pip install -e ".[dev]"
+      - name: Run focused Executor test
+        run: pytest -q tests/test_state_distance_goal_executor.py
       - name: Run one matched condition
         shell: bash
         run: |
           python - <<'PY'
           from aassr_v2.compositional_long_horizon_world import install_compositional_long_horizon_world
           from aassr_v2.long_horizon_goal_experiment import run_long_horizon_goal_experiment
+          from aassr_v2.state_distance_goal_executor import install_state_distance_goal_executor
 
           install_compositional_long_horizon_world()
+          install_state_distance_goal_executor()
           run_long_horizon_goal_experiment(
               "runs/proof_${{ matrix.seed }}_${{ matrix.condition }}",
               seeds=(${{ matrix.seed }},),
