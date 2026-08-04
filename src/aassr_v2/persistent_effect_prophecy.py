@@ -248,7 +248,6 @@ class PersistentEffectComposedProphecy(EffectComposedProphecy):
         if callable(learn):
             learn(state, action, decorated)
         self._observe_effect(state, action, actual_next_state)
-        self._effect_observations += 1
 
     def predict_step(
         self,
