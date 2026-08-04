@@ -1,0 +1,34 @@
+name: tighten-imagination-uncertainty-gate
+
+on:
+  push:
+    branches: [codex/aassr-v2-imagination-counterfactual-audit]
+    paths:
+      - "scripts/_tighten_imagination_uncertainty_gate.py"
+      - ".github/workflows/_tighten-imagination-uncertainty-gate.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/aassr-v2-imagination-counterfactual-audit
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python scripts/_tighten_imagination_uncertainty_gate.py
+      - run: python -m compileall -q src/aassr_v2/autonomous_agent_core.py src/aassr_v2/autonomous_experiment.py
+      - run: |
+          git rm scripts/_tighten_imagination_uncertainty_gate.py
+          git rm .github/workflows/_tighten-imagination-uncertainty-gate.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/aassr_v2/autonomous_agent_core.py src/aassr_v2/autonomous_experiment.py
+          git commit -m "Tighten low-coverage Imagination intervention gate"
+          git push origin HEAD:codex/aassr-v2-imagination-counterfactual-audit
