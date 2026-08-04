@@ -43,3 +43,32 @@ jobs:
           python -m pip install -e ".[dev,gpu]"
       - name: Run PyTorch GRU CPU regression
         run: pytest -q tests/test_reliability_regressions.py -k torch_gru_cpu_optional
+
+  goal-gridpush-diagnostic:
+    if: github.event_name == 'pull_request' && github.head_ref == 'codex/aassr-v2-imagination-counterfactual-audit'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e ".[dev]"
+      - name: Run five-seed GOAL GridPush diagnostic
+        run: |
+          python scripts/run_goal_gridpush_experiment.py \
+            --output runs/goal_gridpush_quick \
+            --seeds 7,13,21,42,100 \
+            --train-episodes 40 \
+            --train-maps 8 \
+            --eval-episodes 10 \
+            --training-tail 10
+      - name: Upload GOAL GridPush output
+        uses: actions/upload-artifact@v4
+        with:
+          name: goal-gridpush-quick-${{ github.sha }}
+          path: runs/goal_gridpush_quick
+          retention-days: 30
