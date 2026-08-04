@@ -46,6 +46,10 @@ jobs:
 
   goal-gridpush-diagnostic:
     if: github.event_name == 'pull_request' && github.head_ref == 'codex/aassr-v2-imagination-counterfactual-audit'
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [7, 13, 21, 42, 100]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -57,11 +61,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools
           python -m pip install -e ".[dev]"
-      - name: Run five-seed GOAL GridPush diagnostic
+      - name: Run one-seed GOAL GridPush diagnostic
         run: |
           python scripts/run_goal_gridpush_experiment.py \
-            --output runs/goal_gridpush_quick \
-            --seeds 7,13,21,42,100 \
+            --output runs/goal_gridpush_seed_${{ matrix.seed }} \
+            --seeds ${{ matrix.seed }} \
             --train-episodes 40 \
             --train-maps 8 \
             --eval-episodes 10 \
@@ -69,6 +73,6 @@ jobs:
       - name: Upload GOAL GridPush output
         uses: actions/upload-artifact@v4
         with:
-          name: goal-gridpush-quick-${{ github.sha }}
-          path: runs/goal_gridpush_quick
+          name: goal-gridpush-seed-${{ matrix.seed }}-${{ github.sha }}
+          path: runs/goal_gridpush_seed_${{ matrix.seed }}
           retention-days: 30
