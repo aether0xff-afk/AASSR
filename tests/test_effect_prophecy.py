@@ -38,6 +38,63 @@ class SelfStateProphecy:
         return 0.0
 
 
+class TwoStepProphecy:
+    name = "two-step"
+
+    def __init__(self) -> None:
+        self.bad = Action("bad")
+        self.good = Action("good")
+        self.finish = Action("finish")
+
+    def _next(self, action: Action) -> StateSnapshot:
+        if action.verb_name == "bad":
+            return StateSnapshot(
+                vector=(0.5,),
+                facts=frozenset({"dead_end"}),
+                available_actions=(),
+                goal_progress=0.5,
+            )
+        if action.verb_name == "good":
+            return StateSnapshot(
+                vector=(0.0,),
+                facts=frozenset({"setup"}),
+                available_actions=(self.finish,),
+                goal_progress=0.0,
+            )
+        return StateSnapshot(
+            vector=(1.0,),
+            facts=frozenset({"goal"}),
+            available_actions=(),
+            goal_progress=1.0,
+        )
+
+    def predict(
+        self,
+        state: StateSnapshot,
+        action: Action,
+        *,
+        samples: int,
+    ) -> tuple[Prediction, ...]:
+        del state, samples
+        return (Prediction(self._next(action), 1.0, source="two-step:exact"),)
+
+    def learn(
+        self,
+        state: StateSnapshot,
+        action: Action,
+        actual_next_state: StateSnapshot,
+    ) -> None:
+        del state, action, actual_next_state
+
+    def confidence(self, state: StateSnapshot, action: Action) -> float:
+        del state, action
+        return 1.0
+
+    def coverage(self, state: StateSnapshot, actions: tuple[Action, ...]) -> float:
+        del state, actions
+        return 1.0
+
+
 def test_effect_prophecy_composes_delta_on_unseen_state() -> None:
     advance = Action("advance")
     wait = Action("wait")
@@ -148,6 +205,40 @@ def test_agent_reports_why_imagination_did_not_run() -> None:
     assert decision.model_coverage == 0.0
     assert diagnostics["opportunities"] == 1
     assert diagnostics["gate:coverage"] == 1
+
+
+def test_imagination_changes_a_myopic_policy_action() -> None:
+    prophecy = TwoStepProphecy()
+    state = StateSnapshot(
+        vector=(0.0,),
+        available_actions=(prophecy.bad, prophecy.good),
+        goal_progress=0.0,
+    )
+    agent = AutonomousLearningAgent(
+        prophecy,
+        config=AutonomousAgentConfig(
+            epsilon_start=0.0,
+            epsilon_end=0.0,
+            use_imagination=True,
+            use_effect_composition=False,
+            imagination_depth=2,
+            imagination_branching_factor=2,
+            imagination_minimum_coverage=0.0,
+        ),
+        seed=4,
+    )
+
+    decision = agent.select_action(state, episode=0, explore=True)
+    diagnostics = agent.imagination_diagnostics()
+
+    assert decision.policy_action_signature == prophecy.bad.signature
+    assert decision.action == prophecy.good
+    assert decision.used_imagination
+    assert decision.imagination_changed_action
+    assert decision.imagination_depth == 2
+    assert diagnostics["runs"] == 1
+    assert diagnostics["changed_actions"] == 1
+    assert diagnostics["change_rate_per_run"] == 1.0
 
 
 def test_agent_learns_effects_only_from_training_transitions() -> None:
