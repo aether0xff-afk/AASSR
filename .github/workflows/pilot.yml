@@ -64,15 +64,6 @@ jobs:
               --output runs/final_pilot \
               --overwrite
           fi
-      - name: Run matched effect and Imagination intervention diagnostic
-        if: github.head_ref == 'codex/aassr-v2-imagination-counterfactual-audit'
-        run: |
-          python scripts/run_experiment.py \
-            --config configs/effect_imagination_diagnostic.json \
-            --output runs/effect_imagination_diagnostic \
-            --overwrite \
-            --workers 4 \
-            --device cpu
       - name: Upload experiment outputs
         uses: actions/upload-artifact@v4
         with:
@@ -80,6 +71,5 @@ jobs:
           path: |
             runs/autonomous_smoke
             runs/final_pilot
-            runs/effect_imagination_diagnostic
           if-no-files-found: warn
           retention-days: 30
