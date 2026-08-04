@@ -189,6 +189,12 @@ def _agent_config(
         imagination_minimum_coverage=float(
             condition.get("imagination_minimum_coverage", 0.35)
         ),
+        imagination_intervention_margin=float(
+            condition.get("imagination_intervention_margin", 0.05)
+        ),
+        imagination_uncertainty_margin=float(
+            condition.get("imagination_uncertainty_margin", 0.20)
+        ),
         validated_gain_weight=float(
             condition.get("validated_gain_weight", 0.2)
         ),
@@ -324,7 +330,12 @@ def _run_episode(
     imagination_runs = 0
     imagination_changed_actions = 0
     imagination_coverages: list[float] = []
+    imagination_advantages: list[float] = []
+    imagination_required_advantages: list[float] = []
     imagination_gate_reasons: Counter[str] = Counter()
+    imagination_switch_candidates = 0
+    imagination_interventions = 0
+    imagination_suppressed_switches = 0
     policy_oracle_agreements = 0
     executed_oracle_agreements = 0
     imagination_corrections = 0
@@ -363,6 +374,26 @@ def _run_episode(
             getattr(decision, "imagination_gate_reason", "not_supported")
         )
         coverage = float(getattr(decision, "model_coverage", 0.0))
+        switch_candidate = bool(
+            getattr(decision, "imagination_switch_candidate", False)
+        )
+        intervention_allowed = bool(
+            getattr(decision, "imagination_intervention_allowed", False)
+        )
+        advantage = float(
+            getattr(decision, "imagination_advantage", 0.0)
+        )
+        required_advantage = float(
+            getattr(decision, "imagination_required_advantage", 0.0)
+        )
+        imagination_switch_candidates += int(switch_candidate)
+        imagination_interventions += int(intervention_allowed)
+        imagination_suppressed_switches += int(
+            switch_candidate and not intervention_allowed
+        )
+        if decision.used_imagination:
+            imagination_advantages.append(advantage)
+            imagination_required_advantages.append(required_advantage)
         policy_action_signature = str(
             getattr(
                 decision,
@@ -438,6 +469,21 @@ def _run_episode(
                 "imagination_gate_reason": gate_reason,
                 "imagination_changed_action": changed_action,
                 "model_coverage": coverage,
+                "imagination_preferred_action_signature": getattr(
+                    decision,
+                    "imagination_preferred_action_signature",
+                    decision.action.signature,
+                ),
+                "imagination_policy_value": float(
+                    getattr(decision, "imagination_policy_value", 0.0)
+                ),
+                "imagination_preferred_value": float(
+                    getattr(decision, "imagination_preferred_value", 0.0)
+                ),
+                "imagination_advantage": advantage,
+                "imagination_required_advantage": required_advantage,
+                "imagination_switch_candidate": switch_candidate,
+                "imagination_intervention_allowed": intervention_allowed,
                 "privileged_analysis": {
                     "oracle_action_signature": oracle_action_signature,
                     "policy_oracle_agreement": policy_oracle_agreement,
@@ -519,6 +565,26 @@ def _run_episode(
         "imagination_gate_reasons": json.dumps(
             dict(sorted(imagination_gate_reasons.items())),
             sort_keys=True,
+        ),
+        "imagination_switch_candidates": imagination_switch_candidates,
+        "imagination_interventions": imagination_interventions,
+        "imagination_suppressed_switches": (
+            imagination_suppressed_switches
+        ),
+        "imagination_intervention_rate": (
+            imagination_interventions / imagination_switch_candidates
+            if imagination_switch_candidates
+            else 0.0
+        ),
+        "imagination_advantage_mean": (
+            fmean(imagination_advantages)
+            if imagination_advantages
+            else 0.0
+        ),
+        "imagination_required_advantage_mean": (
+            fmean(imagination_required_advantages)
+            if imagination_required_advantages
+            else 0.0
         ),
         "policy_oracle_agreements": policy_oracle_agreements,
         "executed_oracle_agreements": executed_oracle_agreements,
