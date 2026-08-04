@@ -8,10 +8,17 @@ on:
       - "scripts/run_long_horizon_goal_experiment.py"
       - "tests/test_long_horizon_goal_experiment.py"
       - ".github/workflows/long-horizon-goal-diagnostic.yml"
+  pull_request:
+    branches: [aassr-v2]
+    paths:
+      - "src/aassr_v2/long_horizon_goal_experiment.py"
+      - "scripts/run_long_horizon_goal_experiment.py"
+      - "tests/test_long_horizon_goal_experiment.py"
+      - ".github/workflows/long-horizon-goal-diagnostic.yml"
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
