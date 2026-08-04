@@ -1,0 +1,53 @@
+name: long-horizon-goal-diagnostic
+
+on:
+  push:
+    branches: [codex/aassr-v2-imagination-counterfactual-audit]
+    paths:
+      - "src/aassr_v2/long_horizon_goal_experiment.py"
+      - "scripts/run_long_horizon_goal_experiment.py"
+      - "tests/test_long_horizon_goal_experiment.py"
+      - ".github/workflows/long-horizon-goal-diagnostic.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diagnostic:
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [7, 13, 21, 42, 100]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e ".[dev]"
+      - name: Run focused tests
+        run: pytest -q tests/test_long_horizon_goal_experiment.py
+      - name: Run one-seed long-horizon diagnostic
+        run: |
+          python scripts/run_long_horizon_goal_experiment.py \
+            --output runs/long_horizon_seed_${{ matrix.seed }} \
+            --seeds ${{ matrix.seed }} \
+            --train-episodes 300 \
+            --train-maps 32 \
+            --eval-episodes 40 \
+            --training-tail 80 \
+            --stages 10 \
+            --room-length 6
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: long-horizon-seed-${{ matrix.seed }}-${{ github.sha }}
+          path: runs/long_horizon_seed_${{ matrix.seed }}
+          retention-days: 30
