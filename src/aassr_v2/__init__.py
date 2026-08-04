@@ -53,6 +53,12 @@ from .curriculum_engine import (
     CurriculumTeacher,
     DEFAULT_ACADEMY,
 )
+from .effect_prophecy import (
+    EffectComposedProphecy,
+    StateEffect,
+    effect_context_key,
+)
+from .persistent_effect_prophecy import PersistentEffectComposedProphecy
 from .evaluation import (
     EvaluatedTransition,
     ImaginationTransitionEvaluator,
