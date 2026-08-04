@@ -1,0 +1,88 @@
+{
+  "name": "aassr_v2_effect_imagination_diagnostic",
+  "runner": "autonomous_main",
+  "output_dir": "runs/effect_imagination_diagnostic",
+  "seeds": [7, 13, 21, 42, 100],
+  "train_episodes": 500,
+  "eval_episodes": 100,
+  "evaluation_modes": ["seen", "unseen"],
+  "execution": {
+    "workers": 0,
+    "cuda_workers": 1,
+    "device": "cpu",
+    "allow_cpu_fallback": true
+  },
+  "progress": {
+    "every_episodes": 50,
+    "every_seconds": 5
+  },
+  "environments": [
+    {
+      "name": "opaque_dependency_l4",
+      "length": 4,
+      "seed_offset": 4100,
+      "eval_seed_offset": 4104100,
+      "train_worlds_per_seed": 8,
+      "eval_worlds_per_seed": 32
+    },
+    {
+      "name": "opaque_dependency_l6",
+      "length": 6,
+      "seed_offset": 6100,
+      "eval_seed_offset": 6106100,
+      "train_worlds_per_seed": 8,
+      "eval_worlds_per_seed": 32
+    }
+  ],
+  "conditions": [
+    {
+      "name": "contextual_policy",
+      "algorithm": "contextual_policy",
+      "model": "tabular",
+      "learn_policy": true,
+      "learn_prophecy": false,
+      "use_imagination": false,
+      "use_effect_composition": false,
+      "validated_gain_weight": 0.0
+    },
+    {
+      "name": "effect_prophecy_no_imagination",
+      "algorithm": "aassr",
+      "model": "tabular",
+      "learn_policy": true,
+      "learn_prophecy": true,
+      "use_imagination": false,
+      "use_effect_composition": true,
+      "effect_minimum_samples": 2,
+      "validated_gain_weight": 0.2,
+      "minimum_holdout_count": 4
+    },
+    {
+      "name": "legacy_snapshot_imagination",
+      "algorithm": "aassr",
+      "model": "tabular",
+      "learn_policy": true,
+      "learn_prophecy": true,
+      "use_imagination": true,
+      "use_effect_composition": false,
+      "imagination_minimum_coverage": 0.35,
+      "imagination_interval": 1,
+      "validated_gain_weight": 0.2,
+      "minimum_holdout_count": 4
+    },
+    {
+      "name": "full_effect_imagination",
+      "algorithm": "aassr",
+      "model": "tabular",
+      "learn_policy": true,
+      "learn_prophecy": true,
+      "use_imagination": true,
+      "use_effect_composition": true,
+      "effect_minimum_samples": 2,
+      "imagination_minimum_coverage": 0.35,
+      "imagination_interval": 1,
+      "validated_gain_weight": 0.2,
+      "minimum_holdout_count": 4
+    }
+  ]
+}
