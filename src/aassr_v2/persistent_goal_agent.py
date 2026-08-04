@@ -3,9 +3,9 @@ from __future__ import annotations
 from .autonomous_agent_core import ActionDecision
 from .goal_gridpush_experiment import (
     GoalExecutor,
-    GoalGridPushStep,
     GoalProposal,
     GoalSeparatedAgent,
+    GridPushStep,
     ImaginedGoalMaker,
 )
 from .types import Action, StateSnapshot
@@ -14,11 +14,11 @@ from .types import Action, StateSnapshot
 class PersistentGoalSeparatedAgent(GoalSeparatedAgent):
     """Separate GOAL creation from execution and keep one GOAL across steps.
 
-    The Maker runs only when there is no active GOAL.  The Executor then works
+    The Maker runs only when there is no active GOAL. The Executor then works
     on that GOAL until the imagined target state is reached, the episode ends,
-    or repeated execution fails to make the GOAL reachable within a small
-    number of reality steps.  This both matches the intended Maker/Executor
-    separation and prevents rebuilding a different GOAL every tick.
+    or repeated execution fails to reach it within a small number of reality
+    steps. This matches the intended Maker/Executor separation and avoids
+    rebuilding a different GOAL every tick.
     """
 
     def __init__(self, seed: int, *, maximum_goal_age: int = 6) -> None:
@@ -162,7 +162,7 @@ class PersistentGoalSeparatedAgent(GoalSeparatedAgent):
         self,
         before: StateSnapshot,
         action: Action,
-        outcome: GoalGridPushStep,
+        outcome: GridPushStep,
     ) -> object:
         metrics = self.base.observe(before, action, outcome)
         if self.active_goal is not None:
