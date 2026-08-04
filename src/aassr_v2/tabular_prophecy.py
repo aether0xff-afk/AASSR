@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from typing import Iterable
 
+from .empirical_confidence import empirical_confidence
 from .types import Action, Prediction, StateSnapshot
 
 
@@ -53,10 +54,20 @@ class TabularProphecy:
         self._global[action.verb_name][next_fingerprint] += 1
 
     def confidence(self, state: StateSnapshot, action: Action) -> float:
-        if self._exact.get(self._key(state, action)):
-            return 1.0
-        if self._global.get(action.verb_name):
-            return 0.5
+        exact = self._exact.get(self._key(state, action))
+        if exact:
+            return empirical_confidence(
+                exact.values(),
+                prior_strength=4.0,
+                tier=1.0,
+            )
+        family = self._global.get(action.verb_name)
+        if family:
+            return empirical_confidence(
+                family.values(),
+                prior_strength=8.0,
+                tier=0.5,
+            )
         return 0.0
 
     def coverage(
