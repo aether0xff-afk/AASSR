@@ -186,6 +186,9 @@ def _agent_config(
         imagination_beam_width=int(
             condition.get("imagination_beam_width", 32)
         ),
+        imagination_outcome_samples=int(
+            condition.get("imagination_outcome_samples", 2)
+        ),
         imagination_minimum_coverage=float(
             condition.get("imagination_minimum_coverage", 0.35)
         ),
@@ -214,7 +217,7 @@ def _agent_config(
             condition.get("imagination_interval", 1)
         ),
         imagination_aggregation=str(
-            condition.get("imagination_aggregation", "max")
+            condition.get("imagination_aggregation", "risk-adjusted")
         ),
         effect_novelty_weight=float(
             condition.get("effect_novelty_weight", 0.0)

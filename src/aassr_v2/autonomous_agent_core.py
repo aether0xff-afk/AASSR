@@ -223,6 +223,7 @@ class AutonomousAgentConfig:
     imagination_depth: int = 8
     imagination_branching_factor: int = 2
     imagination_beam_width: int = 32
+    imagination_outcome_samples: int = 2
     imagination_minimum_coverage: float = 0.35
     imagination_intervention_margin: float = 0.05
     imagination_uncertainty_margin: float = 0.40
@@ -234,7 +235,7 @@ class AutonomousAgentConfig:
     holdout_evaluation_limit: int = 32
     validation_interval: int = 8
     imagination_interval: int = 1
-    imagination_aggregation: str = "max"
+    imagination_aggregation: str = "risk-adjusted"
     effect_novelty_weight: float = 0.0
     extrinsic_reward_weight: float = 1.0
     use_effect_composition: bool = True
@@ -249,6 +250,8 @@ class AutonomousAgentConfig:
             raise ValueError("epsilon_decay_episodes must be positive")
         if self.imagination_depth <= 0:
             raise ValueError("imagination_depth must be positive")
+        if self.imagination_outcome_samples <= 0:
+            raise ValueError("imagination_outcome_samples must be positive")
         if self.holdout_evaluation_limit <= 0:
             raise ValueError("holdout_evaluation_limit must be positive")
         if self.validation_interval <= 0 or self.imagination_interval <= 0:
@@ -373,7 +376,7 @@ class AutonomousLearningAgent:
                 branching_factor=self.config.imagination_branching_factor,
                 maximum_depth=self.config.imagination_depth,
                 beam_width=self.config.imagination_beam_width,
-                outcome_samples=1,
+                outcome_samples=self.config.imagination_outcome_samples,
                 minimum_path_confidence=0.1,
                 uncertainty_penalty=0.2,
                 aggregation=(
