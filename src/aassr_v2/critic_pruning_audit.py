@@ -12,32 +12,121 @@ from .imagination_tree import StateDeltaScorer
 from .types import StateSnapshot
 
 
-def _critic_predictions(critic: Any, episodes: Sequence[EpisodeRecord]) -> dict[str, float]:
-    values, targets = [], []
-    for episode in episodes:
-        memory = critic.initial_memory()
-        for transition in episode.transitions:
-            step = critic.score_step(
-                transition.before, transition.action, transition.after,
-                memory=memory, prophecy_confidence=1.0,
-            )
-            memory = step.memory
-            values.append(step.value)
-            targets.append(float(episode.success))
+def _binary_auc(values: Sequence[float], targets: Sequence[float]) -> float | None:
+    positives = sum(bool(value) for value in targets)
+    negatives = len(targets) - positives
+    if not positives or not negatives:
+        return None
+    ordered = sorted(
+        enumerate(values),
+        key=lambda item: (item[1], item[0]),
+    )
+    ranks = [0.0] * len(ordered)
+    index = 0
+    while index < len(ordered):
+        end = index + 1
+        while end < len(ordered) and ordered[end][1] == ordered[index][1]:
+            end += 1
+        average_rank = ((index + 1) + end) / 2.0
+        for position in range(index, end):
+            ranks[ordered[position][0]] = average_rank
+        index = end
+    positive_rank_sum = sum(
+        rank for rank, target in zip(ranks, targets, strict=True) if target
+    )
+    return (
+        positive_rank_sum - positives * (positives + 1) / 2.0
+    ) / (positives * negatives)
+
+
+def _classification_summary(
+    values: Sequence[float], targets: Sequence[float]
+) -> dict[str, float | int | None]:
     if not values:
-        return {"count": 0, "accuracy": 0.0, "brier": 0.0}
+        return {
+            "count": 0,
+            "accuracy": 0.0,
+            "balanced_accuracy": None,
+            "ranking_auc": None,
+            "brier": 0.0,
+            "positive_rate": 0.0,
+            "mean_prediction": 0.0,
+            "mean_positive_prediction": None,
+            "mean_negative_prediction": None,
+        }
+    positive_values = [
+        value for value, target in zip(values, targets, strict=True) if target
+    ]
+    negative_values = [
+        value for value, target in zip(values, targets, strict=True) if not target
+    ]
+    true_positive_rate = (
+        fmean(float(value >= 0.5) for value in positive_values)
+        if positive_values else None
+    )
+    true_negative_rate = (
+        fmean(float(value < 0.5) for value in negative_values)
+        if negative_values else None
+    )
+    balanced = (
+        (true_positive_rate + true_negative_rate) / 2.0
+        if true_positive_rate is not None and true_negative_rate is not None
+        else None
+    )
     return {
         "count": len(values),
         "accuracy": fmean(
             float((value >= 0.5) == bool(target))
             for value, target in zip(values, targets, strict=True)
         ),
+        "balanced_accuracy": balanced,
+        "ranking_auc": _binary_auc(values, targets),
         "brier": fmean(
             (value - target) ** 2
             for value, target in zip(values, targets, strict=True)
         ),
-        "mean_prediction": fmean(values),
         "positive_rate": fmean(targets),
+        "mean_prediction": fmean(values),
+        "mean_positive_prediction": (
+            fmean(positive_values) if positive_values else None
+        ),
+        "mean_negative_prediction": (
+            fmean(negative_values) if negative_values else None
+        ),
+    }
+
+
+def _critic_predictions(critic: Any, episodes: Sequence[EpisodeRecord]) -> dict[str, Any]:
+    all_values, all_targets = [], []
+    nonterminal_values, nonterminal_targets = [], []
+    final_values, final_targets = [], []
+    for episode in episodes:
+        memory = critic.initial_memory()
+        for index, transition in enumerate(episode.transitions):
+            step = critic.score_step(
+                transition.before, transition.action, transition.after,
+                memory=memory, prophecy_confidence=1.0,
+            )
+            memory = step.memory
+            target = float(episode.success)
+            all_values.append(step.value)
+            all_targets.append(target)
+            if index + 1 == len(episode.transitions):
+                final_values.append(step.value)
+                final_targets.append(target)
+            else:
+                nonterminal_values.append(step.value)
+                nonterminal_targets.append(target)
+    return {
+        "episode_count": len(episodes),
+        "episode_success_rate": (
+            fmean(float(item.success) for item in episodes) if episodes else 0.0
+        ),
+        "all_prefixes": _classification_summary(all_values, all_targets),
+        "nonterminal_prefixes": _classification_summary(
+            nonterminal_values, nonterminal_targets
+        ),
+        "final_transitions": _classification_summary(final_values, final_targets),
     }
 
 

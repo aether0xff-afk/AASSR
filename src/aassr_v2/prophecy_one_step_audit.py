@@ -49,6 +49,8 @@ def evaluate_one_step(
         "mae": 0.0,
         "raw_mae": 0.0,
         "raw_count": 0,
+        "core_mae": 0.0,
+        "core_vector": 0,
         "vector": 0,
         "facts": 0,
         "actions": 0,
@@ -80,6 +82,16 @@ def evaluate_one_step(
             else:
                 predictions = model.predict(item.before, item.action, samples=1)
             predicted = _representative(predictions)
+            core_left = tuple(float(value) for value in predicted.vector)
+            core_right = tuple(float(value) for value in item.after.vector)
+            core_mae = fmean(
+                abs(a - b)
+                for a, b in zip(core_left, core_right, strict=True)
+            )
+            core_vector = all(
+                math.isclose(a, b, abs_tol=1e-6)
+                for a, b in zip(core_left, core_right, strict=True)
+            )
             left, right = codec.encode(predicted), codec.encode(item.after)
             mae = fmean(abs(a - b) for a, b in zip(left, right, strict=True))
             vector = all(
@@ -97,6 +109,8 @@ def evaluate_one_step(
             full = vector and facts and actions and terminal and goal
             totals["count"] += 1
             totals["mae"] += mae
+            totals["core_mae"] += core_mae
+            totals["core_vector"] += int(core_vector)
             totals["vector"] += int(vector)
             totals["facts"] += int(facts)
             totals["actions"] += int(actions)
@@ -110,6 +124,8 @@ def evaluate_one_step(
     return {
         "count": totals["count"],
         "vector_mae": totals["mae"] / count,
+        "core_vector_mae": totals["core_mae"] / count,
+        "core_vector_exact_rate": totals["core_vector"] / count,
         "raw_numeric_output_mae": (
             totals["raw_mae"] / totals["raw_count"]
             if totals["raw_count"] else None
@@ -120,6 +136,10 @@ def evaluate_one_step(
         "terminal_accuracy": totals["terminal"] / count,
         "goal_exact_rate": totals["goal"] / count,
         "full_state_exact_rate": totals["full"] / count,
+        "transition_counts": {
+            name: total
+            for name, (_, total) in sorted(by_kind.items())
+        },
         "full_state_exact_by_transition": {
             name: matches / max(1, total)
             for name, (matches, total) in sorted(by_kind.items())

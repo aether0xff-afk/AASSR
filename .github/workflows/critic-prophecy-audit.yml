@@ -39,13 +39,13 @@ jobs:
             --output runs/critic_prophecy_smoke \
             --seed 7 \
             --train-map-count 8 \
-            --unseen-map-count 8 \
+            --unseen-map-count 16 \
             --behavior-train-episodes 1000 \
             --critic-train-episodes 400 \
             --critic-eval-episodes 100 \
             --prophecy-train-episodes 600 \
             --prophecy-eval-episodes 100 \
-            --pruning-depth 5 \
+            --pruning-depth 16 \
             --pruning-beam-width 4
       - uses: actions/upload-artifact@v4
         with:
