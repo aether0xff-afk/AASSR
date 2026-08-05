@@ -79,7 +79,14 @@ jobs:
             "scope>=0.4.4" \
             tqdm
           python -m pip install -e ./dreamerv3-upstream --no-deps
-          python -m pip check
+          python - <<'PY'
+          import dreamerv3
+          import embodied
+          import elements
+          import jax
+          from aassr_v2.dreamerv3_gridpush_env import DreamerV3GridPushEnv
+          print('DreamerV3 import OK', jax.__version__, DreamerV3GridPushEnv)
+          PY
 
       - name: Train official DreamerV3 size1m
         shell: bash
