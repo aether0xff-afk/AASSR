@@ -1,167 +1,218 @@
-# AASSR 최종 테스트 계획: 환경 복잡도 스케일링
+# AASSR 최종 테스트: frozen strict GridPush 복잡도 스케일링
 
-## 1. 목적
+## 1. 결정 상태
 
-현재 Imagination v2는 기존 AASSR보다 높은 성능을 보였지만, 단순 GridPush 조건에서는 동일 Policy-only 및 DQN 대비 상상 모듈 자체의 우위가 충분히 확정되지 않았다.
+이 문서는 최종 실험 시작 전 고정한 프로토콜이다.
 
-최종 테스트의 목적은 단순히 한 환경에서 최고 성공률을 얻는 것이 아니라, 환경의 구조적 복잡도가 증가할 때 AASSR 계열과 DQN의 성능이 어떻게 달라지는지 측정하는 것이다.
+- 포기 기능: **제외**
+- 고정 tick/step 제한: **사용하지 않음**
+- 에피소드 종료: 성공 또는 환경 자체의 비가역 실패
+- 외부 보상: 최종 성공 시 `1`, 그 외 `0`
+- 환경 규칙: 기존 strict `BenchmarkGridPushWorld`를 수정하지 않음
+- 주 평가 split: 처음 보는 unseen 맵
+- 독립 반복 단위: episode가 아니라 **seed**
+
+포기 smoke에서 현재 Critic의 낮은 출력은 상태의 회복 불가능성을 의미하지 않았고, 해결 가능한 상태를 대량으로 조기 포기했다. 따라서 포기 임계값을 조정해 최종 실험에 넣지 않는다.
 
 ## 2. 주가설
 
-다음 가설을 최종 검증 대상으로 둔다.
+> frozen strict GridPush 안에서 맵의 구조적 복잡도가 증가할수록 DQN의 성공률이 더 빠르게 감소하여 `Imagination v2 − DQN`의 상대 성공률 차이가 AASSR에 유리한 방향으로 증가한다.
 
-> KPDE 복잡도가 증가함에 따라 모든 모델의 절대 성공률은 감소할 수 있지만, DQN의 성공률이 더 빠르게 감소하여 AASSR 계열과 DQN의 상대적 성능 차이가 AASSR에 유리한 방향으로 변할 것이다.
-
-따라서 `복잡할수록 AASSR의 절대 성공률이 증가한다`고 가정하지 않는다. 핵심 종속변수는 복잡도에 따른 상대 성능 변화다.
+절대 성공률이 복잡도와 함께 증가한다는 가설은 사용하지 않는다.
 
 ```text
-상대 우위(level) = AASSR 성공률(level) - DQN 성공률(level)
+Delta(seed, level)
+= success_rate(Imagination v2, seed, level)
+- success_rate(DQN, seed, level)
 ```
+
+주 검정량은 각 seed에서 Level 1~5에 대한 `Delta`의 선형 기울기다.
 
 ## 3. 보조가설
 
-> 낮은 복잡도에서는 Imagination v2가 동일 Policy-only보다 이점이 없거나 비용만 증가시킬 수 있지만, 긴 의존 구조·부분관측·지식 재사용·비가역 선택이 필요한 환경에서는 Imagination v2가 Policy-only보다 높은 성공률을 보일 것이다.
+> 복잡도가 증가할수록 `Imagination v2 − Neural Policy-only`의 상대 성공률 차이도 증가한다.
 
-이 가설이 지지될 경우, 상상 모듈이 필요한 환경 조건을 구체적으로 제시할 수 있다.
+이 검정은 같은 neural Policy와 Neural Delta Prophecy를 쓰면서 Imagination의 추가 효과가 복잡도에 따라 달라지는지 본다.
 
-## 4. 비교 조건
+## 4. 환경을 새로 만들지 않는 이유
 
-최소 비교 조건은 다음 네 개로 고정한다.
+복잡도 가설을 확인하기 위해 최종 결과 직전에 AASSR에 유리한 새 규칙을 추가하면 사후 환경 설계라는 비판을 피하기 어렵다.
+
+따라서 환경의 행동 공간, 관측 표현, 보상, 단계 구조, 비가역 실패 규칙은 동결한다. 복잡도 Level은 동일한 procedural generator가 만든 맵의 실제 상태 그래프만 분석해 나눈다. 에이전트 성공률은 Level 결정에 사용하지 않는다.
+
+이 선택은 KPDE의 모든 요소를 독립적으로 조작하는 실험보다 범위가 좁지만, 현재 최종 환경에서 복잡도와 상대 성능의 관계를 가장 덜 편향되게 검정한다.
+
+## 5. 맵 복잡도 원시 지표
+
+각 solvable map의 전체 도달 가능 상태 그래프를 BFS로 열거하고 다음 값을 저장한다.
+
+1. `oracle_shortest_steps`
+   - 정확한 최단 성공 행동 수 `L*`
+2. `irreversible_failure_ratio`
+   - 도달 가능한 비종료 상태에서 선택 가능한 모든 행동 중 즉시 실패 terminal로 가는 비율
+3. `reachable_nonterminal_states`
+   - 도달 가능한 고유 비종료 상태 수
+4. `max_graph_depth`
+   - 초기 상태에서 도달 가능한 상태 그래프의 최대 깊이
+5. `mean_nonfailure_actions`
+   - 상태당 실패하지 않는 평균 행동 수
+6. `success_edge_ratio`
+   - 전체 검사 행동 중 성공 terminal로 직접 이어지는 비율
+
+Level 정렬은 다음 사전 고정된 lexicographic 순서를 쓴다.
+
+```text
+oracle_shortest_steps
+→ irreversible_failure_ratio
+→ reachable_nonterminal_states
+→ max_graph_depth
+```
+
+가중합 점수를 주 결과에 사용하지 않는다.
+
+## 6. Level 1~5 구성
+
+각 research seed마다 학습용과 unseen 평가용으로 완전히 분리된 map-seed 범위를 사용한다.
+
+1. 필요한 맵 수의 3배를 solvable map 후보로 수집한다.
+2. 위 구조적 순서로 정렬한다.
+3. 정렬된 후보를 동일 크기의 5개 분위로 분할한다.
+4. 각 분위에서 고정 난수로 필요한 수만 선택한다.
+
+따라서 Level 1은 해당 seed 후보군의 가장 단순한 20%, Level 5는 가장 복잡한 20%다. 모든 비교 조건은 동일 seed에서 정확히 같은 맵 manifest를 사용한다.
+
+Level별 원시 지표 평균을 결과에 함께 기록해 실제로 난이도 지표가 증가했는지 확인한다.
+
+## 7. 비교 조건
+
+최종 비교는 네 조건으로 고정한다.
 
 1. `DQN`
 2. `Legacy AASSR`
 3. `Neural Policy-only`
 4. `Imagination v2`
 
-필요한 경우 Oracle은 환경 난이도와 최단 경로 계산을 위한 평가 도구로만 사용하며, 에이전트 학습이나 행동 선택에는 사용하지 않는다.
+Oracle은 다음 용도로만 사용한다.
 
-## 5. 환경 복잡도의 정의
+- solvable map 선별
+- 최단 성공 길이 계산
+- 맵 복잡도 기록
+- 성공 경로 효율 계산
 
-복잡도는 단순 맵 크기나 장애물 수가 아니라 AASSR이 대상으로 하는 KPDE 구조를 기준으로 측정한다.
+Oracle 정보는 에이전트의 학습 입력, 보상, 행동 선택, Imagination scorer에 들어가지 않는다.
 
-### 5.1 의존 깊이
+## 8. 학습 및 평가 규모
 
-성공을 위해 순서대로 만족해야 하는 필수 상태 변화 또는 행동 단계의 수.
+### 독립 seed
 
-예:
-
-```text
-관찰 → 정보 획득 → 자원 이동 → 경로 생성 → 열쇠 획득 → 문 개방 → 목표 도달
-```
-
-### 5.2 선택 분기 부담
-
-각 상태에서 가능한 행동 중 실제 진행에 기여하지 않거나 실패를 유발하는 행동이 차지하는 비율 및 누적 선택 수.
-
-### 5.3 부분관측 부담
-
-현재 관측만으로는 올바른 행동을 결정할 수 없고, 과거에 얻은 정보 또는 이전 상태 변화를 기억해야 하는 정도.
-
-### 5.4 지식-행동 결합 부담
-
-관찰로 얻은 지식을 이후 행동 선택 또는 행동 파라미터에 재사용해야 하는 횟수와 종류.
-
-### 5.5 비가역 실패 위험
-
-잘못된 행동 한 번으로 성공 불가능한 상태가 되거나, 복구 비용이 매우 커지는 상태의 비율.
-
-## 6. 복잡도 수준
-
-환경 생성기의 파라미터를 이용해 최소 5단계의 복잡도 수준을 만든다.
-
-| 수준 | 구조적 특징 |
-|---|---|
-| Level 1 | 짧은 의존 구조, 완전관측에 가까움, 실패 복구 가능 |
-| Level 2 | 의존 단계 증가, 방해 행동과 분기 증가 |
-| Level 3 | 과거 정보 기억 및 단일 지식-행동 결합 필요 |
-| Level 4 | 복수 지식 결합, 부분관측 증가, 비가역 실패 등장 |
-| Level 5 | 긴 의존 구조, 복수 지식 재사용, 높은 분기와 비가역 위험 |
-
-각 Level은 손으로 정답 맵을 만드는 방식이 아니라 동일한 절차적 생성 규칙과 공개된 생성 파라미터로 만들어야 한다.
-
-## 7. 복잡도 기록 방식
-
-복잡도를 하나의 합성 점수로만 표현하지 않는다. 각 맵에 대해 다음 원시값을 모두 저장한다.
-
-- 필수 의존 깊이
-- 평균/최대 행동 분기 수
-- 부분관측 정보 항목 수와 기억 유지 길이
-- 지식-행동 결합 수
-- 비가역 실패 상태 또는 행동 비율
-- Oracle 최단 성공 경로 길이
-- 전체 도달 가능 상태 수 또는 근사값
-
-그래프의 x축에는 사전 정의된 `Level 1~5`를 사용하고, 표와 부록에 원시 복잡도 지표를 함께 제시한다.
-
-가중 평균 복잡도 점수는 보조 분석에만 사용할 수 있으며, 주 결과로 사용하지 않는다.
-
-## 8. 성공 평가와 행동 예산 문제
-
-모든 맵에 동일한 고정 스텝 제한을 적용하면 최단 경로가 긴 고복잡도 환경에 불리하다. 반대로 제한을 완전히 제거하면 반복 행동으로 실험이 종료되지 않을 수 있다.
-
-기존 후보 방식은 각 맵의 Oracle 최단 경로 길이 `L*`에 비례한 행동 예산을 사용하는 것이다.
+총 20개다.
 
 ```text
-2L*, 4L*, 8L*, 16L*
+7, 13, 21, 42, 100,
+131, 173, 211, 257, 307,
+353, 401, 457, 503, 557,
+601, 653, 701, 751, 809
 ```
 
-각 예산에서의 성공률 곡선을 기록하고, 성공한 경우 실제 스텝 수를 `L*`로 나눈 경로 비효율도 함께 기록한다.
+### 학습
 
-다만 이 방식은 최종 확정하지 않는다. 에이전트가 스스로 `ABANDON/GIVE_UP`을 선택해 에피소드를 종료하는 자기 포기 메커니즘을 대안으로 검토한다.
+- 조건당 seed별 실제 환경 transition budget: `20,000`
+- Level별 training maps: `32`
+- 전체 training maps: `160`
+- 각 Level이 균형 있게 반복되도록 training sequence 구성
+- checkpoint transition: `0, 2,500, 5,000, 10,000, 20,000`
 
-## 9. 자기 포기 메커니즘 검토 항목
+환경 transition budget 도달 도중 episode를 인위적으로 끊지 않는다. 현재 episode가 환경 자체로 종료될 때까지 진행하므로 마지막 checkpoint에는 짧은 overshoot가 생길 수 있고 이를 별도 기록한다.
 
-스텝 제한 대신 에이전트가 스스로 포기하게 만들 경우 다음 원칙을 만족해야 한다.
+### 탐색률 공정성
 
-- DQN과 AASSR 모두 동일한 포기 권한을 가져야 한다.
-- 포기는 명시적인 실패/중단 결과로 기록한다.
-- 빠른 포기로 성공률을 인위적으로 높일 수 없도록 분모와 상호작용 예산을 명확히 정의한다.
-- 실험 무한 실행 방지를 위한 매우 큰 시스템 안전 상한은 별도로 유지하되, 일반적인 성능 제한으로 사용하지 않는다.
-- 포기 판단에 목표 거리, 정답 경로, 물체 중요도 등 Oracle 정보를 입력하지 않는다.
-- 포기 모델이 예측하는 대상이 `상태의 객관적 해결 가능성`인지 `현재 Policy가 계속했을 때의 성공 가능성`인지 명확히 구분한다.
+기존 러너는 epsilon을 episode 수에 따라 줄였지만, 알고리즘마다 episode 길이가 달라 실제 상호작용량이 달라졌다.
 
-자기 포기 메커니즘의 구체적 설계는 최종 실험 시작 전에 별도 결정 기록으로 확정한다.
+최종 러너는 정책에 전달되는 학습 진행도를 완료된 real transition 수로 바꾼다. 따라서 DQN과 AASSR 계열 모두 같은 transition 진행률에서 같은 exploration schedule 위치를 갖는다.
 
-## 10. 핵심 평가 지표
+### 평가
 
-- seen/unseen 맵 성공률
-- 복잡도 Level별 성공률
-- DQN 대비 상대 성공률 차이
-- Policy-only 대비 Imagination v2의 상대 성공률 차이
-- 성공까지 사용한 실제 환경 스텝 수
-- Oracle 최단 경로 대비 경로 비효율
-- 전체 환경 상호작용 예산당 성공 수
-- 행동 선택 및 학습 계산 시간
-- Prophecy one-step 정확도
-- Imagination 실행 횟수
-- Imagination의 행동 변경 횟수
-- 행동 변경의 사후 correction/harm/neutral 비율
-- 포기 기능 사용 시 포기율, 포기 시점, 잘못된 조기 포기율
+각 checkpoint와 Level에서:
 
-## 11. 공정성 규칙
+- seen: `100 episodes`
+- unseen: `100 unique maps`
 
-- 모든 모델은 동일한 학습 맵, 평가 맵, seed 및 실제 환경 상호작용 예산을 사용한다.
-- 복잡도별로 모델 하이퍼파라미터를 다시 튜닝하지 않는다.
-- 최종 테스트 전에 코드, 생성기, 지표, seed, 예산을 동결한다.
-- 최종 결과를 본 뒤 모델을 수정하면 기존 결과를 덮어쓰지 않고 별도 후속 실험으로 기록한다.
-- Oracle은 평가와 진단에만 사용한다.
-- 상상용 난수, Policy 탐색용 난수, 환경 생성 난수를 분리한다.
+최종 checkpoint 기준 조건당 총 unseen 평가 episode는 seed별 `500`, 전체 20 seeds에서 `10,000`이다.
 
-## 12. 예정 출력
+## 9. 주 통계 검정
 
-- 복잡도 Level별 성공률 곡선
-- `Imagination v2 - DQN` 성능 차이 곡선
-- `Imagination v2 - Policy-only` 성능 차이 곡선
-- 행동 예산 또는 자기 포기 방식에 따른 성공/중단 곡선
-- 복잡도별 Prophecy 정확도와 상상 개입 효과
-- 계산 비용과 환경 상호작용 효율 비교
-- 인간 개입 항목 및 한계 표
+주 평가 split은 unseen이다.
 
-## 13. 현재 상태
+1. 각 seed·Level·조건의 성공률을 먼저 계산한다.
+2. 각 seed·Level에서 `Imagination v2 − DQN` 차이를 계산한다.
+3. 각 seed의 Level 1~5 차이에 선형 기울기를 적합한다.
+4. 20개 seed 기울기의 평균과 seed bootstrap 95% CI를 계산한다.
+5. 기울기가 0보다 큰지 one-sided Wilcoxon signed-rank test를 수행한다.
 
-이 문서는 최종 실험의 사전 계획 문서다. 아직 최종 실험은 시작하지 않았으며, 특히 에피소드 종료 규칙은 다음 두 후보 중 하나로 확정해야 한다.
+가설 지지 기준은 다음 두 조건을 모두 만족하는 경우다.
 
-1. Oracle 최단 경로에 비례한 다중 행동 예산
-2. 에이전트의 자기 포기 + 별도 시스템 안전 상한
+```text
+seed-bootstrap 95% CI lower bound > 0
+AND
+one-sided Wilcoxon p < 0.05
+```
 
-에피소드 종료 규칙을 확정한 뒤 최종 테스트 설정을 동결한다.
+episode 수천 개를 독립 표본으로 취급하지 않는다.
+
+## 10. Level별 보조 분석
+
+- 조건별 seed 평균 성공률과 seed-bootstrap 95% CI
+- Level별 `Imagination v2 − DQN` paired difference
+- Level별 `Imagination v2 − Neural Policy-only` paired difference
+- 동일 seed·동일 unseen map의 McNemar exact test
+- 5개 Level McNemar p-value에 Holm 보정
+- 평균 상대 차이가 처음 0 이상이 되는 crossover Level
+- CI가 0보다 완전히 큰 Level
+- seen 결과와 학습곡선은 보조 결과로 분리
+
+## 11. 기록 지표
+
+### episode 단위
+
+- condition, seed, split, Level, map seed
+- success, reward, steps, `L*`, path efficiency
+- real transition 누계
+- action selection/update 시간
+- imagined node 수, Imagination 실행 여부
+- 맵 원시 복잡도 지표
+- 종료 원인
+
+### checkpoint 단위
+
+- Level별 seen/unseen 성공률
+- 성공 시 평균 step과 path efficiency
+- Imagination 사용률과 평균 imagined node
+- 학습 episode 수와 실제 transition 수
+- 계산 시간, 모델 크기, gradient update 수
+
+### 최종 출력
+
+- `seed_level_rates.csv`
+- `unseen_success_by_level.csv`
+- `primary_relative_effect.csv`
+- `primary_seed_slopes.csv`
+- `mcnemar_by_level.csv`
+- `complexity_by_level.csv`
+- `hypothesis_test.json`
+- 성공률/상대 우위/seed 기울기 그래프
+- 한국어 최종 결과 보고서
+
+## 12. 해석 범위
+
+이 실험이 지지되면 다음을 말할 수 있다.
+
+> 현재 frozen strict GridPush generator 안에서 구조적으로 복잡한 맵으로 갈수록 Imagination v2의 DQN 대비 상대 성능이 개선됐다.
+
+다음까지 자동으로 증명되지는 않는다.
+
+- 모든 KPDE에서 AASSR이 DQN보다 우수함
+- 부분관측이나 지식-행동 결합이 그 원인임
+- 복잡도가 증가하면 AASSR 절대 성공률이 증가함
+- 계산 효율에서도 AASSR이 우수함
+
+가설이 지지되지 않으면 현재 AASSR 구조의 최종 성능 주장에 그대로 반영하고, 결과를 본 뒤 같은 실험을 덮어쓰는 모델 수정은 하지 않는다.
