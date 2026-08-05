@@ -1,18 +1,6 @@
 name: imagination-v2
 
 on:
-  push:
-    branches:
-      - codex/aassr-v2-imagination-v2
-  pull_request:
-    paths:
-      - "src/aassr_v2/imagination_tree.py"
-      - "src/aassr_v2/imagination_v2.py"
-      - "src/aassr_v2/imagination_v2_experiment.py"
-      - "scripts/run_imagination_v2_experiment.py"
-      - "scripts/aggregate_imagination_v2_results.py"
-      - "tests/test_imagination_v2.py"
-      - ".github/workflows/imagination-v2.yml"
   workflow_dispatch:
 
 jobs:
@@ -47,6 +35,7 @@ jobs:
           - dqn
           - legacy_aassr
           - controlled_legacy
+          - neural_policy_only
           - neural_manual
           - legacy_gru_critic
           - imagination_v2
