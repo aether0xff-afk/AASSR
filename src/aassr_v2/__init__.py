@@ -1,5 +1,27 @@
 """AASSR v2 research package."""
 
+import sys
+import types
+
+
+# ``resource`` is POSIX-only, but several benchmark modules are importable on
+# Windows and use it solely for optional peak-RSS reporting. Install the same
+# zero-valued compatibility module used by baseline_efficiency_portable before
+# any package submodule can import the POSIX module directly.
+if sys.platform == "win32" and "resource" not in sys.modules:
+    resource = types.ModuleType("resource")
+    resource.RUSAGE_SELF = 0
+
+    class _Usage:
+        ru_maxrss = 0.0
+
+    def _getrusage(_: int) -> _Usage:
+        return _Usage()
+
+    resource.getrusage = _getrusage
+    sys.modules["resource"] = resource
+
+
 from .ablations import (
     AblationConfig,
     AblationSummary,
