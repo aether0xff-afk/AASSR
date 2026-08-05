@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from aassr_v2.baseline_efficiency_benchmark import (
+from aassr_v2.baseline_efficiency_portable import (
     run_gridpush_baseline_benchmark,
 )
 
