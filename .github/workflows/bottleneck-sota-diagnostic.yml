@@ -57,6 +57,7 @@ jobs:
             --output runs/smoke_hybrid
 
   diagnostic-matrix:
+    if: github.event_name == 'workflow_dispatch'
     needs: focused-tests
     strategy:
       fail-fast: false
@@ -69,7 +70,6 @@ jobs:
           - hybrid_current_model
           - hybrid_oracle_model
           - hybrid_current_model_oracle_score
-          - hybrid_oracle_model_oracle_score
           - hybrid_oracle_budgeted
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -104,6 +104,7 @@ jobs:
           retention-days: 30
 
   oracle-upper-bound:
+    if: github.event_name == 'workflow_dispatch'
     needs: focused-tests
     strategy:
       fail-fast: false
@@ -138,8 +139,8 @@ jobs:
           retention-days: 30
 
   summarize:
+    if: github.event_name == 'workflow_dispatch' && always()
     needs: [diagnostic-matrix, oracle-upper-bound]
-    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
