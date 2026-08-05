@@ -9,7 +9,7 @@ from typing import Any, Iterable
 
 
 _ELAPSED_PATTERN = re.compile(
-    r"Elapsed \(wall clock\) time .*?:\s*(.+)$"
+    r"Elapsed \(wall clock\) time.*\):\s*([0-9:.]+)\s*$"
 )
 _RSS_PATTERN = re.compile(
     r"Maximum resident set size \(kbytes\):\s*(\d+)"
