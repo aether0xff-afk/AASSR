@@ -47,6 +47,8 @@ def evaluate_one_step(
     totals = {
         "count": 0,
         "mae": 0.0,
+        "raw_mae": 0.0,
+        "raw_count": 0,
         "vector": 0,
         "facts": 0,
         "actions": 0,
@@ -61,6 +63,14 @@ def evaluate_one_step(
             reset()
         memory = getattr(model, "initial_memory", lambda: None)()
         for item in episode.transitions:
+            raw_predict = getattr(model, "predict_vector", None)
+            if callable(raw_predict):
+                raw = raw_predict(item.before, item.action, memory=memory)
+                totals["raw_mae"] += fmean(
+                    abs(a - b)
+                    for a, b in zip(raw, item.after.vector, strict=True)
+                )
+                totals["raw_count"] += 1
             predict_step = getattr(model, "predict_step", None)
             if callable(predict_step):
                 step = predict_step(
@@ -100,6 +110,10 @@ def evaluate_one_step(
     return {
         "count": totals["count"],
         "vector_mae": totals["mae"] / count,
+        "raw_numeric_output_mae": (
+            totals["raw_mae"] / totals["raw_count"]
+            if totals["raw_count"] else None
+        ),
         "vector_exact_rate": totals["vector"] / count,
         "facts_exact_rate": totals["facts"] / count,
         "actions_exact_rate": totals["actions"] / count,

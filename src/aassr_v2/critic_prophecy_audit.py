@@ -32,13 +32,22 @@ def run_audit(output_dir: str | Path, config: AuditConfig | None = None) -> dict
         episodes=config.behavior_train_episodes,
         seed=config.seed,
     )
+    require_mixed_outcomes = config.behavior_train_episodes >= 200
     critic_train = collect_behavior_episodes(
         behavior, train_maps, episodes=config.critic_train_episodes,
         seed=config.seed ^ 0xC17, random_action_rate=0.15,
+        minimum_successes=(
+            max(8, config.critic_train_episodes // 10)
+            if require_mixed_outcomes else 0
+        ),
     )
     critic_eval = collect_behavior_episodes(
         behavior, unseen_maps, episodes=config.critic_eval_episodes,
         seed=config.seed ^ 0xE17, random_action_rate=0.15,
+        minimum_successes=(
+            max(4, config.critic_eval_episodes // 10)
+            if require_mixed_outcomes else 0
+        ),
     )
     critic_results = run_critic_audit(
         critic_train,

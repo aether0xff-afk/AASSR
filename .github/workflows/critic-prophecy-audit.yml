@@ -8,9 +8,6 @@ on:
     paths:
       - "src/aassr_v2/branch_critic.py"
       - "src/aassr_v2/transition_prefix_prophecy.py"
-      - "src/aassr_v2/critic_prophecy_common.py"
-      - "src/aassr_v2/prophecy_one_step_audit.py"
-      - "src/aassr_v2/critic_pruning_audit.py"
       - "src/aassr_v2/critic_prophecy_audit.py"
       - "scripts/run_critic_prophecy_audit.py"
       - "tests/test_critic_prophecy_audit.py"
@@ -41,15 +38,15 @@ jobs:
           python scripts/run_critic_prophecy_audit.py \
             --output runs/critic_prophecy_smoke \
             --seed 7 \
-            --train-map-count 4 \
-            --unseen-map-count 4 \
-            --behavior-train-episodes 80 \
-            --critic-train-episodes 60 \
-            --critic-eval-episodes 20 \
-            --prophecy-train-episodes 80 \
-            --prophecy-eval-episodes 20 \
-            --pruning-depth 3 \
-            --pruning-beam-width 3
+            --train-map-count 8 \
+            --unseen-map-count 8 \
+            --behavior-train-episodes 1000 \
+            --critic-train-episodes 400 \
+            --critic-eval-episodes 100 \
+            --prophecy-train-episodes 600 \
+            --prophecy-eval-episodes 100 \
+            --pruning-depth 5 \
+            --pruning-beam-width 4
       - uses: actions/upload-artifact@v4
         with:
           name: critic-prophecy-smoke-${{ github.sha }}

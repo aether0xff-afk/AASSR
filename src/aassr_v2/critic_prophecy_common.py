@@ -105,9 +105,9 @@ class BenchmarkGridPushVectorCodec:
         values[12] = phase / 6.0
         for index in range(13, 16):
             values[index] = float(values[index] >= 0.5)
-        facts = {fact for fact in scaffold.facts if fact.startswith("used:")}
-        facts.add(f"used:{int(round(values[0] * 2))}:{int(round(values[1] * 2))}")
-        facts.add(f"phase:{phase}")
+        # This ablation deliberately cannot reconstruct used-cell facts.
+        # Copying them from the scaffold would inject a persistence rule.
+        facts = {f"phase:{phase}"}
         if values[13] >= 0.5:
             facts.add("bridge_built")
         if values[14] >= 0.5:
@@ -161,18 +161,37 @@ def collect_behavior_episodes(
     episodes: int,
     seed: int,
     random_action_rate: float = 0.10,
+    minimum_successes: int = 0,
+    maximum_attempt_multiplier: int = 10,
 ) -> tuple[EpisodeRecord, ...]:
+    """Collect actual trajectories, optionally requiring observed successes.
+
+    The collector never uses a shortest path or an oracle action. It only keeps
+    interacting with the real environment until enough naturally observed
+    successes exist or the explicit attempt cap is reached.
+    """
+    if episodes <= 0 or minimum_successes < 0 or maximum_attempt_multiplier <= 0:
+        raise ValueError("collection counts must be valid")
     randomizer = random.Random(seed)
     records = []
-    for episode in range(episodes):
+    successes = 0
+    attempts = 0
+    maximum_attempts = episodes * maximum_attempt_multiplier
+    while (len(records) < episodes or successes < minimum_successes) and attempts < maximum_attempts:
         world = BenchmarkGridPushWorld(randomizer.choice(map_seeds))
+        episode_index = attempts
 
         def choose(state: StateSnapshot) -> Action:
             if randomizer.random() < random_action_rate:
                 return randomizer.choice(state.available_actions)
-            return agent.select_action(state, episode=episode, training=False).action
+            return agent.select_action(
+                state, episode=episode_index, training=False
+            ).action
 
-        records.append(_run_episode(world, choose))
+        record = _run_episode(world, choose)
+        records.append(record)
+        successes += int(record.success)
+        attempts += 1
     return tuple(records)
 
 
