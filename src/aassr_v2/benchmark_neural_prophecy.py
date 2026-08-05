@@ -1,18 +1,15 @@
 from __future__ import annotations
 
 import io
-import json
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass, replace
 from typing import Sequence
 
-from .autonomous_agent_core import AutonomousAgentConfig, AutonomousLearningAgent
 from .baseline_efficiency_benchmark import (
     CHOICE_ACTIONS,
     BenchmarkGridPushWorld,
     encode_gridpush_state,
 )
 from .bottleneck_sota_diagnostic import (
-    DQNPolicyAdapter,
     HybridDQNImaginationAgent,
     _current_scorer,
 )
@@ -52,8 +49,7 @@ class BenchmarkGridPushCodec(StateCodec):
         values = [self._bounded(value) for value in encoded]
         # The public observation schema has normalized coordinates, a 0..6
         # phase, three binary flags, and nine binary used-cell indicators.
-        coordinate_indexes = range(12)
-        for index in coordinate_indexes:
+        for index in range(12):
             values[index] = round(values[index] * 2.0) / 2.0
         phase = min(6, max(0, int(round(values[12] * 6.0))))
         values[12] = phase / 6.0
@@ -140,7 +136,10 @@ class NeuralProphecyHybridAgent(HybridDQNImaginationAgent):
         # Neural confidence already represents data support and ensemble
         # disagreement. Requiring minimum coverage prevents early hallucinated
         # rollouts without disabling imagination after the model becomes useful.
-        self.agent.config.imagination_minimum_coverage = 0.30
+        self.agent.config = replace(
+            self.agent.config,
+            imagination_minimum_coverage=0.30,
+        )
         self.adaptive = bool(adaptive)
         self._original_depth = self.agent.planner.config.maximum_depth
 
@@ -171,8 +170,6 @@ class NeuralProphecyHybridAgent(HybridDQNImaginationAgent):
         else:
             depth = self._original_depth
         original = self.agent.planner.config
-        from dataclasses import replace
-
         self.agent.planner.config = replace(original, maximum_depth=depth)
         try:
             return super().select_action(
