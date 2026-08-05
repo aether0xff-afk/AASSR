@@ -5,6 +5,7 @@ on:
     branches: [aassr-v2]
     paths:
       - "src/aassr_v2/baseline_efficiency_benchmark.py"
+      - "src/aassr_v2/baseline_efficiency_portable.py"
       - "scripts/run_baseline_efficiency_benchmark.py"
       - "tests/test_baseline_efficiency_benchmark.py"
       - ".github/workflows/baseline-efficiency-benchmark.yml"
@@ -20,8 +21,8 @@ on:
         default: "50"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.sha }}
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   focused-tests:
