@@ -103,15 +103,15 @@ jobs:
               --logdir "runs/dreamerv3_${{ matrix.seed }}/train" \
               --jax.platform cpu \
               --jax.compute_dtype float32 \
-              --jax.prealloc false \
+              --jax.prealloc False \
               --run.envs 1 \
               --run.steps "$TRAIN_STEPS" \
               --run.train_ratio 32 \
               --run.log_every 30 \
               --run.report_every 300 \
               --run.save_every 1 \
-              --run.debug true \
-              --run.usage.nvsmi false \
+              --run.debug True \
+              --run.usage.nvsmi False \
               --batch_size 8 \
               --batch_length 16 \
               --report_length 16 \
@@ -132,13 +132,13 @@ jobs:
               --logdir "runs/dreamerv3_${{ matrix.seed }}/seen" \
               --jax.platform cpu \
               --jax.compute_dtype float32 \
-              --jax.prealloc false \
+              --jax.prealloc False \
               --run.envs 1 \
               --run.steps 1000000 \
               --run.from_checkpoint "runs/dreamerv3_${{ matrix.seed }}/train/ckpt" \
               --run.log_every 30 \
-              --run.debug true \
-              --run.usage.nvsmi false \
+              --run.debug True \
+              --run.usage.nvsmi False \
               --batch_size 8 \
               --batch_length 16 \
               --report_length 16 \
@@ -159,13 +159,13 @@ jobs:
               --logdir "runs/dreamerv3_${{ matrix.seed }}/unseen" \
               --jax.platform cpu \
               --jax.compute_dtype float32 \
-              --jax.prealloc false \
+              --jax.prealloc False \
               --run.envs 1 \
               --run.steps 1000000 \
               --run.from_checkpoint "runs/dreamerv3_${{ matrix.seed }}/train/ckpt" \
               --run.log_every 30 \
-              --run.debug true \
-              --run.usage.nvsmi false \
+              --run.debug True \
+              --run.usage.nvsmi False \
               --batch_size 8 \
               --batch_length 16 \
               --report_length 16 \
