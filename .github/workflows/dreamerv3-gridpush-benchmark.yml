@@ -117,6 +117,16 @@ jobs:
               --report_length 16 \
               --replay.size 50000
 
+      - name: Resolve latest DreamerV3 checkpoint
+        shell: bash
+        run: |
+          CHECKPOINT_DIR="runs/dreamerv3_${{ matrix.seed }}/train/ckpt"
+          CHECKPOINT="$(find "$CHECKPOINT_DIR" -mindepth 1 -maxdepth 1 -type d | sort | tail -n 1)"
+          test -n "$CHECKPOINT"
+          CHECKPOINT="$(realpath "$CHECKPOINT")"
+          echo "DREAMER_CHECKPOINT=$CHECKPOINT" >> "$GITHUB_ENV"
+          echo "Using checkpoint: $CHECKPOINT"
+
       - name: Evaluate seen maps
         shell: bash
         run: |
@@ -135,7 +145,7 @@ jobs:
               --jax.prealloc False \
               --run.envs 1 \
               --run.steps 1000000 \
-              --run.from_checkpoint "runs/dreamerv3_${{ matrix.seed }}/train/ckpt" \
+              --run.from_checkpoint "$DREAMER_CHECKPOINT" \
               --run.log_every 30 \
               --run.debug True \
               --run.usage.nvsmi False \
@@ -162,7 +172,7 @@ jobs:
               --jax.prealloc False \
               --run.envs 1 \
               --run.steps 1000000 \
-              --run.from_checkpoint "runs/dreamerv3_${{ matrix.seed }}/train/ckpt" \
+              --run.from_checkpoint "$DREAMER_CHECKPOINT" \
               --run.log_every 30 \
               --run.debug True \
               --run.usage.nvsmi False \
@@ -181,7 +191,7 @@ jobs:
             --train-time "runs/dreamerv3_${{ matrix.seed }}/train_time.txt" \
             --seen-time "runs/dreamerv3_${{ matrix.seed }}/seen_time.txt" \
             --unseen-time "runs/dreamerv3_${{ matrix.seed }}/unseen_time.txt" \
-            --checkpoint "runs/dreamerv3_${{ matrix.seed }}/train/ckpt" \
+            --checkpoint "$DREAMER_CHECKPOINT" \
             --output "runs/dreamerv3_${{ matrix.seed }}" \
             --upstream-commit "$DREAMER_COMMIT"
 
