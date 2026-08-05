@@ -9,6 +9,7 @@ from .prophecy import ProphecyStep
 from .types import Action, Prediction, StateSnapshot
 
 Aggregation = Literal["max", "mean", "top_mean", "risk_adjusted"]
+ScoreMode = Literal["incremental", "absolute"]
 
 
 class ImaginationScorer(Protocol):
@@ -98,6 +99,7 @@ class ImaginationNode:
     policy_memory: PolicyMemory
     prophecy_memory: Any = None
     terminal_reason: str | None = None
+    scorer_memory: Any = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,7 +121,13 @@ class ImaginationResult:
 
 
 class ImaginationTree:
-    """Branching parallel-universe rollout driven entirely by Prophecy."""
+    """Branching parallel-universe rollout driven entirely by Prophecy.
+
+    A scorer may be stateless and return an incremental transition value through
+    ``score``. A learned branch critic may instead expose ``initial_memory`` and
+    ``score_step``. In that case only the critic memory is copied when a branch
+    splits; the neural-network parameters remain shared by every branch.
+    """
 
     def __init__(
         self,
@@ -138,6 +146,10 @@ class ImaginationTree:
         factory = getattr(self.prophecy, "initial_memory", None)
         return factory() if callable(factory) else None
 
+    def _initial_scorer_memory(self) -> Any:
+        factory = getattr(self.scorer, "initial_memory", None)
+        return factory() if callable(factory) else None
+
     def _predict(self, node: ImaginationNode, action: Action) -> ProphecyStep:
         predict_step = getattr(self.prophecy, "predict_step", None)
         if callable(predict_step):
@@ -154,6 +166,41 @@ class ImaginationTree:
             samples=self.config.outcome_samples,
         )
         return ProphecyStep(predictions, node.prophecy_memory)
+
+    def _score(
+        self,
+        node: ImaginationNode,
+        action: Action,
+        after: StateSnapshot,
+        *,
+        prophecy_confidence: float,
+    ) -> tuple[float, Any, ScoreMode]:
+        score_step = getattr(self.scorer, "score_step", None)
+        if callable(score_step):
+            result = score_step(
+                node.state,
+                action,
+                after,
+                memory=node.scorer_memory,
+                prophecy_confidence=prophecy_confidence,
+            )
+            mode = getattr(
+                result,
+                "value_mode",
+                getattr(self.scorer, "value_mode", "absolute"),
+            )
+            if mode not in {"incremental", "absolute"}:
+                raise ValueError(f"unknown scorer value mode: {mode}")
+            return (
+                float(result.value),
+                getattr(result, "memory", node.scorer_memory),
+                mode,
+            )
+        return (
+            float(self.scorer.score(node.state, action, after)),
+            node.scorer_memory,
+            "incremental",
+        )
 
     @staticmethod
     def _prediction_confidence(prediction: Prediction) -> float:
@@ -218,6 +265,7 @@ class ImaginationTree:
             cumulative_confidence=1.0,
             policy_memory=PolicyMemory.empty(),
             prophecy_memory=self._initial_prophecy_memory(),
+            scorer_memory=self._initial_scorer_memory(),
         )
 
         nodes = [root]
@@ -251,15 +299,21 @@ class ImaginationTree:
                     )[: self.config.outcome_samples]
 
                     for prediction in predictions:
-                        immediate_value = self.scorer.score(
-                            node.state,
+                        step_confidence = self._prediction_confidence(prediction)
+                        immediate_value, scorer_memory, value_mode = self._score(
+                            node,
                             scored_action.action,
                             prediction.next_state,
+                            prophecy_confidence=step_confidence,
                         )
-                        cumulative_value = node.cumulative_value + (
-                            self.config.discount ** (depth - 1)
-                        ) * immediate_value
-                        step_confidence = self._prediction_confidence(prediction)
+                        if value_mode == "absolute":
+                            cumulative_value = immediate_value
+                            policy_feedback = immediate_value - 0.5
+                        else:
+                            cumulative_value = node.cumulative_value + (
+                                self.config.discount ** (depth - 1)
+                            ) * immediate_value
+                            policy_feedback = immediate_value
                         cumulative_confidence = (
                             node.cumulative_confidence * step_confidence
                         )
@@ -293,7 +347,7 @@ class ImaginationTree:
                         branch_policy_memory = self.policy.imagine_update(
                             node.policy_memory,
                             scored_action.action,
-                            immediate_value,
+                            policy_feedback,
                         )
                         child = ImaginationNode(
                             node_id=next_id,
@@ -310,6 +364,7 @@ class ImaginationTree:
                             policy_memory=branch_policy_memory,
                             prophecy_memory=step.memory,
                             terminal_reason=terminal_reason,
+                            scorer_memory=scorer_memory,
                         )
                         next_id += 1
                         nodes.append(child)
