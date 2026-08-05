@@ -1,0 +1,127 @@
+name: learned-prophecy-fix
+
+on:
+  pull_request:
+    branches:
+      - codex/aassr-v2-baseline-efficiency-benchmark
+    paths:
+      - "src/aassr_v2/neural_delta_prophecy.py"
+      - "src/aassr_v2/benchmark_neural_prophecy.py"
+      - "src/aassr_v2/learned_prophecy_fix_experiment.py"
+      - "scripts/run_learned_prophecy_fix.py"
+      - "tests/test_neural_delta_prophecy.py"
+      - ".github/workflows/learned-prophecy-fix.yml"
+  workflow_dispatch:
+    inputs:
+      train_episodes:
+        description: Training episodes per condition and seed
+        required: false
+        default: "2000"
+      evaluation_episodes:
+        description: Seen and unseen evaluation episodes per checkpoint
+        required: false
+        default: "100"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package and CPU PyTorch
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e ".[dev]"
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Compile and test neural Prophecy
+        run: |
+          python -m compileall -q src tests scripts
+          pytest -q tests/test_neural_delta_prophecy.py
+      - name: End-to-end smoke
+        run: |
+          python scripts/run_learned_prophecy_fix.py \
+            --condition hybrid_neural_prophecy_adaptive \
+            --seed 7 \
+            --train-episodes 30 \
+            --train-map-count 8 \
+            --evaluation-episodes 4 \
+            --checkpoints 0,30 \
+            --output runs/neural_prophecy_smoke
+
+  expanded-pilot:
+    needs: focused-tests
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        seed: [7, 13, 21, 42, 100]
+        condition:
+          - dqn
+          - aassr_current
+          - hybrid_neural_prophecy
+          - hybrid_neural_prophecy_adaptive
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package and CPU PyTorch
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e ".[dev]"
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Run expanded matched pilot
+        shell: bash
+        env:
+          TRAIN_EPISODES: ${{ inputs.train_episodes || '2000' }}
+          EVALUATION_EPISODES: ${{ inputs.evaluation_episodes || '100' }}
+        run: |
+          python scripts/run_learned_prophecy_fix.py \
+            --condition "${{ matrix.condition }}" \
+            --seed "${{ matrix.seed }}" \
+            --train-episodes "$TRAIN_EPISODES" \
+            --train-map-count 128 \
+            --evaluation-episodes "$EVALUATION_EPISODES" \
+            --checkpoints "0,100,250,500,1000,$TRAIN_EPISODES" \
+            --output "runs/${{ matrix.condition }}_${{ matrix.seed }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: learned-prophecy-${{ matrix.condition }}-${{ matrix.seed }}-${{ github.sha }}
+          path: runs/${{ matrix.condition }}_${{ matrix.seed }}
+          retention-days: 30
+
+  summarize:
+    needs: expanded-pilot
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: learned-prophecy-*
+          path: downloaded
+      - name: Summarize completed conditions
+        run: |
+          python scripts/summarize_bottleneck_sota.py \
+            --input downloaded \
+            --output runs/learned_prophecy_summary
+      - uses: actions/upload-artifact@v4
+        with:
+          name: learned-prophecy-summary-${{ github.sha }}
+          path: runs/learned_prophecy_summary
+          retention-days: 30
