@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - "src/aassr_v2/abandonment_smoke.py"
+      - "src/aassr_v2/abandonment_smoke_runner.py"
       - "scripts/run_abandonment_smoke.py"
       - "tests/test_abandonment_smoke.py"
       - ".github/workflows/abandonment-smoke.yml"
@@ -35,7 +36,7 @@ jobs:
   smoke:
     needs: focused-tests
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -52,8 +53,8 @@ jobs:
           python scripts/run_abandonment_smoke.py \
             --output runs/abandonment_smoke \
             --seed 7 \
-            --train-episodes 300 \
-            --train-map-count 32 \
+            --train-episodes 1000 \
+            --train-map-count 64 \
             --evaluation-episodes 30 \
             --thresholds 0.05 0.15 0.30 \
             --minimum-steps 2 \
