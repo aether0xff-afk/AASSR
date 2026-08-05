@@ -2,7 +2,9 @@ name: baseline-efficiency-benchmark
 
 on:
   pull_request:
-    branches: [aassr-v2]
+    branches:
+      - aassr-v2
+      - codex/aassr-v2-imagination-counterfactual-audit
     paths:
       - "src/aassr_v2/baseline_efficiency_benchmark.py"
       - "src/aassr_v2/baseline_efficiency_portable.py"
