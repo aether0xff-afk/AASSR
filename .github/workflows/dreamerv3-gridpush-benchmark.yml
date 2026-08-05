@@ -1,0 +1,183 @@
+name: dreamerv3-gridpush-benchmark
+
+on:
+  pull_request:
+    branches: [aassr-v2]
+    paths:
+      - "src/aassr_v2/baseline_efficiency_benchmark.py"
+      - "src/aassr_v2/baseline_efficiency_portable.py"
+      - "src/aassr_v2/dreamerv3_gridpush_env.py"
+      - "scripts/run_official_dreamerv3_gridpush.py"
+      - "scripts/summarize_dreamerv3_gridpush.py"
+      - ".github/workflows/dreamerv3-gridpush-benchmark.yml"
+  workflow_dispatch:
+    inputs:
+      train_steps:
+        description: Official DreamerV3 environment step budget
+        required: false
+        default: "5000"
+      evaluation_episodes:
+        description: Seen and unseen episodes
+        required: false
+        default: "25"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  official-dreamerv3-pilot:
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [7]
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      DREAMER_COMMIT: e3f02248693a79dc8b0ebd62c93683888ddaccfe
+      TRAIN_STEPS: ${{ inputs.train_steps || '5000' }}
+      EVALUATION_EPISODES: ${{ inputs.evaluation_episodes || '25' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install AASSR
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e ".[dev]"
+
+      - name: Pin official DreamerV3
+        run: |
+          git clone --filter=blob:none https://github.com/danijar/dreamerv3.git dreamerv3-upstream
+          git -C dreamerv3-upstream checkout "$DREAMER_COMMIT"
+          test "$(git -C dreamerv3-upstream rev-parse HEAD)" = "$DREAMER_COMMIT"
+
+      - name: Install official DreamerV3 CPU dependencies
+        run: |
+          python -m pip install \
+            "numpy<2" \
+            "jax[cpu]==0.4.33" \
+            chex \
+            colored_traceback \
+            einops \
+            "elements>=3.19.1" \
+            "google-resumable-media>=2.7.2" \
+            "granular>=0.20.3" \
+            ipdb \
+            jaxtyping \
+            "ninjax>=3.5.1" \
+            optax \
+            psutil \
+            "portal>=3.5.0" \
+            ruamel.yaml \
+            "scope>=0.4.4" \
+            tqdm
+          python -m pip install -e ./dreamerv3-upstream --no-deps
+          python -m pip check
+
+      - name: Train official DreamerV3 size1m
+        shell: bash
+        run: |
+          mkdir -p "runs/dreamerv3_${{ matrix.seed }}"
+          /usr/bin/time -v -o "runs/dreamerv3_${{ matrix.seed }}/train_time.txt" \
+            python scripts/run_official_dreamerv3_gridpush.py \
+              --benchmark-mode train \
+              --benchmark-seed "${{ matrix.seed }}" \
+              --episode-log "runs/dreamerv3_${{ matrix.seed }}/train_episodes.jsonl" \
+              --configs size1m \
+              --script train \
+              --task aassr_train \
+              --logdir "runs/dreamerv3_${{ matrix.seed }}/train" \
+              --jax.platform cpu \
+              --jax.compute_dtype float32 \
+              --jax.prealloc false \
+              --run.envs 1 \
+              --run.steps "$TRAIN_STEPS" \
+              --run.train_ratio 32 \
+              --run.log_every 30 \
+              --run.report_every 300 \
+              --run.save_every 1 \
+              --run.debug true \
+              --run.usage.nvsmi false \
+              --batch_size 8 \
+              --batch_length 16 \
+              --report_length 16 \
+              --replay.size 50000
+
+      - name: Evaluate seen maps
+        shell: bash
+        run: |
+          /usr/bin/time -v -o "runs/dreamerv3_${{ matrix.seed }}/seen_time.txt" \
+            python scripts/run_official_dreamerv3_gridpush.py \
+              --benchmark-mode seen \
+              --benchmark-seed "${{ matrix.seed }}" \
+              --episode-log "runs/dreamerv3_${{ matrix.seed }}/seen_episodes.jsonl" \
+              --target-episodes "$EVALUATION_EPISODES" \
+              --configs size1m \
+              --script eval_only \
+              --task aassr_seen \
+              --logdir "runs/dreamerv3_${{ matrix.seed }}/seen" \
+              --jax.platform cpu \
+              --jax.compute_dtype float32 \
+              --jax.prealloc false \
+              --run.envs 1 \
+              --run.steps 1000000 \
+              --run.from_checkpoint "runs/dreamerv3_${{ matrix.seed }}/train/ckpt" \
+              --run.log_every 30 \
+              --run.debug true \
+              --run.usage.nvsmi false \
+              --batch_size 8 \
+              --batch_length 16 \
+              --report_length 16 \
+              --replay.size 50000
+
+      - name: Evaluate unseen maps
+        shell: bash
+        run: |
+          /usr/bin/time -v -o "runs/dreamerv3_${{ matrix.seed }}/unseen_time.txt" \
+            python scripts/run_official_dreamerv3_gridpush.py \
+              --benchmark-mode unseen \
+              --benchmark-seed "${{ matrix.seed }}" \
+              --episode-log "runs/dreamerv3_${{ matrix.seed }}/unseen_episodes.jsonl" \
+              --target-episodes "$EVALUATION_EPISODES" \
+              --configs size1m \
+              --script eval_only \
+              --task aassr_unseen \
+              --logdir "runs/dreamerv3_${{ matrix.seed }}/unseen" \
+              --jax.platform cpu \
+              --jax.compute_dtype float32 \
+              --jax.prealloc false \
+              --run.envs 1 \
+              --run.steps 1000000 \
+              --run.from_checkpoint "runs/dreamerv3_${{ matrix.seed }}/train/ckpt" \
+              --run.log_every 30 \
+              --run.debug true \
+              --run.usage.nvsmi false \
+              --batch_size 8 \
+              --batch_length 16 \
+              --report_length 16 \
+              --replay.size 50000
+
+      - name: Summarize performance and efficiency
+        run: |
+          python scripts/summarize_dreamerv3_gridpush.py \
+            --seed "${{ matrix.seed }}" \
+            --train-log "runs/dreamerv3_${{ matrix.seed }}/train_episodes.jsonl" \
+            --seen-log "runs/dreamerv3_${{ matrix.seed }}/seen_episodes.jsonl" \
+            --unseen-log "runs/dreamerv3_${{ matrix.seed }}/unseen_episodes.jsonl" \
+            --train-time "runs/dreamerv3_${{ matrix.seed }}/train_time.txt" \
+            --seen-time "runs/dreamerv3_${{ matrix.seed }}/seen_time.txt" \
+            --unseen-time "runs/dreamerv3_${{ matrix.seed }}/unseen_time.txt" \
+            --checkpoint "runs/dreamerv3_${{ matrix.seed }}/train/ckpt" \
+            --output "runs/dreamerv3_${{ matrix.seed }}" \
+            --upstream-commit "$DREAMER_COMMIT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dreamerv3-official-size1m-${{ matrix.seed }}-${{ github.sha }}
+          path: runs/dreamerv3_${{ matrix.seed }}
+          retention-days: 30
