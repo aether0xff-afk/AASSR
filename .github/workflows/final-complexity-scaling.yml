@@ -1,0 +1,130 @@
+name: final-complexity-scaling
+
+on:
+  pull_request:
+    branches:
+      - codex/aassr-v2-abandonment-smoke
+    paths:
+      - ".github/workflows/final-complexity-scaling.yml"
+      - "src/aassr_v2/final_complexity_scaling.py"
+      - "scripts/run_final_complexity_scaling.py"
+      - "scripts/summarize_final_complexity_scaling.py"
+      - "tests/test_final_complexity_scaling.py"
+      - "docs/final_complexity_scaling_test_plan.md"
+  workflow_dispatch:
+
+concurrency:
+  group: final-complexity-scaling-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  focused-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package and paper dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e ".[dev,paper]"
+      - name: Compile and run focused tests
+        run: |
+          python -m compileall -q src tests scripts
+          pytest -q tests/test_final_complexity_scaling.py tests/test_imagination_v2.py
+
+  final-run:
+    needs: focused-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        seed:
+          - 7
+          - 13
+          - 21
+          - 42
+          - 100
+          - 131
+          - 173
+          - 211
+          - 257
+          - 307
+          - 353
+          - 401
+          - 457
+          - 503
+          - 557
+          - 601
+          - 653
+          - 701
+          - 751
+          - 809
+        condition:
+          - dqn
+          - legacy_aassr
+          - neural_policy_only
+          - imagination_v2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package and CPU PyTorch
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e ".[paper]"
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Run frozen condition and seed
+        run: |
+          python scripts/run_final_complexity_scaling.py \
+            --output runs/${{ matrix.condition }}_${{ matrix.seed }} \
+            --condition ${{ matrix.condition }} \
+            --seed ${{ matrix.seed }} \
+            --transition-budget 20000 \
+            --train-maps-per-level 32 \
+            --evaluation-maps-per-level 100 \
+            --pool-oversample 3 \
+            --checkpoints 0 2500 5000 10000 20000
+      - uses: actions/upload-artifact@v4
+        with:
+          name: final-scaling-${{ matrix.condition }}-${{ matrix.seed }}-${{ github.sha }}
+          path: runs/${{ matrix.condition }}_${{ matrix.seed }}
+          if-no-files-found: error
+          retention-days: 30
+
+  aggregate:
+    needs: final-run
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install analysis dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy pandas matplotlib
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: final-scaling-*
+          path: downloaded-results
+      - name: Run seed-first statistical analysis
+        run: |
+          python scripts/summarize_final_complexity_scaling.py \
+            --input downloaded-results \
+            --output final-complexity-summary
+      - uses: actions/upload-artifact@v4
+        with:
+          name: final-complexity-summary-${{ github.sha }}
+          path: final-complexity-summary
+          if-no-files-found: error
+          retention-days: 90
