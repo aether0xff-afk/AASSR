@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 
-from aassr_v2.abandonment_smoke import run_abandonment_smoke
+from aassr_v2.abandonment_smoke_runner import run_abandonment_smoke
 
 
 def main() -> None:
