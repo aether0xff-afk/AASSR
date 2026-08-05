@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from aassr_v2.baseline_efficiency_portable import (
     CHOICE_ACTIONS,
     BenchmarkGridPushWorld,
@@ -26,6 +28,7 @@ def test_benchmark_codec_roundtrip_preserves_explicit_state() -> None:
 
 
 def test_neural_delta_prophecy_learns_and_predicts_snapshot() -> None:
+    pytest.importorskip("torch")
     seed = solvable_map_seeds(9200, 1)[0]
     prophecy = NeuralDeltaProphecy(
         BenchmarkGridPushCodec(),
