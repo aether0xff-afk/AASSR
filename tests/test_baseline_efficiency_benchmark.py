@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from aassr_v2.baseline_efficiency_benchmark import (
+from aassr_v2.baseline_efficiency_portable import (
     CHOICE_ACTIONS,
     GRIDPUSH_OBSERVATION_SIZE,
     BenchmarkGridPushWorld,
