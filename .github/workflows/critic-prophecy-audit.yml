@@ -62,7 +62,7 @@ jobs:
             --output runs/critic_prophecy_seed_${{ matrix.seed }} \
             --seed ${{ matrix.seed }} \
             --train-map-count 8 \
-            --unseeen-map-count 16 \
+            --unseen-map-count 16 \
             --behavior-train-episodes 1000 \
             --critic-train-episodes 400 \
             --critic-eval-episodes 100 \
