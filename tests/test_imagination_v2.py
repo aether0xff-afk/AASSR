@@ -98,6 +98,7 @@ def test_stateful_critic_memory_is_branch_local_and_absolute() -> None:
 
 
 def test_imagination_v2_factory_wires_neural_prophecy_and_gru_critic() -> None:
+    pytest.importorskip("torch")
     agent = make_imagination_v2_agent(
         "imagination_v2",
         7,
@@ -117,6 +118,7 @@ def test_imagination_v2_factory_wires_neural_prophecy_and_gru_critic() -> None:
 
 
 def test_neural_policy_only_control_permanently_disables_imagination() -> None:
+    pytest.importorskip("torch")
     agent = make_imagination_v2_agent(
         "neural_policy_only",
         7,
