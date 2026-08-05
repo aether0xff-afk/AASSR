@@ -165,6 +165,20 @@ class ControlledLegacyImaginationAgent(HybridDQNImaginationAgent):
         )
 
 
+class NeuralPolicyOnlyAgent(NeuralProphecyHybridAgent):
+    """Matched control: v2 Policy and Prophecy with Imagination always disabled."""
+
+    def __init__(self, seed: int, *, train_episodes: int) -> None:
+        super().__init__(
+            seed,
+            train_episodes=train_episodes,
+            calibrated=True,
+            conservative=True,
+        )
+        self.name = "neural_policy_only"
+        self.agent.config = replace(self.agent.config, use_imagination=False)
+
+
 class LegacyProphecyGRUCriticAgent(
     _OnlineGRUCriticMixin,
     HybridDQNImaginationAgent,
@@ -230,6 +244,7 @@ IMAGINATION_V2_CONDITIONS = (
     "dqn",
     "legacy_aassr",
     "controlled_legacy",
+    "neural_policy_only",
     "neural_manual",
     "legacy_gru_critic",
     "imagination_v2",
@@ -256,6 +271,11 @@ def make_imagination_v2_agent(
         )
     if condition == "controlled_legacy":
         return ControlledLegacyImaginationAgent(
+            seed,
+            train_episodes=train_episodes,
+        )
+    if condition == "neural_policy_only":
+        return NeuralPolicyOnlyAgent(
             seed,
             train_episodes=train_episodes,
         )
