@@ -8,6 +8,7 @@ on:
       - "src/aassr_v2/neural_delta_prophecy.py"
       - "src/aassr_v2/benchmark_neural_prophecy.py"
       - "src/aassr_v2/learned_prophecy_fix_experiment.py"
+      - "src/aassr_v2/metrics.py"
       - "scripts/run_learned_prophecy_fix.py"
       - "tests/test_neural_delta_prophecy.py"
       - ".github/workflows/learned-prophecy-fix.yml"
@@ -48,7 +49,7 @@ jobs:
       - name: End-to-end smoke
         run: |
           python scripts/run_learned_prophecy_fix.py \
-            --condition hybrid_neural_prophecy_adaptive \
+            --condition hybrid_neural_prophecy_calibrated \
             --seed 7 \
             --train-episodes 30 \
             --train-map-count 8 \
@@ -57,6 +58,7 @@ jobs:
             --output runs/neural_prophecy_smoke
 
   expanded-pilot:
+    if: github.event_name == 'workflow_dispatch'
     needs: focused-tests
     strategy:
       fail-fast: false
@@ -68,6 +70,8 @@ jobs:
           - aassr_current
           - hybrid_neural_prophecy
           - hybrid_neural_prophecy_adaptive
+          - hybrid_neural_prophecy_calibrated
+          - hybrid_neural_prophecy_calibrated_conservative
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -102,8 +106,8 @@ jobs:
           retention-days: 30
 
   summarize:
+    if: github.event_name == 'workflow_dispatch' && always()
     needs: expanded-pilot
-    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
