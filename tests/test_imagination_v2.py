@@ -9,6 +9,7 @@ from aassr_v2.imagination_tree import ImaginationConfig, ImaginationTree
 from aassr_v2.imagination_v2 import (
     ImaginationV2Agent,
     LegacyProphecyGRUCriticAgent,
+    NeuralPolicyOnlyAgent,
     make_imagination_v2_agent,
 )
 from aassr_v2.types import Action, Prediction, StateSnapshot
@@ -113,3 +114,13 @@ def test_imagination_v2_factory_wires_neural_prophecy_and_gru_critic() -> None:
     )
     assert isinstance(critic_only, LegacyProphecyGRUCriticAgent)
     assert critic_only.agent.planner.scorer is critic_only.critic
+
+
+def test_neural_policy_only_control_permanently_disables_imagination() -> None:
+    agent = make_imagination_v2_agent(
+        "neural_policy_only",
+        7,
+        train_episodes=10,
+    )
+    assert isinstance(agent, NeuralPolicyOnlyAgent)
+    assert not agent.agent.config.use_imagination
