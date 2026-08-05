@@ -21,24 +21,25 @@ on:
       evaluation_episodes:
         description: Seen and unseen episodes
         required: false
-        default: "25"
+        default: "50"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  official-dreamerv3-pilot:
+  official-dreamerv3:
     strategy:
       fail-fast: false
+      max-parallel: 5
       matrix:
-        seed: [7]
+        seed: [7, 13, 21, 42, 100]
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
       DREAMER_COMMIT: e3f02248693a79dc8b0ebd62c93683888ddaccfe
       TRAIN_STEPS: ${{ inputs.train_steps || '5000' }}
-      EVALUATION_EPISODES: ${{ inputs.evaluation_episodes || '25' }}
+      EVALUATION_EPISODES: ${{ inputs.evaluation_episodes || '50' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -196,6 +197,7 @@ jobs:
             --upstream-commit "$DREAMER_COMMIT"
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: dreamerv3-official-size1m-${{ matrix.seed }}-${{ github.sha }}
           path: runs/dreamerv3_${{ matrix.seed }}
