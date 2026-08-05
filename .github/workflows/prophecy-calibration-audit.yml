@@ -1,0 +1,125 @@
+name: prophecy-calibration-audit
+
+on:
+  pull_request:
+    branches:
+      - codex/aassr-v2-baseline-efficiency-benchmark
+    paths:
+      - "src/aassr_v2/metrics.py"
+      - "src/aassr_v2/benchmark_neural_prophecy.py"
+      - "src/aassr_v2/learned_prophecy_fix_experiment.py"
+      - "tests/test_neural_delta_prophecy.py"
+      - ".github/workflows/prophecy-calibration-audit.yml"
+  workflow_dispatch:
+    inputs:
+      train_episodes:
+        description: Training episodes per condition and seed
+        required: false
+        default: "2000"
+      evaluation_episodes:
+        description: Seen and unseen evaluation episodes per checkpoint
+        required: false
+        default: "100"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package and CPU PyTorch
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e ".[dev]"
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Compile and test calibration
+        run: |
+          python -m compileall -q src tests scripts
+          pytest -q tests/test_neural_delta_prophecy.py
+      - name: Calibrated end-to-end smoke
+        run: |
+          python scripts/run_learned_prophecy_fix.py \
+            --condition hybrid_neural_prophecy_calibrated \
+            --seed 7 \
+            --train-episodes 40 \
+            --train-map-count 8 \
+            --evaluation-episodes 4 \
+            --checkpoints 0,40 \
+            --output runs/calibration_smoke
+          test -f runs/calibration_smoke/agent_diagnostics.json
+
+  calibrated-pilot:
+    needs: focused-tests
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        seed: [7, 13, 21, 42, 100]
+        condition:
+          - hybrid_neural_prophecy_calibrated
+          - hybrid_neural_prophecy_calibrated_conservative
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package and CPU PyTorch
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e ".[dev]"
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Run calibrated matched pilot
+        shell: bash
+        env:
+          TRAIN_EPISODES: ${{ inputs.train_episodes || '2000' }}
+          EVALUATION_EPISODES: ${{ inputs.evaluation_episodes || '100' }}
+        run: |
+          python scripts/run_learned_prophecy_fix.py \
+            --condition "${{ matrix.condition }}" \
+            --seed "${{ matrix.seed }}" \
+            --train-episodes "$TRAIN_EPISODES" \
+            --train-map-count 128 \
+            --evaluation-episodes "$EVALUATION_EPISODES" \
+            --checkpoints "0,100,250,500,1000,$TRAIN_EPISODES" \
+            --output "runs/${{ matrix.condition }}_${{ matrix.seed }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: calibrated-prophecy-${{ matrix.condition }}-${{ matrix.seed }}-${{ github.sha }}
+          path: runs/${{ matrix.condition }}_${{ matrix.seed }}
+          retention-days: 30
+
+  summarize:
+    needs: calibrated-pilot
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: calibrated-prophecy-*
+          path: downloaded
+      - name: Summarize calibrated conditions
+        run: |
+          python scripts/summarize_bottleneck_sota.py \
+            --input downloaded \
+            --output runs/calibrated_prophecy_summary
+      - uses: actions/upload-artifact@v4
+        with:
+          name: calibrated-prophecy-summary-${{ github.sha }}
+          path: runs/calibrated_prophecy_summary
+          retention-days: 30

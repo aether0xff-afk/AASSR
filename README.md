@@ -14,6 +14,234 @@ AASSR v2는 기존 구현을 복사하지 않고 처음부터 다시 설계한 �
 
 현재 연구와 우위 검증의 범위는 **Policy·Prophecy·Imagination**까지다. GOAL 생성·수행 분리와 자율 Skill은 핵심 구조의 우위가 먼저 확정된 뒤 추가할 후속 확장 기능으로 분리한다.
 
+## 현재 연구 브랜치와 진행 상황
+
+기준일: **2026-08-05**
+
+- 활성 연구 브랜치: `codex/aassr-v2-bottleneck-sota-audit`
+- 비교 실험 기반 브랜치: `codex/aassr-v2-baseline-efficiency-benchmark`
+- Pull Request: **#18**, draft·미병합
+- 현재 목적: AASSR의 병목을 Policy, Prophecy, imagined-state scoring, Imagination 탐색 비용으로 분리하고, 각 병목이 AASSR의 정체성에 필요한지 판별한다.
+- GOAL·Skill은 본 우위 검증에서 제외하고 후속 기능으로 유지한다.
+
+### 동일 환경 baseline과 확대 pilot
+
+고정된 네 개의 불투명 행동, procedural map, 마지막 성공에만 외부 보상을 주는 strict GridPush에서 같은 관측·행동·seed 조건으로 비교했다.
+
+2,000 training episodes, 128 train maps, 5 seeds, seed별 seen/unseen 각 100회의 확대 pilot 결과:
+
+| 조건 | 학습한 맵 | 처음 보는 맵 |
+|---|---:|---:|
+| 현재 AASSR | 1.2% | 0.0% |
+| Neural Prophecy + Imagination | 29.4% | 25.6% |
+| Neural Prophecy + 단순 adaptive depth | 24.8% | 22.2% |
+| Neural Prophecy + holdout calibration | 31.6% | 29.0% |
+| Neural Prophecy + 보수적 calibration | **40.4%** | **37.6%** |
+| DQN | **69.0%** | **50.4%** |
+
+따라서 현재 AASSR이 DQN보다 우수하다고 주장할 수 없다. strict GridPush에서는 DQN이 성공률과 계산 효율 모두 앞선다.
+
+반면 원인 분리용으로 완전한 Prophecy를 넣고 현재 scorer와 multi-step Imagination을 유지한 조건은 seen/unseen 평균 약 **98% / 98%**를 기록했다. Oracle Prophecy는 최종 모델 후보가 아니라 상한과 병목 위치를 확인하기 위한 진단 조건이다.
+
+### 현재까지 확인된 병목
+
+1. **가장 큰 병목은 Prophecy의 일반화다.**
+   - exact/tabular 상태 키는 좌표나 맵이 달라진 동일한 전이 규칙을 재사용하지 못한다.
+   - Neural Delta Prophecy로 바꾸자 기존 AASSR보다 seen `+28.2%p`, unseen `+25.6%p` 개선됐다.
+
+2. **두 번째 병목은 Prophecy 신뢰도의 calibration이다.**
+   - ensemble끼리 같은 예측을 한다는 사실은 그 예측이 실제로 맞다는 뜻이 아니다.
+   - 학습에 쓰지 않은 실제 전이에서 vector, facts, available actions, goal progress, terminal 정확도를 검증하고 개입을 제한하자 unseen 성능이 추가로 약 `+12.0%p` 개선됐다.
+
+3. **현재 one-step 정확도만으로 multi-step 개입 안전성을 보장할 수 없다.**
+   - 일부 seed의 intervention audit에서는 vector 예측이 높아 보여도 Imagination 개입의 harm이 correction보다 많았다.
+   - ensemble 평균으로 만든 하나의 가상 상태와 depth가 늘어날수록 누적되는 오차가 다음 병목으로 남아 있다.
+
+4. **Imagination 자체는 제거 대상이 아니다.**
+   - 완전한 모델을 주면 현재 Imagination이 과제를 거의 해결한다.
+   - 다만 매 step마다 같은 depth·beam을 여는 고정 계산 예산은 정체성이 아니라 구현 선택이므로 개선해야 한다.
+
+5. **Policy와 scorer는 1차 병목이 아니지만 현재 구현을 유지할 이유도 없다.**
+   - DQN Policy에 현재 Prophecy를 연결해도 성능이 살아나지 않았다.
+   - 완전한 Prophecy에서는 현재 scorer도 작동했다.
+   - 따라서 우선순위는 Prophecy지만 exact Policy, replay 없는 episodic credit, 고정 scorer는 후속 교체 대상이다.
+
+### AASSR 정체성 기준
+
+유지해야 하는 요소:
+
+- Policy·Prophecy·Imagination의 역할 분리
+- 실제 경험으로 학습되는 Prophecy
+- 여러 미래를 비교하는 counterfactual multi-step Imagination
+- KK/KV, fact, transition effect의 명시적 저장과 재사용
+- 왜 행동을 바꿨는지 추적할 수 있는 개입 기록
+- 최종 외부 보상 중심의 문제 해결
+
+교체하거나 제거해도 되는 구현상 병목:
+
+- 완전한 상태를 그대로 키로 쓰는 exact/tabular Policy와 Prophecy
+- ensemble 예측을 평균 내 하나의 확정 상태로 만드는 방식
+- 매 step 고정 depth·beam tree search
+- 고정된 hand-written StateDeltaScorer 가중치
+- replay 없는 episodic Monte-Carlo식 credit assignment
+- 실제 정확도가 아닌 ensemble 합의만으로 계산한 confidence
+
+현재 의견은 다음과 같다.
+
+> AASSR의 경쟁력은 DQN이나 Dreamer를 그대로 복제하는 데 있지 않다. SOTA 계열의 공유 표현, replay, world-model 일반화, calibration은 받아들이되, Policy·Prophecy·Imagination의 분리와 명시적 지식·효과·개입 근거는 유지해야 한다.
+
+현재 strict benchmark에서 SOTA보다 낫다고 말할 수 있는 부분은 없다. 다만 명시적인 전이 지식과 행동 개입 감사 가능성, 지식이 행동 파라미터로 재사용되는 KPDE 환경에서의 잠재적 장점은 별도 검증 가치가 있다. 이 장점은 아직 공개 benchmark 우위로 입증되지 않았다.
+
+## 다음 Prophecy 연구 방향: Environment Familiarization과 Solve 분리
+
+이 절은 **다음 구현 제안이며 현재 완료된 기능이 아니다.**
+
+현재처럼 문제 해결과 동시에 미완성 Prophecy를 바로 Imagination에 투입하면 다음 악순환이 생길 수 있다.
+
+```text
+부정확한 Prophecy
+→ 잘못된 미래 상상
+→ 나쁜 행동 선택
+→ 편향된 상태만 방문
+→ 편향된 데이터로 다시 학습
+```
+
+이를 줄이기 위해 Prophecy 학습을 세 단계로 분리한다.
+
+### 1. Environment Familiarization
+
+- 보상, 목표, 성공 경로, 정답 행동을 사용하지 않는다.
+- 랜덤 행동으로 시작한 뒤 낮은 방문 횟수, 새로운 effect, 새로운 fact/action 조합, 높은 모델 불확실성을 우선하는 탐색으로 전환한다.
+- 실제로 도달한 상태만 사용해 `(상태, 행동, 다음 상태)` 전이를 수집한다.
+- Prophecy는 좋은 행동이 아니라 환경의 world dynamics만 학습한다.
+
+```text
+입력
+- 현재 상태 또는 관측·행동 history
+- 다음 후보 행동
+
+정답
+- state delta
+- 추가·제거된 facts
+- 열린·닫힌 available actions
+- active / success / failure terminal class
+- 각 출력의 불확실성
+```
+
+### 2. Solve
+
+- Policy가 행동 후보를 제안한다.
+- 충분히 검증된 Planning Prophecy가 후보별 미래 분포를 예측한다.
+- Imagination은 여러 경로를 비교하되, Prophecy confidence와 holdout calibration이 낮으면 Policy를 덮어쓰지 않는다.
+- 현실에서는 첫 행동만 실행하고 실제 결과를 본 뒤 다시 계획한다.
+
+### 3. Online Adaptation
+
+- Solve 중 새로 관측한 전이는 Online Prophecy에 계속 추가한다.
+- 새 업데이트가 frozen holdout의 one-step·multi-step 정확도를 높일 때만 Planning Prophecy에 반영한다.
+- Planning Prophecy는 검증된 snapshot 또는 EMA 방식으로 천천히 갱신해 세계 모델이 갑자기 흔들리는 것을 막는다.
+
+### Transformer 기반 Prophecy에 대한 판단
+
+Transformer는 무조건적인 정답이 아니다.
+
+- 현재 상태가 완전한 Markov state라면 작은 MLP·GRU를 강한 baseline으로 유지한다.
+- 현재 관측만으로 숨겨진 과거 정보와 환경 상태를 복원할 수 없는 부분관측 환경에서는 Transformer가 자연스럽다.
+
+부분관측 Prophecy의 권장 입력은 다음과 같다.
+
+```text
+(o0, a0, o1, a1, ..., ot, 후보 행동 at)
+→ 다음 상태 변화 분포
+```
+
+history에는 상태 vector뿐 아니라 facts, available actions, KK/KV, 관측 mask, WHAT/HOW/WHERE 행동 표현을 포함한다.
+
+권장 학습 목표:
+
+```text
+L =
+  state-delta loss
++ fact-change loss
++ action-availability loss
++ terminal-class loss
++ multi-step rollout loss
++ confidence calibration loss
+```
+
+one-step만 학습하지 않고 같은 rollout에서 2·3·5-step 예측 쌍을 함께 만든다. 일부 학습 구간에는 실제 다음 상태가 아니라 Prophecy가 예측한 상태를 다시 입력해, 실제 Imagination에서 자기 오차가 누적될 때의 안정성도 학습한다.
+
+### 평균 미래 대신 여러 미래 유지
+
+현재 neural ensemble의 평균을 하나의 상태로 decode하면 실제로 존재하지 않는 중간 상태가 만들어질 수 있다. 다음 Imagination은 ensemble member 또는 확률적 outcome을 별도 branch로 유지해야 한다.
+
+```text
+같은 상태·행동
+├─ model/outcome 1
+├─ model/outcome 2
+└─ model/outcome 3
+```
+
+행동 개입은 평균적으로 좋아 보이는 경로가 아니라, 여러 plausible model에서 충분히 안전하거나 risk-adjusted value가 명확히 높은 경우에만 허용한다.
+
+### Familiarization 종료 기준
+
+고정 episode 수만으로 Solve로 넘어가지 않고 world-model 자체의 준비도를 본다.
+
+- frozen holdout one-step 정확도
+- 3·5-step rollout 정확도
+- fact/action/terminal 정확도
+- 행동별 최소 coverage
+- 최근 데이터 추가에 따른 validation 개선량
+- OOD 또는 ensemble disagreement
+
+정확한 임계값은 pilot으로 결정하며, 성공률이나 목표 보상을 Familiarization 종료 기준으로 사용하지 않는다.
+
+### 비교해야 할 조건
+
+같은 real-transition budget으로 다음을 비교한다.
+
+1. 기존 joint online learning
+2. Familiarization 후 Prophecy 동결
+3. Familiarization + online adaptation
+4. 기존 Neural Delta Prophecy warm-up control
+5. Transformer one-step
+6. Transformer multi-step
+7. ensemble branching + calibrated intervention
+8. Oracle Prophecy 상한
+
+공정성을 위해 두 표를 별도로 낸다.
+
+- **총 transition matched:** Familiarization과 Solve를 합친 실제 환경 상호작용 수를 동일하게 맞춤
+- **Solve transition matched:** 동일한 Solve 경험에 pretrained Prophecy 제공 효과를 따로 측정
+
+### 확대 실험 순서
+
+구조 후보가 pilot에서 살아남은 뒤에만 큰 실험으로 확대한다.
+
+1. strict 좌표 일반화 환경
+   - 20 seeds, 5,000 training episodes, 256 train maps, seen/unseen 각 200
+   - transition·wall-clock·decision-latency·memory matched 결과를 분리
+2. KPDE 전용 환경
+   - 획득한 KK/KV가 이후 행동의 HOW/WHERE 파라미터로 재사용됨
+   - 중간 외부 보상 없이 지식 획득과 긴 의존 관계가 필요함
+   - 새로운 환경에서 기존 effect를 재조합해야 함
+3. 공개 world-model benchmark
+   - DreamerV3 등은 충분한 GPU와 50k/200k real-transition budget으로 비교
+   - 작은 CPU pilot 결과를 알고리즘 전체의 최종 성능으로 일반화하지 않음
+
+최종 판단은 성공률 하나가 아니라 다음을 함께 본다.
+
+- 성공률과 return
+- 최단 경로 대비 효율
+- 실제 환경 transition 수
+- 학습·추론 벽시계 시간
+- 행동당 Imagination node와 latency
+- peak memory와 모델 크기
+- Prophecy one-step·multi-step 정확도
+- Imagination correction/harm 비율
+- 처음 보는 환경에서의 재사용성
+
 ## Escape GridWorld 연구 GUI
 
 현재 가장 쉽게 AASSR의 학습 과정을 관찰할 수 있는 실행 환경은 색 열쇠·색 문 Escape GridWorld다.
@@ -164,7 +392,7 @@ python scripts/run_escape_gridworld.py \
 
 ### 범용 행동 플러그인
 
-코어는 `MOVE`, `SCAN`, `BREAK` 같은 단어의 의미를 가정하지 않는다. 플러그인은 `ActionSchema`와 `ParameterSpec`으로 행동 문법·필수/선택 파라미터·기본값만 선언한다.
+코어는 `MOVE`, `SCAN`, `BREAK` 같은 단어의 의미를 가정하지 않는다. 플러인은 `ActionSchema`와 `ParameterSpec`으로 행동 문법·필수/선택 파라미터·기본값만 선언한다.
 
 - 임의 문자열 행동 verb 지원
 - 동적 파라미터와 안정적인 action signature
@@ -384,5 +612,8 @@ pytest -q
 
 - 연구 세대: **AASSR v2**
 - 코드 패키지: **0.2.0**
-- 개발 브랜치: **aassr-v2**
+- 안정 개발 브랜치: **aassr-v2**
+- 활성 연구 브랜치: **codex/aassr-v2-bottleneck-sota-audit**
+- 비교 실험 기반 브랜치: **codex/aassr-v2-baseline-efficiency-benchmark**
+- 활성 연구 PR: **#18**, draft·미병합
 - 기존 `main` 및 이전 AASSR 구현은 수정하지 않는다.

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from math import sqrt
+from math import exp, log, sqrt
 from statistics import fmean
 from typing import Iterable, Sequence
 
-from .types import Prediction
+from .types import Prediction, StateSnapshot
 
 
 Vector = Sequence[float]
@@ -63,7 +63,7 @@ def uncertainty_reduction(before: float, after: float) -> float:
 
 
 def prediction_similarity(predicted: Vector, actual: Vector) -> float:
-    """Similarity between Prophecy's next-state prediction and reality."""
+    """Cosine similarity retained for backward-compatible vector metrics."""
 
     return cosine_similarity(predicted, actual)
 
@@ -94,3 +94,96 @@ def expected_prediction_vector(
         )
         for index in range(vector_size)
     )
+
+
+def _jaccard(left: Iterable[str], right: Iterable[str]) -> float:
+    left_set = set(left)
+    right_set = set(right)
+    union = left_set | right_set
+    if not union:
+        return 1.0
+    return len(left_set & right_set) / len(union)
+
+
+def _terminal_class(state: StateSnapshot) -> str:
+    if state.available_actions:
+        return "active"
+    if state.goal_progress >= 1.0 or "success" in state.facts:
+        return "success"
+    return "failure"
+
+
+def structured_prediction_components(
+    predictions: Iterable[Prediction],
+    actual: StateSnapshot,
+) -> dict[str, float]:
+    """Measure whether a Prophecy prediction preserves actionable structure.
+
+    Cosine similarity alone can be near one even when a model predicts the
+    wrong terminal status, used facts, or available actions. This metric keeps
+    the numeric vector term but also scores the explicit state interface that
+    Policy and Imagination actually consume.
+    """
+
+    items = tuple(predictions)
+    if not items:
+        raise ValueError("at least one prediction is required")
+    expected = expected_prediction_vector(items)
+    if len(expected) != len(actual.vector):
+        raise ValueError("predicted and actual vectors must have equal length")
+    mae = fmean(
+        abs(left - right)
+        for left, right in zip(expected, actual.vector, strict=True)
+    )
+    vector_score = exp(-4.0 * mae)
+    representative = max(
+        items,
+        key=lambda item: (item.probability, item.source),
+    ).next_state
+    action_score = _jaccard(
+        (action.signature for action in representative.available_actions),
+        (action.signature for action in actual.available_actions),
+    )
+    facts_score = _jaccard(representative.facts, actual.facts)
+    goal_score = exp(
+        -4.0 * abs(representative.goal_progress - actual.goal_progress)
+    )
+    terminal_score = float(
+        _terminal_class(representative) == _terminal_class(actual)
+    )
+    return {
+        "vector": max(0.0, min(1.0, vector_score)),
+        "facts": max(0.0, min(1.0, facts_score)),
+        "actions": max(0.0, min(1.0, action_score)),
+        "goal": max(0.0, min(1.0, goal_score)),
+        "terminal": terminal_score,
+    }
+
+
+def structured_prediction_similarity(
+    predictions: Iterable[Prediction],
+    actual: StateSnapshot,
+) -> float:
+    """Weighted geometric mean of explicit transition fidelity.
+
+    The geometric mean deliberately penalizes a prediction that is numerically
+    close but structurally unusable. It is generic to ``StateSnapshot`` and does
+    not contain benchmark-specific transition or reward knowledge.
+    """
+
+    components = structured_prediction_components(predictions, actual)
+    weights = {
+        "vector": 0.35,
+        "facts": 0.25,
+        "actions": 0.15,
+        "goal": 0.10,
+        "terminal": 0.15,
+    }
+    floor = 1e-6
+    value = exp(
+        sum(
+            weights[name] * log(max(floor, components[name]))
+            for name in weights
+        )
+    )
+    return max(0.0, min(1.0, value))
