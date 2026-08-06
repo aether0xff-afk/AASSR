@@ -19,13 +19,14 @@ def _terminal_class(state: Any) -> int:
 
 
 def install_outcome_diversity_gate() -> None:
-    """Install a rule-agnostic terminal-risk gate for the debug run.
+    """Install a rule-agnostic terminal-choice gate for the debug run.
 
     The representation, calibration, and replay fixes are installed first.
-    Imagination is allowed only when every available action is predicted to end
-    the episode and the predicted outcomes include both terminal success and
-    terminal failure. This avoids naming actions or consulting the environment
-    oracle while rejecting isolated terminal hallucinations during navigation.
+    Imagination is allowed only when every currently available action is
+    predicted to terminate the episode. This requires neither action names nor
+    an environment oracle, rejects isolated terminal hallucinations during
+    navigation, and still permits the critic to separate terminal outcomes when
+    Prophecy assigns every candidate the same coarse success/failure class.
     """
 
     install_toolgrid_imagination_fix("categorical_tool_replay")
@@ -52,7 +53,7 @@ def install_outcome_diversity_gate() -> None:
                     )
                     for action in state.available_actions
                 }
-                if outcome_classes == {1, 2}:
+                if 0 not in outcome_classes:
                     return original_select(state, episode=episode, explore=explore)
 
                 self.agent.config = replace(original, use_imagination=False)
