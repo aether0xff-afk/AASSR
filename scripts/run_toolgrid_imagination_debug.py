@@ -15,6 +15,7 @@ STRATEGIES = (
     "enumerated_action_replay",
     "categorical_tool_replay",
     "tool_decision_gate",
+    "outcome_diversity_gate",
 )
 
 
@@ -35,7 +36,14 @@ def main() -> None:
     parser.add_argument("--evaluation-map-count", type=int, default=100)
     args = parser.parse_args()
 
-    install_toolgrid_imagination_fix(args.strategy)
+    if args.strategy == "outcome_diversity_gate":
+        from aassr_v2.toolgrid_outcome_diversity_gate import (
+            install_outcome_diversity_gate,
+        )
+
+        install_outcome_diversity_gate()
+    else:
+        install_toolgrid_imagination_fix(args.strategy)
     from aassr_v2.toolgrid_imagination_debug import run_toolgrid_imagination_debug
 
     summary = run_toolgrid_imagination_debug(
