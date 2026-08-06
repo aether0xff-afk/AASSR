@@ -7,7 +7,12 @@ from . import toolgrid_factorial as base
 from .types import Action, StateSnapshot
 
 
-STAGE_COUNT = 2
+# This pilot isolates spatial horizon and semantic tool branching. A single
+# station keeps the final-success signal observable often enough for the learned
+# branch critic to see both successful and failed real episodes. Dependency
+# depth is deliberately held constant here and can be restored as a third factor
+# after these two manipulations are validated.
+STAGE_COUNT = 1
 TOOLGRID_STATE_SIZE = 2 + 1 + 1 + STAGE_COUNT * 3 + base.MAX_GRID_SIZE**2
 
 
