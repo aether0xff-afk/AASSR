@@ -10,6 +10,7 @@ from . import toolgrid_factorial_masked as env
 base = env.base
 _ORIGINAL_CALIBRATED_PROPHECY = base.ToolGridCalibratedProphecy
 _ORIGINAL_HYBRID_AGENT = base.ToolGridHybridAgent
+_ORIGINAL_NEURAL_DELTA_PROPHECY = base.NeuralDeltaProphecy
 
 
 def _terminal_class(state: Any) -> int:
@@ -25,6 +26,30 @@ def _is_tool_decision(state: Any) -> bool:
         action.signature.startswith("tool_")
         for action in state.available_actions
     )
+
+
+class EnumeratedActionNeuralDeltaProphecy(_ORIGINAL_NEURAL_DELTA_PROPHECY):
+    """Represent the fixed action vocabulary with one-hot identity features.
+
+    The base model hashes opaque action signatures into signed feature buckets.
+    That is schema-free, but the eight-tool cell showed an action-identity
+    bottleneck. One-hot identity remains rule-free: it says only which action was
+    selected, not what that action does or which tool is correct.
+    """
+
+    def __init__(self, codec: Any, *args: Any, **kwargs: Any) -> None:
+        actions = base.build_actions(codec.action_count)
+        self._action_index = {
+            action.signature: index for index, action in enumerate(actions)
+        }
+        super().__init__(codec, *args, **kwargs)
+        if len(self._action_index) > self.config.action_feature_size:
+            raise ValueError("action feature size is smaller than ToolGrid vocabulary")
+
+    def _action_features(self, action: Any) -> tuple[float, ...]:
+        values = [0.0] * self.config.action_feature_size
+        values[self._action_index[action.signature]] = 1.0
+        return tuple(values)
 
 
 class OutcomeAwareCalibratedProphecy(_ORIGINAL_CALIBRATED_PROPHECY):
@@ -107,6 +132,8 @@ class ToolDecisionGateHybridAgent(BalancedToolReplayHybridAgent):
     the branching point while removing the known navigation confounder.
     """
 
+    diagnostic_tool_coverage_floor = 0.35
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         original_select = self.agent.select_action
@@ -117,9 +144,20 @@ class ToolDecisionGateHybridAgent(BalancedToolReplayHybridAgent):
             episode: int,
             explore: bool,
         ) -> Any:
-            if _is_tool_decision(state) or not self.use_imagination:
-                return original_select(state, episode=episode, explore=explore)
             original = self.agent.config
+            if _is_tool_decision(state):
+                if not original.use_imagination:
+                    return original_select(state, episode=episode, explore=explore)
+                self.agent.config = replace(
+                    original,
+                    imagination_minimum_coverage=self.diagnostic_tool_coverage_floor,
+                )
+                try:
+                    return original_select(state, episode=episode, explore=explore)
+                finally:
+                    self.agent.config = original
+            if not original.use_imagination:
+                return original_select(state, episode=episode, explore=explore)
             self.agent.config = replace(original, use_imagination=False)
             try:
                 return original_select(state, episode=episode, explore=explore)
@@ -137,15 +175,7 @@ class ToolDecisionGateHybridAgent(BalancedToolReplayHybridAgent):
         episode: int,
         training: bool,
     ) -> Any:
-        if _is_tool_decision(state) or not self.use_imagination:
-            return super().select_action(state, episode=episode, training=training)
-
-        original = self.agent.config
-        self.agent.config = replace(original, use_imagination=False)
-        try:
-            return super().select_action(state, episode=episode, training=training)
-        finally:
-            self.agent.config = original
+        return super().select_action(state, episode=episode, training=training)
 
 
 def install_toolgrid_imagination_fix(strategy: str) -> None:
@@ -153,17 +183,23 @@ def install_toolgrid_imagination_fix(strategy: str) -> None:
         "baseline",
         "calibration_fix",
         "balanced_tool_replay",
+        "enumerated_action_replay",
         "tool_decision_gate",
     }:
         raise ValueError(f"unknown ToolGrid debug strategy: {strategy}")
 
     base.ToolGridCalibratedProphecy = _ORIGINAL_CALIBRATED_PROPHECY
     base.ToolGridHybridAgent = _ORIGINAL_HYBRID_AGENT
+    base.NeuralDeltaProphecy = _ORIGINAL_NEURAL_DELTA_PROPHECY
     if strategy == "baseline":
         return
 
     base.ToolGridCalibratedProphecy = OutcomeAwareCalibratedProphecy
     if strategy == "balanced_tool_replay":
         base.ToolGridHybridAgent = BalancedToolReplayHybridAgent
+    elif strategy == "enumerated_action_replay":
+        base.NeuralDeltaProphecy = EnumeratedActionNeuralDeltaProphecy
+        base.ToolGridHybridAgent = BalancedToolReplayHybridAgent
     elif strategy == "tool_decision_gate":
+        base.NeuralDeltaProphecy = EnumeratedActionNeuralDeltaProphecy
         base.ToolGridHybridAgent = ToolDecisionGateHybridAgent
