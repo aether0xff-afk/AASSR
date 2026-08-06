@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import time
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -323,7 +324,16 @@ def run_toolgrid_matched_hybrid(
             )
         )
 
-    base._write_rows(output / "training_episodes.csv", training_rows)
+    # The environment was interacted with only once. These two rows are
+    # read-only condition views of that exact same training stream so the
+    # aggregate validator can verify equality without accepting separately
+    # retrained checkpoints.
+    training_views = [
+        replace(row, condition=condition)
+        for row in training_rows
+        for condition in MATCHED_EVALUATION_CONDITIONS
+    ]
+    base._write_rows(output / "training_episodes.csv", training_views)
     base._write_rows(output / "evaluation_episodes.csv", evaluation_rows)
     base._write_rows(output / "checkpoints.csv", checkpoint_rows)
     final = checkpoint_rows[-1]
@@ -332,6 +342,8 @@ def run_toolgrid_matched_hybrid(
             "condition": MATCHED_HYBRID_CONDITION,
             "evaluation_conditions": list(MATCHED_EVALUATION_CONDITIONS),
             "shared_checkpoint": True,
+            "single_training_stream": True,
+            "training_rows_are_paired_views": True,
             "seed": seed,
             "grid_size": grid_size,
             "action_count": action_count,
