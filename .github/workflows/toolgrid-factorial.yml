@@ -72,7 +72,7 @@ jobs:
             --transition-budget 5000 \
             --train-map-count 48 \
             --evaluation-map-count 100 \
-            --checkpoints 0 2500 5000
+            --checkpoints 0 5000
       - uses: actions/upload-artifact@v4
         with:
           name: toolgrid-${{ matrix.condition }}-${{ matrix.seed }}-g${{ matrix.grid_size }}-a${{ matrix.action_count }}-${{ github.sha }}
@@ -98,7 +98,7 @@ jobs:
         with:
           pattern: toolgrid-*
           path: downloaded-results
-      - name: Aggregate factorial effects
+      - name: Aggregate and validate factorial effects
         run: |
           python scripts/summarize_toolgrid_factorial.py \
             --input downloaded-results \
