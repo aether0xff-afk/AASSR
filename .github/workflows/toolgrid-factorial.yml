@@ -12,6 +12,7 @@ on:
       - "scripts/run_toolgrid_factorial.py"
       - "scripts/summarize_toolgrid_factorial.py"
       - "tests/test_toolgrid_factorial.py"
+      - "tests/test_toolgrid_matched_factorial.py"
       - "docs/toolgrid_factorial_test_plan.md"
   workflow_dispatch:
 
@@ -37,7 +38,7 @@ jobs:
       - name: Compile and run focused tests
         run: |
           python -m compileall -q src tests scripts
-          pytest -q tests/test_toolgrid_factorial.py
+          pytest -q tests/test_toolgrid_factorial.py tests/test_toolgrid_matched_factorial.py
 
   factorial-run:
     needs: focused-tests
