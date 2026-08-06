@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from aassr_v2 import toolgrid_debug_clone as _toolgrid_debug_clone
 from aassr_v2 import toolgrid_factorial_masked as env
 from aassr_v2.toolgrid_imagination_debug import (
     OracleAssessment,
@@ -9,6 +10,7 @@ from aassr_v2.toolgrid_imagination_debug import (
 
 
 def test_oracle_assessment_distinguishes_correct_and_wrong_tools() -> None:
+    del _toolgrid_debug_clone
     world = env.ToolGridWorld(12345, grid_size=3, action_count=8)
     oracle = world.oracle_actions()
     for action in oracle[:-1]:
