@@ -1,0 +1,113 @@
+name: toolgrid-factorial-pilot
+
+on:
+  pull_request:
+    branches:
+      - codex/aassr-v2-final-complexity-scaling
+    paths:
+      - ".github/workflows/toolgrid-factorial.yml"
+      - "src/aassr_v2/toolgrid_factorial.py"
+      - "src/aassr_v2/toolgrid_factorial_masked.py"
+      - "src/aassr_v2/toolgrid_matched_factorial.py"
+      - "scripts/run_toolgrid_factorial.py"
+      - "scripts/summarize_toolgrid_factorial.py"
+      - "tests/test_toolgrid_factorial.py"
+      - "tests/test_toolgrid_matched_factorial.py"
+      - "docs/toolgrid_factorial_test_plan.md"
+  workflow_dispatch:
+
+concurrency:
+  group: toolgrid-factorial-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package, tests, and CPU PyTorch
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e ".[dev]"
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Compile and run focused tests
+        run: |
+          python -m compileall -q src tests scripts
+          pytest -q tests/test_toolgrid_factorial.py tests/test_toolgrid_matched_factorial.py
+
+  factorial-run:
+    needs: focused-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        seed: [7, 21, 42]
+        grid_size: [3, 5, 7]
+        action_count: [8, 12]
+        condition: [dqn, matched_hybrid]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package and CPU PyTorch
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e .
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Run frozen factorial cell
+        run: |
+          python scripts/run_toolgrid_factorial.py \
+            --output runs/${{ matrix.condition }}_${{ matrix.seed }}_g${{ matrix.grid_size }}_a${{ matrix.action_count }} \
+            --condition ${{ matrix.condition }} \
+            --seed ${{ matrix.seed }} \
+            --grid-size ${{ matrix.grid_size }} \
+            --action-count ${{ matrix.action_count }} \
+            --transition-budget 5000 \
+            --train-map-count 48 \
+            --evaluation-map-count 100 \
+            --checkpoints 0 5000
+      - uses: actions/upload-artifact@v4
+        with:
+          name: toolgrid-${{ matrix.condition }}-${{ matrix.seed }}-g${{ matrix.grid_size }}-a${{ matrix.action_count }}-${{ github.sha }}
+          path: runs/${{ matrix.condition }}_${{ matrix.seed }}_g${{ matrix.grid_size }}_a${{ matrix.action_count }}
+          if-no-files-found: error
+          retention-days: 30
+
+  aggregate:
+    needs: factorial-run
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install analysis dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy pandas tabulate
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: toolgrid-*
+          path: downloaded-results
+      - name: Aggregate and validate factorial effects
+        run: |
+          python scripts/summarize_toolgrid_factorial.py \
+            --input downloaded-results \
+            --output toolgrid-factorial-summary
+      - uses: actions/upload-artifact@v4
+        with:
+          name: toolgrid-factorial-summary-${{ github.sha }}
+          path: toolgrid-factorial-summary
+          if-no-files-found: error
+          retention-days: 90
