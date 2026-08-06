@@ -6,11 +6,11 @@ on:
       - codex/aassr-v2-final-complexity-scaling
     paths:
       - ".github/workflows/toolgrid-imagination-debug.yml"
+      - "src/aassr_v2/toolgrid_factorial_masked.py"
       - "src/aassr_v2/toolgrid_imagination_debug.py"
-      - "src/aassr_v2/toolgrid_imagination_fix_patch.py"
-      - "src/aassr_v2/toolgrid_outcome_diversity_gate.py"
       - "src/aassr_v2/toolgrid_debug_clone.py"
       - "scripts/run_toolgrid_imagination_debug.py"
+      - "tests/test_toolgrid_factorial.py"
       - "tests/test_toolgrid_imagination_debug.py"
   workflow_dispatch:
 
@@ -33,12 +33,12 @@ jobs:
           python -m pip install --upgrade pip setuptools
           python -m pip install -e ".[dev]"
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - name: Compile and run diagnostic tests
+      - name: Compile and run ToolGrid regression tests
         run: |
           python -m compileall -q src tests scripts
-          pytest -q tests/test_toolgrid_imagination_debug.py
+          pytest -q tests/test_toolgrid_factorial.py tests/test_toolgrid_imagination_debug.py
 
-  paired-debug:
+  paired-production-validation:
     needs: focused-tests
     runs-on: ubuntu-24.04
     timeout-minutes: 120
@@ -47,7 +47,6 @@ jobs:
       max-parallel: 2
       matrix:
         action_count: [8, 12]
-        strategy: [outcome_diversity_gate]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -59,11 +58,10 @@ jobs:
           python -m pip install --upgrade pip setuptools
           python -m pip install -e .
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - name: Run same-checkpoint paired diagnostic
+      - name: Validate corrected same-checkpoint behavior
         run: |
           python scripts/run_toolgrid_imagination_debug.py \
-            --output runs/${{ matrix.strategy }}_seed7_g3_a${{ matrix.action_count }} \
-            --strategy ${{ matrix.strategy }} \
+            --output runs/production_corrected_seed7_g3_a${{ matrix.action_count }} \
             --seed 7 \
             --grid-size 3 \
             --action-count ${{ matrix.action_count }} \
@@ -72,7 +70,7 @@ jobs:
             --evaluation-map-count 100
       - uses: actions/upload-artifact@v4
         with:
-          name: toolgrid-imagination-${{ matrix.strategy }}-seed7-g3-a${{ matrix.action_count }}-${{ github.sha }}
-          path: runs/${{ matrix.strategy }}_seed7_g3_a${{ matrix.action_count }}
+          name: toolgrid-imagination-production-corrected-seed7-g3-a${{ matrix.action_count }}-${{ github.sha }}
+          path: runs/production_corrected_seed7_g3_a${{ matrix.action_count }}
           if-no-files-found: error
           retention-days: 30
