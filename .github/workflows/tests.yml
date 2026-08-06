@@ -56,6 +56,36 @@ jobs:
           path: runs/pentest_http_two_seed_check.json
           if-no-files-found: error
 
+  pentest-http-benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e .
+      - name: Run 40-seed difficulty and baseline benchmark
+        run: |
+          python scripts/run_pentest_http_benchmark.py \
+            --output-dir runs/pentest_http_benchmark \
+            --eval-seeds 40 \
+            --random-trials 12 \
+            --browse-trials 8 \
+            --guided-trials 1 \
+            --q-trials 4 \
+            --q-train-episodes 3000
+      - name: Archive benchmark outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: pentest-http-benchmark
+          path: runs/pentest_http_benchmark
+          if-no-files-found: error
+
   torch-cpu:
     runs-on: ubuntu-latest
     steps:
