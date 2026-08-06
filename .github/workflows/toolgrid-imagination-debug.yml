@@ -43,10 +43,10 @@ jobs:
     timeout-minutes: 120
     strategy:
       fail-fast: false
-      max-parallel: 3
+      max-parallel: 4
       matrix:
         action_count: [8, 12]
-        strategy: [calibration_fix, balanced_tool_replay, tool_decision_gate]
+        strategy: [enumerated_action_replay, tool_decision_gate]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
