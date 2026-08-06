@@ -7,6 +7,8 @@ on:
     paths:
       - ".github/workflows/toolgrid-imagination-debug.yml"
       - "src/aassr_v2/toolgrid_imagination_debug.py"
+      - "src/aassr_v2/toolgrid_imagination_fix_patch.py"
+      - "src/aassr_v2/toolgrid_debug_clone.py"
       - "scripts/run_toolgrid_imagination_debug.py"
       - "tests/test_toolgrid_imagination_debug.py"
   workflow_dispatch:
@@ -38,12 +40,13 @@ jobs:
   paired-debug:
     needs: focused-tests
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 120
     strategy:
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 3
       matrix:
         action_count: [8, 12]
+        strategy: [calibration_fix, balanced_tool_replay, tool_decision_gate]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -58,7 +61,8 @@ jobs:
       - name: Run same-checkpoint paired diagnostic
         run: |
           python scripts/run_toolgrid_imagination_debug.py \
-            --output runs/debug_seed7_g3_a${{ matrix.action_count }} \
+            --output runs/${{ matrix.strategy }}_seed7_g3_a${{ matrix.action_count }} \
+            --strategy ${{ matrix.strategy }} \
             --seed 7 \
             --grid-size 3 \
             --action-count ${{ matrix.action_count }} \
@@ -67,7 +71,7 @@ jobs:
             --evaluation-map-count 100
       - uses: actions/upload-artifact@v4
         with:
-          name: toolgrid-imagination-debug-seed7-g3-a${{ matrix.action_count }}-${{ github.sha }}
-          path: runs/debug_seed7_g3_a${{ matrix.action_count }}
+          name: toolgrid-imagination-${{ matrix.strategy }}-seed7-g3-a${{ matrix.action_count }}-${{ github.sha }}
+          path: runs/${{ matrix.strategy }}_seed7_g3_a${{ matrix.action_count }}
           if-no-files-found: error
           retention-days: 30
