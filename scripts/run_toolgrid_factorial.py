@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 
-from aassr_v2.toolgrid_factorial import (
+from aassr_v2.toolgrid_factorial_masked import (
     ACTION_COUNTS,
     GRID_SIZES,
     TOOLGRID_CONDITIONS,
