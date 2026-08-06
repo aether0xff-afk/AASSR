@@ -6,9 +6,15 @@ import json
 from aassr_v2.toolgrid_factorial_masked import (
     ACTION_COUNTS,
     GRID_SIZES,
-    TOOLGRID_CONDITIONS,
     run_toolgrid_factorial,
 )
+from aassr_v2.toolgrid_matched_factorial import (
+    MATCHED_HYBRID_CONDITION,
+    run_toolgrid_matched_hybrid,
+)
+
+
+RUN_CONDITIONS = ("dqn", MATCHED_HYBRID_CONDITION)
 
 
 def main() -> None:
@@ -16,7 +22,7 @@ def main() -> None:
         description="Run one ToolGrid map-size × semantic-branching factorial cell."
     )
     parser.add_argument("--output", required=True)
-    parser.add_argument("--condition", required=True, choices=TOOLGRID_CONDITIONS)
+    parser.add_argument("--condition", required=True, choices=RUN_CONDITIONS)
     parser.add_argument("--seed", required=True, type=int)
     parser.add_argument("--grid-size", required=True, type=int, choices=GRID_SIZES)
     parser.add_argument("--action-count", required=True, type=int, choices=ACTION_COUNTS)
@@ -40,17 +46,23 @@ def main() -> None:
         if args.checkpoints is None
         else tuple(args.checkpoints)
     )
-    payload = run_toolgrid_factorial(
-        args.output,
-        condition=args.condition,
-        seed=args.seed,
-        grid_size=args.grid_size,
-        action_count=args.action_count,
-        transition_budget=args.transition_budget,
-        train_map_count=args.train_map_count,
-        evaluation_map_count=args.evaluation_map_count,
-        checkpoints=checkpoints,
-    )
+    common = {
+        "seed": args.seed,
+        "grid_size": args.grid_size,
+        "action_count": args.action_count,
+        "transition_budget": args.transition_budget,
+        "train_map_count": args.train_map_count,
+        "evaluation_map_count": args.evaluation_map_count,
+        "checkpoints": checkpoints,
+    }
+    if args.condition == MATCHED_HYBRID_CONDITION:
+        payload = run_toolgrid_matched_hybrid(args.output, **common)
+    else:
+        payload = run_toolgrid_factorial(
+            args.output,
+            condition="dqn",
+            **common,
+        )
     print(json.dumps(payload["final"], indent=2, sort_keys=True))
 
 
