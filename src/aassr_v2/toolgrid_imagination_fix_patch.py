@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from statistics import fmean
-from typing import Any
+from typing import Any, Sequence
 
 from . import toolgrid_factorial_masked as env
 
@@ -11,6 +11,7 @@ base = env.base
 _ORIGINAL_CALIBRATED_PROPHECY = base.ToolGridCalibratedProphecy
 _ORIGINAL_HYBRID_AGENT = base.ToolGridHybridAgent
 _ORIGINAL_NEURAL_DELTA_PROPHECY = base.NeuralDeltaProphecy
+_ORIGINAL_TOOLGRID_CODEC = base.ToolGridCodec
 
 
 def _terminal_class(state: Any) -> int:
@@ -26,6 +27,56 @@ def _is_tool_decision(state: Any) -> bool:
         action.signature.startswith("tool_")
         for action in state.available_actions
     )
+
+
+class CategoricalToolGridCodec(_ORIGINAL_TOOLGRID_CODEC):
+    """Encode the required tool identity categorically for Prophecy only.
+
+    The environment and critic retain the original raw observation. This codec
+    replaces the single normalized tool-ID scalar with a one-hot category in the
+    neural world model, then decodes predictions back to the frozen raw schema.
+    It exposes no transition rule or correct-action relation.
+    """
+
+    @property
+    def dimension(self) -> int:
+        return env.TOOLGRID_STATE_SIZE - 1 + (self.action_count - 4)
+
+    def encode(self, state: Any) -> tuple[float, ...]:
+        raw = list(env.encode_toolgrid_state(state))
+        tool_count = self.action_count - 4
+        tool = min(
+            tool_count - 1,
+            max(0, int(round(raw[6] * (base.MAX_TOOL_COUNT - 1)))),
+        )
+        category = [0.0] * tool_count
+        category[tool] = 1.0
+        return tuple(raw[:6] + category + raw[7:])
+
+    def decode(
+        self,
+        encoded: Sequence[float],
+        *,
+        scaffold: Any,
+        terminal_class: int,
+        source: str,
+    ) -> Any:
+        if len(encoded) != self.dimension:
+            raise ValueError("categorical ToolGrid neural state has an unexpected size")
+        tool_count = self.action_count - 4
+        category = tuple(float(value) for value in encoded[6 : 6 + tool_count])
+        tool = max(range(tool_count), key=lambda index: category[index])
+        raw = (
+            list(encoded[:6])
+            + [tool / float(base.MAX_TOOL_COUNT - 1)]
+            + list(encoded[6 + tool_count :])
+        )
+        return _ORIGINAL_TOOLGRID_CODEC(self.action_count).decode(
+            raw,
+            scaffold=scaffold,
+            terminal_class=terminal_class,
+            source=source,
+        )
 
 
 class EnumeratedActionNeuralDeltaProphecy(_ORIGINAL_NEURAL_DELTA_PROPHECY):
@@ -184,6 +235,7 @@ def install_toolgrid_imagination_fix(strategy: str) -> None:
         "calibration_fix",
         "balanced_tool_replay",
         "enumerated_action_replay",
+        "categorical_tool_replay",
         "tool_decision_gate",
     }:
         raise ValueError(f"unknown ToolGrid debug strategy: {strategy}")
@@ -191,6 +243,7 @@ def install_toolgrid_imagination_fix(strategy: str) -> None:
     base.ToolGridCalibratedProphecy = _ORIGINAL_CALIBRATED_PROPHECY
     base.ToolGridHybridAgent = _ORIGINAL_HYBRID_AGENT
     base.NeuralDeltaProphecy = _ORIGINAL_NEURAL_DELTA_PROPHECY
+    base.ToolGridCodec = _ORIGINAL_TOOLGRID_CODEC
     if strategy == "baseline":
         return
 
@@ -200,6 +253,11 @@ def install_toolgrid_imagination_fix(strategy: str) -> None:
     elif strategy == "enumerated_action_replay":
         base.NeuralDeltaProphecy = EnumeratedActionNeuralDeltaProphecy
         base.ToolGridHybridAgent = BalancedToolReplayHybridAgent
+    elif strategy == "categorical_tool_replay":
+        base.ToolGridCodec = CategoricalToolGridCodec
+        base.NeuralDeltaProphecy = EnumeratedActionNeuralDeltaProphecy
+        base.ToolGridHybridAgent = BalancedToolReplayHybridAgent
     elif strategy == "tool_decision_gate":
+        base.ToolGridCodec = CategoricalToolGridCodec
         base.NeuralDeltaProphecy = EnumeratedActionNeuralDeltaProphecy
         base.ToolGridHybridAgent = ToolDecisionGateHybridAgent
