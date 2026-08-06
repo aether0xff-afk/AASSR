@@ -12,6 +12,7 @@ STRATEGIES = (
     "baseline",
     "calibration_fix",
     "balanced_tool_replay",
+    "enumerated_action_replay",
     "tool_decision_gate",
 )
 
