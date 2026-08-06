@@ -8,6 +8,7 @@ on:
       - ".github/workflows/toolgrid-imagination-debug.yml"
       - "src/aassr_v2/toolgrid_imagination_debug.py"
       - "src/aassr_v2/toolgrid_imagination_fix_patch.py"
+      - "src/aassr_v2/toolgrid_outcome_diversity_gate.py"
       - "src/aassr_v2/toolgrid_debug_clone.py"
       - "scripts/run_toolgrid_imagination_debug.py"
       - "tests/test_toolgrid_imagination_debug.py"
@@ -43,10 +44,10 @@ jobs:
     timeout-minutes: 120
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 2
       matrix:
         action_count: [8, 12]
-        strategy: [categorical_tool_replay, tool_decision_gate]
+        strategy: [outcome_diversity_gate]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
