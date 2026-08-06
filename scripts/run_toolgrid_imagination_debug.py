@@ -3,11 +3,13 @@ from __future__ import annotations
 import argparse
 import json
 
+from aassr_v2 import toolgrid_debug_clone as _toolgrid_debug_clone
 from aassr_v2.toolgrid_factorial_masked import ACTION_COUNTS, GRID_SIZES
 from aassr_v2.toolgrid_imagination_debug import run_toolgrid_imagination_debug
 
 
 def main() -> None:
+    del _toolgrid_debug_clone
     parser = argparse.ArgumentParser(
         description=(
             "Train one ToolGrid hybrid without imagination interventions, then "
