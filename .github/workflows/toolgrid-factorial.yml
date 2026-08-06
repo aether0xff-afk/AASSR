@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/toolgrid-factorial.yml"
       - "src/aassr_v2/toolgrid_factorial.py"
+      - "src/aassr_v2/toolgrid_factorial_masked.py"
       - "scripts/run_toolgrid_factorial.py"
       - "scripts/summarize_toolgrid_factorial.py"
       - "tests/test_toolgrid_factorial.py"
