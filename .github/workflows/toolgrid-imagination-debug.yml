@@ -1,0 +1,73 @@
+name: toolgrid-imagination-debug
+
+on:
+  pull_request:
+    branches:
+      - codex/aassr-v2-final-complexity-scaling
+    paths:
+      - ".github/workflows/toolgrid-imagination-debug.yml"
+      - "src/aassr_v2/toolgrid_imagination_debug.py"
+      - "scripts/run_toolgrid_imagination_debug.py"
+      - "tests/test_toolgrid_imagination_debug.py"
+  workflow_dispatch:
+
+concurrency:
+  group: toolgrid-imagination-debug-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package, tests, and CPU PyTorch
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e ".[dev]"
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Compile and run diagnostic tests
+        run: |
+          python -m compileall -q src tests scripts
+          pytest -q tests/test_toolgrid_imagination_debug.py
+
+  paired-debug:
+    needs: focused-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        action_count: [8, 12]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install package and CPU PyTorch
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e .
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Run same-checkpoint paired diagnostic
+        run: |
+          python scripts/run_toolgrid_imagination_debug.py \
+            --output runs/debug_seed7_g3_a${{ matrix.action_count }} \
+            --seed 7 \
+            --grid-size 3 \
+            --action-count ${{ matrix.action_count }} \
+            --transition-budget 5000 \
+            --train-map-count 48 \
+            --evaluation-map-count 100
+      - uses: actions/upload-artifact@v4
+        with:
+          name: toolgrid-imagination-debug-seed7-g3-a${{ matrix.action_count }}-${{ github.sha }}
+          path: runs/debug_seed7_g3_a${{ matrix.action_count }}
+          if-no-files-found: error
+          retention-days: 30
