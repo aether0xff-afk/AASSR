@@ -4,7 +4,7 @@ from statistics import fmean
 
 import pytest
 
-from aassr_v2.toolgrid_factorial import (
+from aassr_v2.toolgrid_factorial_masked import (
     ACTION_COUNTS,
     GRID_SIZES,
     TOOLGRID_STATE_SIZE,
@@ -36,6 +36,7 @@ def test_oracle_solution_reaches_success_without_tick_limit() -> None:
             actions = world.oracle_actions()
             assert len(actions) == world.optimal_steps
             for action in actions:
+                assert action in world.snapshot().available_actions
                 world.step(action)
             assert world.success
             assert not world.failed
@@ -57,7 +58,7 @@ def test_all_tools_are_required_across_balanced_map_pool() -> None:
     for action_count in ACTION_COUNTS:
         observed = {
             tool
-            for seed in range(200)
+            for seed in range(300)
             for tool in ToolGridWorld(
                 seed, grid_size=5, action_count=action_count
             ).required_tools
@@ -65,7 +66,19 @@ def test_all_tools_are_required_across_balanced_map_pool() -> None:
         assert observed == set(range(action_count - 4))
 
 
-def test_codec_preserves_dimension_and_action_count() -> None:
+def test_context_masking_separates_navigation_and_tool_branching() -> None:
+    world = ToolGridWorld(11, grid_size=5, action_count=12)
+    assert 1 <= len(world.snapshot().available_actions) <= 4
+    for action in world.oracle_actions():
+        if action.verb_name.startswith("tool_"):
+            assert len(world.snapshot().available_actions) == 8
+            break
+        world.step(action)
+    else:  # pragma: no cover
+        raise AssertionError("oracle path did not contain a tool action")
+
+
+def test_codec_preserves_dimension_and_contextual_actions() -> None:
     world = ToolGridWorld(3, grid_size=5, action_count=12)
     state = world.snapshot()
     codec = ToolGridCodec(12)
@@ -77,7 +90,9 @@ def test_codec_preserves_dimension_and_action_count() -> None:
         source="test",
     )
     assert len(decoded.vector) == TOOLGRID_STATE_SIZE
-    assert len(decoded.available_actions) == 12
+    assert tuple(item.signature for item in decoded.available_actions) == tuple(
+        item.signature for item in state.available_actions
+    )
     assert f"phase:{world.phase}" in decoded.facts
 
 
@@ -92,7 +107,7 @@ def test_wrong_tool_is_irreversible_but_contextually_meaningful() -> None:
         raise AssertionError("oracle path did not contain a tool action")
     wrong = next(
         action
-        for action in world.actions[4:]
+        for action in world.snapshot().available_actions
         if action.signature != correct.signature
     )
     world.step(wrong)
