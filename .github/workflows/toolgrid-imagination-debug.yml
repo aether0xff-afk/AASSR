@@ -46,7 +46,7 @@ jobs:
       max-parallel: 4
       matrix:
         action_count: [8, 12]
-        strategy: [enumerated_action_replay, tool_decision_gate]
+        strategy: [categorical_tool_replay, tool_decision_gate]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
