@@ -8,6 +8,7 @@ on:
       - ".github/workflows/toolgrid-factorial.yml"
       - "src/aassr_v2/toolgrid_factorial.py"
       - "src/aassr_v2/toolgrid_factorial_masked.py"
+      - "src/aassr_v2/toolgrid_matched_factorial.py"
       - "scripts/run_toolgrid_factorial.py"
       - "scripts/summarize_toolgrid_factorial.py"
       - "tests/test_toolgrid_factorial.py"
@@ -49,7 +50,7 @@ jobs:
         seed: [7, 21, 42]
         grid_size: [3, 5, 7]
         action_count: [8, 12]
-        condition: [dqn, neural_policy_only, imagination_v2]
+        condition: [dqn, matched_hybrid]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
