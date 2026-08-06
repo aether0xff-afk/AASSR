@@ -93,6 +93,20 @@ def _train_exact_budget(
     }
 
 
+def _correct_diagnostic_labels(summary):
+    """Avoid calling ended/not-ended agreement a three-class terminal metric."""
+
+    components = summary.get("component_diagnostics", {})
+    termination_accuracy = components.pop("prophecy_terminal_accuracy", None)
+    if termination_accuracy is not None:
+        components["prophecy_termination_status_accuracy"] = termination_accuracy
+    components["prophecy_terminal_class_accuracy"] = None
+    summary["config"]["terminal_metric_note"] = (
+        "termination-status agreement is reported separately; success/failure "
+        "calibration is enforced by the production calibrator"
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
@@ -133,6 +147,7 @@ def main() -> None:
     )
     summary["config"]["debug_strategy"] = "production_corrected"
     summary["config"]["exact_transition_budget"] = True
+    _correct_diagnostic_labels(summary)
     with open(f"{args.output}/summary.json", "w", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2, sort_keys=True, default=repr)
     print(json.dumps(summary, indent=2, sort_keys=True))
