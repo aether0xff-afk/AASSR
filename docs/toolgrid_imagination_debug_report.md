@@ -202,7 +202,25 @@ ToolGrid wrapper는 internal planner decision의 상세 필드를 `action`, `ima
 
 모든 action-changing intervention은 terminal semantic choice에서 발생했고 navigation override와 harmful intervention은 0회였다.
 
-이 수치는 production 통합 전 root-cause 증거이며, production 경로는 별도의 same-checkpoint workflow에서 다시 검증한다. 표현·replay·budget 구현이 더 엄격해졌으므로 production 수치가 이 표와 완전히 같다고 미리 가정하지 않는다.
+## production 통합 검증 결과
+
+production 경로는 exact transition budget, one-copy balanced replay, matched Policy-only/Imagination components를 적용한 뒤 same-checkpoint로 다시 검증했다.
+
+- GitHub Actions: `31074399815`
+- commit: `fbe650b27e7f2b68d04c6d69a81d38c3d5ca71cc`
+
+| tools | policy only | production Imagination | delta | improved maps | worsened maps | beneficial | harmful |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 4 | 71% | **100%** | **+29 pp** | 29 | 0 | 29 | 0 |
+| 8 | 28% | **74%** | **+46 pp** | 46 | 0 | 46 | 0 |
+
+추가 확인:
+
+- 두 cell 모두 training transitions는 정확히 `5,000`
+- training-time Imagination intervention은 `0`
+- action-changing intervention은 모두 semantic tool branch에서 발생
+- navigation override는 `0`
+- 8-tool cell에서 neutral action change 1회가 있었지만 harmful regression은 없었다.
 
 ## 해석
 
@@ -219,15 +237,14 @@ ToolGrid wrapper는 internal planner decision의 상세 필드를 `action`, `ima
 
 ## 최종 검증 조건
 
-production 수정판의 결론은 다음 검증이 끝난 뒤 확정한다.
+production 수정판의 일반적 결론은 다음 검증이 끝난 뒤 확정한다.
 
-1. production same-checkpoint seed-7, 3×3, tools 4/8
-2. multi-seed `3×3`, `5×5`, `7×7`
-3. DQN, matched Policy-only, corrected Imagination
-4. cell당 정확히 5,000 real transitions
-5. training-time Imagination 0회
-6. Policy-only/Imagination training trajectory 완전 일치
-7. intervention benefit/harm 및 imagined-node cost 보고
-8. aggregate protocol validator 통과
+1. multi-seed `3×3`, `5×5`, `7×7`
+2. DQN, matched Policy-only, corrected Imagination
+3. cell당 정확히 5,000 real transitions
+4. training-time Imagination 0회
+5. Policy-only/Imagination training trajectory 완전 일치
+6. intervention benefit/harm 및 imagined-node cost 보고
+7. aggregate protocol validator 통과
 
-root-cause 결과는 강한 원인 증거지만 전체 factorial 우위를 대신하지 않는다.
+production same-checkpoint 결과는 수정이 실제 경로에서 작동함을 보여 주지만, 전체 factorial 우위를 대신하지 않는다.
