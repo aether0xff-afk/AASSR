@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import time
+from dataclasses import replace
 
 from aassr_v2 import toolgrid_debug_clone as _toolgrid_debug_clone  # noqa: F401
 from aassr_v2 import toolgrid_imagination_debug as debug
@@ -10,9 +11,37 @@ from aassr_v2 import toolgrid_factorial_masked as env
 
 
 def _production_imagination_decision(agent, state):
-    """Exercise the production wrapper instead of bypassing its gate."""
+    """Exercise the production gate while retaining full planner diagnostics."""
 
-    return agent.select_action(state, episode=0, training=False)
+    original = agent.agent.config
+    terminal_choice = (
+        agent.use_imagination
+        and agent.critic_ready
+        and agent._predicted_terminal_choice(state)
+    )
+    agent.agent.config = replace(
+        original,
+        use_imagination=terminal_choice,
+    )
+    try:
+        decision = agent.agent.select_action(state, episode=0, explore=False)
+    finally:
+        agent.agent.config = original
+
+    if terminal_choice:
+        return decision
+    reason = (
+        "critic_not_ready"
+        if agent.use_imagination and not agent.critic_ready
+        else "nonterminal_choice"
+        if agent.use_imagination
+        else "policy_only"
+    )
+    return replace(
+        decision,
+        imagination_opportunity=agent.use_imagination,
+        imagination_gate_reason=reason,
+    )
 
 
 def _train_exact_budget(
