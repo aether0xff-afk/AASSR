@@ -20,6 +20,13 @@ def _terminal_class(state: Any) -> int:
     return 2
 
 
+def _is_tool_decision(state: Any) -> bool:
+    return bool(state.available_actions) and all(
+        action.signature.startswith("tool_")
+        for action in state.available_actions
+    )
+
+
 class OutcomeAwareCalibratedProphecy(_ORIGINAL_CALIBRATED_PROPHECY):
     """Fix sparse-action calibration and distinguish success from failure.
 
@@ -100,6 +107,29 @@ class ToolDecisionGateHybridAgent(BalancedToolReplayHybridAgent):
     the branching point while removing the known navigation confounder.
     """
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        original_select = self.agent.select_action
+
+        def gated_internal_select(
+            state: Any,
+            *,
+            episode: int,
+            explore: bool,
+        ) -> Any:
+            if _is_tool_decision(state) or not self.use_imagination:
+                return original_select(state, episode=episode, explore=explore)
+            original = self.agent.config
+            self.agent.config = replace(original, use_imagination=False)
+            try:
+                return original_select(state, episode=episode, explore=explore)
+            finally:
+                self.agent.config = original
+
+        # The paired diagnostic deliberately calls the internal autonomous agent
+        # directly, so install the gate there as well as on this adapter.
+        self.agent.select_action = gated_internal_select
+
     def select_action(
         self,
         state: Any,
@@ -107,11 +137,7 @@ class ToolDecisionGateHybridAgent(BalancedToolReplayHybridAgent):
         episode: int,
         training: bool,
     ) -> Any:
-        tool_decision = bool(state.available_actions) and all(
-            action.signature.startswith("tool_")
-            for action in state.available_actions
-        )
-        if tool_decision or not self.use_imagination:
+        if _is_tool_decision(state) or not self.use_imagination:
             return super().select_action(state, episode=episode, training=training)
 
         original = self.agent.config
