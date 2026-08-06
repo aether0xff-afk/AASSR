@@ -13,7 +13,7 @@ from aassr_v2.toolgrid_factorial_masked import (
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run one ToolGrid map-size × action-branching factorial cell."
+        description="Run one ToolGrid map-size × semantic-branching factorial cell."
     )
     parser.add_argument("--output", required=True)
     parser.add_argument("--condition", required=True, choices=TOOLGRID_CONDITIONS)
@@ -27,9 +27,19 @@ def main() -> None:
         "--checkpoints",
         type=int,
         nargs="*",
-        default=(0, 2_500, 5_000),
+        default=None,
+        help=(
+            "Evaluation checkpoints. By default only 0 and the final transition "
+            "budget are used so an intermediate checkpoint cannot reset a "
+            "partially completed training episode."
+        ),
     )
     args = parser.parse_args()
+    checkpoints = (
+        (0, args.transition_budget)
+        if args.checkpoints is None
+        else tuple(args.checkpoints)
+    )
     payload = run_toolgrid_factorial(
         args.output,
         condition=args.condition,
@@ -39,7 +49,7 @@ def main() -> None:
         transition_budget=args.transition_budget,
         train_map_count=args.train_map_count,
         evaluation_map_count=args.evaluation_map_count,
-        checkpoints=tuple(args.checkpoints),
+        checkpoints=checkpoints,
     )
     print(json.dumps(payload["final"], indent=2, sort_keys=True))
 
