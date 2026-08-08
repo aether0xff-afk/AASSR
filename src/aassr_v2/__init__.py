@@ -126,8 +126,8 @@ from .integrated_agent import (
     IntegratedAASSRAgent,
     IntegratedActionDecision,
     IntegratedAgentStep,
-    build_full_aassr_core,
-    build_pentest_aassr_core,
+    build_full_aassr_core as build_legacy_v040_full_aassr_core,
+    build_pentest_aassr_core as build_legacy_v040_pentest_aassr_core,
 )
 from .current_generation import (
     CURRENT_COMPONENTS,
@@ -137,6 +137,16 @@ from .current_generation import (
 )
 from .current_runtime import CurrentPentestRuntimeAgent
 from .current_entrypoint import build_current_pentest_aassr_core
+
+# Package-level pentest construction always means the current generation now.
+# Exact v0.4 reproduction remains available under the explicit legacy alias above
+# or directly from ``aassr_v2.integrated_agent``.
+build_pentest_aassr_core = build_current_pentest_aassr_core
+# No current-generation generic non-pentest builder has been frozen yet. Keep the
+# old generic API as an explicit compatibility alias without using it in new
+# pentest runners.
+build_full_aassr_core = build_legacy_v040_full_aassr_core
+
 from .knowledge import (
     KnowledgeDelta,
     KnowledgeEntry,
