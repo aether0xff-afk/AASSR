@@ -7,12 +7,21 @@ of the current-generation execution path.
 ## Public entrypoint
 
 ```python
-from aassr_v2 import build_current_pentest_aassr_core
+from aassr_v2 import build_pentest_aassr_core
 ```
 
-New pentest experiments must use this builder. Historical
-`build_pentest_aassr_core()` remains available only to reproduce the frozen v0.4
-experiment.
+At package level, `build_pentest_aassr_core` now means the current generation.
+The explicit spelling `build_current_pentest_aassr_core` is equivalent.
+
+Frozen v0.4 reproduction remains available only through:
+
+```python
+from aassr_v2 import build_legacy_v040_pentest_aassr_core
+```
+
+or by importing the historical builder directly from `aassr_v2.integrated_agent`.
+Current experiment runners do not import the frozen v0.4 full-system runner or the
+historical 2x2 training-mechanism runner.
 
 ## Active stack
 
@@ -24,21 +33,24 @@ experiment.
 | Transfer action identity | route/profile/object relation features | active |
 | Policy | relational DQN + separate information-value residual | active |
 | Prophecy | Neural Delta ensemble | active |
+| Prophecy state input | rename-invariant relational state vector | active |
 | Prophecy action input | relational action features | active |
+| Prophecy output | learned delta applied to the current concrete scaffold | active |
 | Confidence | frozen-holdout relational calibration | active |
 | Knowledge | pre-existing episode-local response Knowledge | active |
 | Imagination | multi-step parallel-universe tree | active at frozen evaluation |
 | Branch scorer/pruning | GRU Branch Critic trained from final real outcome | active |
 | Skill | relational ASeq template rebound to current concrete actions | active |
 | GPU path | Neural Delta batch + depth-wise Imagination batching | active |
+| Current experiment protocol | standalone current protocol | active |
 | Effect-composed snapshot model | historical path | disabled |
 | hand-written Goal/StateDelta scorer | historical path | disabled |
 | `OnlineGRUProphecy` | historical v0.4 path | disabled |
 | `SemanticContextualPolicy` | historical v0.4 path | disabled |
 
-`CURRENT_COMPONENTS` and `LEGACY_COMPONENTS_ACTIVE` in
-`current_generation.py` are executable architecture metadata. CI checks the actual
-instantiated object graph against this declaration.
+`current_manifest.py` is the sole executable source of truth for the active
+component set. `LEGACY_COMPONENTS_ACTIVE` must remain empty. CI checks both the
+manifest and the actual instantiated object graph.
 
 ## Two identity contracts
 
@@ -52,15 +64,22 @@ counters are still ignored according to the audited v3 semantic contract.
 
 ### Relational transfer identity
 
-Used by Policy, Critic and relational Skill promotion. Seed-renamed identifiers
-with the same observed roles map to the same structural representation. This is
-what allows experience from one generated HTTP scenario to transfer to another.
+Used by Policy, Prophecy input, Critic and relational Skill promotion. Seed-renamed
+identifiers with the same observed roles map to the same structural representation.
+A regression test deliberately moves raw identifier-index slots and verifies that
+Policy and Prophecy inputs remain identical while the concrete ASEQ key remains
+different.
 
 ## World model and Knowledge boundary
 
 The current world model is the Neural Delta ensemble developed in the Prophecy /
-Imagination-v2 line. The legacy snapshot/effect-composition model is not stacked
-on top of it.
+Imagination-v2 line. Its learned input is relational state + relational action; raw
+route/profile/object slot numbers are not provided as world-model input. The
+predicted delta is then applied to the caller's current concrete state scaffold so
+that planning remains connected to the real current action surface.
+
+The legacy snapshot/effect-composition model is not stacked on top of this world
+model.
 
 Holdout calibration is frozen at the start of each real transition. If that
 transition is subsequently assigned to holdout, it cannot calibrate a prediction
@@ -73,7 +92,7 @@ Context-free holdout prediction never sees live episode Knowledge.
 Training-time Imagination intervention is disabled. Real interaction trains:
 
 - sparse-reward relational DQN Policy,
-- Neural Delta Prophecy,
+- fully relational-input Neural Delta Prophecy,
 - calibration evidence,
 - information-value predictor,
 - GRU Branch Critic from final episode outcome,
@@ -100,9 +119,17 @@ rather than silently restoring the old hand-scored implementation.
 
 Historical files are not deleted. Reproduction scripts may still import old v0.4,
 GridPush, GOAL, GRU and effect-composition implementations. New current-generation
-scripts must import only the public current builder. `tests/test_current_generation.py`
-fails if old Policy, old GRU Prophecy or hand-written Goal scorer appears in the
-active current object graph.
+scripts must import only the package current builder and `current_protocol`.
+
+CI fails if:
+
+- the package default pentest builder points back to v0.4;
+- a current runner imports the frozen v0.4 full-system or historical 2x2 runner;
+- old Policy, old GRU Prophecy or hand-written Goal scorer appears in the active
+  current object graph;
+- renamed structural states/actions produce different current Policy or Prophecy
+  inputs;
+- same-checkpoint evaluation mutates persistent learning state.
 
 ## Before another full main
 
@@ -112,4 +139,6 @@ Do not repeat the 90,000-transition main until all of the following are green:
 2. real-transition smoke;
 3. same-checkpoint evaluation freeze smoke;
 4. reduced L0 learning smoke showing that the agent can discover at least one
-   successful trajectory without Oracle/guided/correct-action intervention.
+   successful trajectory without Oracle/guided/correct-action intervention;
+5. a larger reduced run in which the learned GRU Critic becomes ready and the
+   Full condition records real Imagination runs on the same checkpoint.
