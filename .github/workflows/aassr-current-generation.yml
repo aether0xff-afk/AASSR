@@ -9,6 +9,7 @@ on:
       - "src/aassr_v2/current_runtime.py"
       - "src/aassr_v2/current_performance.py"
       - "src/aassr_v2/current_entrypoint.py"
+      - "src/aassr_v2/current_protocol.py"
       - "src/aassr_v2/pentest_current_generation_smoke.py"
       - "src/aassr_v2/pentest_current_generation_main.py"
       - "src/aassr_v2/__init__.py"
@@ -43,6 +44,7 @@ jobs:
           python -m py_compile src/aassr_v2/current_runtime.py
           python -m py_compile src/aassr_v2/current_performance.py
           python -m py_compile src/aassr_v2/current_entrypoint.py
+          python -m py_compile src/aassr_v2/current_protocol.py
           python -m py_compile src/aassr_v2/pentest_current_generation_smoke.py
           python -m py_compile src/aassr_v2/pentest_current_generation_main.py
           python -m py_compile src/aassr_v2/__init__.py
@@ -51,6 +53,18 @@ jobs:
           python -m py_compile tests/test_current_generation.py
           python -m py_compile tests/test_current_generation_batching.py
           python -m py_compile tests/test_current_default_entrypoint.py
+      - name: Assert current runtime does not import frozen v0.4 runner
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for name in (
+              "src/aassr_v2/current_protocol.py",
+              "src/aassr_v2/pentest_current_generation_smoke.py",
+              "src/aassr_v2/pentest_current_generation_main.py",
+          ):
+              text = Path(name).read_text(encoding="utf-8")
+              assert "pentest_v040_full_system_main" not in text, name
+          PY
       - name: Assert active architecture rename invariance and batching
         run: |
           pytest -q \
