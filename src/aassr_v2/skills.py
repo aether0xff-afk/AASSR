@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Any, Iterable
+from typing import Any, Iterable, Sequence
 
 from .prophecy import ProphecyStep
 from .types import Action, Prediction, StateSnapshot, TransitionTrace
@@ -22,10 +22,7 @@ class Skill:
 
     @property
     def reliability(self) -> float:
-        return self.successes / max(
-            1,
-            self.successes + self.failures,
-        )
+        return self.successes / max(1, self.successes + self.failures)
 
     def applicable(
         self,
@@ -75,17 +72,12 @@ class SkillLibrary:
             )
         self.promotion_successes = promotion_successes
         self.maximum_length = maximum_length
-        self._candidates: dict[
-            tuple[str, ...],
-            _SkillCandidate,
-        ] = {}
+        self._candidates: dict[tuple[str, ...], _SkillCandidate] = {}
         self._skills: dict[str, Skill] = {}
         self._next_id = 1
 
     @staticmethod
-    def _sequence_key(
-        actions: Iterable[Action],
-    ) -> tuple[str, ...]:
+    def _sequence_key(actions: Iterable[Action]) -> tuple[str, ...]:
         return tuple(action.signature for action in actions)
 
     def observe_goal_completion(
@@ -101,21 +93,11 @@ class SkillLibrary:
         actions = tuple(trace.action for trace in materialized)
         key = self._sequence_key(actions)
         required = materialized[0].before.facts
-        added = frozenset().union(
-            *(trace.added_facts for trace in materialized)
-        )
-        removed = frozenset().union(
-            *(trace.removed_facts for trace in materialized)
-        )
+        added = frozenset().union(*(trace.added_facts for trace in materialized))
+        removed = frozenset().union(*(trace.removed_facts for trace in materialized))
         candidate = self._candidates.get(key)
         if candidate is None:
-            candidate = _SkillCandidate(
-                actions,
-                goals,
-                required,
-                added,
-                removed,
-            )
+            candidate = _SkillCandidate(actions, goals, required, added, removed)
             self._candidates[key] = candidate
         candidate.successes += 1
         if candidate.successes < self.promotion_successes:
@@ -153,68 +135,40 @@ class SkillLibrary:
 
     def record_failure(self, skill_id: str) -> None:
         skill = self._skills[skill_id]
-        self._skills[skill_id] = replace(
-            skill,
-            failures=skill.failures + 1,
-        )
+        self._skills[skill_id] = replace(skill, failures=skill.failures + 1)
 
     def get(self, skill_id: str) -> Skill:
         return self._skills[skill_id]
 
     def all(self) -> tuple[Skill, ...]:
-        return tuple(
-            sorted(
-                self._skills.values(),
-                key=lambda skill: skill.skill_id,
-            )
-        )
+        return tuple(sorted(self._skills.values(), key=lambda skill: skill.skill_id))
 
-    def actions_for(
-        self,
-        state: StateSnapshot,
-    ) -> tuple[Action, ...]:
+    def actions_for(self, state: StateSnapshot) -> tuple[Action, ...]:
         return tuple(
             skill.as_action()
             for skill in self.all()
             if skill.applicable(state)
         )
 
-    def augment_state(
-        self,
-        state: StateSnapshot,
-    ) -> StateSnapshot:
-        existing = {
-            action.signature: action
-            for action in state.available_actions
-        }
+    def augment_state(self, state: StateSnapshot) -> StateSnapshot:
+        existing = {action.signature: action for action in state.available_actions}
         for action in self.actions_for(state):
             existing[action.signature] = action
         return state.with_actions(
-            tuple(
-                sorted(
-                    existing.values(),
-                    key=lambda action: action.signature,
-                )
-            )
+            tuple(sorted(existing.values(), key=lambda action: action.signature))
         )
 
 
 class SkillAwareProphecy:
     """Roll primitive predictions for one learned skill in imagination."""
 
-    def __init__(
-        self,
-        base: object,
-        library: SkillLibrary,
-    ) -> None:
+    def __init__(self, base: object, library: SkillLibrary) -> None:
         self.base = base
         self.library = library
 
     @property
     def name(self) -> str:
-        return (
-            f"skill-aware:{getattr(self.base, 'name', 'prophecy')}"
-        )
+        return f"skill-aware:{getattr(self.base, 'name', 'prophecy')}"
 
     def initial_memory(self) -> Any:
         factory = getattr(self.base, "initial_memory", None)
@@ -236,11 +190,7 @@ class SkillAwareProphecy:
                 samples=samples,
             )
         return ProphecyStep(
-            self.base.predict(
-                state,
-                action,
-                samples=samples,
-            ),
+            self.base.predict(state, action, samples=samples),
             memory,
         )
 
@@ -253,19 +203,12 @@ class SkillAwareProphecy:
         samples: int,
     ) -> ProphecyStep:
         if action.verb_name != SKILL_VERB:
-            step = self._base_step(
-                state,
-                action,
-                memory,
-                samples,
-            )
+            step = self._base_step(state, action, memory, samples)
             return ProphecyStep(
                 tuple(
                     replace(
                         prediction,
-                        next_state=self.library.augment_state(
-                            prediction.next_state
-                        ),
+                        next_state=self.library.augment_state(prediction.next_state),
                     )
                     for prediction in step.predictions
                 ),
@@ -276,16 +219,8 @@ class SkillAwareProphecy:
         branch_memory = memory
         probability = 1.0
         for primitive in skill.primitive_actions:
-            step = self._base_step(
-                current,
-                primitive,
-                branch_memory,
-                1,
-            )
-            best = max(
-                step.predictions,
-                key=lambda item: item.probability,
-            )
+            step = self._base_step(current, primitive, branch_memory, 1)
+            best = max(step.predictions, key=lambda item: item.probability)
             current = best.next_state
             branch_memory = step.memory
             probability *= best.probability
@@ -315,15 +250,37 @@ class SkillAwareProphecy:
             samples=samples,
         ).predictions
 
-    def confidence(self, state: StateSnapshot, action: Action) -> float:
-        """Reuse primitive model confidence instead of re-running predictions.
+    def predict_batch(
+        self,
+        states: Sequence[StateSnapshot],
+        actions: Sequence[Action],
+        *,
+        samples: int,
+    ) -> tuple[tuple[Prediction, ...], ...]:
+        if len(states) != len(actions):
+            raise ValueError("states/actions batch length mismatch")
+        batch_predict = getattr(self.base, "predict_batch", None)
+        if callable(batch_predict) and all(
+            action.verb_name != SKILL_VERB for action in actions
+        ):
+            rows = batch_predict(states, actions, samples=samples)
+            return tuple(
+                tuple(
+                    replace(
+                        prediction,
+                        next_state=self.library.augment_state(prediction.next_state),
+                    )
+                    for prediction in row
+                )
+                for row in rows
+            )
+        return tuple(
+            self.predict(state, action, samples=samples)
+            for state, action in zip(states, actions, strict=True)
+        )
 
-        Effect-composed coverage asks its wrapped model for confidence for every
-        available action. Most actions are primitives, so delegating the base
-        model's calibrated confidence avoids an O(action_count) collection of
-        redundant GRU rollouts while preserving the same confidence source.
-        Learned Skill actions are rare and retain the prediction-derived path.
-        """
+    def confidence(self, state: StateSnapshot, action: Action) -> float:
+        """Reuse primitive model confidence instead of re-running predictions."""
 
         if action.verb_name != SKILL_VERB:
             confidence = getattr(self.base, "confidence", None)
@@ -350,9 +307,7 @@ class SkillAwareProphecy:
         materialized = tuple(actions)
         if not materialized:
             return 1.0
-        return sum(self.confidence(state, action) for action in materialized) / len(
-            materialized
-        )
+        return sum(self.confidence(state, action) for action in materialized) / len(materialized)
 
     def learn(
         self,
@@ -362,11 +317,7 @@ class SkillAwareProphecy:
     ) -> None:
         if action.verb_name == SKILL_VERB:
             return
-        self.base.learn(
-            state,
-            action,
-            actual_next_state,
-        )
+        self.base.learn(state, action, actual_next_state)
 
 
 @dataclass(frozen=True, slots=True)
@@ -385,10 +336,7 @@ class SkillExecutor:
         action: Action,
     ) -> SkillExecutionResult:
         if action.verb_name != SKILL_VERB:
-            return SkillExecutionResult(
-                (environment.step(action),),
-                True,
-            )
+            return SkillExecutionResult((environment.step(action),), True)
         skill = self.library.get(str(action.target))
         outcomes = []
         for primitive in skill.primitive_actions:
@@ -396,11 +344,5 @@ class SkillExecutor:
             outcomes.append(outcome)
             if getattr(outcome, "error", False):
                 self.library.record_failure(skill.skill_id)
-                return SkillExecutionResult(
-                    tuple(outcomes),
-                    False,
-                )
-        return SkillExecutionResult(
-            tuple(outcomes),
-            True,
-        )
+                return SkillExecutionResult(tuple(outcomes), False)
+        return SkillExecutionResult(tuple(outcomes), True)
