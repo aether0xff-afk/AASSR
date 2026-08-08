@@ -310,9 +310,13 @@ class TorchGRUProphecy:
         return self.predict_batch((state,), (action,), samples=samples)[0]
 
     def advance_sequence(self, state: StateSnapshot, action: Action) -> None:
-        with self.torch.inference_mode():
+        # This state is persisted into the next real learning update, so it must
+        # be a normal tensor rather than an inference tensor.  no_grad() keeps
+        # autograd bookkeeping off without contaminating the tensor's lifetime.
+        with self.torch.no_grad():
             x = self._inputs((state,), (action,))
-            _, hidden = self._forward_batch(x, self._train_memory.hidden.reshape(1, -1))
+            current = self._train_memory.hidden.detach().clone().reshape(1, -1)
+            _, hidden = self._forward_batch(x, current)
             self._train_memory = TorchGRUMemory(hidden[0].detach().clone())
 
     def learn(self, state: StateSnapshot, action: Action, actual_next_state: StateSnapshot) -> None:
@@ -321,7 +325,7 @@ class TorchGRUProphecy:
         for parameter in self._parameters:
             parameter.grad = None
         x = self._inputs((state,), (action,))
-        current = self._train_memory.hidden.reshape(1, -1).detach()
+        current = self._train_memory.hidden.detach().clone().reshape(1, -1)
         output, next_hidden = self._forward_batch(x, current)
         target = self.torch.tensor(
             actual_next_state.vector, device=self.device, dtype=self.dtype
