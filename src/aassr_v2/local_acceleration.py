@@ -24,6 +24,9 @@ class BatchedIntegratedProphecyView(IntegratedProphecyView):
         samples: int,
     ) -> tuple[tuple[Prediction, ...], ...]:
         outer = self._prophecy
+        ensure = getattr(outer, "_ensure_reconstructed", None)
+        if callable(ensure):
+            ensure()
         base = getattr(outer, "base", None)
         batch_predict = getattr(base, "predict_batch", None)
         if not callable(batch_predict):
@@ -37,7 +40,7 @@ class BatchedIntegratedProphecyView(IntegratedProphecyView):
         for state, action, base_predictions in zip(
             states, actions, base_rows, strict=True
         ):
-            bucket, tier, source, include_symbolic = outer._select_bucket(  # type: ignore[attr-defined]
+            bucket, tier, source, include_symbolic = outer._select_bucket(
                 state, action
             )
             if not bucket:
@@ -66,7 +69,7 @@ class BatchedIntegratedProphecyView(IntegratedProphecyView):
             def add_prediction(prediction: Prediction, probability: float) -> None:
                 if probability <= 0.0:
                     return
-                key = outer._prediction_key(prediction.next_state)  # type: ignore[attr-defined]
+                key = outer._prediction_key(prediction.next_state)
                 current = merged.get(key)
                 if current is None:
                     merged[key] = [
@@ -93,9 +96,7 @@ class BatchedIntegratedProphecyView(IntegratedProphecyView):
                     Prediction(composed, probability, source), probability
                 )
 
-            normalized = outer._normalized_probabilities(  # type: ignore[attr-defined]
-                tuple(base_predictions)
-            )
+            normalized = outer._normalized_probabilities(tuple(base_predictions))
             for prediction, probability in zip(
                 base_predictions, normalized, strict=True
             ):
@@ -113,7 +114,7 @@ class BatchedIntegratedProphecyView(IntegratedProphecyView):
                     key=lambda pair: (-float(pair[1][1]), repr(pair[0])),
                 )
             )
-            outer._composed_predictions += 1  # type: ignore[attr-defined]
+            outer._composed_predictions += 1
             output.append(row)
         return tuple(output)
 
@@ -135,7 +136,11 @@ class BatchedIntegratedProphecyView(IntegratedProphecyView):
 
 
 def enable_batched_integrated_prophecy(agent: object) -> object:
-    """Swap only the view used for prediction; learning objects stay identical."""
+    """Install holdout batching and depth-wise Imagination batching.
+
+    Learning objects and the frozen experiment runner remain unchanged. Only
+    prediction execution is replaced by exact batch-capable views.
+    """
 
     view = BatchedIntegratedProphecyView(
         agent.effect_prophecy,
@@ -144,4 +149,7 @@ def enable_batched_integrated_prophecy(agent: object) -> object:
     agent.prophecy = view
     agent.core.planner.prophecy = view
     agent.evaluator.prophecy = view
-    return agent
+
+    from .native_batching import enable_depth_batched_imagination
+
+    return enable_depth_batched_imagination(agent)
