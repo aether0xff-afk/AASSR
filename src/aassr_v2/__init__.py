@@ -129,6 +129,13 @@ from .integrated_agent import (
     build_full_aassr_core,
     build_pentest_aassr_core,
 )
+from .current_generation import (
+    CURRENT_COMPONENTS,
+    CURRENT_GENERATION_VERSION,
+    LEGACY_COMPONENTS_ACTIVE,
+    CurrentPentestAASSRAgent,
+    build_current_pentest_aassr_core,
+)
 from .knowledge import (
     KnowledgeDelta,
     KnowledgeEntry,
