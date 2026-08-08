@@ -72,6 +72,21 @@ class ContextualSkillAwareProphecy(SkillAwareProphecy):
     def bind_knowledge(self, knowledge: KnowledgeStore | None) -> None:
         self.knowledge = knowledge
 
+    def reset_sequence(self) -> None:
+        reset = getattr(self.base, "reset_sequence", None)
+        if callable(reset):
+            reset()
+
+    def reset_context(self) -> None:
+        reset = getattr(self.base, "reset_context", None)
+        if callable(reset):
+            reset()
+
+    def advance_sequence(self, state: StateSnapshot, action: Action) -> None:
+        advance = getattr(self.base, "advance_sequence", None)
+        if callable(advance):
+            advance(state, action)
+
     def _base_context_predictions(
         self,
         state: StateSnapshot,
@@ -366,6 +381,16 @@ class IntegratedAASSRAgent:
         if clear_knowledge:
             self.knowledge = KnowledgeStore()
             self.skill_prophecy.bind_knowledge(self.knowledge)
+
+        # Recurrent Prophecy context is episode-local. Independent scenario seeds
+        # must never be interpreted as one continuous sequence.
+        reset_sequence = getattr(self.prophecy, "reset_sequence", None)
+        if callable(reset_sequence):
+            reset_sequence()
+        reset_context = getattr(self.prophecy, "reset_context", None)
+        if callable(reset_context):
+            reset_context()
+
         self.aseq.reset_episode()
         self._episode_evaluations.clear()
         self._episode_traces.clear()
@@ -407,6 +432,17 @@ class IntegratedAASSRAgent:
 
     @staticmethod
     def _terminal(environment: object) -> bool:
+        # Safe assessment worlds may retain an action surface after terminal or
+        # truncation bookkeeping. Stop Skill macros on semantic episode endings,
+        # not only when the action list happens to become empty.
+        if bool(getattr(environment, "success", False)):
+            return True
+        if bool(getattr(environment, "rate_limited", False)):
+            return True
+        if bool(getattr(environment, "failed", False)) and bool(
+            getattr(environment, "locked", False)
+        ):
+            return True
         terminal = getattr(environment, "terminal", None)
         if isinstance(terminal, bool):
             return terminal
@@ -502,10 +538,16 @@ class IntegratedAASSRAgent:
             evaluation = None
             trace = self._execute_frozen(environment, action)
         self._episode_traces.append(trace)
-        self._observe_information_features(trace)
+        if training:
+            self._observe_information_features(trace)
         return trace, evaluation
 
-    def _goal_update(self, state: StateSnapshot) -> tuple[tuple[str, ...], Skill | None]:
+    def _goal_update(
+        self,
+        state: StateSnapshot,
+        *,
+        training: bool,
+    ) -> tuple[tuple[str, ...], Skill | None]:
         achieved = set(
             self.goals.achieved_ids(
                 state,
@@ -514,7 +556,7 @@ class IntegratedAASSRAgent:
         )
         newly_achieved = tuple(sorted(achieved - self._previous_goal_ids))
         promoted = None
-        if newly_achieved:
+        if training and newly_achieved:
             promoted = self.skills.observe_goal_completion(
                 self._episode_traces,
                 achieved_goal_ids=newly_achieved,
@@ -530,7 +572,11 @@ class IntegratedAASSRAgent:
         *,
         episode: int,
         training: bool = True,
+        primitive_budget: int | None = None,
     ) -> IntegratedAgentStep:
+        if primitive_budget is not None and primitive_budget <= 0:
+            raise ValueError("primitive_budget must be positive when supplied")
+
         raw_before = environment.snapshot()
         decision = self.select_action(
             raw_before,
@@ -544,15 +590,24 @@ class IntegratedAASSRAgent:
 
         if selected.verb_name == SKILL_VERB:
             self._skill_uses += 1
-            self._selected_skill_steps.append(
-                (self.skills.augment_state(raw_before), selected, len(self._episode_traces))
-            )
-            primitives: Iterable[Action] = self.skills.get(str(selected.target)).primitive_actions
+            if training:
+                self._selected_skill_steps.append(
+                    (
+                        self.skills.augment_state(raw_before),
+                        selected,
+                        len(self._episode_traces),
+                    )
+                )
+            primitives: Iterable[Action] = self.skills.get(
+                str(selected.target)
+            ).primitive_actions
         else:
             primitives = (selected,)
 
         skill_failed = False
         for primitive in primitives:
+            if primitive_budget is not None and len(executed) >= primitive_budget:
+                break
             if self._terminal(environment):
                 break
             trace, evaluation = self._execute_primitive(
@@ -568,7 +623,7 @@ class IntegratedAASSRAgent:
                 skill_failed = selected.verb_name == SKILL_VERB
                 break
 
-        if skill_failed:
+        if skill_failed and training:
             self.skills.record_failure(str(selected.target))
 
         raw_after = environment.snapshot()
@@ -580,7 +635,10 @@ class IntegratedAASSRAgent:
                 semantic_after,
             )
 
-        newly_achieved, promoted = self._goal_update(raw_after)
+        newly_achieved, promoted = self._goal_update(
+            raw_after,
+            training=training,
+        )
         self._steps += 1
         return IntegratedAgentStep(
             decision,
@@ -644,7 +702,9 @@ class IntegratedAASSRAgent:
             # outcome credit; never invent a synthetic environment reward.
             for state, action, trace_index in self._selected_skill_steps:
                 remaining = max(0, len(self._episode_traces) - trace_index - 1)
-                macro_credit = float(final_return) * (self.core.config.gamma ** remaining)
+                macro_credit = float(final_return) * (
+                    self.core.config.gamma ** remaining
+                )
                 self.policy.observe_return(state, action, macro_credit)
 
         self._episode_evaluations.clear()
@@ -663,6 +723,9 @@ class IntegratedAASSRAgent:
             "semantic_state_contract_shared": True,
             "knowledge_bound_to_planning": True,
             "knowledge_effect_composition_aligned": True,
+            "evaluation_learning_frozen": True,
+            "episode_recurrent_state_reset": True,
+            "primitive_budget_enforced": True,
             "knowledge_entries": len(self.knowledge.values()),
             "feature_records": len(self.feature_memory.snapshot()),
             "feature_clusters": self.feature_memory.cluster_count(),
