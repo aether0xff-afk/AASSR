@@ -120,6 +120,15 @@ from .information_value import (
     InformationValueBreakdown,
     InformationValueWeights,
 )
+from .integrated_agent import (
+    ContextualSkillAwareProphecy,
+    IntegratedAASSRConfig,
+    IntegratedAASSRAgent,
+    IntegratedActionDecision,
+    IntegratedAgentStep,
+    build_full_aassr_core,
+    build_pentest_aassr_core,
+)
 from .knowledge import (
     KnowledgeDelta,
     KnowledgeEntry,
@@ -143,6 +152,13 @@ from .replay import (
     ValidationScore,
 )
 from .sandbox import SandboxActionPlugin, SandboxEnv, SandboxSpec
+from .semantic_control import (
+    SemanticContextualPolicy,
+    SemanticSelfLoopASEQ,
+    SemanticStateKey,
+    SemanticStateKeyFn,
+    raw_semantic_state_key,
+)
 from .serialization import JsonlLedgerWriter
 from .skills import (
     SKILL_VERB,
@@ -179,4 +195,4 @@ from .paper_runner import PaperArtifacts, run_paper_suite
 
 __all__ = [name for name in globals() if not name.startswith("_")]
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
