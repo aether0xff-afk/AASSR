@@ -6,6 +6,7 @@ on:
   pull_request:
     paths:
       - "src/aassr_v2/current_generation.py"
+      - "src/aassr_v2/current_manifest.py"
       - "src/aassr_v2/current_runtime.py"
       - "src/aassr_v2/current_performance.py"
       - "src/aassr_v2/current_entrypoint.py"
@@ -41,6 +42,7 @@ jobs:
       - name: Compile current-generation runtime
         run: |
           python -m py_compile src/aassr_v2/current_generation.py
+          python -m py_compile src/aassr_v2/current_manifest.py
           python -m py_compile src/aassr_v2/current_runtime.py
           python -m py_compile src/aassr_v2/current_performance.py
           python -m py_compile src/aassr_v2/current_entrypoint.py
@@ -53,17 +55,22 @@ jobs:
           python -m py_compile tests/test_current_generation.py
           python -m py_compile tests/test_current_generation_batching.py
           python -m py_compile tests/test_current_default_entrypoint.py
-      - name: Assert current runtime does not import frozen v0.4 runner
+      - name: Assert current runners do not import historical experiment runners
         run: |
           python - <<'PY'
           from pathlib import Path
+          forbidden = (
+              "pentest_v040_full_system_main",
+              "pentest_training_mechanism_main",
+          )
           for name in (
               "src/aassr_v2/current_protocol.py",
               "src/aassr_v2/pentest_current_generation_smoke.py",
               "src/aassr_v2/pentest_current_generation_main.py",
           ):
               text = Path(name).read_text(encoding="utf-8")
-              assert "pentest_v040_full_system_main" not in text, name
+              for token in forbidden:
+                  assert token not in text, (name, token)
           PY
       - name: Assert active architecture rename invariance and batching
         run: |
@@ -85,9 +92,12 @@ jobs:
           result = json.loads(Path("runs/current_generation_smoke.json").read_text())
           assert result["same_checkpoint_verified"] is True
           assert result["legacy_components_active"] == []
+          assert "relational-state-action" in result["current_components"]["prophecy"]
           diagnostics = result["diagnostics"]
           assert diagnostics["policy"]["dqn:gradient_updates"] > 0
           assert diagnostics["prophecy_current"]["gradient_updates"] > 0
+          assert diagnostics["prophecy_state_input_relational"] is True
+          assert diagnostics["prophecy_action_input_relational"] is True
           assert diagnostics["calibration_same_transition_frozen"] is True
           print(
               "train_successes=", result["training_successes"],
@@ -112,6 +122,7 @@ jobs:
           for key, value in CURRENT_COMPONENTS.items():
               print(f"{key}: {value}")
           assert LEGACY_COMPONENTS_ACTIVE == ()
+          assert "relational-state-action" in CURRENT_COMPONENTS["prophecy"]
           assert aassr_v2.build_pentest_aassr_core is build_current_pentest_aassr_core
           agent = build_current_pentest_aassr_core(
               seed=7,
@@ -121,6 +132,7 @@ jobs:
           )
           diagnostics = agent.diagnostics()
           assert diagnostics["canonical_runtime"] == "current_runtime"
+          assert diagnostics["current_components"] == dict(CURRENT_COMPONENTS)
           assert agent.current_depth_batching is True
           PY
       - name: Archive current-generation smoke
