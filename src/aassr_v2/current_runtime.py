@@ -7,14 +7,49 @@ from .current_generation import (
     CURRENT_COMPONENTS,
     CURRENT_GENERATION_VERSION,
     LEGACY_COMPONENTS_ACTIVE,
+    CurrentNeuralDeltaProphecy,
     CurrentPentestAASSRAgent,
     KnowledgeBoundProphecy,
     RelationalContextualSkillAwareProphecy,
     ReplayRelationalCalibratedProphecy,
     relational_action_key,
+    relational_state_vector,
 )
 from .integrated_agent import IntegratedProphecyView
+from .neural_delta_prophecy import NeuralDeltaConfig
+from .pentest_agent_main_test import ACTION_FEATURE_SIZE, HttpAgentCodec
 from .types import Action, StateSnapshot
+
+
+class FullyRelationalNeuralDeltaProphecy(CurrentNeuralDeltaProphecy):
+    """Current Neural Delta with rename-invariant state *and* action input.
+
+    The model predicts a concrete-scaffold delta: its learned input contains no
+    raw route/profile/object indices, while the predicted numerical delta is
+    applied to the caller's current concrete vector by the inherited decoder.
+    This preserves the real current action surface without letting seed-specific
+    identifier slots become a Policy/Prophecy lookup key.
+    """
+
+    name = "current-relational-state-action-neural-delta"
+
+    def _input(
+        self,
+        state: StateSnapshot,
+        action: Action,
+    ) -> tuple[float, ...]:
+        return relational_state_vector(state) + relational_action_key(
+            state,
+            action,
+        )
+
+    def diagnostics(self) -> dict[str, int | float | str]:
+        return {
+            **super().diagnostics(),
+            "state_input_relational": 1,
+            "action_input_relational": 1,
+            "prediction_output": "concrete-scaffold-delta",
+        }
 
 
 class FrozenReplayRelationalCalibratedProphecy(
@@ -132,11 +167,45 @@ class CurrentPentestRuntimeAgent(CurrentPentestAASSRAgent):
     importable, but the public current builder below always returns this runtime.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        *,
+        seed: int,
+        train_transitions: int,
+        use_imagination: bool = True,
+        device: str = "cpu",
+    ) -> None:
+        super().__init__(
+            seed=int(seed),
+            train_transitions=int(train_transitions),
+            use_imagination=bool(use_imagination),
+            device=device,
+        )
+
+        # The base class is retained only as a wiring substrate. Replace the
+        # transient Neural Delta it constructed before any real transition can be
+        # observed so the active world model never receives raw identifier-index
+        # state input.
+        neural = FullyRelationalNeuralDeltaProphecy(
+            HttpAgentCodec(),
+            config=NeuralDeltaConfig(
+                action_feature_size=ACTION_FEATURE_SIZE,
+                hidden_units=128,
+                ensemble_size=3,
+                replay_capacity=50_000,
+                batch_size=64,
+                warmup_steps=128,
+                learning_rate=1e-3,
+                gradient_steps_per_observation=1,
+                confidence_prior=256.0,
+            ),
+            seed=int(seed) ^ 0x4E455552,
+            device=device,
+        )
+        self.base_neural_prophecy = neural
 
         calibrated = FrozenReplayRelationalCalibratedProphecy(
-            self.base_neural_prophecy,
+            neural,
             self.evaluator.replay,
         )
         knowledge = KnowledgeBoundProphecy(calibrated)
@@ -193,6 +262,8 @@ class CurrentPentestRuntimeAgent(CurrentPentestAASSRAgent):
             {
                 "canonical_runtime": "current_runtime",
                 "calibration_same_transition_frozen": True,
+                "prophecy_state_input_relational": True,
+                "prophecy_action_input_relational": True,
                 "current_generation_version": CURRENT_GENERATION_VERSION,
                 "current_components": dict(CURRENT_COMPONENTS),
                 "legacy_components_active": list(LEGACY_COMPONENTS_ACTIVE),
