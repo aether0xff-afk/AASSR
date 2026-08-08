@@ -7,8 +7,12 @@ on:
     paths:
       - "src/aassr_v2/current_generation.py"
       - "src/aassr_v2/current_runtime.py"
+      - "src/aassr_v2/current_performance.py"
+      - "src/aassr_v2/current_entrypoint.py"
+      - "src/aassr_v2/pentest_current_generation_smoke.py"
       - "src/aassr_v2/__init__.py"
-      - "tests/test_current_generation.py"
+      - "scripts/run_pentest_current_generation_smoke.py"
+      - "tests/test_current_generation*.py"
       - ".github/workflows/aassr-current-generation.yml"
   workflow_dispatch:
 
@@ -34,10 +38,21 @@ jobs:
         run: |
           python -m py_compile src/aassr_v2/current_generation.py
           python -m py_compile src/aassr_v2/current_runtime.py
+          python -m py_compile src/aassr_v2/current_performance.py
+          python -m py_compile src/aassr_v2/current_entrypoint.py
+          python -m py_compile src/aassr_v2/pentest_current_generation_smoke.py
           python -m py_compile src/aassr_v2/__init__.py
+          python -m py_compile scripts/run_pentest_current_generation_smoke.py
           python -m py_compile tests/test_current_generation.py
-      - name: Assert active architecture and rename invariance
-        run: pytest -q tests/test_current_generation.py
+          python -m py_compile tests/test_current_generation_batching.py
+      - name: Assert active architecture rename invariance and batching
+        run: pytest -q tests/test_current_generation.py tests/test_current_generation_batching.py
+      - name: Run same-checkpoint real-environment smoke
+        run: |
+          python scripts/run_pentest_current_generation_smoke.py \
+            --output runs/current_generation_smoke.json \
+            --transition-budget 32 \
+            --device cpu
       - name: Print active component manifest
         run: |
           python - <<'PY'
@@ -57,5 +72,14 @@ jobs:
               use_imagination=True,
               device="cpu",
           )
-          assert agent.diagnostics()["canonical_runtime"] == "current_runtime"
+          diagnostics = agent.diagnostics()
+          assert diagnostics["canonical_runtime"] == "current_runtime"
+          assert agent.current_depth_batching is True
           PY
+      - name: Archive current-generation smoke
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aassr-current-generation-smoke
+          path: runs/current_generation_smoke.json
+          if-no-files-found: warn
