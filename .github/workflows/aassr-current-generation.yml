@@ -8,6 +8,7 @@ on:
       - "src/aassr_v2/current_generation.py"
       - "src/aassr_v2/current_manifest.py"
       - "src/aassr_v2/current_runtime.py"
+      - "src/aassr_v2/current_agent.py"
       - "src/aassr_v2/current_performance.py"
       - "src/aassr_v2/current_entrypoint.py"
       - "src/aassr_v2/current_protocol.py"
@@ -44,6 +45,7 @@ jobs:
           python -m py_compile src/aassr_v2/current_generation.py
           python -m py_compile src/aassr_v2/current_manifest.py
           python -m py_compile src/aassr_v2/current_runtime.py
+          python -m py_compile src/aassr_v2/current_agent.py
           python -m py_compile src/aassr_v2/current_performance.py
           python -m py_compile src/aassr_v2/current_entrypoint.py
           python -m py_compile src/aassr_v2/current_protocol.py
@@ -72,7 +74,7 @@ jobs:
               for token in forbidden:
                   assert token not in text, (name, token)
           PY
-      - name: Assert active architecture rename invariance and batching
+      - name: Assert active architecture rename invariance batching and standalone runtime
         run: |
           pytest -q \
             tests/test_current_generation.py \
@@ -94,6 +96,7 @@ jobs:
           assert result["legacy_components_active"] == []
           assert "relational-state-action" in result["current_components"]["prophecy"]
           diagnostics = result["diagnostics"]
+          assert diagnostics["canonical_runtime"] == "current_standalone"
           assert diagnostics["policy"]["dqn:gradient_updates"] > 0
           assert diagnostics["prophecy_current"]["gradient_updates"] > 0
           assert diagnostics["prophecy_state_input_relational"] is True
@@ -118,6 +121,9 @@ jobs:
               LEGACY_COMPONENTS_ACTIVE,
               build_current_pentest_aassr_core,
           )
+          from aassr_v2.autonomous_agent_core import AutonomousLearningAgent
+          from aassr_v2.integrated_agent import IntegratedAASSRAgent
+
           print(CURRENT_GENERATION_VERSION)
           for key, value in CURRENT_COMPONENTS.items():
               print(f"{key}: {value}")
@@ -130,8 +136,10 @@ jobs:
               use_imagination=True,
               device="cpu",
           )
+          assert IntegratedAASSRAgent not in type(agent).mro()
+          assert AutonomousLearningAgent not in type(agent).mro()
           diagnostics = agent.diagnostics()
-          assert diagnostics["canonical_runtime"] == "current_runtime"
+          assert diagnostics["canonical_runtime"] == "current_standalone"
           assert diagnostics["current_components"] == dict(CURRENT_COMPONENTS)
           assert agent.current_depth_batching is True
           PY
