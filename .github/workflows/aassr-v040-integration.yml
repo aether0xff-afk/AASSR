@@ -10,6 +10,7 @@ on:
       - "src/aassr_v2/semantic_control.py"
       - "src/aassr_v2/__init__.py"
       - "tests/test_v040_integration.py"
+      - "tests/test_v040_prophecy_context.py"
       - "docs/releases/v0.4.0.md"
       - "CHANGELOG.md"
       - ".github/workflows/aassr-v040-integration.yml"
@@ -31,6 +32,7 @@ jobs:
         run: >-
           pytest -q
           tests/test_v040_integration.py
+          tests/test_v040_prophecy_context.py
           tests/test_roadmap_completion.py
           tests/test_pentest_curriculum_causal.py
           tests/test_pentest_training_mechanism_main.py
