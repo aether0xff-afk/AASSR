@@ -315,6 +315,45 @@ class SkillAwareProphecy:
             samples=samples,
         ).predictions
 
+    def confidence(self, state: StateSnapshot, action: Action) -> float:
+        """Reuse primitive model confidence instead of re-running predictions.
+
+        Effect-composed coverage asks its wrapped model for confidence for every
+        available action. Most actions are primitives, so delegating the base
+        model's calibrated confidence avoids an O(action_count) collection of
+        redundant GRU rollouts while preserving the same confidence source.
+        Learned Skill actions are rare and retain the prediction-derived path.
+        """
+
+        if action.verb_name != SKILL_VERB:
+            confidence = getattr(self.base, "confidence", None)
+            if callable(confidence):
+                return max(0.0, min(1.0, float(confidence(state, action))))
+
+        predictions = self.predict(state, action, samples=1)
+        value = 0.0
+        for prediction in predictions:
+            source = prediction.source.lower()
+            probability = float(prediction.probability)
+            if source.endswith(":unseen"):
+                probability = 0.0
+            elif source.endswith(":action-family"):
+                probability *= 0.5
+            value = max(value, probability)
+        return max(0.0, min(1.0, value))
+
+    def coverage(
+        self,
+        state: StateSnapshot,
+        actions: Iterable[Action],
+    ) -> float:
+        materialized = tuple(actions)
+        if not materialized:
+            return 1.0
+        return sum(self.confidence(state, action) for action in materialized) / len(
+            materialized
+        )
+
     def learn(
         self,
         state: StateSnapshot,
