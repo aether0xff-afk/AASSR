@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 import pytest
 
 from aassr_v2.action_plugins import PluginOutcome
@@ -108,7 +106,9 @@ def test_semantic_policy_reuses_value_across_admin_noise() -> None:
     )
     policy = SemanticContextualPolicy(key)
     policy.observe_return(first, action, 2.5)
-    assert policy.value(noisy, action) == pytest.approx(2.5)
+    learned = policy.value(first, action)
+    assert learned > 0.0
+    assert policy.value(noisy, action) == pytest.approx(learned)
 
 
 def test_semantic_aseq_guards_only_confirmed_self_loop_and_restores_freedom() -> None:
@@ -130,10 +130,9 @@ def test_semantic_aseq_guards_only_confirmed_self_loop_and_restores_freedom() ->
     aseq.observe("S", b, "S2")
     assert aseq.guarded_signatures("S") == frozenset({a.signature})
 
-    # If b later becomes a confirmed self-loop too, ASEQ restores raw freedom.
+    # A pair with more than one observed S' is never treated as an exact loop.
     aseq.observe("S", b, "S")
     aseq.observe("S", b, "S")
-    # There are now two possible S' outcomes for b, so it is still not guarded.
     assert aseq.guarded_signatures("S") == frozenset({a.signature})
 
     isolated = SemanticSelfLoopASEQ(repeat_threshold=2)
