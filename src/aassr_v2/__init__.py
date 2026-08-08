@@ -129,11 +129,11 @@ from .integrated_agent import (
     build_full_aassr_core as build_legacy_v040_full_aassr_core,
     build_pentest_aassr_core as build_legacy_v040_pentest_aassr_core,
 )
-from .current_generation import (
+from .current_generation import CurrentPentestAASSRAgent
+from .current_manifest import (
     CURRENT_COMPONENTS,
     CURRENT_GENERATION_VERSION,
     LEGACY_COMPONENTS_ACTIVE,
-    CurrentPentestAASSRAgent,
 )
 from .current_runtime import CurrentPentestRuntimeAgent
 from .current_entrypoint import build_current_pentest_aassr_core
