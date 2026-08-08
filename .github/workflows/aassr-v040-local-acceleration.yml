@@ -5,11 +5,14 @@ on:
     paths:
       - "src/aassr_v2/torch_gru_prophecy.py"
       - "src/aassr_v2/local_acceleration.py"
+      - "src/aassr_v2/native_batching.py"
       - "src/aassr_v2/pentest_v040_local_4090.py"
       - "src/aassr_v2/replay.py"
       - "src/aassr_v2/skills.py"
       - "scripts/run_pentest_v040_local_4090.py"
+      - "scripts/run_pentest_v040_maxperf.py"
       - "tests/test_v040_local_acceleration.py"
+      - "tests/test_v040_perf_batching.py"
       - ".github/workflows/aassr-v040-local-acceleration.yml"
   workflow_dispatch:
 
@@ -32,10 +35,15 @@ jobs:
           python -m compileall -q \
             src/aassr_v2/torch_gru_prophecy.py \
             src/aassr_v2/local_acceleration.py \
+            src/aassr_v2/native_batching.py \
             src/aassr_v2/pentest_v040_local_4090.py \
-            scripts/run_pentest_v040_local_4090.py
-      - name: Canonical and batch equivalence regressions
-        run: pytest -q tests/test_v040_local_acceleration.py
+            scripts/run_pentest_v040_local_4090.py \
+            scripts/run_pentest_v040_maxperf.py
+      - name: Canonical, depth-batch and vector-fast-path regressions
+        run: |
+          pytest -q \
+            tests/test_v040_local_acceleration.py \
+            tests/test_v040_perf_batching.py
       - name: Tiny full-system local backend smoke
         run: |
           python - <<'PY'
@@ -64,5 +72,6 @@ jobs:
               assert summary["local_acceleration"]["prophecy_backend"] == "torch-canonical-gru"
               runtime = summary["local_acceleration"]["validator_runtime"]
               assert runtime["batch_calls"] > 0
+              assert runtime["expected_vector_calls"] > 0
               assert all(row["episodes"] == 1 for row in summary["diagnostic"])
           PY
