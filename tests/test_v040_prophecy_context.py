@@ -18,7 +18,7 @@ class ContextAwareProphecy:
         return (
             Prediction(
                 StateSnapshot(
-                    state.vector,
+                    tuple(1.0 for _ in state.vector),
                     facts=state.facts | frozenset({"context_used"}),
                     available_actions=state.available_actions,
                     goal_progress=1.0,
@@ -77,3 +77,45 @@ def test_context_prediction_keeps_effect_composition_active() -> None:
     )
     assert agent.effect_prophecy.composed_predictions >= 1
     assert agent.diagnostics()["knowledge_effect_composition_aligned"] is True
+
+
+def test_holdout_prediction_is_context_free_but_planner_uses_live_knowledge() -> None:
+    action = Action("use")
+    state = StateSnapshot(
+        (0.0,),
+        facts=frozenset({"ready"}),
+        available_actions=(action,),
+    )
+    agent = build_full_aassr_core(
+        ContextAwareProphecy(),
+        core_config=AutonomousAgentConfig(
+            use_imagination=True,
+            use_effect_composition=False,
+            imagination_minimum_coverage=0.0,
+        ),
+        seed=23,
+    )
+    agent.knowledge.apply((KnowledgeEntry("permit", True, "test"),))
+
+    # Plain predict is the interface used by replay holdout validation. It must
+    # not see Knowledge obtained after a held-out transition was recorded.
+    holdout_prediction = agent.prophecy.predict(
+        state,
+        action,
+        samples=1,
+    )[0].next_state
+    assert holdout_prediction.vector == (0.0,)
+    assert holdout_prediction.goal_progress == 0.0
+    assert "context_used" not in holdout_prediction.facts
+
+    # Imagination uses predict_step, which stays bound to live Knowledge.
+    planning_step = agent.core.planner.prophecy.predict_step(
+        state,
+        action,
+        memory=agent.core.planner._initial_prophecy_memory(),
+        samples=1,
+    )
+    planned = planning_step.predictions[0].next_state
+    assert planned.vector == (1.0,)
+    assert planned.goal_progress == 1.0
+    assert "context_used" in planned.facts
