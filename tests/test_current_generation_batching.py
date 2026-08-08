@@ -35,3 +35,27 @@ def test_current_depth_batcher_executes_neural_delta_batch_path() -> None:
     assert diagnostics["current_imagination_batch_rows"] == len(actions)
     assert diagnostics["current_imagination_skill_fallback_rows"] == 0
     assert agent.base_neural_prophecy.batch_prediction_calls >= 1
+
+
+def test_current_parallel_universe_planner_runs_with_relational_gru_critic() -> None:
+    agent = build_current_pentest_aassr_core(
+        seed=42,
+        train_transitions=64,
+        use_imagination=True,
+        device="cpu",
+    )
+    state = TransferDiagnosticWorld(90_001, stage=TRANSFER_STAGES[0]).snapshot()
+
+    before = agent.current_batched_prophecy.runtime_diagnostics()[
+        "current_imagination_batch_calls"
+    ]
+    result = agent.core.planner.plan(state, maximum_depth=2)
+    after = agent.current_batched_prophecy.runtime_diagnostics()[
+        "current_imagination_batch_calls"
+    ]
+
+    assert result.nodes
+    assert result.root_evaluations
+    assert result.maximum_depth_reached >= 1
+    assert after > before
+    assert agent.core.planner.scorer is agent.critic
