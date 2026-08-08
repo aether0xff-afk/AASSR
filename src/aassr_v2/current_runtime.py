@@ -4,9 +4,6 @@ from statistics import fmean
 from typing import Any, Hashable
 
 from .current_generation import (
-    CURRENT_COMPONENTS,
-    CURRENT_GENERATION_VERSION,
-    LEGACY_COMPONENTS_ACTIVE,
     CurrentNeuralDeltaProphecy,
     CurrentPentestAASSRAgent,
     KnowledgeBoundProphecy,
@@ -14,6 +11,11 @@ from .current_generation import (
     ReplayRelationalCalibratedProphecy,
     relational_action_key,
     relational_state_vector,
+)
+from .current_manifest import (
+    CURRENT_COMPONENTS,
+    CURRENT_GENERATION_VERSION,
+    LEGACY_COMPONENTS_ACTIVE,
 )
 from .integrated_agent import IntegratedProphecyView
 from .neural_delta_prophecy import NeuralDeltaConfig
@@ -181,6 +183,11 @@ class CurrentPentestRuntimeAgent(CurrentPentestAASSRAgent):
             use_imagination=bool(use_imagination),
             device=device,
         )
+        # Overwrite archived/base wiring metadata with the independent active
+        # manifest before any caller can inspect or persist diagnostics.
+        self.current_generation_version = CURRENT_GENERATION_VERSION
+        self.current_components = dict(CURRENT_COMPONENTS)
+        self.legacy_components_active = LEGACY_COMPONENTS_ACTIVE
 
         # The base class is retained only as a wiring substrate. Replace the
         # transient Neural Delta it constructed before any real transition can be
