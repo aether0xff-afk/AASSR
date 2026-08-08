@@ -155,7 +155,7 @@ class AdvancedEvaluation:
 
 
 class AdvancedTransitionEvaluator:
-    """Separate KK-context effects, model learning and held-out gain."""
+    """Separate pre-action Knowledge context, model learning and frozen holdout gain."""
 
     def __init__(
         self,
@@ -219,7 +219,16 @@ class AdvancedTransitionEvaluator:
     ) -> AdvancedEvaluation:
         before = environment.snapshot()
         knowledge_before = knowledge.clone()
-        predictions_before = self._predict(
+
+        # Compare context-free Prophecy with only the Knowledge that existed
+        # before the action. Knowledge produced by this outcome must never be
+        # fed back into a prediction of the same transition.
+        predictions_without_context = self._predict(
+            before,
+            action,
+            None,
+        )
+        context_predictions = self._predict(
             before,
             action,
             knowledge_before,
@@ -227,17 +236,26 @@ class AdvancedTransitionEvaluator:
         uncertainty_before = ImaginationBatch(
             before,
             action,
-            predictions_before,
+            context_predictions,
         ).uncertainty
+
+        # Freeze the exact validation set for both sides of this update. If the
+        # current transition itself becomes a holdout sample, it is only visible
+        # to validation on later updates, never on just one side of this delta.
+        holdout_reference = self.replay.holdout()
         holdout_before = self.validator.evaluate(
             self.prophecy,
-            self.replay.holdout(),
+            holdout_reference,
         ).mean_similarity
 
         outcome = environment.step(action)
         actual = outcome.snapshot
         latest_before = prediction_similarity(
-            expected_prediction_vector(predictions_before),
+            expected_prediction_vector(predictions_without_context),
+            actual.vector,
+        )
+        context_score = prediction_similarity(
+            expected_prediction_vector(context_predictions),
             actual.vector,
         )
 
@@ -256,20 +274,6 @@ class AdvancedTransitionEvaluator:
             )
             for fact in outcome.added_facts
         )
-        knowledge.apply(
-            entries,
-            outcome.removed_facts,
-        )
-
-        context_predictions = self._predict(
-            before,
-            action,
-            knowledge,
-        )
-        context_score = prediction_similarity(
-            expected_prediction_vector(context_predictions),
-            actual.vector,
-        )
 
         sample = ReplayTransition(
             before,
@@ -284,10 +288,21 @@ class AdvancedTransitionEvaluator:
                 action,
                 actual,
             )
+        else:
+            # Recurrent models must still advance ephemeral sequence context on
+            # a held-out real transition without updating parameters or learning
+            # the held-out target.
+            advance = getattr(self.prophecy, "advance_sequence", None)
+            if callable(advance):
+                advance(before, action)
+
+        # Isolate parameter learning using the identical pre-action Knowledge.
+        # Newly observed facts are applied only after all same-transition effect
+        # accounting is complete; they may influence the *next* real decision.
         predictions_after = self._predict(
             before,
             action,
-            knowledge,
+            knowledge_before,
         )
         uncertainty_after = ImaginationBatch(
             before,
@@ -300,8 +315,13 @@ class AdvancedTransitionEvaluator:
         )
         holdout_after = self.validator.evaluate(
             self.prophecy,
-            self.replay.holdout(),
+            holdout_reference,
         ).mean_similarity
+
+        knowledge.apply(
+            entries,
+            outcome.removed_facts,
+        )
 
         repeat_key = (
             action.signature,
@@ -349,7 +369,7 @@ class AdvancedTransitionEvaluator:
             trace_id,
             before,
             action,
-            predictions_before,
+            context_predictions,
             actual,
             outcome.added_facts,
             outcome.removed_facts,

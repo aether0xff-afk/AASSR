@@ -647,7 +647,12 @@ def test_evaluator_separates_knowledge_model_and_logs_jsonl(
         Action("discover"),
         knowledge,
     )
-    assert result.effect.knowledge_only_gain > 0
+    # The outcome's newly observed Knowledge may only affect future decisions;
+    # it cannot retroactively improve the prediction of the transition that
+    # produced it. The model update is measured independently.
+    assert result.effect.knowledge_only_gain == 0.0
+    assert result.effect.model_parameter_gain > 0.0
+    assert knowledge.get("known") is not None
     assert (
         result.effect.latest_prediction_after
         >= result.effect.knowledge_context_score
