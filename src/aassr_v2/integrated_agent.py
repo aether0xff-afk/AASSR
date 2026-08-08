@@ -9,6 +9,7 @@ from .feature_memory import OnlineFeatureMemory
 from .goals import Goal, GoalKind, GoalSet, GoalStateScorer
 from .knowledge import KnowledgeEntry, KnowledgeStore
 from .learning import AdvancedEvaluation, AdvancedTransitionEvaluator
+from .prophecy import ProphecyStep
 from .semantic_control import (
     SemanticContextualPolicy,
     SemanticSelfLoopASEQ,
@@ -57,7 +58,19 @@ class IntegratedAgentStep:
 
 
 class ContextualSkillAwareProphecy(SkillAwareProphecy):
-    """Skill wrapper that preserves an optional Knowledge-aware Prophecy API."""
+    """Skill wrapper whose normal planning API can consume live Knowledge."""
+
+    def __init__(
+        self,
+        base: object,
+        library: SkillLibrary,
+        knowledge: KnowledgeStore | None = None,
+    ) -> None:
+        super().__init__(base, library)
+        self.knowledge = knowledge
+
+    def bind_knowledge(self, knowledge: KnowledgeStore) -> None:
+        self.knowledge = knowledge
 
     def _base_context_predictions(
         self,
@@ -120,6 +133,48 @@ class ContextualSkillAwareProphecy(SkillAwareProphecy):
                 max(0.0, min(1.0, probability)),
                 source=f"{self.name}:context-skill",
             ),
+        )
+
+    def predict(
+        self,
+        state: StateSnapshot,
+        action: Action,
+        *,
+        samples: int,
+    ) -> tuple[Prediction, ...]:
+        if self.knowledge is None:
+            return super().predict(state, action, samples=samples)
+        return self.predict_with_context(
+            state,
+            action,
+            knowledge=self.knowledge,
+            samples=samples,
+        )
+
+    def predict_step(
+        self,
+        state: StateSnapshot,
+        action: Action,
+        *,
+        memory: Any,
+        samples: int,
+    ) -> ProphecyStep:
+        contextual = getattr(self.base, "predict_with_context", None)
+        if self.knowledge is None or not callable(contextual):
+            return super().predict_step(
+                state,
+                action,
+                memory=memory,
+                samples=samples,
+            )
+        return ProphecyStep(
+            self.predict_with_context(
+                state,
+                action,
+                knowledge=self.knowledge,
+                samples=samples,
+            ),
+            memory,
         )
 
 
@@ -187,9 +242,13 @@ class IntegratedAASSRAgent:
             learn_policy=False,
             learn_prophecy=False,
         )
-        skill_prophecy = ContextualSkillAwareProphecy(prophecy, self.skills)
+        self.skill_prophecy = ContextualSkillAwareProphecy(
+            prophecy,
+            self.skills,
+            self.knowledge,
+        )
         self.core = AutonomousLearningAgent(
-            skill_prophecy,
+            self.skill_prophecy,
             config=resolved,
             seed=seed,
             policy=policy,
@@ -233,6 +292,7 @@ class IntegratedAASSRAgent:
             clear_knowledge = not self.integration_config.preserve_knowledge_across_episodes
         if clear_knowledge:
             self.knowledge = KnowledgeStore()
+            self.skill_prophecy.bind_knowledge(self.knowledge)
         self.aseq.reset_episode()
         self._episode_evaluations.clear()
         self._episode_traces.clear()
@@ -288,6 +348,12 @@ class IntegratedAASSRAgent:
                 if token
             ) or (fact,)
             self.feature_memory.observe_information(fact, tokens)
+            # Also retain response-derived identifier pieces so later structured
+            # action parameters can match observed information without a
+            # domain-specific correct-value rule.
+            for component in fact.split(":")[1:]:
+                if component:
+                    self.feature_memory.observe_information(component, tokens)
 
     def _apply_frozen_knowledge(
         self,
@@ -532,6 +598,7 @@ class IntegratedAASSRAgent:
             "version": "0.4.0",
             "closed_loop": True,
             "semantic_state_contract_shared": True,
+            "knowledge_bound_to_planning": True,
             "knowledge_entries": len(self.knowledge.values()),
             "feature_records": len(self.feature_memory.snapshot()),
             "feature_clusters": self.feature_memory.cluster_count(),
@@ -544,6 +611,9 @@ class IntegratedAASSRAgent:
             "imagination": self.core.imagination_diagnostics(),
             "prophecy": self.core.prophecy_diagnostics(),
             "observation_contract": self.integration_config.expected_observation_contract,
+            "preserve_knowledge_across_episodes": (
+                self.integration_config.preserve_knowledge_across_episodes
+            ),
         }
 
 
@@ -589,6 +659,7 @@ def build_pentest_aassr_core(
         core_config=core_config,
         integration_config=IntegratedAASSRConfig(
             expected_observation_contract=OBSERVATION_CONTRACT,
+            preserve_knowledge_across_episodes=False,
         ),
         seed=seed,
         semantic_state_key=semantic_fingerprint,
