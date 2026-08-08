@@ -4,6 +4,7 @@ import pytest
 
 pytest.importorskip("torch")
 
+from aassr_v2 import build_current_pentest_aassr_core
 from aassr_v2.current_generation import (
     CURRENT_COMPONENTS,
     CURRENT_GENERATION_VERSION,
@@ -14,9 +15,12 @@ from aassr_v2.current_generation import (
     RelationalGRUBranchCritic,
     RelationalInvariantDQN,
     RelationalSkillLibrary,
-    build_current_pentest_aassr_core,
     relational_action_key,
     relational_state_key,
+)
+from aassr_v2.current_runtime import (
+    CurrentPentestRuntimeAgent,
+    FrozenReplayRelationalCalibratedProphecy,
 )
 from aassr_v2.goals import GoalStateScorer
 from aassr_v2.gru_prophecy import OnlineGRUProphecy
@@ -98,7 +102,7 @@ def test_transfer_identity_is_rename_invariant_but_aseq_identity_is_concrete() -
     assert semantic_fingerprint(left) != semantic_fingerprint(right)
 
 
-def test_current_builder_instantiates_current_components_not_legacy_ones() -> None:
+def test_public_current_builder_instantiates_current_runtime_not_legacy_ones() -> None:
     agent = build_current_pentest_aassr_core(
         seed=7,
         train_transitions=256,
@@ -106,10 +110,12 @@ def test_current_builder_instantiates_current_components_not_legacy_ones() -> No
         device="cpu",
     )
 
+    assert isinstance(agent, CurrentPentestRuntimeAgent)
     assert isinstance(agent, CurrentPentestAASSRAgent)
     assert isinstance(agent.policy, CurrentRelationalPolicy)
     assert isinstance(agent.dqn, RelationalInvariantDQN)
     assert isinstance(agent.base_neural_prophecy, CurrentNeuralDeltaProphecy)
+    assert isinstance(agent.calibrated_prophecy, FrozenReplayRelationalCalibratedProphecy)
     assert isinstance(agent.critic, RelationalGRUBranchCritic)
     assert isinstance(agent.skills, RelationalSkillLibrary)
 
@@ -121,6 +127,8 @@ def test_current_builder_instantiates_current_components_not_legacy_ones() -> No
 
     diagnostics = agent.diagnostics()
     assert diagnostics["current_generation"] is True
+    assert diagnostics["canonical_runtime"] == "current_runtime"
+    assert diagnostics["calibration_same_transition_frozen"] is True
     assert diagnostics["legacy_components_active"] == []
     assert diagnostics["identity_contracts"]["aseq_cycle_detection"].startswith(
         "concrete"
@@ -153,6 +161,11 @@ def test_current_agent_runs_one_real_v3_transition_and_learns_only_real_data() -
     # evaluated with a trained critic. This is the latest same-checkpoint rule,
     # not the old hand-scored intervention path.
     assert step.decision.core_decision.used_imagination is False
+
+    # Calibration was frozen exactly around the real transition and released
+    # afterwards, so a just-created holdout item cannot calibrate itself.
+    assert agent.calibrated_prophecy.freeze_count == 1
+    assert agent.calibrated_prophecy._frozen_holdout is None
 
     agent.finish_episode(final_return=0.0, training=True)
     assert agent.dqn.environment_steps == 1
