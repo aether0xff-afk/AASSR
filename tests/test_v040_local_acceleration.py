@@ -69,6 +69,45 @@ def test_torch_float64_matches_canonical_custom_gru_update() -> None:
     )
 
 
+def test_torch_float64_matches_recurrent_advance_then_learning() -> None:
+    a = Action("a")
+    b = Action("b")
+    c = Action("c")
+    s0 = _state((0.1, -0.2, 0.3), actions=(a, b, c))
+    s1 = _state((0.4, 0.2, -0.1), facts=("one",), actions=(a, b, c))
+    s2 = _state((-0.2, 0.5, 0.6), facts=("one", "held"), actions=(a, b, c))
+    s3 = _state((0.7, -0.3, 0.2), facts=("done",), actions=(a, b, c))
+
+    python_model = OnlineGRUProphecy(3, seed=31)
+    torch_model = TorchGRUProphecy(
+        3,
+        seed=31,
+        device="cpu",
+        dtype="float64",
+        allow_cpu_fallback=False,
+    )
+
+    python_model.learn(s0, a, s1)
+    torch_model.learn(s0, a, s1)
+    python_model.advance_sequence(s1, b)
+    torch_model.advance_sequence(s1, b)
+    python_model.learn(s2, c, s3)
+    torch_model.learn(s2, c, s3)
+
+    _assert_close(
+        python_model.predict_vector(s2, c),
+        torch_model.predict_vector(s2, c),
+        tolerance=1e-9,
+    )
+    assert python_model.training_stats.updates == torch_model.training_stats.updates == 2
+    assert math.isclose(
+        python_model.training_stats.last_loss,
+        torch_model.training_stats.last_loss,
+        rel_tol=1e-9,
+        abs_tol=1e-11,
+    )
+
+
 def test_torch_predict_batch_matches_scalar_prediction() -> None:
     a = Action("a")
     b = Action("b")
