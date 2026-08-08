@@ -179,15 +179,14 @@ class ContextualSkillAwareProphecy(SkillAwareProphecy):
 
 
 class IntegratedProphecyView:
-    """Expose Knowledge context without bypassing effect-composed prediction.
+    """Align planner Knowledge, effect composition, and context-free holdout.
 
-    ``EffectComposedProphecy`` delegates unknown attributes to its wrapped base.
-    Without this view, a generic caller that discovers ``predict_with_context``
-    through that delegation can jump directly to the base contextual predictor
-    and skip learned transition effects. This view temporarily binds the requested
-    Knowledge context and then calls the normal outer prediction path, so Skill,
-    Knowledge context, recurrent/effect composition, and the planner all see the
-    same model stack.
+    Planner ``predict_step`` delegates to the normal outer model while the skill
+    wrapper is bound to live Knowledge. Explicit ``predict_with_context``
+    temporarily binds the caller-provided context and still traverses the outer
+    effect-composed model. Plain ``predict`` deliberately removes live Knowledge
+    for the duration of the call so replay holdout validation cannot use facts
+    learned after the held-out transition occurred.
     """
 
     def __init__(
@@ -204,6 +203,26 @@ class IntegratedProphecyView:
     @property
     def name(self) -> str:
         return f"integrated:{getattr(self._prophecy, 'name', 'prophecy')}"
+
+    def predict(
+        self,
+        state: StateSnapshot,
+        action: Action,
+        *,
+        samples: int,
+    ) -> tuple[Prediction, ...]:
+        previous = self._contextual_skill_prophecy.knowledge
+        self._contextual_skill_prophecy.bind_knowledge(None)
+        try:
+            return tuple(
+                self._prophecy.predict(
+                    state,
+                    action,
+                    samples=samples,
+                )
+            )
+        finally:
+            self._contextual_skill_prophecy.bind_knowledge(previous)
 
     def predict_with_context(
         self,
