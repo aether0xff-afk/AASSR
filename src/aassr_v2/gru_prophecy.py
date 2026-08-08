@@ -138,7 +138,18 @@ class OnlineGRUProphecy:
         return GRUMemory((0.0,) * self.hidden_size)
 
     def reset_sequence(self) -> None:
+        """Reset ephemeral recurrent context at one real episode boundary."""
+
         self._train_memory = self.initial_memory()
+
+    def advance_sequence(self, state: StateSnapshot, action: Action) -> None:
+        """Advance recurrent context without learning a held-out target."""
+
+        _, next_memory, _ = self._forward(
+            self._input(state, action),
+            self._train_memory,
+        )
+        self._train_memory = next_memory
 
     def _action_features(self, action: Action) -> tuple[float, ...]:
         vector = [0.0] * self.action_feature_size
