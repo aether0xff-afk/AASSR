@@ -54,6 +54,9 @@ jobs:
                   dtype="float64",
                   tf32=False,
                   cpu_threads=2,
+                  train_seeds=(90001, 90002),
+                  validation_seeds=(93001,),
+                  diagnostic_seeds=(92001,),
               )
               assert summary["transitions_used"] == 12
               assert summary["exact_budget"] is True
@@ -61,4 +64,5 @@ jobs:
               assert summary["local_acceleration"]["prophecy_backend"] == "torch-canonical-gru"
               runtime = summary["local_acceleration"]["validator_runtime"]
               assert runtime["batch_calls"] > 0
+              assert all(row["episodes"] == 1 for row in summary["diagnostic"])
           PY
