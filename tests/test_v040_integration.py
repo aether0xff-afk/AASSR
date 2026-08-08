@@ -9,6 +9,7 @@ from aassr_v2.integrated_agent import (
     build_full_aassr_core,
     build_pentest_aassr_core,
 )
+from aassr_v2.knowledge import KnowledgeEntry
 from aassr_v2.pentest_curriculum_causal import CausalRevisitAwareCurriculumWorld
 from aassr_v2.pentest_curriculum_env import CURRICULUM_STAGES, CurriculumAgentWorld
 from aassr_v2.pentest_curriculum_schedule import semantic_fingerprint
@@ -45,6 +46,33 @@ class ExactLearningProphecy:
 
     def learn(self, state, action, actual_next_state):
         self.learn_calls += 1
+
+
+class ContextAwareProphecy:
+    name = "unit-context-aware"
+
+    def predict(self, state, action, *, samples):
+        return (Prediction(state, 1.0, "unit:no-context"),)
+
+    def predict_with_context(self, state, action, *, knowledge, samples):
+        if knowledge.get("permit") is None:
+            return self.predict(state, action, samples=samples)
+        return (
+            Prediction(
+                StateSnapshot(
+                    state.vector,
+                    facts=state.facts | frozenset({"context_used"}),
+                    available_actions=(),
+                    goal_progress=1.0,
+                    metadata=dict(state.metadata),
+                ),
+                1.0,
+                "unit:context",
+            ),
+        )
+
+    def learn(self, state, action, actual_next_state):
+        pass
 
 
 class OneStepWorld:
@@ -193,10 +221,43 @@ def test_integrated_closed_loop_learns_each_real_transition_once_and_promotes_sk
     diagnostics = agent.diagnostics()
     assert diagnostics["closed_loop"] is True
     assert diagnostics["semantic_state_contract_shared"] is True
+    assert diagnostics["knowledge_bound_to_planning"] is True
     assert diagnostics["skills"] == 1
 
 
-def test_pentest_factory_requires_audited_v3_and_uses_same_semantic_contract() -> None:
+def test_live_knowledge_is_visible_to_planner_facing_prophecy() -> None:
+    agent = build_full_aassr_core(
+        ContextAwareProphecy(),
+        core_config=AutonomousAgentConfig(
+            use_imagination=True,
+            use_effect_composition=False,
+            imagination_minimum_coverage=0.0,
+        ),
+        seed=11,
+    )
+    state = StateSnapshot(
+        (0.0,),
+        facts=frozenset({"ready"}),
+        available_actions=(Action("use"),),
+    )
+    before = agent.core.planner.prophecy.predict(
+        state,
+        Action("use"),
+        samples=1,
+    )[0].next_state
+    assert before.goal_progress == 0.0
+
+    agent.knowledge.apply((KnowledgeEntry("permit", True, "test"),))
+    after = agent.core.planner.prophecy.predict(
+        state,
+        Action("use"),
+        samples=1,
+    )[0].next_state
+    assert after.goal_progress == 1.0
+    assert "context_used" in after.facts
+
+
+def test_pentest_factory_requires_v3_and_clears_seed_local_knowledge() -> None:
     prophecy = ExactLearningProphecy()
     agent = build_pentest_aassr_core(
         prophecy,
@@ -214,6 +275,12 @@ def test_pentest_factory_requires_audited_v3_and_uses_same_semantic_contract() -
     assert agent.semantic_state_key(state) == semantic_fingerprint(state)
     decision = agent.select_action(state, episode=0, explore=False)
     assert decision.action in state.available_actions
+
+    agent.knowledge.apply((KnowledgeEntry("seed-local-id", True, "test"),))
+    assert agent.knowledge.get("seed-local-id") is not None
+    agent.begin_episode()
+    assert agent.knowledge.get("seed-local-id") is None
+    assert agent.diagnostics()["preserve_knowledge_across_episodes"] is False
 
     legacy = CurriculumAgentWorld(90_001, stage=CURRICULUM_STAGES[0])
     with pytest.raises(ValueError, match="observation contract mismatch"):
