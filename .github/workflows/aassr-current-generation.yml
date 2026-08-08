@@ -6,6 +6,7 @@ on:
   pull_request:
     paths:
       - "src/aassr_v2/current_generation.py"
+      - "src/aassr_v2/current_runtime.py"
       - "src/aassr_v2/__init__.py"
       - "tests/test_current_generation.py"
       - ".github/workflows/aassr-current-generation.yml"
@@ -32,6 +33,7 @@ jobs:
       - name: Compile current-generation runtime
         run: |
           python -m py_compile src/aassr_v2/current_generation.py
+          python -m py_compile src/aassr_v2/current_runtime.py
           python -m py_compile src/aassr_v2/__init__.py
           python -m py_compile tests/test_current_generation.py
       - name: Assert active architecture and rename invariance
@@ -43,9 +45,17 @@ jobs:
               CURRENT_COMPONENTS,
               CURRENT_GENERATION_VERSION,
               LEGACY_COMPONENTS_ACTIVE,
+              build_current_pentest_aassr_core,
           )
           print(CURRENT_GENERATION_VERSION)
           for key, value in CURRENT_COMPONENTS.items():
               print(f"{key}: {value}")
           assert LEGACY_COMPONENTS_ACTIVE == ()
+          agent = build_current_pentest_aassr_core(
+              seed=7,
+              train_transitions=64,
+              use_imagination=True,
+              device="cpu",
+          )
+          assert agent.diagnostics()["canonical_runtime"] == "current_runtime"
           PY
