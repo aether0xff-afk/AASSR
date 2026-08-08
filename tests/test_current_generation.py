@@ -27,6 +27,7 @@ from aassr_v2.current_runtime import (
 from aassr_v2.goals import GoalStateScorer
 from aassr_v2.gru_prophecy import OnlineGRUProphecy
 from aassr_v2.native_batching import DepthBatchedImaginationTree
+from aassr_v2.pentest_agent_main_test import AGENT_STATE_SIZE
 from aassr_v2.pentest_curriculum_causal import OBSERVATION_CONTRACT
 from aassr_v2.pentest_curriculum_schedule import semantic_fingerprint
 from aassr_v2.pentest_transfer_stages import TRANSFER_STAGES, TransferDiagnosticWorld
@@ -62,25 +63,15 @@ def _renamed_state(
     # Make the raw vector intentionally identifier-sensitive while preserving the
     # same public relational situation. A current transfer learner must ignore
     # this synthetic slot permutation; the legacy Http codec would not.
-    tail = [0.0] * 40
-    tail[raw_slot % len(tail)] = 1.0
-    vector = (
-        1.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.04,
-        0.0,
-        0.0,
-        *tail,
-    )
+    vector = [0.0] * AGENT_STATE_SIZE
+    vector[0] = 1.0
+    vector[8] = 0.04
+    identifier_start = 11
+    identifier_width = max(1, AGENT_STATE_SIZE - identifier_start)
+    vector[identifier_start + raw_slot % identifier_width] = 1.0
     return (
         StateSnapshot(
-            vector=vector,
+            vector=tuple(vector),
             facts=facts,
             available_actions=(action,),
             goal_progress=0.0,
