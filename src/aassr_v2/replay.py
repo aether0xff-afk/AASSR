@@ -55,11 +55,7 @@ class ValidationScore:
 
 
 def _prophecy_learning_revision(prophecy: object) -> tuple[tuple[str, int], ...]:
-    """Cheap revision fingerprint containing learning state, not diagnostics.
-
-    This lets validation reuse the exact previous score only when both the model
-    and the selected frozen holdout objects are unchanged.
-    """
+    """Cheap revision fingerprint containing learning state, not diagnostics."""
 
     seen: set[int] = set()
     values: list[tuple[str, int]] = []
@@ -111,6 +107,7 @@ class PredictionValidator:
         self.cache_hits = 0
         self.cache_misses = 0
         self.batch_calls = 0
+        self.expected_vector_calls = 0
 
     def evaluate(
         self,
@@ -132,39 +129,59 @@ class PredictionValidator:
             return self._cache_value
         self.cache_misses += 1
 
-        batch_predict = getattr(prophecy, "predict_batch", None)
-        if callable(batch_predict):
+        states = tuple(item.state for item in selected)
+        actions = tuple(item.action for item in selected)
+        expected_batch = getattr(prophecy, "expected_vector_batch", None)
+        if callable(expected_batch):
             self.batch_calls += 1
-            prediction_rows = batch_predict(
-                tuple(item.state for item in selected),
-                tuple(item.action for item in selected),
+            self.expected_vector_calls += 1
+            expected_rows = expected_batch(
+                states,
+                actions,
                 samples=self.samples,
             )
-            if len(prediction_rows) != len(selected):
-                raise RuntimeError("Prophecy predict_batch returned wrong row count")
+            if len(expected_rows) != len(selected):
+                raise RuntimeError("Prophecy expected_vector_batch returned wrong row count")
             scores = [
-                prediction_similarity(
-                    expected_prediction_vector(predictions),
-                    transition.next_state.vector,
-                )
-                for transition, predictions in zip(
-                    selected, prediction_rows, strict=True
+                prediction_similarity(expected, transition.next_state.vector)
+                for transition, expected in zip(
+                    selected, expected_rows, strict=True
                 )
             ]
         else:
-            scores = []
-            for transition in selected:
-                predictions = prophecy.predict(
-                    transition.state,
-                    transition.action,
+            batch_predict = getattr(prophecy, "predict_batch", None)
+            if callable(batch_predict):
+                self.batch_calls += 1
+                prediction_rows = batch_predict(
+                    states,
+                    actions,
                     samples=self.samples,
                 )
-                scores.append(
+                if len(prediction_rows) != len(selected):
+                    raise RuntimeError("Prophecy predict_batch returned wrong row count")
+                scores = [
                     prediction_similarity(
                         expected_prediction_vector(predictions),
                         transition.next_state.vector,
                     )
-                )
+                    for transition, predictions in zip(
+                        selected, prediction_rows, strict=True
+                    )
+                ]
+            else:
+                scores = []
+                for transition in selected:
+                    predictions = prophecy.predict(
+                        transition.state,
+                        transition.action,
+                        samples=self.samples,
+                    )
+                    scores.append(
+                        prediction_similarity(
+                            expected_prediction_vector(predictions),
+                            transition.next_state.vector,
+                        )
+                    )
         result = ValidationScore(len(scores), fmean(scores))
         self._cache_key = cache_key
         self._cache_value = result
@@ -175,4 +192,5 @@ class PredictionValidator:
             "cache_hits": self.cache_hits,
             "cache_misses": self.cache_misses,
             "batch_calls": self.batch_calls,
+            "expected_vector_calls": self.expected_vector_calls,
         }
