@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from .current_performance import enable_current_depth_batching
-from .current_runtime import (
-    CurrentPentestRuntimeAgent,
-    build_current_pentest_aassr_core as _build_safe_current,
+from .current_agent import (
+    CurrentStandalonePentestAASSRAgent,
+    build_current_standalone_pentest_aassr_core,
 )
 
 
@@ -14,20 +13,28 @@ def build_current_pentest_aassr_core(
     use_imagination: bool = True,
     device: str = "cpu",
     enable_batching: bool = True,
-) -> CurrentPentestRuntimeAgent:
-    """Build the active current-generation AASSR stack.
+) -> CurrentStandalonePentestAASSRAgent:
+    """Build the sole active current-generation pentest AASSR runtime.
 
-    Historical v0.4 builders remain importable for reproduction. New experiments
-    should use this entrypoint, which installs methodology-safe calibration first
-    and then the semantics-preserving current Neural-Delta depth batcher.
+    The current runtime is standalone: it does not construct
+    `IntegratedAASSRAgent`, `AutonomousLearningAgent`, the v0.4 contextual Policy,
+    the old online GRU Prophecy, or the hand-written Goal scorer. Historical
+    builders stay importable under explicit legacy names for reproduction only.
+
+    Depth batching is part of the active generation rather than an optional old
+    backend. The parameter remains only to fail loudly for stale callers that try
+    to disable the current execution contract.
     """
 
-    agent = _build_safe_current(
+    if not enable_batching:
+        raise ValueError(
+            "current-generation pentest AASSR requires its semantics-preserving "
+            "depth-batched Neural Delta planner; use an explicit legacy/research "
+            "entrypoint for historical scalar reproduction"
+        )
+    return build_current_standalone_pentest_aassr_core(
         seed=int(seed),
         train_transitions=int(train_transitions),
         use_imagination=bool(use_imagination),
         device=device,
     )
-    if enable_batching:
-        enable_current_depth_batching(agent)
-    return agent
