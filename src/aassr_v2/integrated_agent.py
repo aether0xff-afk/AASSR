@@ -69,7 +69,7 @@ class ContextualSkillAwareProphecy(SkillAwareProphecy):
         super().__init__(base, library)
         self.knowledge = knowledge
 
-    def bind_knowledge(self, knowledge: KnowledgeStore) -> None:
+    def bind_knowledge(self, knowledge: KnowledgeStore | None) -> None:
         self.knowledge = knowledge
 
     def _base_context_predictions(
@@ -178,6 +178,55 @@ class ContextualSkillAwareProphecy(SkillAwareProphecy):
         )
 
 
+class IntegratedProphecyView:
+    """Expose Knowledge context without bypassing effect-composed prediction.
+
+    ``EffectComposedProphecy`` delegates unknown attributes to its wrapped base.
+    Without this view, a generic caller that discovers ``predict_with_context``
+    through that delegation can jump directly to the base contextual predictor
+    and skip learned transition effects. This view temporarily binds the requested
+    Knowledge context and then calls the normal outer prediction path, so Skill,
+    Knowledge context, recurrent/effect composition, and the planner all see the
+    same model stack.
+    """
+
+    def __init__(
+        self,
+        prophecy: object,
+        contextual_skill_prophecy: ContextualSkillAwareProphecy,
+    ) -> None:
+        self._prophecy = prophecy
+        self._contextual_skill_prophecy = contextual_skill_prophecy
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._prophecy, name)
+
+    @property
+    def name(self) -> str:
+        return f"integrated:{getattr(self._prophecy, 'name', 'prophecy')}"
+
+    def predict_with_context(
+        self,
+        state: StateSnapshot,
+        action: Action,
+        *,
+        knowledge: object,
+        samples: int,
+    ) -> tuple[Prediction, ...]:
+        previous = self._contextual_skill_prophecy.knowledge
+        self._contextual_skill_prophecy.knowledge = knowledge  # type: ignore[assignment]
+        try:
+            return tuple(
+                self._prophecy.predict(
+                    state,
+                    action,
+                    samples=samples,
+                )
+            )
+        finally:
+            self._contextual_skill_prophecy.knowledge = previous
+
+
 class IntegratedAASSRAgent:
     """Canonical AASSR 0.4 closed loop.
 
@@ -254,7 +303,12 @@ class IntegratedAASSRAgent:
             policy=policy,
         )
         self.policy = policy
-        self.prophecy = self.core.prophecy
+        self.effect_prophecy = self.core.prophecy
+        self.prophecy = IntegratedProphecyView(
+            self.effect_prophecy,
+            self.skill_prophecy,
+        )
+        self.core.planner.prophecy = self.prophecy
         self.core.planner.scorer = scorer or GoalStateScorer(self.goals)
         # Imagination historically had its own raw snapshot identity. Override
         # only the identity hook on this instance so real ASEQ, Policy lookup and
@@ -382,24 +436,14 @@ class IntegratedAASSRAgent:
     ) -> TransitionTrace:
         before = environment.snapshot()
         self._validate_snapshot(before)
-        contextual = getattr(self.prophecy, "predict_with_context", None)
-        if callable(contextual):
-            predictions = tuple(
-                contextual(
-                    before,
-                    action,
-                    knowledge=self.knowledge,
-                    samples=self.evaluator.samples,
-                )
+        predictions = tuple(
+            self.prophecy.predict_with_context(
+                before,
+                action,
+                knowledge=self.knowledge,
+                samples=self.evaluator.samples,
             )
-        else:
-            predictions = tuple(
-                self.prophecy.predict(
-                    before,
-                    action,
-                    samples=self.evaluator.samples,
-                )
-            )
+        )
         outcome = environment.step(action)
         after = outcome.snapshot
         self._validate_snapshot(after)
@@ -599,6 +643,7 @@ class IntegratedAASSRAgent:
             "closed_loop": True,
             "semantic_state_contract_shared": True,
             "knowledge_bound_to_planning": True,
+            "knowledge_effect_composition_aligned": True,
             "knowledge_entries": len(self.knowledge.values()),
             "feature_records": len(self.feature_memory.snapshot()),
             "feature_clusters": self.feature_memory.cluster_count(),
