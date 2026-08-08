@@ -135,10 +135,8 @@ from .current_generation import (
     LEGACY_COMPONENTS_ACTIVE,
     CurrentPentestAASSRAgent,
 )
-from .current_runtime import (
-    CurrentPentestRuntimeAgent,
-    build_current_pentest_aassr_core,
-)
+from .current_runtime import CurrentPentestRuntimeAgent
+from .current_entrypoint import build_current_pentest_aassr_core
 from .knowledge import (
     KnowledgeDelta,
     KnowledgeEntry,
