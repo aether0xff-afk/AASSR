@@ -18,12 +18,14 @@ from aassr_v2.current_generation import (
     relational_action_key,
     relational_state_key,
 )
+from aassr_v2.current_performance import CurrentDepthBatchedProphecyView
 from aassr_v2.current_runtime import (
     CurrentPentestRuntimeAgent,
     FrozenReplayRelationalCalibratedProphecy,
 )
 from aassr_v2.goals import GoalStateScorer
 from aassr_v2.gru_prophecy import OnlineGRUProphecy
+from aassr_v2.native_batching import DepthBatchedImaginationTree
 from aassr_v2.pentest_curriculum_causal import OBSERVATION_CONTRACT
 from aassr_v2.pentest_curriculum_schedule import semantic_fingerprint
 from aassr_v2.pentest_transfer_stages import TRANSFER_STAGES, TransferDiagnosticWorld
@@ -118,6 +120,9 @@ def test_public_current_builder_instantiates_current_runtime_not_legacy_ones() -
     assert isinstance(agent.calibrated_prophecy, FrozenReplayRelationalCalibratedProphecy)
     assert isinstance(agent.critic, RelationalGRUBranchCritic)
     assert isinstance(agent.skills, RelationalSkillLibrary)
+    assert isinstance(agent.core.planner, DepthBatchedImaginationTree)
+    assert isinstance(agent.current_batched_prophecy, CurrentDepthBatchedProphecyView)
+    assert agent.current_depth_batching is True
 
     assert not isinstance(agent.policy, SemanticContextualPolicy)
     assert not isinstance(agent.base_neural_prophecy, OnlineGRUProphecy)
