@@ -76,19 +76,39 @@ class PredictionValidator:
         selected = tuple(transitions)[-self.recent_limit :]
         if not selected:
             return ValidationScore(0, 0.0)
-        scores = []
-        for transition in selected:
-            predictions = prophecy.predict(
-                transition.state,
-                transition.action,
+
+        batch_predict = getattr(prophecy, "predict_batch", None)
+        if callable(batch_predict):
+            prediction_rows = batch_predict(
+                tuple(item.state for item in selected),
+                tuple(item.action for item in selected),
                 samples=self.samples,
             )
-            scores.append(
+            if len(prediction_rows) != len(selected):
+                raise RuntimeError("Prophecy predict_batch returned wrong row count")
+            scores = [
                 prediction_similarity(
                     expected_prediction_vector(predictions),
                     transition.next_state.vector,
                 )
-            )
+                for transition, predictions in zip(
+                    selected, prediction_rows, strict=True
+                )
+            ]
+        else:
+            scores = []
+            for transition in selected:
+                predictions = prophecy.predict(
+                    transition.state,
+                    transition.action,
+                    samples=self.samples,
+                )
+                scores.append(
+                    prediction_similarity(
+                        expected_prediction_vector(predictions),
+                        transition.next_state.vector,
+                    )
+                )
         return ValidationScore(
             len(scores),
             fmean(scores),
