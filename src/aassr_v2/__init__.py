@@ -129,22 +129,23 @@ from .integrated_agent import (
     build_full_aassr_core as build_legacy_v040_full_aassr_core,
     build_pentest_aassr_core as build_legacy_v040_pentest_aassr_core,
 )
-from .current_generation import CurrentPentestAASSRAgent
 from .current_manifest import (
     CURRENT_COMPONENTS,
     CURRENT_GENERATION_VERSION,
     LEGACY_COMPONENTS_ACTIVE,
 )
-from .current_runtime import CurrentPentestRuntimeAgent
+from .current_agent import (
+    CurrentStandalonePentestAASSRAgent,
+    CurrentAgentConfig,
+)
 from .current_entrypoint import build_current_pentest_aassr_core
 
-# Package-level pentest construction always means the current generation now.
-# Exact v0.4 reproduction remains available under the explicit legacy alias above
-# or directly from ``aassr_v2.integrated_agent``.
+# Package-level current names point only at the standalone current runtime.
+CurrentPentestAASSRAgent = CurrentStandalonePentestAASSRAgent
 build_pentest_aassr_core = build_current_pentest_aassr_core
-# No current-generation generic non-pentest builder has been frozen yet. Keep the
-# old generic API as an explicit compatibility alias without using it in new
-# pentest runners.
+
+# Historical generic/full construction remains available for reproduction. New
+# pentest experiments must not use this compatibility name.
 build_full_aassr_core = build_legacy_v040_full_aassr_core
 
 from .knowledge import (
