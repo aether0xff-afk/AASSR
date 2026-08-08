@@ -8,12 +8,22 @@ pytest.importorskip("torch")
 
 from aassr_v2.effect_prophecy import EffectComposedProphecy
 from aassr_v2.gru_prophecy import OnlineGRUProphecy
+from aassr_v2.imagination_tree import (
+    ImaginationConfig,
+    ImaginationTree,
+    StateDeltaScorer,
+)
 from aassr_v2.integrated_agent import (
     ContextualSkillAwareProphecy,
     IntegratedProphecyView,
 )
 from aassr_v2.local_acceleration import BatchedIntegratedProphecyView
 from aassr_v2.metrics import expected_prediction_vector
+from aassr_v2.native_batching import (
+    DepthBatchedImaginationTree,
+    DepthBatchedProphecyView,
+)
+from aassr_v2.policy import WeightedPolicy
 from aassr_v2.replay import PredictionValidator, ReplayTransition
 from aassr_v2.skills import SkillLibrary
 from aassr_v2.torch_gru_prophecy import TorchGRUProphecy
@@ -31,6 +41,8 @@ def _state(vector, *, facts=(), actions=(), progress=0.0):
 
 def _assert_close(left, right, tolerance=1e-9):
     assert len(left) == len(right)
+    if not left:
+        return
     assert max(abs(a - b) for a, b in zip(left, right, strict=True)) <= tolerance
 
 
@@ -186,3 +198,82 @@ def test_batched_integrated_view_preserves_effect_composition() -> None:
         tuple(item.probability for item in actual),
         tolerance=1e-12,
     )
+
+
+def test_depth_batched_imagination_matches_scalar_tree() -> None:
+    a = Action("a")
+    b = Action("b")
+    c = Action("c")
+    actions = (a, b, c)
+    s0 = _state((0.0, 0.0), facts=("root",), actions=actions)
+    s1 = _state((0.7, 0.1), facts=("root", "a"), actions=actions, progress=0.1)
+    s2 = _state((0.2, 0.8), facts=("root", "b"), actions=actions, progress=0.2)
+    s3 = _state((0.5, 0.5), facts=("root", "c"), actions=actions, progress=0.15)
+
+    base = TorchGRUProphecy(2, seed=19, device="cpu", dtype="float64")
+    skills = SkillLibrary()
+    contextual = ContextualSkillAwareProphecy(base, skills)
+    effect = EffectComposedProphecy(contextual, minimum_samples=1)
+    for _ in range(2):
+        base.reset_sequence()
+        effect.learn(s0, a, s1)
+        base.reset_sequence()
+        effect.learn(s0, b, s2)
+        base.reset_sequence()
+        effect.learn(s0, c, s3)
+
+    scalar_view = IntegratedProphecyView(effect, contextual)
+    batch_base = BatchedIntegratedProphecyView(effect, contextual)
+    batch_view = DepthBatchedProphecyView(batch_base)
+    config = ImaginationConfig(
+        branching_factor=2,
+        maximum_depth=2,
+        beam_width=4,
+        outcome_samples=1,
+        minimum_path_confidence=0.0,
+        update_policy=False,
+        expand_all_root_actions=True,
+    )
+    scorer = StateDeltaScorer()
+    scalar_policy = WeightedPolicy()
+    batch_policy = WeightedPolicy()
+    scalar_tree = ImaginationTree(
+        scalar_policy,
+        scalar_view,
+        config=config,
+        scorer=scorer,
+    )
+    batch_tree = DepthBatchedImaginationTree(
+        batch_policy,
+        batch_view,
+        config=config,
+        scorer=scorer,
+    )
+
+    expected = scalar_tree.plan(s0)
+    actual = batch_tree.plan(s0)
+
+    assert actual.chosen_action.signature == expected.chosen_action.signature
+    assert actual.expanded_nodes == expected.expanded_nodes
+    assert actual.maximum_depth_reached == expected.maximum_depth_reached
+    assert len(actual.nodes) == len(expected.nodes)
+    assert len(actual.root_evaluations) == len(expected.root_evaluations)
+    for left, right in zip(actual.root_evaluations, expected.root_evaluations, strict=True):
+        assert left.action.signature == right.action.signature
+        assert left.best_path == right.best_path
+        assert left.best_leaf_id == right.best_leaf_id
+        assert math.isclose(left.aggregate_value, right.aggregate_value, abs_tol=1e-12)
+        _assert_close(left.leaf_values, right.leaf_values, tolerance=1e-12)
+    for left, right in zip(actual.nodes, expected.nodes, strict=True):
+        assert left.node_id == right.node_id
+        assert left.parent_id == right.parent_id
+        assert left.depth == right.depth
+        assert left.action_path == right.action_path
+        assert left.state_path == right.state_path
+        assert left.terminal_reason == right.terminal_reason
+        assert math.isclose(left.cumulative_value, right.cumulative_value, abs_tol=1e-12)
+        assert math.isclose(left.cumulative_confidence, right.cumulative_confidence, abs_tol=1e-12)
+
+    runtime = batch_view.runtime_diagnostics()
+    assert runtime["imagination_batch_calls"] >= 1
+    assert runtime["imagination_batch_rows"] >= len(actions)

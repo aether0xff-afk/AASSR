@@ -4,17 +4,24 @@ from typing import Any, Sequence
 
 from .empirical_confidence import empirical_confidence
 from .integrated_agent import IntegratedProphecyView
+from .metrics import expected_prediction_vector
+from .skills import SKILL_VERB
+from .torch_gru_prophecy import TorchGRUProphecy
 from .types import Action, Prediction, StateSnapshot
 
 
 class BatchedIntegratedProphecyView(IntegratedProphecyView):
-    """Context-free holdout batch path through the full effect-composed stack.
+    """Batch-capable prediction view for local high-throughput evaluation.
 
-    The expensive neural base is evaluated as one batch. Learned effect
-    composition remains per-row Python logic because its buckets are symbolic;
-    that preserves the canonical prediction semantics while moving the dense
-    numerical work to CUDA.
+    Full symbolic predictions remain available for Imagination. Replay holdout
+    validation also gets an expected-vector-only path that skips constructing
+    symbolic StateSnapshot/Prediction objects the validator never reads.
     """
+
+    def __init__(self, prophecy: object, contextual_skill_prophecy: object) -> None:
+        super().__init__(prophecy, contextual_skill_prophecy)
+        self.expected_vector_batch_calls = 0
+        self.expected_vector_batch_rows = 0
 
     def _effect_batch(
         self,
@@ -24,6 +31,9 @@ class BatchedIntegratedProphecyView(IntegratedProphecyView):
         samples: int,
     ) -> tuple[tuple[Prediction, ...], ...]:
         outer = self._prophecy
+        ensure = getattr(outer, "_ensure_reconstructed", None)
+        if callable(ensure):
+            ensure()
         base = getattr(outer, "base", None)
         batch_predict = getattr(base, "predict_batch", None)
         if not callable(batch_predict):
@@ -37,7 +47,7 @@ class BatchedIntegratedProphecyView(IntegratedProphecyView):
         for state, action, base_predictions in zip(
             states, actions, base_rows, strict=True
         ):
-            bucket, tier, source, include_symbolic = outer._select_bucket(  # type: ignore[attr-defined]
+            bucket, tier, source, include_symbolic = outer._select_bucket(
                 state, action
             )
             if not bucket:
@@ -66,7 +76,7 @@ class BatchedIntegratedProphecyView(IntegratedProphecyView):
             def add_prediction(prediction: Prediction, probability: float) -> None:
                 if probability <= 0.0:
                     return
-                key = outer._prediction_key(prediction.next_state)  # type: ignore[attr-defined]
+                key = outer._prediction_key(prediction.next_state)
                 current = merged.get(key)
                 if current is None:
                     merged[key] = [
@@ -93,9 +103,7 @@ class BatchedIntegratedProphecyView(IntegratedProphecyView):
                     Prediction(composed, probability, source), probability
                 )
 
-            normalized = outer._normalized_probabilities(  # type: ignore[attr-defined]
-                tuple(base_predictions)
-            )
+            normalized = outer._normalized_probabilities(tuple(base_predictions))
             for prediction, probability in zip(
                 base_predictions, normalized, strict=True
             ):
@@ -113,7 +121,7 @@ class BatchedIntegratedProphecyView(IntegratedProphecyView):
                     key=lambda pair: (-float(pair[1][1]), repr(pair[0])),
                 )
             )
-            outer._composed_predictions += 1  # type: ignore[attr-defined]
+            outer._composed_predictions += 1
             output.append(row)
         return tuple(output)
 
@@ -133,9 +141,179 @@ class BatchedIntegratedProphecyView(IntegratedProphecyView):
         finally:
             self._contextual_skill_prophecy.bind_knowledge(previous)
 
+    @staticmethod
+    def _torch_base_expected_tensor(
+        model: TorchGRUProphecy,
+        states: Sequence[StateSnapshot],
+        actions: Sequence[Action],
+        *,
+        samples: int,
+    ):
+        torch = model.torch
+        with torch.inference_mode():
+            x = model._inputs(states, actions)
+            hidden = torch.zeros(
+                (len(states), model.hidden_size),
+                device=model.device,
+                dtype=model.dtype,
+            )
+            outputs, _ = model._forward_batch(x, hidden)
+            current = torch.tensor(
+                [tuple(state.vector) for state in states],
+                device=model.device,
+                dtype=model.dtype,
+            )
+            matrix, templates = model._templates()
+            if matrix is None or not templates:
+                return current
+
+            out_norm = torch.linalg.vector_norm(outputs, dim=1, keepdim=True)
+            template_norm = torch.linalg.vector_norm(matrix, dim=1, keepdim=True).T
+            denom = out_norm * template_norm
+            similarities = outputs @ matrix.T
+            similarities = torch.where(
+                denom > 0,
+                similarities / torch.clamp_min(denom, 1e-12),
+                torch.zeros_like(similarities),
+            )
+            k = min(int(samples), len(templates))
+            order = torch.argsort(
+                similarities,
+                dim=1,
+                descending=True,
+                stable=True,
+            )[:, :k]
+            scores = torch.gather(similarities, 1, order)
+            probabilities = torch.softmax(scores * 4.0, dim=1)
+            selected = matrix[order]
+            template_mean = (
+                selected * probabilities.unsqueeze(-1)
+            ).sum(dim=1)
+            confidence = torch.tensor(
+                [model.confidence(state, action) for state, action in zip(states, actions, strict=True)],
+                device=model.device,
+                dtype=model.dtype,
+            ).unsqueeze(1)
+            return confidence * template_mean + (1.0 - confidence) * current
+
+    def expected_vector_batch(
+        self,
+        states: Sequence[StateSnapshot],
+        actions: Sequence[Action],
+        *,
+        samples: int,
+    ) -> tuple[tuple[float, ...], ...]:
+        """Return the exact probability-weighted vectors used by holdout scoring.
+
+        This is mathematically equivalent to ``expected_prediction_vector`` over
+        ``predict_batch`` for primitive TorchGRU transitions. Symbolic facts and
+        action sets are intentionally not materialized because PredictionValidator
+        only consumes the resulting numeric vectors.
+        """
+
+        if len(states) != len(actions):
+            raise ValueError("states/actions batch length mismatch")
+        if not states:
+            return ()
+        if samples <= 0:
+            raise ValueError("samples must be positive")
+
+        outer = self._prophecy
+        ensure = getattr(outer, "_ensure_reconstructed", None)
+        if callable(ensure):
+            ensure()
+        skill_wrapper = getattr(outer, "base", None)
+        neural = getattr(skill_wrapper, "base", None)
+        if (
+            not isinstance(neural, TorchGRUProphecy)
+            or any(action.verb_name == SKILL_VERB for action in actions)
+        ):
+            rows = self.predict_batch(states, actions, samples=samples)
+            return tuple(expected_prediction_vector(row) for row in rows)
+
+        previous = self._contextual_skill_prophecy.knowledge
+        self._contextual_skill_prophecy.bind_knowledge(None)
+        try:
+            base_expected = self._torch_base_expected_tensor(
+                neural,
+                states,
+                actions,
+                samples=samples,
+            )
+            effect_vectors: list[tuple[float, ...]] = []
+            effect_masses: list[float] = []
+            vector_size = neural.state_size
+
+            for state, action in zip(states, actions, strict=True):
+                bucket, tier, _, _ = outer._select_bucket(state, action)
+                if not bucket:
+                    effect_masses.append(0.0)
+                    effect_vectors.append(tuple(float(value) for value in state.vector))
+                    continue
+
+                ranked = sorted(
+                    bucket.values(),
+                    key=lambda entry: (-entry.count, repr(entry.effect.fingerprint)),
+                )[:samples]
+                effect_mass = min(
+                    0.95,
+                    empirical_confidence(
+                        (entry.count for entry in bucket.values()),
+                        prior_strength=1.0,
+                        tier=tier,
+                    ),
+                )
+                ranked_total = max(1, sum(entry.count for entry in ranked))
+                delta = [0.0] * vector_size
+                for entry in ranked:
+                    weight = entry.count / ranked_total
+                    for index, value in enumerate(entry.effect.vector_delta[:vector_size]):
+                        delta[index] += weight * float(value)
+                effect_vectors.append(
+                    tuple(
+                        float(state.vector[index]) + delta[index]
+                        for index in range(vector_size)
+                    )
+                )
+                effect_masses.append(effect_mass)
+                outer._composed_predictions += 1
+
+            torch = neural.torch
+            with torch.inference_mode():
+                effects = torch.tensor(
+                    effect_vectors,
+                    device=neural.device,
+                    dtype=neural.dtype,
+                )
+                masses = torch.tensor(
+                    effect_masses,
+                    device=neural.device,
+                    dtype=neural.dtype,
+                ).unsqueeze(1)
+                expected = masses * effects + (1.0 - masses) * base_expected
+                rows = tuple(
+                    tuple(float(value) for value in row)
+                    for row in expected.cpu().tolist()
+                )
+            self.expected_vector_batch_calls += 1
+            self.expected_vector_batch_rows += len(states)
+            return rows
+        finally:
+            self._contextual_skill_prophecy.bind_knowledge(previous)
+
+    def runtime_diagnostics(self) -> dict[str, int]:
+        return {
+            "expected_vector_batch_calls": self.expected_vector_batch_calls,
+            "expected_vector_batch_rows": self.expected_vector_batch_rows,
+        }
+
 
 def enable_batched_integrated_prophecy(agent: object) -> object:
-    """Swap only the view used for prediction; learning objects stay identical."""
+    """Install holdout batching and depth-wise Imagination batching.
+
+    Learning objects and the frozen experiment runner remain unchanged. Only
+    prediction execution is replaced by exact batch-capable views.
+    """
 
     view = BatchedIntegratedProphecyView(
         agent.effect_prophecy,
@@ -144,4 +322,7 @@ def enable_batched_integrated_prophecy(agent: object) -> object:
     agent.prophecy = view
     agent.core.planner.prophecy = view
     agent.evaluator.prophecy = view
-    return agent
+
+    from .native_batching import enable_depth_batched_imagination
+
+    return enable_depth_batched_imagination(agent)
