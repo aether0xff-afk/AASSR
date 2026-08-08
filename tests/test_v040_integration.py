@@ -240,19 +240,21 @@ def test_live_knowledge_is_visible_to_planner_facing_prophecy() -> None:
         facts=frozenset({"ready"}),
         available_actions=(Action("use"),),
     )
-    before = agent.core.planner.prophecy.predict(
+    before = agent.core.planner.prophecy.predict_step(
         state,
         Action("use"),
+        memory=agent.core.planner._initial_prophecy_memory(),
         samples=1,
-    )[0].next_state
+    ).predictions[0].next_state
     assert before.goal_progress == 0.0
 
     agent.knowledge.apply((KnowledgeEntry("permit", True, "test"),))
-    after = agent.core.planner.prophecy.predict(
+    after = agent.core.planner.prophecy.predict_step(
         state,
         Action("use"),
+        memory=agent.core.planner._initial_prophecy_memory(),
         samples=1,
-    )[0].next_state
+    ).predictions[0].next_state
     assert after.goal_progress == 1.0
     assert "context_used" in after.facts
 
