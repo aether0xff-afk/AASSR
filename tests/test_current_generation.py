@@ -22,6 +22,7 @@ from aassr_v2.current_performance import CurrentDepthBatchedProphecyView
 from aassr_v2.current_runtime import (
     CurrentPentestRuntimeAgent,
     FrozenReplayRelationalCalibratedProphecy,
+    FullyRelationalNeuralDeltaProphecy,
 )
 from aassr_v2.goals import GoalStateScorer
 from aassr_v2.gru_prophecy import OnlineGRUProphecy
@@ -38,6 +39,7 @@ def _renamed_state(
     route: str,
     profile: str,
     object_id: str,
+    raw_slot: int = 0,
 ) -> tuple[StateSnapshot, Action]:
     action = Action(
         "request_object",
@@ -57,9 +59,25 @@ def _renamed_state(
             f"observed_profile_role:{profile}:read",
         }
     )
-    # The transfer representation deliberately ignores identifier-index channels.
-    # Keep only public control channels equal here so the test isolates renaming.
-    vector = (1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.04, 0.0, 0.0)
+    # Make the raw vector intentionally identifier-sensitive while preserving the
+    # same public relational situation. A current transfer learner must ignore
+    # this synthetic slot permutation; the legacy Http codec would not.
+    tail = [0.0] * 40
+    tail[raw_slot % len(tail)] = 1.0
+    vector = (
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.04,
+        0.0,
+        0.0,
+        *tail,
+    )
     return (
         StateSnapshot(
             vector=vector,
@@ -87,11 +105,13 @@ def test_transfer_identity_is_rename_invariant_but_aseq_identity_is_concrete() -
         route="route-28",
         profile="profile-14",
         object_id="object-07",
+        raw_slot=3,
     )
     right, right_action = _renamed_state(
         route="route-05",
         profile="profile-02",
         object_id="object-31",
+        raw_slot=17,
     )
 
     assert relational_state_key(left) == relational_state_key(right)
@@ -116,6 +136,7 @@ def test_public_current_builder_instantiates_current_runtime_not_legacy_ones() -
     assert isinstance(agent, CurrentPentestAASSRAgent)
     assert isinstance(agent.policy, CurrentRelationalPolicy)
     assert isinstance(agent.dqn, RelationalInvariantDQN)
+    assert isinstance(agent.base_neural_prophecy, FullyRelationalNeuralDeltaProphecy)
     assert isinstance(agent.base_neural_prophecy, CurrentNeuralDeltaProphecy)
     assert isinstance(agent.calibrated_prophecy, FrozenReplayRelationalCalibratedProphecy)
     assert isinstance(agent.critic, RelationalGRUBranchCritic)
@@ -134,12 +155,44 @@ def test_public_current_builder_instantiates_current_runtime_not_legacy_ones() -
     assert diagnostics["current_generation"] is True
     assert diagnostics["canonical_runtime"] == "current_runtime"
     assert diagnostics["calibration_same_transition_frozen"] is True
+    assert diagnostics["prophecy_state_input_relational"] is True
+    assert diagnostics["prophecy_action_input_relational"] is True
     assert diagnostics["legacy_components_active"] == []
     assert diagnostics["identity_contracts"]["aseq_cycle_detection"].startswith(
         "concrete"
     )
     assert diagnostics["identity_contracts"]["policy_transfer"].startswith(
         "relational"
+    )
+
+
+def test_current_prophecy_input_is_rename_invariant_even_when_raw_slots_move() -> None:
+    agent = build_current_pentest_aassr_core(
+        seed=11,
+        train_transitions=128,
+        use_imagination=True,
+        device="cpu",
+    )
+    left, left_action = _renamed_state(
+        route="route-28",
+        profile="profile-14",
+        object_id="object-07",
+        raw_slot=2,
+    )
+    right, right_action = _renamed_state(
+        route="route-05",
+        profile="profile-02",
+        object_id="object-31",
+        raw_slot=29,
+    )
+
+    # The old concrete codec sees the permutation; the active Prophecy input must
+    # not. This catches the exact half-relational regression that caused v0.4
+    # transfer to collapse under seed-renamed identifiers.
+    assert agent.base_neural_prophecy.codec.encode(left) != agent.base_neural_prophecy.codec.encode(right)
+    assert agent.base_neural_prophecy._input(left, left_action) == agent.base_neural_prophecy._input(
+        right,
+        right_action,
     )
 
 
@@ -183,11 +236,13 @@ def test_relational_policy_scores_renamed_actions_with_same_structural_input() -
         route="route-28",
         profile="profile-14",
         object_id="object-07",
+        raw_slot=6,
     )
     right, right_action = _renamed_state(
         route="route-05",
         profile="profile-02",
         object_id="object-31",
+        raw_slot=21,
     )
     dqn = RelationalInvariantDQN(123, train_transitions=128)
 
