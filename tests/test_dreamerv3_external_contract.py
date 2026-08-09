@@ -6,11 +6,12 @@ pytest.importorskip("torch")
 
 from aassr_v2.dreamerv3_baseline import DREAMERV3_ACTION_SLOT_COUNT
 from aassr_v2.dreamerv3_external import _DreamerPentestEnv
-from aassr_v2.pentest_agent_main_test import ACTION_FEATURE_SIZE, AGENT_STATE_SIZE
+from aassr_v2.pentest_agent_main_test import AGENT_STATE_SIZE
 
 
 class _FakeNP:
     float32 = float
+    int32 = int
 
     @staticmethod
     def asarray(values, dtype=None):
@@ -37,12 +38,7 @@ def test_dreamer_env_adapter_executes_exact_real_transition_budget() -> None:
     assert sum(first["action_mask"]) > 0
     assert env.result is None
 
-    terminal = env.step(
-        {
-            "reset": False,
-            "action": [0.0] * ACTION_FEATURE_SIZE,
-        }
-    )
+    terminal = env.step({"reset": False, "action": 0})
     assert terminal["is_first"] is False
     assert terminal["is_last"] is True
     assert terminal["is_terminal"] is True
@@ -64,7 +60,7 @@ def test_dreamer_env_reset_restarts_episode_without_carrying_budget_state() -> N
         phase="contract",
     )
     env.step({"reset": True})
-    env.step({"reset": False, "action": [0.0] * ACTION_FEATURE_SIZE})
+    env.step({"reset": False, "action": 0})
     assert env.result is not None
     assert env.transitions == 1
 
