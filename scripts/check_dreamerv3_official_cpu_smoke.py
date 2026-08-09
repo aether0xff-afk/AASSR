@@ -23,7 +23,9 @@ def main() -> None:
         )
     )
     parser.add_argument("--dreamer-root", required=True)
-    parser.add_argument("--output", default="runs/dreamerv3_official_cpu_smoke.json")
+    parser.add_argument(
+        "--output", default="runs/dreamerv3_official_cpu_smoke.json"
+    )
     parser.add_argument("--real-transitions", type=int, default=96)
     parser.add_argument("--seed", type=int, default=7)
     args = parser.parse_args()
@@ -63,7 +65,6 @@ def main() -> None:
             "jax": {
                 "platform": "cpu",
                 "prealloc": False,
-                "profiler": False,
             },
             "run": {"train_ratio": 8.0},
         }
@@ -109,7 +110,9 @@ def main() -> None:
             train_ratio=8.0,
         )
         if row.primitive_transitions <= 0:
-            raise RuntimeError("official DreamerV3 CPU smoke made no real progress")
+            raise RuntimeError(
+                "official DreamerV3 CPU smoke made no real progress"
+            )
         consumed += row.primitive_transitions
         episodes += 1
         train_rows.append(row)
@@ -162,7 +165,10 @@ def main() -> None:
             + [eval_row.projection_max_squared_distance]
         ),
     }
-    output.write_text(json.dumps(result, indent=2, sort_keys=True), encoding="utf-8")
+    output.write_text(
+        json.dumps(result, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
     print(json.dumps(result, indent=2, sort_keys=True))
 
 
