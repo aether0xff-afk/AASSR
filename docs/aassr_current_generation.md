@@ -10,16 +10,11 @@ of the current-generation execution path.
 from aassr_v2 import build_pentest_aassr_core
 ```
 
-At package level, `build_pentest_aassr_core` now means the current generation.
-The explicit spelling `build_current_pentest_aassr_core` is equivalent.
+At package level, `build_pentest_aassr_core` means the current generation.
+`build_current_pentest_aassr_core` is equivalent. Frozen v0.4 reproduction remains
+available only through explicit legacy builders such as
+`build_legacy_v040_pentest_aassr_core` or the historical module itself.
 
-Frozen v0.4 reproduction remains available only through:
-
-```python
-from aassr_v2 import build_legacy_v040_pentest_aassr_core
-```
-
-or by importing the historical builder directly from `aassr_v2.integrated_agent`.
 Current experiment runners do not import the frozen v0.4 full-system runner or the
 historical 2x2 training-mechanism runner.
 
@@ -32,17 +27,13 @@ historical 2x2 training-mechanism runner.
 | Transfer state identity | rename-invariant relational descriptor | active |
 | Transfer action identity | route/profile/object relation features | active |
 | Policy | relational DQN + separate information-value residual | active |
-| Policy hardware | explicit shared torch device, sync-free Bellman target reduction | active |
-| Prophecy | Neural Delta ensemble | active |
-| Prophecy state input | rename-invariant relational state vector | active |
-| Prophecy action input | relational action features | active |
-| Prophecy output | learned delta applied to the current concrete scaffold | active |
+| Prophecy | Neural Delta ensemble, relational state/action input | active |
 | Confidence | frozen-holdout relational calibration | active |
 | Knowledge | pre-existing episode-local response Knowledge | active |
 | Imagination | multi-step parallel-universe tree | active at frozen evaluation |
-| Branch scorer/pruning | GRU Branch Critic trained from final real outcome | active |
-| Skill | relational ASeq template rebound to current concrete actions | active |
-| GPU path | DQN + Neural Delta on one requested device; depth-wise Imagination batching | active |
+| Branch scorer/pruning | relational GRU Branch Critic | active |
+| Skill | relational ASeq template rebound to concrete actions | active |
+| Hardware | shared requested torch device + full depth batching | active |
 | Current experiment protocol | standalone current protocol | active |
 | Effect-composed snapshot model | historical path | disabled |
 | hand-written Goal/StateDelta scorer | historical path | disabled |
@@ -50,162 +41,179 @@ historical 2x2 training-mechanism runner.
 | `SemanticContextualPolicy` | historical v0.4 path | disabled |
 
 `current_manifest.py` is the sole executable source of truth for the active
-component set. `LEGACY_COMPONENTS_ACTIVE` must remain empty. CI checks both the
-manifest and the actual instantiated object graph.
+component set. `LEGACY_COMPONENTS_ACTIVE` must remain empty.
 
 ## Hardware execution contract
 
-The current runtime no longer treats `--device cuda:0` as a Prophecy-only option.
-The same requested torch device is used for the active relational DQN and the
-Neural Delta world model.
+`--device cuda:0` now applies to the current AASSR Policy DQN, Neural Delta world
+model and GRU Branch Critic. The two DQN controls use the same requested hardware
+execution contract.
 
-The DQN Bellman target implementation also avoids the historical CPU-shaped
-reduction pattern in which every replay row converted a next-action maximum to a
-Python scalar. On CUDA, that would force repeated device/host synchronization.
-The current hardware backend keeps those maxima as device tensors until the loss
-is formed. Artifacts explicitly record `per_row_target_item_syncs = 0`.
+The important optimization is not merely moving tiny models to CUDA. The hot paths
+were rewritten so accelerator work is actually batched:
 
-Neural Delta primitive branches are evaluated depth-wise in batches during
-Imagination. Relational Skill macros retain their variable-length scalar fallback.
-This is a semantics-preserving batching optimization rather than a change to the
-planning algorithm.
+1. **Policy frontier ranking** — every state/action pair at one Imagination depth is
+   deduplicated by exact DQN input and scored in one DQN batch.
+2. **Neural Delta prediction** — primitive branches at one depth use one batched
+   world-model call. Predicted states, terminal classes and confidences are copied
+   back to the host in bulk rather than one branch at a time.
+3. **GRU Critic scoring** — all predicted child transitions at one depth are scored
+   in one GRU batch; the current planner does not use scalar branch scoring.
+4. **GRU Critic training** — replay episodes are padded/masked and trained as an
+   episode batch while preserving the original equal-per-episode loss weighting.
+5. **DQN Bellman targets** — all next actions in a replay minibatch are scored
+   together and reduced with a device-side `scatter_reduce(amax)`. There is no
+   `.item()` synchronization per replay row.
+6. **Holdout calibration** — the same frozen holdout items and scoring equation are
+   retained, but calibration refreshes call `predict_batch` once for the selected
+   rows instead of one world-model call per item.
 
-TF32 is a recorded execution option for CUDA float32 runs. It can be disabled with
+These changes are execution optimizations, not algorithm changes. Regression tests
+compare the hardware-aware DQN/Critic against their scalar/current references and
+compare the fully batched planner against the scalar Policy/Critic planner on the
+same seed and state.
+
+Artifacts expose diagnostics including:
+
+- `per_row_target_item_syncs = 0`
+- `fused_next_action_reduce = 1`
+- Policy/Critic batch call and row counts
+- `per_row_batch_host_sync = 0` for Neural Delta
+- calibration batch refresh counts
+- resolved device and TF32 setting
+
+TF32 is a recorded CUDA float32 execution option and may be disabled with
 `--no-tf32`. Deterministic-algorithm mode remains enabled. `torch.compile` is not
-part of the active contract because the current workload has dynamic action-set
-sizes and short online updates where compile/recompile overhead may dominate,
-especially on the local Windows path.
+part of the active contract because dynamic action cardinality and short online
+updates make compile/recompile overhead risky, especially on Windows.
 
-To verify the actual local CUDA path rather than merely the CPU-equivalent code
-path, run:
+Hosted CI verifies CPU numerical/protocol equivalence. Actual target-GPU placement
+must be checked locally:
 
 ```powershell
 python scripts/check_current_generation_hardware.py --device cuda:0
 ```
 
-The check performs real DQN and Neural Delta forwards and requires AASSR DQN,
-AASSR Prophecy and the bare-DQN control to resolve to the requested CUDA device,
-with depth batching enabled and no per-row Bellman-target host sync.
+The check performs real forwards for raw DQN, relational DQN and AASSR and requires
+AASSR DQN/Prophecy/Critic to resolve to the requested device. It also requires
+Policy, Prophecy and Critic batching and rejects per-row DQN/Neural host-sync
+regressions.
 
 ## Two identity contracts
 
-AASSR no longer forces one equivalence relation onto unrelated jobs.
+AASSR deliberately uses two different equivalence relations.
 
 ### Concrete semantic identity
 
-Used only for ASEQ and Imagination cycle detection. Different concrete routes,
-profiles or objects inside one episode remain distinct. Volatile administrative
-counters are still ignored according to the audited v3 semantic contract.
+Used for ASEQ and Imagination cycle detection. Different concrete routes, profiles
+or objects inside one episode remain distinct.
 
 ### Relational transfer identity
 
 Used by Policy, Prophecy input, Critic and relational Skill promotion. Seed-renamed
 identifiers with the same observed roles map to the same structural representation.
-A regression test deliberately moves raw identifier-index slots and verifies that
-Policy and Prophecy inputs remain identical while the concrete ASEQ key remains
-different.
+Regression tests move raw identifier-index slots and require Policy/Prophecy input
+to remain unchanged while the concrete ASEQ key remains different.
 
 ## World model and Knowledge boundary
 
-The current world model is the Neural Delta ensemble developed in the Prophecy /
-Imagination-v2 line. Its learned input is relational state + relational action; raw
-route/profile/object slot numbers are not provided as world-model input. The
-predicted delta is then applied to the caller's current concrete state scaffold so
-that planning remains connected to the real current action surface.
+The current Neural Delta model receives relational state + relational action and
+predicts a delta that is applied to the caller's current concrete scaffold. Raw
+route/profile/object slot numbers are therefore not world-model lookup keys, while
+planning remains connected to the real current action surface.
 
-The legacy snapshot/effect-composition model is not stacked on top of this world
-model.
-
-Holdout calibration is frozen at the start of each real transition. If that
-transition is subsequently assigned to holdout, it cannot calibrate a prediction
-of itself. Explicit Knowledge follows the same anti-hindsight rule: only Knowledge
-that existed before the action may influence the action's contextual prediction.
-Context-free holdout prediction never sees live episode Knowledge.
+The old snapshot/effect-composition model is not stacked on top of Neural Delta.
+Holdout calibration is frozen before each real transition, and Knowledge that is
+learned by the transition cannot be used to predict that same transition.
 
 ## Current experiment conditions
 
-The current main has three reported conditions:
+The current main reports **four conditions**:
 
-1. `dqn_bare`
-2. `aassr_current_no_imagination`
-3. `aassr_current_full`
+1. `dqn_raw`
+2. `dqn_relational`
+3. `aassr_current_no_imagination`
+4. `aassr_current_full`
 
-`dqn_bare` is deliberately **DQN-only**, not an old raw-ID baseline. It shares the
-same current relational state/action representation so that a representation
-mismatch does not masquerade as an AASSR advantage. It also shares the same v3
-observation contract, response-causal environment, action surface, sparse external
-reward, adaptive-curriculum rule, seed pools, transition budget and hardware-aware
-DQN backend.
+### `dqn_raw`
 
-It does **not** instantiate or use ASEQ, Knowledge, Prophecy, Imagination, Skills,
-the branch Critic, FeatureMemory, or the information-value residual.
+This is the true plain-DQN control requested for the experiment.
 
-The bare DQN and AASSR train separate checkpoints and advance their adaptive
-curricula independently under the same predeclared rule. Within AASSR,
-`aassr_current_no_imagination` and `aassr_current_full` are evaluated from the
-**same persistent AASSR checkpoint**.
+- state input: the exposed v3 observation vector directly
+- action input: stable raw action-signature hash features
+- no relational route/profile/object abstraction
+- no ASEQ, Knowledge, Prophecy, Imagination, Skills, Critic, FeatureMemory or
+  information-value residual
 
-Training exploration for both learners is indexed by the fraction of the global
-real-transition budget consumed. It does not reset at curriculum block boundaries.
-This corrects the earlier current-main wiring in which the AASSR epsilon index was
-accidentally restarted from a small per-block episode number.
+Known methodology bugs are **not** restored: episode boundaries correctly stop TD
+bootstrap, and the hardware backend uses the same fused/sync-free Bellman target
+execution contract.
 
-## Same-checkpoint Imagination protocol
+### `dqn_relational`
 
-Training-time Imagination intervention is disabled. Real interaction trains:
+This is a representation-controlled DQN ablation. It is still DQN-only, but its
+state/action representation is exactly the current relational representation used
+by AASSR Policy.
 
-- sparse-reward relational DQN Policy,
-- fully relational-input Neural Delta Prophecy,
-- calibration evidence,
-- information-value predictor,
-- GRU Branch Critic from final episode outcome,
-- Knowledge and relational Skill discovery.
+Comparing `dqn_raw` with `dqn_relational` isolates representation effects. Comparing
+`dqn_relational` with AASSR helps test whether gains remain after that representation
+advantage is controlled.
 
-After training, the *same persistent AASSR checkpoint* is evaluated twice:
+### AASSR conditions
 
-1. Policy-only / no Imagination;
-2. Full current AASSR with Imagination enabled when the learned Critic is ready.
+AASSR trains **one** checkpoint with training-time Imagination intervention off.
+The same persistent checkpoint is then evaluated twice:
 
-This avoids comparing two separately trained stochastic AASSR agents when
-estimating the marginal effect of Imagination. The independent `dqn_bare` checkpoint
-provides the external DQN-only control.
+- `aassr_current_no_imagination`
+- `aassr_current_full`
 
-## GOAL status
+This preserves the same-checkpoint estimate of Imagination's marginal effect.
 
-The old GridPush GOAL Maker/Executor is intentionally not activated here. That
-experiment relied on hand-written state-delta / goal-distance scoring and predates
-the learned GRU branch critic direction. The final external success goal remains,
-and successful relational ASeq fragments may become reusable Skills. A future
-learned GOAL controller must use the current relational/learned-value contracts
-rather than silently restoring the old hand-scored implementation.
+The three training checkpoints — raw DQN, relational DQN and AASSR — each receive
+the same real-transition budget, training seed pool, validation pool, diagnostic
+pool, sparse external reward, response-causal environment, action surface and
+adaptive-curriculum rule. Their curricula advance independently according to that
+same rule.
 
-## Legacy policy
+Training exploration for all learners is indexed by the fraction of the **global
+real-transition budget** consumed. It no longer resets at curriculum block
+boundaries; the previous current-main per-block epsilon wiring was corrected before
+this experiment was frozen.
 
-Historical files are not deleted. Reproduction scripts may still import old v0.4,
-GridPush, GOAL, GRU and effect-composition implementations. New current-generation
-scripts must import only the package current builder and `current_protocol`.
+For a standard 10,000-transition run, one research seed therefore uses three
+training budgets (30,000 nominal real training transitions total) and reports four
+evaluation conditions because the two AASSR modes share a checkpoint.
 
-CI fails if:
+## Current CI status
 
-- the package default pentest builder points back to v0.4;
-- a current runner imports the frozen v0.4 full-system or historical 2x2 runner;
-- old Policy, old GRU Prophecy or hand-written Goal scorer appears in the active
-  current object graph;
-- renamed structural states/actions produce different current Policy or Prophecy
-  inputs;
-- AASSR and bare DQN stop sharing the hardware-aware DQN backend;
-- the DQN target path reintroduces per-row host synchronization;
-- the bare DQN condition acquires an AASSR module;
-- same-checkpoint evaluation mutates persistent learning state.
+The dedicated current-generation gate checks:
 
-## Before another full main
+- standalone current runtime / no active legacy component
+- raw DQN and relational DQN reference equivalence on CPU
+- raw/relational controls contain no AASSR modules
+- hardware DQN fused target reduction / no per-row host sync
+- relational Policy frontier batching
+- Neural Delta depth batching and bulk host transfer
+- GRU Critic depth batching and batched training implementation
+- fully batched planner versus scalar Policy/Critic result equivalence
+- calibration refresh batching without changing selected holdout data
+- four-condition tiny main artifact creation
+- exact training budget and frozen evaluation
+- 192-real-transition AASSR learning smoke
 
-Do not repeat the old 90,000-transition main. Before a new full current-generation
-experiment, all of the following must be green:
+The latest hardware-aware 192-transition AASSR CPU smoke still produced 3 training
+successes, 65 DQN updates and 27 Neural Delta updates; both frozen L0 diagnostic
+modes were 2/2. The Critic was not ready in that small smoke, so it recorded no
+actual Imagination run and is not evidence for an Imagination benefit.
 
-1. current-generation component/rename-invariance/hardware gate;
-2. local CUDA hardware-path smoke on the target machine;
-3. real-transition learning smoke;
-4. bare-DQN/current-AASSR condition smoke with frozen evaluation;
-5. a larger reduced run in which the learned GRU Critic becomes ready and the
-   Full condition records real Imagination runs on the same checkpoint.
+## Before the next full main
+
+Do not relaunch the old v0.4 main. Before a new full current-generation experiment:
+
+1. current-generation CI must remain green;
+2. run `check_current_generation_hardware.py` on the target CUDA machine;
+3. run a larger reduced current experiment until the learned Critic reaches
+   readiness and `aassr_current_full` records real Imagination runs;
+4. inspect raw DQN, relational DQN and AASSR artifacts for exact budget/freeze and
+   hardware diagnostics;
+5. then freeze and launch the full current-generation experiment.
