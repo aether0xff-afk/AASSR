@@ -353,7 +353,6 @@ def _official_config(
             "jax": {
                 "platform": str(jax_platform),
                 "prealloc": bool(prealloc),
-                "profiler": False,
             }
         }
     )
