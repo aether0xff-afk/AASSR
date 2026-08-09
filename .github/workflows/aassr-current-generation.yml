@@ -12,6 +12,7 @@ on:
       - "src/aassr_v2/current_hardware.py"
       - "src/aassr_v2/current_dqn_baseline.py"
       - "src/aassr_v2/current_performance.py"
+      - "src/aassr_v2/current_planner.py"
       - "src/aassr_v2/current_entrypoint.py"
       - "src/aassr_v2/current_protocol.py"
       - "src/aassr_v2/pentest_current_generation_smoke.py"
@@ -53,6 +54,7 @@ jobs:
           python -m py_compile src/aassr_v2/current_hardware.py
           python -m py_compile src/aassr_v2/current_dqn_baseline.py
           python -m py_compile src/aassr_v2/current_performance.py
+          python -m py_compile src/aassr_v2/current_planner.py
           python -m py_compile src/aassr_v2/current_entrypoint.py
           python -m py_compile src/aassr_v2/current_protocol.py
           python -m py_compile src/aassr_v2/pentest_current_generation_smoke.py
@@ -109,6 +111,7 @@ jobs:
           assert diagnostics["policy"]["dqn:gradient_updates"] > 0
           assert diagnostics["policy"]["dqn:hardware_optimized"] == 1
           assert diagnostics["policy"]["dqn:per_row_target_item_syncs"] == 0
+          assert diagnostics["policy"]["dqn:fused_next_action_reduce"] == 1
           assert diagnostics["prophecy_current"]["gradient_updates"] > 0
           assert diagnostics["prophecy_state_input_relational"] is True
           assert diagnostics["prophecy_action_input_relational"] is True
@@ -133,7 +136,11 @@ jobs:
               build_current_pentest_aassr_core,
           )
           from aassr_v2.autonomous_agent_core import AutonomousLearningAgent
-          from aassr_v2.current_hardware import HardwareRelationalInvariantDQN
+          from aassr_v2.current_hardware import (
+              HardwareRelationalGRUBranchCritic,
+              HardwareRelationalInvariantDQN,
+          )
+          from aassr_v2.current_planner import CurrentFullyBatchedImaginationTree
           from aassr_v2.integrated_agent import IntegratedAASSRAgent
 
           print(CURRENT_GENERATION_VERSION)
@@ -152,10 +159,13 @@ jobs:
           assert IntegratedAASSRAgent not in type(agent).mro()
           assert AutonomousLearningAgent not in type(agent).mro()
           assert isinstance(agent.dqn, HardwareRelationalInvariantDQN)
+          assert isinstance(agent.critic, HardwareRelationalGRUBranchCritic)
+          assert isinstance(agent.planner, CurrentFullyBatchedImaginationTree)
           diagnostics = agent.diagnostics()
           assert diagnostics["canonical_runtime"] == "current_standalone"
           assert diagnostics["current_components"] == dict(CURRENT_COMPONENTS)
           assert agent.current_depth_batching is True
+          assert agent.current_critic_batching is True
           PY
       - name: Archive current-generation smoke
         if: always()
