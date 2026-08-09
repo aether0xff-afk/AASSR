@@ -9,15 +9,19 @@ on:
       - "src/aassr_v2/current_manifest.py"
       - "src/aassr_v2/current_runtime.py"
       - "src/aassr_v2/current_agent.py"
+      - "src/aassr_v2/current_hardware.py"
+      - "src/aassr_v2/current_dqn_baseline.py"
       - "src/aassr_v2/current_performance.py"
       - "src/aassr_v2/current_entrypoint.py"
       - "src/aassr_v2/current_protocol.py"
       - "src/aassr_v2/pentest_current_generation_smoke.py"
       - "src/aassr_v2/pentest_current_generation_main.py"
       - "src/aassr_v2/__init__.py"
+      - "scripts/check_current_generation_hardware.py"
       - "scripts/run_pentest_current_generation_smoke.py"
       - "scripts/run_pentest_current_generation_main.py"
       - "tests/test_current_generation*.py"
+      - "tests/test_current_hardware_and_dqn.py"
       - "tests/test_current_default_entrypoint.py"
       - ".github/workflows/aassr-current-generation.yml"
   workflow_dispatch:
@@ -29,7 +33,7 @@ concurrency:
 jobs:
   current-generation:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -46,16 +50,20 @@ jobs:
           python -m py_compile src/aassr_v2/current_manifest.py
           python -m py_compile src/aassr_v2/current_runtime.py
           python -m py_compile src/aassr_v2/current_agent.py
+          python -m py_compile src/aassr_v2/current_hardware.py
+          python -m py_compile src/aassr_v2/current_dqn_baseline.py
           python -m py_compile src/aassr_v2/current_performance.py
           python -m py_compile src/aassr_v2/current_entrypoint.py
           python -m py_compile src/aassr_v2/current_protocol.py
           python -m py_compile src/aassr_v2/pentest_current_generation_smoke.py
           python -m py_compile src/aassr_v2/pentest_current_generation_main.py
           python -m py_compile src/aassr_v2/__init__.py
+          python -m py_compile scripts/check_current_generation_hardware.py
           python -m py_compile scripts/run_pentest_current_generation_smoke.py
           python -m py_compile scripts/run_pentest_current_generation_main.py
           python -m py_compile tests/test_current_generation.py
           python -m py_compile tests/test_current_generation_batching.py
+          python -m py_compile tests/test_current_hardware_and_dqn.py
           python -m py_compile tests/test_current_default_entrypoint.py
       - name: Assert current runners do not import historical experiment runners
         run: |
@@ -74,11 +82,12 @@ jobs:
               for token in forbidden:
                   assert token not in text, (name, token)
           PY
-      - name: Assert active architecture rename invariance batching and standalone runtime
+      - name: Assert active architecture hardware DQN baseline and standalone runtime
         run: |
           pytest -q \
             tests/test_current_generation.py \
             tests/test_current_generation_batching.py \
+            tests/test_current_hardware_and_dqn.py \
             tests/test_current_default_entrypoint.py
       - name: Run same-checkpoint real-environment learning smoke
         run: |
@@ -98,6 +107,8 @@ jobs:
           diagnostics = result["diagnostics"]
           assert diagnostics["canonical_runtime"] == "current_standalone"
           assert diagnostics["policy"]["dqn:gradient_updates"] > 0
+          assert diagnostics["policy"]["dqn:hardware_optimized"] == 1
+          assert diagnostics["policy"]["dqn:per_row_target_item_syncs"] == 0
           assert diagnostics["prophecy_current"]["gradient_updates"] > 0
           assert diagnostics["prophecy_state_input_relational"] is True
           assert diagnostics["prophecy_action_input_relational"] is True
@@ -122,6 +133,7 @@ jobs:
               build_current_pentest_aassr_core,
           )
           from aassr_v2.autonomous_agent_core import AutonomousLearningAgent
+          from aassr_v2.current_hardware import HardwareRelationalInvariantDQN
           from aassr_v2.integrated_agent import IntegratedAASSRAgent
 
           print(CURRENT_GENERATION_VERSION)
@@ -129,6 +141,7 @@ jobs:
               print(f"{key}: {value}")
           assert LEGACY_COMPONENTS_ACTIVE == ()
           assert "relational-state-action" in CURRENT_COMPONENTS["prophecy"]
+          assert "same-device" in CURRENT_COMPONENTS["hardware"]
           assert aassr_v2.build_pentest_aassr_core is build_current_pentest_aassr_core
           agent = build_current_pentest_aassr_core(
               seed=7,
@@ -138,6 +151,7 @@ jobs:
           )
           assert IntegratedAASSRAgent not in type(agent).mro()
           assert AutonomousLearningAgent not in type(agent).mro()
+          assert isinstance(agent.dqn, HardwareRelationalInvariantDQN)
           diagnostics = agent.diagnostics()
           assert diagnostics["canonical_runtime"] == "current_standalone"
           assert diagnostics["current_components"] == dict(CURRENT_COMPONENTS)
