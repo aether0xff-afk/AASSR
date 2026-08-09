@@ -21,6 +21,7 @@ from aassr_v2.current_hardware import (
 from aassr_v2.current_protocol import run_current_episode
 from aassr_v2.pentest_current_generation_main import CURRENT_EXPERIMENT_CONDITIONS
 from aassr_v2.pentest_transfer_stages import TRANSFER_STAGES, TransferDiagnosticWorld
+from aassr_v2.replay import ReplayTransition
 
 
 def test_hardware_dqn_matches_current_relational_dqn_initial_q_values_on_cpu() -> None:
@@ -92,6 +93,36 @@ def test_current_aassr_and_bare_dqn_share_hardware_backend() -> None:
     assert str(aassr.base_neural_prophecy.device) == "cpu"
     assert aassr.planner.scorer is aassr.critic
     assert aassr.current_depth_batching is True
+
+
+def test_current_calibration_refresh_batches_selected_holdout_rows() -> None:
+    agent = build_current_pentest_aassr_core(
+        seed=9,
+        train_transitions=128,
+        use_imagination=True,
+        device="cpu",
+    )
+    state = TransferDiagnosticWorld(90_001, stage=TRANSFER_STAGES[0]).snapshot()
+    action = state.available_actions[0]
+    replay = agent.evaluator.replay
+    for index in range(40):
+        replay.add(
+            ReplayTransition(
+                state,
+                action,
+                state,
+                trace_id=f"calibration-{index}",
+            )
+        )
+    assert len(replay.holdout()) == 8
+
+    before_calls = agent.base_neural_prophecy.batch_prediction_calls
+    agent.calibrated_prophecy._calibration(state, action)
+    diagnostics = agent.calibrated_prophecy.diagnostics()
+    assert agent.base_neural_prophecy.batch_prediction_calls - before_calls == 1
+    assert diagnostics["calibration_batch_refreshes"] == 1
+    assert diagnostics["calibration_batch_rows"] == 8
+    assert diagnostics["calibration_refresh_batching"] == 1
 
 
 def test_bare_dqn_is_actually_dqn_only_and_runs_current_protocol() -> None:
