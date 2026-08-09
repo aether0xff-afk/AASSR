@@ -22,6 +22,8 @@ CANONICAL_DREAMERV3_PRESET = "dmc_proprio+size1m"
 CANONICAL_DREAMERV3_TRAIN_RATIO = 1024.0
 CANONICAL_DREAMERV3_COMPUTE_DTYPE = "bfloat16"
 CANONICAL_DREAMERV3_JAX_PLATFORM = "cuda"
+CANONICAL_DREAMERV3_ACTION_SPACE = "categorical-relational-slot-240"
+CANONICAL_DREAMERV3_ACTION_ADAPTER = "nearest-current-relational-slot"
 
 
 def _require_equal(label: str, left: Any, right: Any) -> None:
@@ -52,6 +54,17 @@ def _validate_canonical_dreamer(dreamer_summary: Mapping[str, Any]) -> None:
         raise ValueError("canonical suite requires an unmodified DreamerV3 agent")
     if bool(upstream.get("oracle_information", True)):
         raise ValueError("canonical DreamerV3 adapter must not use oracle information")
+    _require_equal(
+        "dreamerv3_actor_action_space",
+        upstream.get("actor_action_space"),
+        CANONICAL_DREAMERV3_ACTION_SPACE,
+    )
+    _require_equal(
+        "dreamerv3_legal_action_adapter",
+        upstream.get("legal_action_adapter"),
+        CANONICAL_DREAMERV3_ACTION_ADAPTER,
+    )
+    _require_equal("dreamerv3_slot_count", int(upstream.get("slot_count", -1)), 240)
 
     config = dreamer_summary.get("official_config", {})
     _require_equal(
@@ -86,6 +99,11 @@ def _validate_canonical_dreamer(dreamer_summary: Mapping[str, Any]) -> None:
         raise ValueError("DreamerV3 validation was not frozen")
     if not bool(dreamer_summary.get("diagnostic_learning_frozen")):
         raise ValueError("DreamerV3 diagnostic was not frozen")
+    _require_equal(
+        "dreamerv3_train_ratio_step_semantics",
+        dreamer_summary.get("official_train_ratio_step_semantics"),
+        "embodied-driver-step-including-is_first",
+    )
 
 
 def assemble_current_generation_suite(
@@ -195,8 +213,9 @@ def assemble_current_generation_suite(
             "same_response_causal_environment": True,
             "dreamerv3_upstream_algorithm_modified": False,
             "dreamerv3_dynamic_action_adapter": (
-                "relational-continuous-nearest-legal-projection"
+                "relational-categorical-nearest-legal-slot-projection"
             ),
+            "dreamerv3_actor_action_space": CANONICAL_DREAMERV3_ACTION_SPACE,
             "dreamerv3_canonical_preset": CANONICAL_DREAMERV3_PRESET,
             "dreamerv3_canonical_train_ratio": CANONICAL_DREAMERV3_TRAIN_RATIO,
             "dreamerv3_canonical_compute_dtype": CANONICAL_DREAMERV3_COMPUTE_DTYPE,
