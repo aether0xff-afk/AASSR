@@ -54,7 +54,10 @@ def test_disabled_imagination_short_circuit_preserves_greedy_action() -> None:
 
 def test_relational_coverage_memoization_preserves_exact_average() -> None:
     agent = _agent(100)
-    state = TransferDiagnosticWorld(90_003, stage=TRANSFER_STAGES[0]).snapshot()
+    world = TransferDiagnosticWorld(90_003, stage=TRANSFER_STAGES[0])
+    entry = world.snapshot()
+    assert len(entry.available_actions) == 1
+    state = world.step(entry.available_actions[0]).snapshot
     actions = tuple(state.available_actions)
     assert actions
 

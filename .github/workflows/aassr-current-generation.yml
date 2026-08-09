@@ -10,11 +10,14 @@ on:
       - "src/aassr_v2/current_runtime.py"
       - "src/aassr_v2/current_agent.py"
       - "src/aassr_v2/current_hardware.py"
+      - "src/aassr_v2/current_hot_path_profile.py"
       - "src/aassr_v2/current_dqn_baseline.py"
+      - "src/aassr_v2/current_decision_optimization.py"
       - "src/aassr_v2/current_performance.py"
       - "src/aassr_v2/current_planner.py"
       - "src/aassr_v2/current_entrypoint.py"
       - "src/aassr_v2/current_protocol.py"
+      - "src/aassr_v2/current_validation.py"
       - "src/aassr_v2/current_experiment_suite.py"
       - "src/aassr_v2/dreamerv3_baseline.py"
       - "src/aassr_v2/dreamerv3_external.py"
@@ -27,9 +30,7 @@ on:
       - "scripts/assemble_pentest_current_generation_suite.py"
       - "scripts/run_pentest_current_generation_smoke.py"
       - "scripts/run_pentest_current_generation_main.py"
-      - "tests/test_current_generation*.py"
-      - "tests/test_current_hardware_and_dqn.py"
-      - "tests/test_current_default_entrypoint.py"
+      - "tests/test_current_*.py"
       - "tests/test_dreamerv3*.py"
       - ".github/workflows/aassr-current-generation.yml"
   workflow_dispatch:
@@ -59,11 +60,14 @@ jobs:
           python -m py_compile src/aassr_v2/current_runtime.py
           python -m py_compile src/aassr_v2/current_agent.py
           python -m py_compile src/aassr_v2/current_hardware.py
+          python -m py_compile src/aassr_v2/current_hot_path_profile.py
           python -m py_compile src/aassr_v2/current_dqn_baseline.py
+          python -m py_compile src/aassr_v2/current_decision_optimization.py
           python -m py_compile src/aassr_v2/current_performance.py
           python -m py_compile src/aassr_v2/current_planner.py
           python -m py_compile src/aassr_v2/current_entrypoint.py
           python -m py_compile src/aassr_v2/current_protocol.py
+          python -m py_compile src/aassr_v2/current_validation.py
           python -m py_compile src/aassr_v2/current_experiment_suite.py
           python -m py_compile src/aassr_v2/dreamerv3_baseline.py
           python -m py_compile src/aassr_v2/dreamerv3_external.py
@@ -78,6 +82,12 @@ jobs:
           python -m py_compile scripts/run_pentest_current_generation_main.py
           python -m py_compile tests/test_current_generation.py
           python -m py_compile tests/test_current_generation_batching.py
+          python -m py_compile tests/test_current_calibration_index.py
+          python -m py_compile tests/test_current_encoding_cache.py
+          python -m py_compile tests/test_current_hot_path_profile.py
+          python -m py_compile tests/test_current_neural_delta_loss_sync.py
+          python -m py_compile tests/test_current_decision_optimization.py
+          python -m py_compile tests/test_current_validation_fastpath.py
           python -m py_compile tests/test_current_hardware_and_dqn.py
           python -m py_compile tests/test_current_default_entrypoint.py
           python -m py_compile tests/test_dreamerv3_adapter.py
@@ -104,6 +114,12 @@ jobs:
           pytest -q \
             tests/test_current_generation.py \
             tests/test_current_generation_batching.py \
+            tests/test_current_calibration_index.py \
+            tests/test_current_encoding_cache.py \
+            tests/test_current_hot_path_profile.py \
+            tests/test_current_neural_delta_loss_sync.py \
+            tests/test_current_decision_optimization.py \
+            tests/test_current_validation_fastpath.py \
             tests/test_current_hardware_and_dqn.py \
             tests/test_current_default_entrypoint.py \
             tests/test_dreamerv3_adapter.py \

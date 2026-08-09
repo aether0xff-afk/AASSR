@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
 pytest.importorskip("torch")
@@ -286,8 +288,51 @@ def test_tiny_current_main_materializes_all_four_conditions(tmp_path) -> None:
     assert result["aassr"]["same_checkpoint_comparison"] is True
     assert result["validation_learning_frozen"] is True
     assert result["diagnostic_learning_frozen"] is True
+    phase_wall = result["phase_wall_seconds"]
+    assert set(phase_wall) == {
+        "raw_dqn_training",
+        "relational_dqn_training",
+        "aassr_training",
+        "curriculum_validation_total",
+        "aassr_no_imagination_diagnostic",
+        "aassr_full_diagnostic",
+    }
+    assert all(value >= 0.0 for value in phase_wall.values())
+    wall_breakdown = result["wall_time_breakdown"]
+    validation_by_condition = wall_breakdown[
+        "curriculum_validation_by_condition"
+    ]
+    assert phase_wall["curriculum_validation_total"] == pytest.approx(
+        sum(validation_by_condition.values())
+    )
+    for condition in (RAW_DQN_CONDITION, RELATIONAL_DQN_CONDITION):
+        condition_wall = wall_breakdown["dqn_by_condition"][condition]
+        assert all(value >= 0.0 for value in condition_wall.values())
+        assert condition_wall["total"] >= (
+            condition_wall["training"]
+            + condition_wall["curriculum_validation"]
+            + condition_wall["diagnostic"]
+        )
+    aassr_wall = wall_breakdown["aassr"]
+    assert all(value >= 0.0 for value in aassr_wall.values())
+    assert aassr_wall["total"] >= (
+        aassr_wall["training"]
+        + aassr_wall["curriculum_validation"]
+        + aassr_wall["no_imagination_diagnostic"]
+        + aassr_wall["full_diagnostic"]
+    )
+    assert wall_breakdown["condition_total_seconds"] == pytest.approx(
+        sum(
+            wall_breakdown["dqn_by_condition"][condition]["total"]
+            for condition in (RAW_DQN_CONDITION, RELATIONAL_DQN_CONDITION)
+        )
+        + aassr_wall["total"]
+    )
     assert (tmp_path / "diagnostic_dqn_raw.csv").exists()
     assert (tmp_path / "diagnostic_dqn_relational.csv").exists()
     assert (tmp_path / "diagnostic_aassr_current_no_imagination.csv").exists()
     assert (tmp_path / "diagnostic_aassr_current_full.csv").exists()
     assert (tmp_path / "summary.json").exists()
+    persisted = json.loads((tmp_path / "summary.json").read_text(encoding="utf-8"))
+    assert persisted["phase_wall_seconds"] == phase_wall
+    assert persisted["wall_time_breakdown"] == wall_breakdown

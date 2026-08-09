@@ -6,6 +6,7 @@ from .current_agent import (
 )
 from .current_decision_optimization import install_current_decision_optimizations
 from .current_hardware import install_hardware_dqn
+from .current_hot_path_profile import install_current_hot_path_profiler
 from .current_planner import CurrentFullyBatchedImaginationTree
 from .current_validation import install_current_fast_validation
 
@@ -33,6 +34,7 @@ def build_current_pentest_aassr_core(
     device: str = "cpu",
     enable_batching: bool = True,
     allow_tf32: bool = True,
+    profile_hot_path: bool = False,
 ) -> CurrentStandalonePentestAASSRAgent:
     """Build the sole active current-generation pentest AASSR runtime.
 
@@ -67,4 +69,6 @@ def build_current_pentest_aassr_core(
     )
     install_current_fast_validation(agent)
     install_current_decision_optimizations(agent)
+    if profile_hot_path:
+        install_current_hot_path_profiler(agent)
     return agent

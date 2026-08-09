@@ -8,6 +8,7 @@ from .current_generation import (
     CurrentRelationalPolicy,
     RelationalGRUBranchCritic,
     RelationalInvariantDQN,
+    relational_state_key,
 )
 from .pentest_curriculum_env import relational_action_features
 from .policy import ScoredAction
@@ -127,6 +128,8 @@ class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
         self.pair_score_batch_calls = 0
         self.pair_score_batch_rows = 0
         self.pair_score_unique_rows = 0
+        self.pair_state_encoding_rows = 0
+        self.pair_state_unique_encodings = 0
 
     def _tensor(self, values: Any, *, dtype: Any | None = None) -> Any:
         return self.torch.as_tensor(
@@ -145,9 +148,33 @@ class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
         if not states:
             return ()
 
+        # A planner frontier repeats one immutable parent StateSnapshot for each
+        # candidate action.  Encode each *object* once before constructing pair
+        # features.  Identity is deliberate: relational state equivalence is a
+        # learning contract, not permission to canonicalize distinct snapshots.
+        # Keeping the object in the local entry also makes an integer id collision
+        # impossible for the lifetime of this call.
+        encoded_states: dict[
+            int,
+            tuple[StateSnapshot, tuple[float, ...]],
+        ] = {}
+        state_rows: list[tuple[float, ...]] = []
+        for state in states:
+            identity = id(state)
+            cached = encoded_states.get(identity)
+            if cached is None or cached[0] is not state:
+                cached = (state, self.encode_state(state))
+                encoded_states[identity] = cached
+            state_rows.append(cached[1])
+
         keys = tuple(
-            self.encode_state(state) + relational_action_features(state, action)
-            for state, action in zip(states, actions, strict=True)
+            state_values + relational_action_features(state, action)
+            for state_values, state, action in zip(
+                state_rows,
+                states,
+                actions,
+                strict=True,
+            )
         )
         unique: list[tuple[float, ...]] = []
         index_by_key: dict[tuple[float, ...], int] = {}
@@ -167,6 +194,8 @@ class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
         self.pair_score_batch_calls += 1
         self.pair_score_batch_rows += len(states)
         self.pair_score_unique_rows += len(unique)
+        self.pair_state_encoding_rows += len(states)
+        self.pair_state_unique_encodings += len(encoded_states)
         return tuple(float(values[index]) for index in inverse)
 
     def _train_step(self) -> None:
@@ -232,6 +261,8 @@ class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
                 "pair_score_batch_calls": self.pair_score_batch_calls,
                 "pair_score_batch_rows": self.pair_score_batch_rows,
                 "pair_score_unique_rows": self.pair_score_unique_rows,
+                "pair_state_encoding_rows": self.pair_state_encoding_rows,
+                "pair_state_unique_encodings": self.pair_state_unique_encodings,
                 "hardware_optimized": 1,
             }
         )
@@ -272,6 +303,13 @@ class HardwareCurrentRelationalPolicy(CurrentRelationalPolicy):
         output = []
         for state, limit, memory in zip(states, limits, memories, strict=True):
             deltas = {} if memory is None else memory.deltas
+            has_primitives = any(
+                action.verb_name != SKILL_VERB
+                for action in state.available_actions
+            )
+            information_state_key = (
+                relational_state_key(state) if has_primitives else ()
+            )
             rows = []
             for action in state.available_actions:
                 if action.verb_name == SKILL_VERB:
@@ -279,7 +317,11 @@ class HardwareCurrentRelationalPolicy(CurrentRelationalPolicy):
                     base = 0.0 if entry is None else entry.mean
                 else:
                     external = next(value_iter)
-                    base = external + self._information_entry(state, action).mean
+                    base = external + self._information_entry_for_state_key(
+                        information_state_key,
+                        state,
+                        action,
+                    ).mean
                 rows.append(
                     ScoredAction(
                         action,

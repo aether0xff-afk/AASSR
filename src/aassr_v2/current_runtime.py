@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from statistics import fmean
 from typing import Any, Hashable, Sequence
 
@@ -34,19 +35,93 @@ class FullyRelationalNeuralDeltaProphecy(CurrentNeuralDeltaProphecy):
     name = "current-relational-state-action-neural-delta"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        state_cache_capacity = int(
+            kwargs.pop("state_encoding_cache_capacity", 256)
+        )
+        input_cache_capacity = int(
+            kwargs.pop("model_input_cache_capacity", 1024)
+        )
+        if state_cache_capacity <= 0 or input_cache_capacity <= 0:
+            raise ValueError("current encoding cache capacities must be positive")
         super().__init__(*args, **kwargs)
         self.batch_host_transfer_groups = 0
         self.batch_host_transfer_rows = 0
+        self.state_encoding_cache_capacity = state_cache_capacity
+        self.model_input_cache_capacity = input_cache_capacity
+        self._state_encoding_cache: OrderedDict[
+            int,
+            tuple[StateSnapshot, tuple[float, ...]],
+        ] = OrderedDict()
+        self._model_input_cache: OrderedDict[
+            tuple[int, int],
+            tuple[StateSnapshot, Action, tuple[float, ...]],
+        ] = OrderedDict()
+        self.state_encoding_cache_hits = 0
+        self.state_encoding_cache_misses = 0
+        self.state_encoding_cache_evictions = 0
+        self.model_input_cache_hits = 0
+        self.model_input_cache_misses = 0
+        self.model_input_cache_evictions = 0
+
+    def _cached_relational_state_vector(
+        self,
+        state: StateSnapshot,
+    ) -> tuple[float, ...]:
+        """Cache one pure relational encoding per immutable snapshot object.
+
+        ``StateSnapshot`` is frozen but not hashable (its metadata is a mapping),
+        and slots prevent weak references.  The bounded entry therefore owns a
+        strong reference and verifies identity before accepting an integer-id hit.
+        Holding that reference also prevents Python from reusing the id while the
+        entry is live.  Equal but distinct snapshots intentionally do not alias.
+        """
+
+        identity = id(state)
+        cached = self._state_encoding_cache.get(identity)
+        if cached is not None and cached[0] is state:
+            self._state_encoding_cache.move_to_end(identity)
+            self.state_encoding_cache_hits += 1
+            return cached[1]
+
+        self.state_encoding_cache_misses += 1
+        encoded = relational_state_vector(state)
+        if cached is not None:
+            # Defensive only: the strong reference above makes live id reuse
+            # impossible, but never accept a mismatched object as a cache hit.
+            del self._state_encoding_cache[identity]
+        self._state_encoding_cache[identity] = (state, encoded)
+        if len(self._state_encoding_cache) > self.state_encoding_cache_capacity:
+            self._state_encoding_cache.popitem(last=False)
+            self.state_encoding_cache_evictions += 1
+        return encoded
 
     def _input(
         self,
         state: StateSnapshot,
         action: Action,
     ) -> tuple[float, ...]:
-        return relational_state_vector(state) + relational_action_key(
-            state,
-            action,
-        )
+        key = (id(state), id(action))
+        cached = self._model_input_cache.get(key)
+        if (
+            cached is not None
+            and cached[0] is state
+            and cached[1] is action
+        ):
+            self._model_input_cache.move_to_end(key)
+            self.model_input_cache_hits += 1
+            return cached[2]
+
+        self.model_input_cache_misses += 1
+        encoded = self._cached_relational_state_vector(
+            state
+        ) + relational_action_key(state, action)
+        if cached is not None:
+            del self._model_input_cache[key]
+        self._model_input_cache[key] = (state, action, encoded)
+        if len(self._model_input_cache) > self.model_input_cache_capacity:
+            self._model_input_cache.popitem(last=False)
+            self.model_input_cache_evictions += 1
+        return encoded
 
     def predict_batch(
         self,
@@ -115,6 +190,16 @@ class FullyRelationalNeuralDeltaProphecy(CurrentNeuralDeltaProphecy):
             "batch_host_transfer_groups": self.batch_host_transfer_groups,
             "batch_host_transfer_rows": self.batch_host_transfer_rows,
             "per_row_batch_host_sync": 0,
+            "state_encoding_cache_capacity": self.state_encoding_cache_capacity,
+            "state_encoding_cache_entries": len(self._state_encoding_cache),
+            "state_encoding_cache_hits": self.state_encoding_cache_hits,
+            "state_encoding_cache_misses": self.state_encoding_cache_misses,
+            "state_encoding_cache_evictions": self.state_encoding_cache_evictions,
+            "model_input_cache_capacity": self.model_input_cache_capacity,
+            "model_input_cache_entries": len(self._model_input_cache),
+            "model_input_cache_hits": self.model_input_cache_hits,
+            "model_input_cache_misses": self.model_input_cache_misses,
+            "model_input_cache_evictions": self.model_input_cache_evictions,
         }
 
 
@@ -128,9 +213,14 @@ class FrozenReplayRelationalCalibratedProphecy(
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._frozen_holdout: tuple[Any, ...] | None = None
+        self._holdout_index_source: tuple[Any, ...] | None = None
+        self._holdout_index: dict[Hashable, tuple[Any, ...]] = {}
         self.freeze_count = 0
         self.calibration_batch_refreshes = 0
         self.calibration_batch_rows = 0
+        self.calibration_index_rebuilds = 0
+        self.calibration_index_hits = 0
+        self.calibration_index_rows = 0
 
     def freeze_holdout(self, items: tuple[Any, ...]) -> None:
         self._frozen_holdout = tuple(items)
@@ -139,6 +229,55 @@ class FrozenReplayRelationalCalibratedProphecy(
     def release_holdout(self) -> None:
         self._frozen_holdout = None
 
+    @staticmethod
+    def _same_source_identities(
+        left: tuple[Any, ...],
+        right: tuple[Any, ...],
+    ) -> bool:
+        """Return whether two holdout views contain the exact same objects.
+
+        Frozen views normally take the constant-time identity branch. Live
+        ``ReplayBuffer.holdout()`` calls create a fresh tuple, so compare element
+        identities rather than dataclass equality. Keeping the prior tuple alive
+        also prevents object-id reuse while it is the indexed source.
+        """
+
+        if left is right:
+            return True
+        return len(left) == len(right) and all(
+            previous is current
+            for previous, current in zip(left, right, strict=True)
+        )
+
+    def _indexed_holdout_items(
+        self,
+        source: tuple[Any, ...],
+        key: Hashable,
+    ) -> tuple[Any, ...]:
+        cached_source = self._holdout_index_source
+        if cached_source is not None and self._same_source_identities(
+            cached_source,
+            source,
+        ):
+            # Adopt the caller's tuple so the remaining predictions inside one
+            # frozen transition take the constant-time ``left is right`` path.
+            self._holdout_index_source = source
+            self.calibration_index_hits += 1
+            return self._holdout_index.get(key, ())
+
+        grouped: dict[Hashable, list[Any]] = {}
+        for item in source:
+            item_key = self._key(item.state, item.action)
+            grouped.setdefault(item_key, []).append(item)
+        self._holdout_index_source = source
+        self._holdout_index = {
+            item_key: tuple(items)
+            for item_key, items in grouped.items()
+        }
+        self.calibration_index_rebuilds += 1
+        self.calibration_index_rows += len(source)
+        return self._holdout_index.get(key, ())
+
     def _calibration(self, state: StateSnapshot, action: Action) -> float:
         key = self._key(state, action)
         source = (
@@ -146,11 +285,7 @@ class FrozenReplayRelationalCalibratedProphecy(
             if self._frozen_holdout is not None
             else self.replay.holdout()
         )
-        items = [
-            item
-            for item in source
-            if self._key(item.state, item.action) == key
-        ]
+        items = self._indexed_holdout_items(source, key)
         revision = int(self.base.gradient_updates)
         cache_key: tuple[Hashable, int, int] = (
             key,
@@ -217,6 +352,9 @@ class FrozenReplayRelationalCalibratedProphecy(
             "calibration_batch_refreshes": self.calibration_batch_refreshes,
             "calibration_batch_rows": self.calibration_batch_rows,
             "calibration_refresh_batching": 1,
+            "calibration_index_rebuilds": self.calibration_index_rebuilds,
+            "calibration_index_hits": self.calibration_index_hits,
+            "calibration_index_rows": self.calibration_index_rows,
         }
 
 

@@ -223,8 +223,22 @@ class CurrentRelationalPolicy:
     ) -> RunningValue:
         if action.verb_name == SKILL_VERB:
             return RunningValue()
+        return self._information_entry_for_state_key(
+            relational_state_key(state),
+            state,
+            action,
+        )
+
+    def _information_entry_for_state_key(
+        self,
+        state_key: tuple[float, ...],
+        state: StateSnapshot,
+        action: Action,
+    ) -> RunningValue:
+        """Look up one primitive residual using a precomputed state key."""
+
         return self._information.get(
-            (relational_state_key(state), relational_action_key(state, action)),
+            (state_key, relational_action_key(state, action)),
             RunningValue(),
         )
 
@@ -251,6 +265,9 @@ class CurrentRelationalPolicy:
         primitive_values = (
             self.dqn.score_actions(state, primitive) if primitive else ()
         )
+        information_state_key = (
+            relational_state_key(state) if primitive else ()
+        )
         by_signature = {
             action.signature: value
             for action, value in zip(primitive, primitive_values, strict=True)
@@ -260,9 +277,13 @@ class CurrentRelationalPolicy:
             if action.verb_name == SKILL_VERB:
                 base = self._skill_values.get(str(action.target), RunningValue()).mean
             else:
-                base = by_signature[action.signature] + self._information_entry(
-                    state, action
-                ).mean
+                base = by_signature[action.signature] + (
+                    self._information_entry_for_state_key(
+                        information_state_key,
+                        state,
+                        action,
+                    ).mean
+                )
             rows.append(
                 ScoredAction(
                     action,
@@ -358,6 +379,64 @@ class CurrentNeuralDeltaProphecy(NeuralDeltaProphecy):
             model.to(self.device)
         self.batch_prediction_calls = 0
         self.batch_prediction_rows = 0
+        self.training_loss_bulk_host_transfer_calls = 0
+        self.training_loss_bulk_host_transfer_rows = 0
+
+    def _train_step(self) -> None:
+        """Train the ensemble with one bulk loss transfer to the host.
+
+        Keep the reference implementation's model-by-model bootstrap and
+        optimizer ordering.  Only the loss bookkeeping is deferred: retaining
+        detached scalar tensors lets CUDA copy all ensemble losses to the host
+        together instead of synchronizing once per model.
+        """
+
+        torch = self.torch
+        nn = self.nn
+        detached_losses = []
+        for model_index, (model, optimizer) in enumerate(
+            zip(self.models, self.optimizers, strict=True)
+        ):
+            # Match NeuralDeltaProphecy._train_step's independent bootstrap
+            # batches exactly, including its seed and replay access order.
+            local = random.Random(
+                (self.observations + 1) * 1_000_003
+                + (self.gradient_updates + 1) * 97
+                + model_index
+            )
+            batch = [
+                self.replay[local.randrange(len(self.replay))]
+                for _ in range(self.config.batch_size)
+            ]
+            inputs = self._tensor([item[0] for item in batch])
+            deltas = self._tensor([item[2] for item in batch])
+            terminal = self._tensor(
+                [item[3] for item in batch],
+                dtype=torch.int64,
+            )
+            output = model(inputs)
+            predicted_delta = output[:, : self.codec.dimension]
+            terminal_logits = output[:, self.codec.dimension :]
+            delta_loss = nn.functional.smooth_l1_loss(
+                predicted_delta,
+                deltas,
+            )
+            terminal_loss = nn.functional.cross_entropy(
+                terminal_logits,
+                terminal,
+            )
+            loss = delta_loss + 0.25 * terminal_loss
+            optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+            nn.utils.clip_grad_norm_(model.parameters(), self.config.gradient_clip)
+            optimizer.step()
+            detached_losses.append(loss.detach())
+
+        host_losses = torch.stack(detached_losses).cpu().tolist()
+        self.training_loss_bulk_host_transfer_calls += 1
+        self.training_loss_bulk_host_transfer_rows += len(detached_losses)
+        self._losses.extend(float(value) for value in host_losses)
+        self.gradient_updates += 1
 
     def _tensor(self, values: Any, *, dtype: Any | None = None) -> Any:
         return self.torch.as_tensor(
@@ -493,6 +572,13 @@ class CurrentNeuralDeltaProphecy(NeuralDeltaProphecy):
             "parameter_count": stats.parameter_count,
             "batch_prediction_calls": self.batch_prediction_calls,
             "batch_prediction_rows": self.batch_prediction_rows,
+            "training_loss_bulk_host_transfer_calls": (
+                self.training_loss_bulk_host_transfer_calls
+            ),
+            "training_loss_bulk_host_transfer_rows": (
+                self.training_loss_bulk_host_transfer_rows
+            ),
+            "per_model_training_loss_item_syncs": 0,
         }
 
 
