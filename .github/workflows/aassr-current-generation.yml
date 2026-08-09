@@ -15,6 +15,7 @@ on:
       - "src/aassr_v2/current_planner.py"
       - "src/aassr_v2/current_entrypoint.py"
       - "src/aassr_v2/current_protocol.py"
+      - "src/aassr_v2/current_experiment_suite.py"
       - "src/aassr_v2/dreamerv3_baseline.py"
       - "src/aassr_v2/dreamerv3_external.py"
       - "src/aassr_v2/pentest_current_generation_smoke.py"
@@ -22,12 +23,13 @@ on:
       - "src/aassr_v2/__init__.py"
       - "scripts/check_current_generation_hardware.py"
       - "scripts/run_dreamerv3_current_baseline.py"
+      - "scripts/assemble_pentest_current_generation_suite.py"
       - "scripts/run_pentest_current_generation_smoke.py"
       - "scripts/run_pentest_current_generation_main.py"
       - "tests/test_current_generation*.py"
       - "tests/test_current_hardware_and_dqn.py"
       - "tests/test_current_default_entrypoint.py"
-      - "tests/test_dreamerv3_adapter.py"
+      - "tests/test_dreamerv3*.py"
       - ".github/workflows/aassr-current-generation.yml"
   workflow_dispatch:
 
@@ -61,6 +63,7 @@ jobs:
           python -m py_compile src/aassr_v2/current_planner.py
           python -m py_compile src/aassr_v2/current_entrypoint.py
           python -m py_compile src/aassr_v2/current_protocol.py
+          python -m py_compile src/aassr_v2/current_experiment_suite.py
           python -m py_compile src/aassr_v2/dreamerv3_baseline.py
           python -m py_compile src/aassr_v2/dreamerv3_external.py
           python -m py_compile src/aassr_v2/pentest_current_generation_smoke.py
@@ -68,6 +71,7 @@ jobs:
           python -m py_compile src/aassr_v2/__init__.py
           python -m py_compile scripts/check_current_generation_hardware.py
           python -m py_compile scripts/run_dreamerv3_current_baseline.py
+          python -m py_compile scripts/assemble_pentest_current_generation_suite.py
           python -m py_compile scripts/run_pentest_current_generation_smoke.py
           python -m py_compile scripts/run_pentest_current_generation_main.py
           python -m py_compile tests/test_current_generation.py
@@ -75,6 +79,7 @@ jobs:
           python -m py_compile tests/test_current_hardware_and_dqn.py
           python -m py_compile tests/test_current_default_entrypoint.py
           python -m py_compile tests/test_dreamerv3_adapter.py
+          python -m py_compile tests/test_dreamerv3_external_contract.py
       - name: Assert current runners do not import historical experiment runners
         run: |
           python - <<'PY'
@@ -92,14 +97,15 @@ jobs:
               for token in forbidden:
                   assert token not in text, (name, token)
           PY
-      - name: Assert active architecture hardware DQN baseline standalone runtime and Dreamer adapter
+      - name: Assert active architecture hardware DQN standalone runtime and Dreamer contracts
         run: |
           pytest -q \
             tests/test_current_generation.py \
             tests/test_current_generation_batching.py \
             tests/test_current_hardware_and_dqn.py \
             tests/test_current_default_entrypoint.py \
-            tests/test_dreamerv3_adapter.py
+            tests/test_dreamerv3_adapter.py \
+            tests/test_dreamerv3_external_contract.py
       - name: Run same-checkpoint real-environment learning smoke
         run: |
           python scripts/run_pentest_current_generation_smoke.py \
@@ -145,6 +151,7 @@ jobs:
               build_current_pentest_aassr_core,
           )
           from aassr_v2.autonomous_agent_core import AutonomousLearningAgent
+          from aassr_v2.current_experiment_suite import CURRENT_FINAL_EXPERIMENT_CONDITIONS
           from aassr_v2.current_hardware import (
               HardwareRelationalGRUBranchCritic,
               HardwareRelationalInvariantDQN,
@@ -156,7 +163,10 @@ jobs:
           print(CURRENT_GENERATION_VERSION)
           for key, value in CURRENT_COMPONENTS.items():
               print(f"{key}: {value}")
+          print("Final experiment conditions:", CURRENT_FINAL_EXPERIMENT_CONDITIONS)
           print("DreamerV3 adapter:", dreamer_adapter_manifest())
+          assert len(CURRENT_FINAL_EXPERIMENT_CONDITIONS) == 5
+          assert "dreamerv3_relational" in CURRENT_FINAL_EXPERIMENT_CONDITIONS
           assert LEGACY_COMPONENTS_ACTIVE == ()
           assert "relational-state-action" in CURRENT_COMPONENTS["prophecy"]
           assert "same-device" in CURRENT_COMPONENTS["hardware"]
