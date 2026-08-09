@@ -6,6 +6,7 @@ from .current_agent import (
 )
 from .current_hardware import install_hardware_dqn
 from .current_planner import CurrentFullyBatchedImaginationTree
+from .current_validation import install_current_fast_validation
 
 
 def _enable_current_full_batching(agent: CurrentStandalonePentestAASSRAgent) -> None:
@@ -36,9 +37,9 @@ def build_current_pentest_aassr_core(
 
     The current runtime is standalone and uses mandatory depth batching for both
     Neural Delta prediction and learned GRU branch scoring. DQN, Neural Delta and
-    the GRU Critic share the requested torch device. Hardware changes preserve the
-    same Policy/Prophecy/Critic equations; they only batch work and remove repeated
-    host synchronization.
+    the GRU Critic share the requested torch device. Holdout validation keeps the
+    same samples/frequency/signal while skipping symbolic StateSnapshot/action
+    reconstruction that the cosine validator never consumes.
     """
 
     if not enable_batching:
@@ -61,4 +62,5 @@ def build_current_pentest_aassr_core(
         device=device,
         allow_tf32=bool(allow_tf32),
     )
+    install_current_fast_validation(agent)
     return agent
