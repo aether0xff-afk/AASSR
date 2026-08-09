@@ -8,7 +8,6 @@ from .pentest_agent_main_test import (
     AGENT_STATE_SIZE,
     CONTROL_SIZE,
     MAX_OBJECTS,
-    MAX_PROFILES,
     MAX_ROUTES,
     PROFILE_ROLES,
     PROFILE_VECTOR_SIZE,
@@ -109,13 +108,13 @@ class CurrentVectorPredictionValidator(PredictionValidator):
 
         success = (terminal_classes == 1) | (bounded[:, 3] >= 0.5)
         failed = (terminal_classes == 2) | (bounded[:, 4] >= 0.5)
-        if bool(success.any().detach().cpu().item()):
-            bounded[success, 3] = 1.0
-            bounded[success, 4] = 0.0
-            bounded[success, 10] = 1.0
+        # Boolean advanced indexing is safe for an empty mask, so these stay on
+        # device and require no batch-level ``.item()`` synchronization.
+        bounded[success, 3] = 1.0
+        bounded[success, 4] = 0.0
+        bounded[success, 10] = 1.0
         failed_only = failed & ~success
-        if bool(failed_only.any().detach().cpu().item()):
-            bounded[failed_only, 4] = 1.0
+        bounded[failed_only, 4] = 1.0
 
         host = bounded.detach().cpu().tolist()
         self.fast_calls += 1
