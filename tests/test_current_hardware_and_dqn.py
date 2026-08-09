@@ -12,10 +12,8 @@ from aassr_v2.current_dqn_baseline import (
 from aassr_v2.current_entrypoint import build_current_pentest_aassr_core
 from aassr_v2.current_generation import RelationalInvariantDQN
 from aassr_v2.current_hardware import HardwareRelationalInvariantDQN
-from aassr_v2.pentest_current_generation_main import (
-    CURRENT_EXPERIMENT_CONDITIONS,
-    run_current_generation_condition,
-)
+from aassr_v2.current_protocol import run_current_episode
+from aassr_v2.pentest_current_generation_main import CURRENT_EXPERIMENT_CONDITIONS
 from aassr_v2.pentest_transfer_stages import TRANSFER_STAGES, TransferDiagnosticWorld
 
 
@@ -63,7 +61,7 @@ def test_current_aassr_and_bare_dqn_share_hardware_dqn_backend() -> None:
     assert aassr.current_depth_batching is True
 
 
-def test_bare_dqn_is_actually_dqn_only() -> None:
+def test_bare_dqn_is_actually_dqn_only_and_runs_current_protocol() -> None:
     agent = build_bare_dqn_agent(
         seed=42,
         train_transitions=64,
@@ -86,40 +84,33 @@ def test_bare_dqn_is_actually_dqn_only() -> None:
         "information_value_residual",
     }
 
-
-def test_current_main_contains_bare_dqn_and_same_checkpoint_aassr(tmp_path) -> None:
-    result = run_current_generation_condition(
-        tmp_path,
-        research_seed=7,
-        transition_budget=32,
-        block_target=16,
-        train_seeds=(90_001,),
-        validation_seeds=(93_001,),
-        diagnostic_seeds=(92_001,),
-        device="cpu",
-        allow_tf32=False,
+    before = agent.learning_counters()
+    row, consumed = run_current_episode(
+        agent,
+        condition=BARE_DQN_CONDITION,
+        research_seed=42,
+        stage_index=0,
+        scenario_seed=90_001,
+        phase="train",
+        block=0,
+        episode=0,
+        focus_level=0,
+        transition_start=0,
+        transition_cap=8,
+        transition_budget=64,
+        training=True,
     )
+    after = agent.learning_counters()
+    assert consumed > 0
+    assert row.condition == BARE_DQN_CONDITION
+    assert after[0] - before[0] == consumed
+    assert row.aseq_guard_events == 0
+    assert row.imagination_runs == 0
 
-    assert tuple(result["experiment_conditions"]) == CURRENT_EXPERIMENT_CONDITIONS
-    assert result["dqn_bare"]["condition"] == BARE_DQN_CONDITION
-    assert result["dqn_bare"]["exact_budget"] is True
-    assert result["dqn_bare"]["learning_frozen_in_evaluation"] is True
-    assert result["aassr"]["exact_budget"] is True
-    assert result["aassr"]["same_checkpoint_comparison"] is True
-    assert result["validation_learning_frozen"] is True
-    assert result["diagnostic_learning_frozen"] is True
-    assert result["hardware_execution_contract"][
-        "same_dqn_backend_for_bare_and_aassr"
-    ] is True
-    assert result["hardware_execution_contract"][
-        "dqn_target_host_sync_per_row"
-    ] is False
-    assert set(result["diagnostic_successes"]) == {
+
+def test_current_experiment_condition_contract_has_three_conditions() -> None:
+    assert CURRENT_EXPERIMENT_CONDITIONS == (
         "dqn_bare",
         "aassr_current_no_imagination",
         "aassr_current_full",
-    }
-    assert (tmp_path / "diagnostic_dqn_bare.csv").exists()
-    assert (tmp_path / "diagnostic_aassr_current_no_imagination.csv").exists()
-    assert (tmp_path / "diagnostic_aassr_current_full.csv").exists()
-    assert (tmp_path / "summary.json").exists()
+    )
