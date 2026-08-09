@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, Sequence
 
-from .current_generation import RelationalInvariantDQN
+from .branch_critic import BranchCriticStep, CriticTransition
+from .current_generation import RelationalGRUBranchCritic, RelationalInvariantDQN
+from .types import Action, StateSnapshot
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,7 +21,9 @@ class CurrentHardwareInfo:
     tf32_enabled: bool
     deterministic_algorithms: bool
     dqn_gpu_sync_free_targets: bool = True
+    dqn_fused_next_action_reduce: bool = True
     imagination_depth_batching: bool = True
+    critic_on_shared_device: bool = True
     torch_compile_enabled: bool = False
 
     def as_dict(self) -> dict[str, Any]:
@@ -96,10 +100,9 @@ def configure_current_hardware(
 class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
     """The current relational DQN on an explicit torch device.
 
-    The historical relational DQN was CPU-only. Moving it naively to CUDA also
-    introduced one `.item()` synchronization per replay row while reducing the
-    next-action set. This implementation keeps the exact Bellman target but keeps
-    those maxima as device tensors until the single loss computation.
+    Bellman next-action values are scored in one flat batch and reduced with one
+    device scatter-reduce. This avoids both per-row `.item()` synchronization and
+    one separate max kernel per replay row.
     """
 
     name = "hardware-relational-invariant-dqn"
@@ -116,19 +119,18 @@ class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
         learning_rate = float(self.optimizer.param_groups[0]["lr"])
         self.online.to(self.device)
         self.target.to(self.device)
-        # No optimizer step occurs before this replacement. Rebuilding here avoids
-        # carrying any optimizer tensor on the construction-time CPU device.
         self.optimizer = self.torch.optim.Adam(
             self.online.parameters(),
             lr=learning_rate,
         )
         self.target.eval()
         self.device_target_reductions = 0
+        self.fused_target_reduce_calls = 0
 
-    def _tensor(self, values: Any) -> Any:
+    def _tensor(self, values: Any, *, dtype: Any | None = None) -> Any:
         return self.torch.as_tensor(
             values,
-            dtype=self.torch.float32,
+            dtype=dtype or self.torch.float32,
             device=self.device,
         )
 
@@ -138,27 +140,37 @@ class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
         predicted = self.online(inputs).squeeze(1)
 
         flat: list[tuple[float, ...]] = []
-        spans: list[tuple[int, int, int]] = []
+        owners: list[int] = []
         for index, (_, _, _, next_state, next_actions, terminal) in enumerate(batch):
             if terminal or not next_actions:
                 continue
-            start = len(flat)
             flat.extend(next_state + features for features in next_actions)
-            spans.append((index, start, len(flat)))
+            owners.extend([index] * len(next_actions))
+            self.device_target_reductions += 1
 
-        next_values = self.torch.zeros(
-            len(batch),
+        next_values = self.torch.full(
+            (len(batch),),
+            float("-inf"),
             dtype=self.torch.float32,
             device=self.device,
         )
         if flat:
             with self.torch.no_grad():
                 scored = self.target(self._tensor(flat)).squeeze(1)
-                # Tensor-to-tensor assignment stays on device. In particular, do
-                # not call .item() once per replay row on CUDA.
-                for index, start, end in spans:
-                    next_values[index] = scored[start:end].max()
-                    self.device_target_reductions += 1
+                owner_tensor = self._tensor(owners, dtype=self.torch.int64)
+                next_values.scatter_reduce_(
+                    0,
+                    owner_tensor,
+                    scored,
+                    reduce="amax",
+                    include_self=True,
+                )
+                self.fused_target_reduce_calls += 1
+        next_values = self.torch.where(
+            self.torch.isfinite(next_values),
+            next_values,
+            self.torch.zeros_like(next_values),
+        )
 
         rewards = self._tensor([item[2] for item in batch])
         terminals = self._tensor([float(item[5]) for item in batch])
@@ -179,11 +191,85 @@ class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
                 "device": str(self.device),
                 "device_type": self.device.type,
                 "device_target_reductions": self.device_target_reductions,
+                "fused_target_reduce_calls": self.fused_target_reduce_calls,
                 "per_row_target_item_syncs": 0,
+                "fused_next_action_reduce": 1,
                 "hardware_optimized": 1,
             }
         )
         return stats
+
+
+class HardwareRelationalGRUBranchCritic(RelationalGRUBranchCritic):
+    """Current relational GRU Critic on the same device as Policy/Prophecy."""
+
+    name = "hardware-relational-gru-branch-critic"
+
+    def __init__(self, seed: int, *, device: str = "cpu") -> None:
+        super().__init__(seed)
+        self.device = self.torch.device(device)
+        learning_rate = float(self.optimizer.param_groups[0]["lr"])
+        self.gru.to(self.device)
+        self.output.to(self.device)
+        self.optimizer = self.torch.optim.Adam(
+            tuple(self.gru.parameters()) + tuple(self.output.parameters()),
+            lr=learning_rate,
+        )
+
+    def _tensor(self, values: Any) -> Any:
+        return self.torch.as_tensor(
+            values,
+            dtype=self.torch.float32,
+            device=self.device,
+        )
+
+    def initial_memory(self) -> Any:
+        return self.torch.zeros(
+            (1, self.hidden_units),
+            dtype=self.torch.float32,
+            device=self.device,
+        )
+
+    def _episode_loss(
+        self,
+        encoded: Sequence[tuple[float, ...]],
+        target: float,
+    ) -> Any:
+        hidden = self.initial_memory()
+        logits = []
+        for item in encoded:
+            hidden = self.gru(self._tensor(item).unsqueeze(0), hidden)
+            logits.append(self.output(hidden)[0, 0])
+        stacked = self.torch.stack(logits)
+        targets = self.torch.full_like(stacked, target)
+        return self.nn.functional.binary_cross_entropy_with_logits(stacked, targets)
+
+    def score_step(
+        self,
+        before: StateSnapshot,
+        action: Action,
+        after: StateSnapshot,
+        *,
+        memory: Any = None,
+        prophecy_confidence: float = 1.0,
+    ) -> BranchCriticStep:
+        encoded = self.encoder.encode(
+            CriticTransition(before, action, after, prophecy_confidence)
+        )
+        hidden = self.initial_memory() if memory is None else memory.to(self.device)
+        with self.torch.no_grad():
+            next_hidden = self.gru(self._tensor(encoded).unsqueeze(0), hidden)
+            value = float(
+                self.torch.sigmoid(self.output(next_hidden)[0, 0]).detach().cpu().item()
+            )
+        return BranchCriticStep(value, next_hidden.detach().clone())
+
+    def hardware_stats(self) -> dict[str, Any]:
+        return {
+            "device": str(self.device),
+            "device_type": self.device.type,
+            "hardware_optimized": 1,
+        }
 
 
 def install_hardware_dqn(
@@ -194,7 +280,7 @@ def install_hardware_dqn(
     device: str,
     allow_tf32: bool = True,
 ) -> CurrentHardwareInfo:
-    """Install the same device-aware DQN used by AASSR and the bare baseline."""
+    """Install the shared-device Policy DQN and branch Critic for current AASSR."""
 
     from .current_generation import CurrentRelationalPolicy
 
@@ -205,9 +291,15 @@ def install_hardware_dqn(
         device=info.resolved_device,
     )
     policy = CurrentRelationalPolicy(dqn)
+    critic = HardwareRelationalGRUBranchCritic(
+        int(seed) ^ 0x43524954,
+        device=info.resolved_device,
+    )
     agent.dqn = dqn
     agent.policy = policy
+    agent.critic = critic
     agent.planner.policy = policy
+    agent.planner.scorer = critic
     agent.core.policy = policy
     agent.hardware_info = info
     return info
@@ -227,5 +319,9 @@ def hardware_diagnostics(agent: object) -> dict[str, Any]:
     prophecy_diagnostics = getattr(prophecy, "diagnostics", None)
     if callable(prophecy_diagnostics):
         output["prophecy"] = dict(prophecy_diagnostics())
+    critic = getattr(agent, "critic", None)
+    critic_hardware = getattr(critic, "hardware_stats", None)
+    if callable(critic_hardware):
+        output["critic"] = dict(critic_hardware())
     output["depth_batching"] = bool(getattr(agent, "current_depth_batching", False))
     return output
