@@ -5,6 +5,7 @@ on:
     paths:
       - "src/aassr_v2/dreamerv3_baseline.py"
       - "src/aassr_v2/dreamerv3_external.py"
+      - "src/aassr_v2/dreamerv3_hardware.py"
       - "src/aassr_v2/current_experiment_suite.py"
       - "scripts/check_dreamerv3_official_cpu_smoke.py"
       - "scripts/run_dreamerv3_current_baseline.py"
@@ -58,8 +59,10 @@ jobs:
         run: |
           python -m py_compile src/aassr_v2/dreamerv3_baseline.py
           python -m py_compile src/aassr_v2/dreamerv3_external.py
+          python -m py_compile src/aassr_v2/dreamerv3_hardware.py
           python -m py_compile src/aassr_v2/current_experiment_suite.py
           python -m py_compile scripts/check_dreamerv3_official_cpu_smoke.py
+          python -m py_compile scripts/run_dreamerv3_current_baseline.py
       - name: Run official DreamerV3 Agent Replay Driver train smoke
         run: |
           python scripts/check_dreamerv3_official_cpu_smoke.py \
@@ -76,7 +79,9 @@ jobs:
           assert result["canonical_benchmark"] is False
           assert result["upstream_commit"] == "e3f02248693a79dc8b0ebd62c93683888ddaccfe"
           assert result["real_transitions"] == 96
-          assert result["gradient_updates"] > 0
+          assert result["gradient_updates"] == result["expected_gradient_updates"]
+          assert result["jax_hardware"]["actual_platforms"] == ["cpu"]
+          assert result["jax_hardware"]["accelerator_present"] is False
           print(result)
           PY
       - name: Archive official DreamerV3 CPU smoke
