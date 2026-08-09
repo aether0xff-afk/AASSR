@@ -18,6 +18,7 @@ on:
       - "src/aassr_v2/current_experiment_suite.py"
       - "src/aassr_v2/dreamerv3_baseline.py"
       - "src/aassr_v2/dreamerv3_external.py"
+      - "src/aassr_v2/dreamerv3_hardware.py"
       - "src/aassr_v2/pentest_current_generation_smoke.py"
       - "src/aassr_v2/pentest_current_generation_main.py"
       - "src/aassr_v2/__init__.py"
@@ -66,6 +67,7 @@ jobs:
           python -m py_compile src/aassr_v2/current_experiment_suite.py
           python -m py_compile src/aassr_v2/dreamerv3_baseline.py
           python -m py_compile src/aassr_v2/dreamerv3_external.py
+          python -m py_compile src/aassr_v2/dreamerv3_hardware.py
           python -m py_compile src/aassr_v2/pentest_current_generation_smoke.py
           python -m py_compile src/aassr_v2/pentest_current_generation_main.py
           python -m py_compile src/aassr_v2/__init__.py
