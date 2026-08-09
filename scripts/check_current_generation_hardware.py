@@ -13,7 +13,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
             "Verify that current AASSR neural components and bare DQN use the "
-            "requested torch device and that Prophecy/Critic depth batching works."
+            "requested torch device and that Policy/Prophecy/Critic depth batching works."
         )
     )
     parser.add_argument("--device", default="cuda:0")
@@ -48,7 +48,8 @@ def main() -> None:
         actions,
         samples=1,
     )
-    # Planner call exercises the depth-batched Prophecy and Critic path together.
+    # One planner call exercises frontier-wide Policy ranking, batched Prophecy,
+    # and batched GRU Critic scoring together.
     aassr.planner.plan(state, maximum_depth=1)
 
     aassr_hw = hardware_diagnostics(aassr)
@@ -68,12 +69,20 @@ def main() -> None:
         raise AssertionError("DQN target path reintroduced per-row host syncs")
     if aassr_hw["dqn"]["fused_next_action_reduce"] != 1:
         raise AssertionError("DQN target reductions are not fused")
+    if aassr_hw["planner"]["policy_batch_calls"] <= 0:
+        raise AssertionError("current planner did not batch Policy ranking")
+    if aassr_hw["planner"]["policy_scalar_fallback_rows"] != 0:
+        raise AssertionError("current planner fell back to scalar Policy ranking")
+    if aassr_hw["dqn"]["pair_score_batch_calls"] <= 0:
+        raise AssertionError("current DQN did not execute frontier pair batching")
     if aassr_hw["planner"]["critic_batch_calls"] <= 0:
         raise AssertionError("current planner did not batch Critic scoring")
     if aassr_hw["planner"]["critic_scalar_fallback_rows"] != 0:
         raise AssertionError("current planner fell back to scalar Critic scoring")
     if aassr_hw["critic"]["scalar_score_calls"] != 0:
         raise AssertionError("current Critic performed per-branch scalar scoring")
+    if aassr_hw["prophecy"]["per_row_batch_host_sync"] != 0:
+        raise AssertionError("Neural Delta reintroduced per-row batch host sync")
 
     print(
         json.dumps(
