@@ -15,19 +15,53 @@ from .types import StateSnapshot
 
 
 class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
-    """Current tree with depth batching for both Prophecy and learned Critic.
-
-    All primitive Prophecy work at one depth is batched by the current Prophecy
-    view, and every resulting child transition is then scored by one Critic batch.
-    Candidate metadata carries recurrent memories directly, avoiding a second
-    O(N^2) search over the depth work list when child nodes are constructed.
-    """
+    """Current tree with one Policy, Prophecy and Critic batch per search depth."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        self.policy_batch_calls = 0
+        self.policy_batch_rows = 0
+        self.policy_scalar_fallback_rows = 0
         self.critic_batch_calls = 0
         self.critic_batch_rows = 0
         self.critic_scalar_fallback_rows = 0
+
+    def _rank_frontier(
+        self,
+        frontier: list[ImaginationNode],
+        *,
+        depth: int,
+    ) -> tuple[tuple[Any, ...], ...]:
+        limits = tuple(
+            (
+                len(node.state.available_actions)
+                if depth == 1 and self.config.expand_all_root_actions
+                else self.config.branching_factor
+            )
+            for node in frontier
+        )
+        batch_rank = getattr(self.policy, "rank_batch", None)
+        if callable(batch_rank):
+            rows = batch_rank(
+                tuple(node.state for node in frontier),
+                limits,
+                tuple(node.policy_memory for node in frontier),
+            )
+            if len(rows) != len(frontier):
+                raise RuntimeError("current Policy batch returned wrong row count")
+            self.policy_batch_calls += 1
+            self.policy_batch_rows += len(frontier)
+            return tuple(tuple(row) for row in rows)
+
+        self.policy_scalar_fallback_rows += len(frontier)
+        return tuple(
+            self.policy.rank(
+                node.state,
+                limit=limit,
+                memory=node.policy_memory,
+            )
+            for node, limit in zip(frontier, limits, strict=True)
+        )
 
     def _score_candidates(
         self,
@@ -118,16 +152,9 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
         expanded_nodes = 0
 
         for depth in range(1, depth_limit + 1):
+            ranked_rows = self._rank_frontier(frontier, depth=depth)
             work: list[tuple[ImaginationNode, Any]] = []
-            for node in frontier:
-                rank_limit = self.config.branching_factor
-                if depth == 1 and self.config.expand_all_root_actions:
-                    rank_limit = len(node.state.available_actions)
-                ranked = self.policy.rank(
-                    node.state,
-                    limit=rank_limit,
-                    memory=node.policy_memory,
-                )
+            for node, ranked in zip(frontier, ranked_rows, strict=True):
                 if not ranked:
                     terminal.append(replace(node, terminal_reason="no_actions"))
                     continue
@@ -314,6 +341,9 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
 
     def runtime_diagnostics(self) -> dict[str, int]:
         return {
+            "policy_batch_calls": self.policy_batch_calls,
+            "policy_batch_rows": self.policy_batch_rows,
+            "policy_scalar_fallback_rows": self.policy_scalar_fallback_rows,
             "critic_batch_calls": self.critic_batch_calls,
             "critic_batch_rows": self.critic_batch_rows,
             "critic_scalar_fallback_rows": self.critic_scalar_fallback_rows,
