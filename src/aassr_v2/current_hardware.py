@@ -33,16 +33,21 @@ def configure_current_hardware(
 ) -> CurrentHardwareInfo:
     """Configure the active float32 torch path without changing the algorithm.
 
-    TF32 is a local hardware execution option only. The experiment artifact records
-    whether it was enabled. `torch.compile` is deliberately not enabled here: the
-    current workload has dynamic action cardinality and short online updates, for
-    which compile/recompile overhead can dominate and complicate Windows runs.
+    TF32 is a recorded local execution option. Deterministic-algorithm mode stays
+    enabled to preserve the current research contract. `torch.compile` remains
+    deliberately off: dynamic action cardinality and short online updates make
+    compile/recompile overhead risky on the Windows local path.
     """
 
     try:
         import torch
     except ImportError as exc:  # pragma: no cover
         raise RuntimeError("current-generation hardware path requires torch") from exc
+
+    try:
+        torch.use_deterministic_algorithms(True, warn_only=True)
+    except TypeError:  # pragma: no cover
+        torch.use_deterministic_algorithms(True)
 
     resolved = torch.device(device)
     cuda_available = bool(torch.cuda.is_available())
