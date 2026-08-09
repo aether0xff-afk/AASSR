@@ -179,10 +179,33 @@ def _fake_current_summary() -> dict[str, object]:
         "highest_contiguous_nonzero_level": 0,
         "first_zero_success_level": 1,
     }
+    budget = 10_000
+    dqn_common = {
+        "transitions_used": budget,
+        "exact_budget": True,
+        "learning_frozen_in_evaluation": True,
+        "dqn_only": True,
+    }
     return {
+        "experiment_conditions": [
+            "dqn_raw",
+            "dqn_relational",
+            "aassr_current_no_imagination",
+            "aassr_current_full",
+        ],
         "architecture_version": "aassr-current-generation-v1",
         "research_seed": 7,
-        "transition_budget_per_training_condition": 10_000,
+        "transition_budget_per_training_condition": budget,
+        "training_checkpoint_count": 3,
+        "nominal_total_training_transitions": budget * 3,
+        "dqn_raw": dict(dqn_common),
+        "dqn_relational": dict(dqn_common),
+        "aassr": {
+            "transitions_used": budget,
+            "exact_budget": True,
+            "same_checkpoint_comparison": True,
+            "training_imagination": False,
+        },
         "diagnostic_successes": {
             "dqn_raw": 1,
             "dqn_relational": 2,
@@ -195,6 +218,17 @@ def _fake_current_summary() -> dict[str, object]:
             "aassr_current_no_imagination": front,
             "aassr_current_full": front,
         },
+        "control_contract": {
+            "same_initial_network_seed": True,
+            "same_network_shape": True,
+            "same_sparse_reward": True,
+            "same_environment_and_action_surface": True,
+            "same_curriculum_rule": True,
+            "same_seed_pools": True,
+            "independent_adaptive_curriculum_per_training_checkpoint": True,
+        },
+        "validation_learning_frozen": True,
+        "diagnostic_learning_frozen": True,
         "train_seeds": [90_001],
         "validation_seeds": [93_001],
         "diagnostic_seeds": [7],
@@ -210,6 +244,7 @@ def _fake_dreamer_summary() -> dict[str, object]:
         "research_seed": 7,
         "transitions_used": 10_000,
         "exact_budget": True,
+        "dreamer_driver_steps": 10_500,
         "diagnostic_successes": 5,
         "frontier": {
             "highest_contiguous_nonzero_level": 1,
@@ -231,6 +266,14 @@ def _fake_dreamer_summary() -> dict[str, object]:
             "compute_dtype": CANONICAL_DREAMERV3_COMPUTE_DTYPE,
             "jax_platform": CANONICAL_DREAMERV3_JAX_PLATFORM,
             "prealloc": True,
+        },
+        "jax_hardware": {
+            "requested_platform": "cuda",
+            "actual_platforms": ["gpu"],
+            "devices": ["cuda:0"],
+            "device_count": 1,
+            "accelerator_required": True,
+            "accelerator_present": True,
         },
         "official_train_ratio_step_semantics": (
             "embodied-driver-step-including-is_first"
@@ -264,6 +307,7 @@ def test_five_condition_suite_requires_matching_scientific_contracts() -> None:
     assert result["comparison_contract"]["dreamerv3_actor_action_space"] == (
         CANONICAL_DREAMERV3_ACTION_SPACE
     )
+    assert result["comparison_contract"]["dreamerv3_actual_gpu_required"] is True
 
 
 def test_five_condition_suite_rejects_noncanonical_dreamer_checkout() -> None:
@@ -287,13 +331,14 @@ def test_five_condition_suite_rejects_noncanonical_action_adapter() -> None:
         assemble_current_generation_suite(_fake_current_summary(), dreamer)
 
 
-def test_five_condition_suite_rejects_cpu_or_retuned_dreamer() -> None:
+def test_five_condition_suite_rejects_cpu_fallback_or_retuned_dreamer() -> None:
     dreamer = _fake_dreamer_summary()
-    dreamer["official_config"] = {
-        **dreamer["official_config"],
-        "jax_platform": "cpu",
+    dreamer["jax_hardware"] = {
+        **dreamer["jax_hardware"],
+        "actual_platforms": ["cpu"],
+        "accelerator_present": False,
     }
-    with pytest.raises(ValueError, match="dreamerv3_jax_platform"):
+    with pytest.raises(ValueError, match="accelerator_present"):
         assemble_current_generation_suite(_fake_current_summary(), dreamer)
 
     dreamer = _fake_dreamer_summary()
@@ -303,3 +348,18 @@ def test_five_condition_suite_rejects_cpu_or_retuned_dreamer() -> None:
     }
     with pytest.raises(ValueError, match="dreamerv3_train_ratio"):
         assemble_current_generation_suite(_fake_current_summary(), dreamer)
+
+
+def test_five_condition_suite_rejects_current_budget_or_checkpoint_drift() -> None:
+    current = _fake_current_summary()
+    current["dqn_raw"] = {**current["dqn_raw"], "exact_budget": False}
+    with pytest.raises(ValueError, match="dqn_raw.exact_budget"):
+        assemble_current_generation_suite(current, _fake_dreamer_summary())
+
+    current = _fake_current_summary()
+    current["aassr"] = {
+        **current["aassr"],
+        "same_checkpoint_comparison": False,
+    }
+    with pytest.raises(ValueError, match="same_checkpoint_comparison"):
+        assemble_current_generation_suite(current, _fake_dreamer_summary())
