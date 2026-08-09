@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import json
+from pathlib import Path
 
 from aassr_v2.dreamerv3_external import (
     run_official_dreamerv3_current_baseline,
 )
+from aassr_v2.dreamerv3_hardware import stamp_dreamer_summary_hardware
 
 
 def main() -> None:
@@ -55,16 +58,27 @@ def main() -> None:
         prealloc=not args.no_prealloc,
         allow_upstream_mismatch=args.allow_upstream_mismatch,
     )
+    hardware = stamp_dreamer_summary_hardware(
+        result,
+        requested_platform=args.jax_platform,
+    )
+    artifact = Path(args.output_dir) / "summary_dreamerv3_relational.json"
+    artifact.write_text(
+        json.dumps(result, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
     print(
         "DreamerV3 current baseline:",
         f"seed={result['research_seed']}",
         f"transitions={result['transitions_used']}",
+        f"driver_steps={result['dreamer_driver_steps']}",
         f"updates={result['gradient_updates']}",
         f"diag={result['diagnostic_successes']}",
         f"focus={result['final_focus_level']}",
+        f"jax={hardware['actual_platforms']}",
         f"upstream={result['official_upstream']['actual_commit'][:12]}",
     )
-    print("artifact:", f"{args.output_dir}/summary_dreamerv3_relational.json")
+    print("artifact:", artifact)
 
 
 if __name__ == "__main__":
