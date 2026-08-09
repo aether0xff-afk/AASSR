@@ -12,8 +12,8 @@ from aassr_v2.pentest_transfer_stages import TRANSFER_STAGES, TransferDiagnostic
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Verify that current AASSR and bare DQN use the requested torch "
-            "device and that AASSR keeps Neural Delta depth batching enabled."
+            "Verify that current AASSR neural components and bare DQN use the "
+            "requested torch device and that depth batching remains enabled."
         )
     )
     parser.add_argument("--device", default="cuda:0")
@@ -40,14 +40,20 @@ def main() -> None:
     if not actions:
         raise RuntimeError("hardware smoke found no actions")
 
-    # Exercise real tensor creation/forward on both DQN instances and the Neural
-    # Delta batch path. This is intentionally a micro smoke, not a speed claim.
+    # Exercise actual tensors rather than accepting a device string in metadata.
     aassr.dqn.score_actions(state, actions)
     bare.dqn.score_actions(state, actions)
     aassr.base_neural_prophecy.predict_batch(
         tuple(state for _ in actions),
         actions,
         samples=1,
+    )
+    aassr.critic.score_step(
+        state,
+        actions[0],
+        state,
+        memory=None,
+        prophecy_confidence=0.5,
     )
 
     aassr_hw = hardware_diagnostics(aassr)
@@ -57,12 +63,16 @@ def main() -> None:
         raise AssertionError("AASSR DQN is not on the requested device")
     if aassr_hw["prophecy"]["device"] != requested:
         raise AssertionError("AASSR Prophecy is not on the requested device")
+    if aassr_hw["critic"]["device"] != requested:
+        raise AssertionError("AASSR Critic is not on the requested device")
     if bare_hw["dqn"]["device"] != requested:
         raise AssertionError("bare DQN is not on the requested device")
     if not aassr_hw["depth_batching"]:
         raise AssertionError("current AASSR depth batching is disabled")
     if aassr_hw["dqn"]["per_row_target_item_syncs"] != 0:
         raise AssertionError("DQN target path reintroduced per-row host syncs")
+    if aassr_hw["dqn"]["fused_next_action_reduce"] != 1:
+        raise AssertionError("DQN target reductions are not fused")
 
     print(
         json.dumps(
