@@ -33,13 +33,15 @@ def test_current_depth_batcher_executes_neural_delta_batch_path() -> None:
     assert len(rows) == len(actions)
     assert all(row.predictions for row in rows)
     diagnostics = agent.current_batched_prophecy.runtime_diagnostics()
+    neural = agent.base_neural_prophecy.diagnostics()
     assert diagnostics["current_imagination_batch_calls"] == 1
     assert diagnostics["current_imagination_batch_rows"] == len(actions)
     assert diagnostics["current_imagination_skill_fallback_rows"] == 0
     assert agent.base_neural_prophecy.batch_prediction_calls >= 1
+    assert neural["per_row_batch_host_sync"] == 0
 
 
-def test_current_parallel_universe_batches_prophecy_and_gru_critic() -> None:
+def test_current_parallel_universe_batches_all_neural_stages() -> None:
     agent = build_current_pentest_aassr_core(
         seed=42,
         train_transitions=64,
@@ -58,10 +60,15 @@ def test_current_parallel_universe_batches_prophecy_and_gru_critic() -> None:
     ]
     planner = agent.planner.runtime_diagnostics()
     critic = agent.critic.hardware_stats()
+    dqn = agent.dqn.model_stats()
 
     assert result.nodes
     assert result.root_evaluations
     assert result.maximum_depth_reached >= 1
+    assert planner["policy_batch_calls"] > 0
+    assert planner["policy_batch_rows"] > 0
+    assert planner["policy_scalar_fallback_rows"] == 0
+    assert dqn["pair_score_batch_calls"] == planner["policy_batch_calls"]
     assert prophecy_after > prophecy_before
     assert planner["critic_batch_calls"] > 0
     assert planner["critic_batch_rows"] > 0
@@ -72,7 +79,7 @@ def test_current_parallel_universe_batches_prophecy_and_gru_critic() -> None:
     assert agent.planner.scorer is agent.critic
 
 
-def test_fully_batched_critic_preserves_scalar_planner_result() -> None:
+def test_fully_batched_planner_preserves_scalar_policy_and_critic_result() -> None:
     state = TransferDiagnosticWorld(90_001, stage=TRANSFER_STAGES[0]).snapshot()
 
     scalar_agent = build_current_pentest_aassr_core(
