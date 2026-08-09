@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from statistics import fmean
-from typing import Any, Hashable
+from typing import Any, Hashable, Sequence
 
 from .current_generation import (
     CurrentNeuralDeltaProphecy,
@@ -20,20 +20,23 @@ from .current_manifest import (
 from .integrated_agent import IntegratedProphecyView
 from .neural_delta_prophecy import NeuralDeltaConfig
 from .pentest_agent_main_test import ACTION_FEATURE_SIZE, HttpAgentCodec
-from .types import Action, StateSnapshot
+from .types import Action, Prediction, StateSnapshot
 
 
 class FullyRelationalNeuralDeltaProphecy(CurrentNeuralDeltaProphecy):
-    """Current Neural Delta with rename-invariant state *and* action input.
+    """Current Neural Delta with relational input and bulk batch decoding.
 
-    The model predicts a concrete-scaffold delta: its learned input contains no
-    raw route/profile/object indices, while the predicted numerical delta is
-    applied to the caller's current concrete vector by the inherited decoder.
-    This preserves the real current action surface without letting seed-specific
-    identifier slots become a Policy/Prophecy lookup key.
+    The model input contains no raw route/profile/object index. Batched outputs are
+    copied from the accelerator in whole tensors before Python StateSnapshot
+    decoding, avoiding one host synchronization per imagined branch.
     """
 
     name = "current-relational-state-action-neural-delta"
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.batch_host_transfer_groups = 0
+        self.batch_host_transfer_rows = 0
 
     def _input(
         self,
@@ -45,25 +48,80 @@ class FullyRelationalNeuralDeltaProphecy(CurrentNeuralDeltaProphecy):
             action,
         )
 
+    def predict_batch(
+        self,
+        states: Sequence[StateSnapshot],
+        actions: Sequence[Action],
+        *,
+        samples: int,
+    ) -> tuple[tuple[Prediction, ...], ...]:
+        if len(states) != len(actions):
+            raise ValueError("states/actions batch length mismatch")
+        if samples <= 0:
+            raise ValueError("samples must be positive")
+        if not states:
+            return ()
+        self.batch_prediction_calls += 1
+        self.batch_prediction_rows += len(states)
+        if self.observations < self.config.warmup_steps:
+            return tuple(
+                (Prediction(state, 0.0, source=f"{self.name}:unseen"),)
+                for state in states
+            )
+
+        next_states, terminal, _ = self._batch_outputs(states, actions)
+        confidence = self._batch_confidence(next_states, terminal)
+        mean_states = next_states.mean(dim=0)
+        terminal_classes = terminal.mean(dim=0).argmax(dim=1)
+
+        # Three bulk transfers per Neural-Delta batch regardless of branch count.
+        host_states = mean_states.detach().cpu().tolist()
+        host_terminal_classes = terminal_classes.detach().cpu().tolist()
+        host_confidences = confidence.detach().cpu().tolist()
+        self.batch_host_transfer_groups += 1
+        self.batch_host_transfer_rows += len(states)
+
+        rows = []
+        for state, mean_state, terminal_class, probability in zip(
+            states,
+            host_states,
+            host_terminal_classes,
+            host_confidences,
+            strict=True,
+        ):
+            decoded = self.codec.decode(
+                mean_state,
+                scaffold=state,
+                terminal_class=int(terminal_class),
+                source=f"{self.name}:ensemble",
+            )
+            rows.append(
+                (
+                    Prediction(
+                        decoded,
+                        float(probability),
+                        source=f"{self.name}:ensemble",
+                    ),
+                )
+            )
+        return tuple(rows)
+
     def diagnostics(self) -> dict[str, int | float | str]:
         return {
             **super().diagnostics(),
             "state_input_relational": 1,
             "action_input_relational": 1,
             "prediction_output": "concrete-scaffold-delta",
+            "batch_host_transfer_groups": self.batch_host_transfer_groups,
+            "batch_host_transfer_rows": self.batch_host_transfer_rows,
+            "per_row_batch_host_sync": 0,
         }
 
 
 class FrozenReplayRelationalCalibratedProphecy(
     ReplayRelationalCalibratedProphecy
 ):
-    """Frozen same-transition calibration with batched holdout refreshes.
-
-    A calibration refresh evaluates exactly the same selected holdout transitions
-    as the scalar implementation, but sends them through one Neural-Delta batch.
-    This removes repeated GPU launch/synchronization overhead without changing the
-    holdout set, refresh cadence, scoring equation, or anti-hindsight boundary.
-    """
+    """Frozen same-transition calibration with batched holdout refreshes."""
 
     name = "current-frozen-relational-holdout-calibrated-prophecy"
 
@@ -171,12 +229,7 @@ class CurrentSkillProphecy(RelationalContextualSkillAwareProphecy):
 
 
 class CurrentPentestRuntimeAgent(CurrentPentestAASSRAgent):
-    """Transitional current wrapper retained for compatibility tests only.
-
-    The package-level current builder now constructs the standalone current agent;
-    this class remains importable so earlier current-generation branches/tests can
-    reproduce their wiring without modifying frozen v0.4 code.
-    """
+    """Transitional current wrapper retained for compatibility tests only."""
 
     def __init__(
         self,
