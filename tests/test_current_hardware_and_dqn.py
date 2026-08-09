@@ -11,7 +11,10 @@ from aassr_v2.current_dqn_baseline import (
 )
 from aassr_v2.current_entrypoint import build_current_pentest_aassr_core
 from aassr_v2.current_generation import RelationalInvariantDQN
-from aassr_v2.current_hardware import HardwareRelationalInvariantDQN
+from aassr_v2.current_hardware import (
+    HardwareRelationalGRUBranchCritic,
+    HardwareRelationalInvariantDQN,
+)
 from aassr_v2.current_protocol import run_current_episode
 from aassr_v2.pentest_current_generation_main import CURRENT_EXPERIMENT_CONDITIONS
 from aassr_v2.pentest_transfer_stages import TRANSFER_STAGES, TransferDiagnosticWorld
@@ -38,9 +41,10 @@ def test_hardware_dqn_matches_current_relational_dqn_initial_q_values_on_cpu() -
     assert stats["device"] == "cpu"
     assert stats["hardware_optimized"] == 1
     assert stats["per_row_target_item_syncs"] == 0
+    assert stats["fused_next_action_reduce"] == 1
 
 
-def test_current_aassr_and_bare_dqn_share_hardware_dqn_backend() -> None:
+def test_current_aassr_and_bare_dqn_share_hardware_backend() -> None:
     aassr = build_current_pentest_aassr_core(
         seed=7,
         train_transitions=128,
@@ -55,9 +59,12 @@ def test_current_aassr_and_bare_dqn_share_hardware_dqn_backend() -> None:
 
     assert isinstance(aassr.dqn, HardwareRelationalInvariantDQN)
     assert isinstance(bare.dqn, HardwareRelationalInvariantDQN)
+    assert isinstance(aassr.critic, HardwareRelationalGRUBranchCritic)
     assert aassr.dqn.model_stats()["device"] == "cpu"
     assert bare.dqn.model_stats()["device"] == "cpu"
+    assert aassr.critic.hardware_stats()["device"] == "cpu"
     assert str(aassr.base_neural_prophecy.device) == "cpu"
+    assert aassr.planner.scorer is aassr.critic
     assert aassr.current_depth_batching is True
 
 
