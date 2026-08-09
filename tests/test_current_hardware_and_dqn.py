@@ -10,7 +10,10 @@ from aassr_v2.current_dqn_baseline import (
     build_bare_dqn_agent,
 )
 from aassr_v2.current_entrypoint import build_current_pentest_aassr_core
-from aassr_v2.current_generation import RelationalInvariantDQN
+from aassr_v2.current_generation import (
+    RelationalGRUBranchCritic,
+    RelationalInvariantDQN,
+)
 from aassr_v2.current_hardware import (
     HardwareRelationalGRUBranchCritic,
     HardwareRelationalInvariantDQN,
@@ -42,6 +45,29 @@ def test_hardware_dqn_matches_current_relational_dqn_initial_q_values_on_cpu() -
     assert stats["hardware_optimized"] == 1
     assert stats["per_row_target_item_syncs"] == 0
     assert stats["fused_next_action_reduce"] == 1
+
+
+def test_hardware_critic_matches_relational_critic_initial_forward_on_cpu() -> None:
+    seed = 777
+    reference = RelationalGRUBranchCritic(seed)
+    hardware = HardwareRelationalGRUBranchCritic(seed, device="cpu")
+    state = TransferDiagnosticWorld(90_001, stage=TRANSFER_STAGES[0]).snapshot()
+    action = state.available_actions[0]
+
+    left = reference.score_step(
+        state,
+        action,
+        state,
+        prophecy_confidence=0.5,
+    )
+    right = hardware.score_step(
+        state,
+        action,
+        state,
+        prophecy_confidence=0.5,
+    )
+    assert right.value == pytest.approx(left.value, abs=1e-7, rel=1e-7)
+    assert hardware.hardware_stats()["device"] == "cpu"
 
 
 def test_current_aassr_and_bare_dqn_share_hardware_backend() -> None:
