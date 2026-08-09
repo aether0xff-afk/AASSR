@@ -5,6 +5,10 @@ import pytest
 pytest.importorskip("torch")
 
 from aassr_v2.current_experiment_suite import (
+    CANONICAL_DREAMERV3_COMPUTE_DTYPE,
+    CANONICAL_DREAMERV3_JAX_PLATFORM,
+    CANONICAL_DREAMERV3_PRESET,
+    CANONICAL_DREAMERV3_TRAIN_RATIO,
     CURRENT_FINAL_EXPERIMENT_CONDITIONS,
     assemble_current_generation_suite,
 )
@@ -69,9 +73,20 @@ def _renamed_state(
 def test_dreamer_action_vocabulary_is_fixed_unique_and_complete_size() -> None:
     assert DREAMERV3_ACTION_SLOT_COUNT == 240
     assert len(DREAMERV3_ACTION_SLOTS) == len(set(DREAMERV3_ACTION_SLOTS))
-    assert all(slot[0] in {"request", "request_object"} for slot in DREAMERV3_ACTION_SLOTS)
-    assert all(slot[3] == "none" for slot in DREAMERV3_ACTION_SLOTS if slot[0] == "request")
-    assert all(slot[3] != "none" for slot in DREAMERV3_ACTION_SLOTS if slot[0] == "request_object")
+    assert all(
+        slot[0] in {"request", "request_object"}
+        for slot in DREAMERV3_ACTION_SLOTS
+    )
+    assert all(
+        slot[3] == "none"
+        for slot in DREAMERV3_ACTION_SLOTS
+        if slot[0] == "request"
+    )
+    assert all(
+        slot[3] != "none"
+        for slot in DREAMERV3_ACTION_SLOTS
+        if slot[0] == "request_object"
+    )
 
 
 def test_dreamer_adapter_is_seed_rename_invariant() -> None:
@@ -139,7 +154,10 @@ def test_adapter_manifest_declares_official_unmodified_upstream() -> None:
 
 
 def _fake_current_summary() -> dict[str, object]:
-    front = {"highest_contiguous_nonzero_level": 0, "first_zero_success_level": 1}
+    front = {
+        "highest_contiguous_nonzero_level": 0,
+        "first_zero_success_level": 1,
+    }
     return {
         "architecture_version": "aassr-current-generation-v1",
         "research_seed": 7,
@@ -179,7 +197,25 @@ def _fake_dreamer_summary() -> dict[str, object]:
         "official_upstream": {
             "actual_commit": DREAMERV3_UPSTREAM_COMMIT,
             "commit_matches_pin": True,
+            "upstream_agent_modified": False,
+            "oracle_information": False,
         },
+        "official_config": {
+            "preset": CANONICAL_DREAMERV3_PRESET,
+            "model_size": "size1m",
+            "train_ratio": CANONICAL_DREAMERV3_TRAIN_RATIO,
+            "compute_dtype": CANONICAL_DREAMERV3_COMPUTE_DTYPE,
+            "jax_platform": CANONICAL_DREAMERV3_JAX_PLATFORM,
+            "prealloc": True,
+        },
+        "sparse_reward": {
+            "success": 1.0,
+            "failure": -1.0,
+            "otherwise": 0.0,
+        },
+        "bootstrap_cut_on_episode_boundary": True,
+        "validation_learning_frozen": True,
+        "diagnostic_learning_frozen": True,
         "train_seeds": [90_001],
         "validation_seeds": [93_001],
         "diagnostic_seeds": [7],
@@ -193,11 +229,17 @@ def test_five_condition_suite_requires_matching_scientific_contracts() -> None:
         _fake_current_summary(),
         _fake_dreamer_summary(),
     )
-    assert tuple(result["experiment_conditions"]) == CURRENT_FINAL_EXPERIMENT_CONDITIONS
+    assert (
+        tuple(result["experiment_conditions"])
+        == CURRENT_FINAL_EXPERIMENT_CONDITIONS
+    )
     assert result["training_checkpoint_count"] == 4
     assert result["nominal_total_training_transitions"] == 40_000
     assert result["diagnostic_successes"]["dreamerv3_relational"] == 5
-    assert result["comparison_contract"]["dreamerv3_upstream_algorithm_modified"] is False
+    assert (
+        result["comparison_contract"]["dreamerv3_upstream_algorithm_modified"]
+        is False
+    )
 
 
 def test_five_condition_suite_rejects_noncanonical_dreamer_checkout() -> None:
@@ -205,6 +247,26 @@ def test_five_condition_suite_rejects_noncanonical_dreamer_checkout() -> None:
     dreamer["official_upstream"] = {
         "actual_commit": "deadbeef",
         "commit_matches_pin": False,
+        "upstream_agent_modified": False,
+        "oracle_information": False,
     }
     with pytest.raises(ValueError, match="pinned official DreamerV3"):
+        assemble_current_generation_suite(_fake_current_summary(), dreamer)
+
+
+def test_five_condition_suite_rejects_cpu_or_retuned_dreamer() -> None:
+    dreamer = _fake_dreamer_summary()
+    dreamer["official_config"] = {
+        **dreamer["official_config"],
+        "jax_platform": "cpu",
+    }
+    with pytest.raises(ValueError, match="dreamerv3_jax_platform"):
+        assemble_current_generation_suite(_fake_current_summary(), dreamer)
+
+    dreamer = _fake_dreamer_summary()
+    dreamer["official_config"] = {
+        **dreamer["official_config"],
+        "train_ratio": 8.0,
+    }
+    with pytest.raises(ValueError, match="dreamerv3_train_ratio"):
         assemble_current_generation_suite(_fake_current_summary(), dreamer)
