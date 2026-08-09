@@ -23,7 +23,7 @@ from .dreamerv3_baseline import (
     dreamer_observation_vector,
     project_dreamer_action,
 )
-from .pentest_agent_main_test import ACTION_FEATURE_SIZE, AGENT_STATE_SIZE
+from .pentest_agent_main_test import AGENT_STATE_SIZE
 from .pentest_curriculum_env import STALL_PATIENCE
 from .pentest_curriculum_schedule import semantic_fingerprint
 from .pentest_transfer_stages import (
@@ -37,7 +37,9 @@ from .pentest_transfer_stages import (
 from . import pentest_curriculum_schedule as schedule
 
 
-DREAMERV3_CURRENT_PROTOCOL_VERSION = "dreamerv3-current-protocol-v2-official-driver-cadence"
+DREAMERV3_CURRENT_PROTOCOL_VERSION = (
+    "dreamerv3-current-protocol-v3-categorical-official-driver-cadence"
+)
 DREAMERV3_VALIDATION_SEEDS: tuple[int, ...] = tuple(range(93_001, 93_009))
 DREAMERV3_OFFICIAL_CONFIG = "dmc_proprio+size1m"
 
@@ -63,24 +65,21 @@ class DreamerEpisodeResult:
 
 @dataclass(slots=True)
 class _DreamerTrainState:
-    # Scientific sample budget: only real primitive HTTP actions.
+    # Scientific sample budget: only executed primitive HTTP actions.
     real_transitions: int = 0
-    # Official Embodied training cadence: Driver callbacks include the is_first
-    # reset observation. The upstream train loop increments its Counter for every
-    # callback before evaluating the Ratio scheduler, so keep this separately.
+    # Official Embodied train-ratio clock. Upstream increments its Driver Counter
+    # for every callback, including the is_first reset observation.
     driver_steps: int = 0
     gradient_updates: int = 0
 
 
 class _DreamerPentestEnv:
-    """Embodied-compatible adapter over one fixed current-protocol episode.
+    """Embodied adapter for one current-protocol episode.
 
-    The wrapped MDP has a fixed continuous relational-action vector. Each vector
-    is deterministically projected onto the nearest action in the *publicly
-    available* action surface of the current state. No hidden scenario fields are
-    used for projection. The 240-slot relational availability mask is included in
-    the observation so Dreamer receives the legality information that current DQN
-    and AASSR receive through StateSnapshot.available_actions.
+    Dreamer sees the same relational state representation as the relational DQN
+    plus a fixed 240-slot legality mask. Its *official discrete categorical actor*
+    chooses one structural slot. The environment maps unavailable slots to the
+    nearest currently legal relational slot using only public state/action data.
     """
 
     def __init__(
@@ -137,10 +136,10 @@ class _DreamerPentestEnv:
         return {
             "reset": self.elements.Space(bool),
             "action": self.elements.Space(
-                self.np.float32,
-                (ACTION_FEATURE_SIZE,),
-                -1.0,
-                1.0,
+                self.np.int32,
+                (),
+                0,
+                DREAMERV3_ACTION_SLOT_COUNT,
             ),
         }
 
@@ -219,10 +218,8 @@ class _DreamerPentestEnv:
             projection_max_squared_distance=(max(distances) if distances else 0.0),
             projection_tie_events=self.projection_tie_events,
         )
-        # Current DQN/AASSR explicitly cut bootstrap at every reset boundary,
-        # including stall/rate-limit/budget truncation. Dreamer receives the same
-        # boundary through is_terminal=True rather than silently bootstrapping
-        # across a new scenario.
+        # Match the corrected current protocol: every reset boundary cuts
+        # bootstrap, including stall/rate-limit/exact-budget truncation.
         return self._observation(
             reward=reward,
             is_first=False,
@@ -251,10 +248,9 @@ class _DreamerPentestEnv:
             )
 
         before = self.world.snapshot()
-        proposal = action.get("action")
-        if proposal is None:
+        if "action" not in action:
             raise ValueError("DreamerV3 action mapping is missing 'action'")
-        projection = project_dreamer_action(before, proposal)
+        projection = project_dreamer_action(before, int(action["action"]))
         self.projection_distances.append(projection.squared_distance)
         self.projection_tie_events += int(projection.tied_candidates > 1)
         self.world.step(projection.action)
@@ -263,7 +259,9 @@ class _DreamerPentestEnv:
 
         semantic_before = semantic_fingerprint(before)
         semantic_after = semantic_fingerprint(after)
-        self.unchanged = self.unchanged + 1 if semantic_after == semantic_before else 0
+        self.unchanged = (
+            self.unchanged + 1 if semantic_after == semantic_before else 0
+        )
         self.recent_pairs.append((semantic_before, projection.action.signature))
         stalled = False
         if self.unchanged >= STALL_PATIENCE:
@@ -306,8 +304,8 @@ def _load_official_dreamer(
         raise RuntimeError(
             "DreamerV3 checkout SHA mismatch: "
             f"expected {DREAMERV3_UPSTREAM_COMMIT}, got {head}. "
-            "Checkout the pinned commit or pass --allow-upstream-mismatch for a "
-            "non-canonical diagnostic run."
+            "Checkout the pinned commit or pass --allow-upstream-mismatch for "
+            "a non-canonical diagnostic run."
         )
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
@@ -322,8 +320,8 @@ def _load_official_dreamer(
     except ImportError as exc:
         raise RuntimeError(
             "Official DreamerV3 dependencies are unavailable. Install the "
-            "requirements of the pinned danijar/dreamerv3 checkout in this "
-            "Python environment before running the baseline."
+            "requirements of the pinned danijar/dreamerv3 checkout before "
+            "running the baseline."
         ) from exc
     return {
         "root": root,
@@ -353,8 +351,7 @@ def _official_config(
         (root / "dreamerv3" / "configs.yaml").read_text(encoding="utf-8")
     )
     config = elements.Config(configs["defaults"])
-    # Use the upstream vector/proprioceptive preset and smallest published model
-    # size. This is predeclared before results and avoids tuning Dreamer on AASSR.
+    # Predeclared strongest low-parameter vector-observation baseline.
     config = config.update(configs["size1m"])
     config = config.update(configs["dmc_proprio"])
     config = config.update(
@@ -362,12 +359,7 @@ def _official_config(
         seed=int(research_seed),
     )
     config = config.update(
-        {
-            "jax": {
-                "platform": str(jax_platform),
-                "prealloc": bool(prealloc),
-            }
-        }
+        {"jax": {"platform": str(jax_platform), "prealloc": bool(prealloc)}}
     )
     if train_ratio is not None:
         config = config.update({"run": {"train_ratio": float(train_ratio)}})
@@ -487,9 +479,8 @@ def _run_episode(
             raise ValueError(
                 "Dreamer training episode is missing replay/train state"
             )
-        # Upstream order is replay.add before trainfn, and its global Driver
-        # Counter increments for every callback including is_first. Preserve that
-        # exact cadence while keeping the scientific real-action budget separate.
+        # Match upstream order: replay.add, then Ratio-based trainfn. Its global
+        # Counter advances for every Driver callback including is_first.
         driver.on_step(replay.add)
         batch_steps = int(batch_size) * int(batch_length)
 
@@ -540,15 +531,7 @@ def run_official_dreamerv3_current_baseline(
     prealloc: bool = True,
     allow_upstream_mismatch: bool = False,
 ) -> dict[str, Any]:
-    """Train unmodified official DreamerV3 under the current AASSR protocol.
-
-    The algorithm implementation comes from the pinned upstream checkout. This
-    function supplies only the relational environment adapter, exact real-step
-    accounting, and the same independent adaptive curriculum used by the current
-    DQN/AASSR conditions. The training-update scheduler uses upstream Embodied
-    Driver-step semantics, including is_first reset observations, exactly as the
-    official train loop does.
-    """
+    """Train pinned unmodified DreamerV3 under the current AASSR protocol."""
 
     if transition_budget <= 0 or block_target <= 0:
         raise ValueError(
@@ -653,9 +636,11 @@ def run_official_dreamerv3_current_baseline(
         block_validation: list[DreamerEpisodeResult] = []
         focus_stage = TRANSFER_STAGES[curriculum.focus_level]
         eval_cap = max(24, focus_stage.rate_limit + STALL_PATIENCE)
-        updates_before = train_state.gradient_updates
-        driver_steps_before = train_state.driver_steps
-        real_steps_before = train_state.real_transitions
+        counters_before = (
+            train_state.gradient_updates,
+            train_state.driver_steps,
+            train_state.real_transitions,
+        )
         for scenario_seed in validation_seeds:
             block_validation.append(
                 _run_episode(
@@ -676,18 +661,12 @@ def run_official_dreamerv3_current_baseline(
                     train_ratio=effective_train_ratio,
                 )
             )
-        if train_state.gradient_updates != updates_before:
-            raise AssertionError(
-                "DreamerV3 validation mutated training updates"
-            )
-        if train_state.driver_steps != driver_steps_before:
-            raise AssertionError(
-                "DreamerV3 validation mutated training driver-step state"
-            )
-        if train_state.real_transitions != real_steps_before:
-            raise AssertionError(
-                "DreamerV3 validation mutated real-transition accounting"
-            )
+        if counters_before != (
+            train_state.gradient_updates,
+            train_state.driver_steps,
+            train_state.real_transitions,
+        ):
+            raise AssertionError("DreamerV3 validation mutated training state")
         validation_rows.extend(block_validation)
         validation_success = fmean(row.success for row in block_validation)
         movement = curriculum.observe_block(validation_success)
@@ -709,23 +688,21 @@ def run_official_dreamerv3_current_baseline(
 
     if transition_total != transition_budget:
         raise AssertionError(
-            "DreamerV3 real transition budget drift: "
-            f"{transition_total} != {transition_budget}"
+            f"DreamerV3 budget drift: {transition_total} != {transition_budget}"
         )
     if train_state.real_transitions != transition_budget:
         raise AssertionError(
-            "DreamerV3 callback real-step accounting disagrees with episode "
-            "accounting"
+            "Dreamer callback real-step count disagrees with episode accounting"
         )
     if train_state.driver_steps < train_state.real_transitions:
-        raise AssertionError(
-            "DreamerV3 driver-step count cannot be below real transitions"
-        )
+        raise AssertionError("Dreamer driver-step count below real transitions")
 
     diagnostic_rows: list[DreamerEpisodeResult] = []
-    updates_before_diagnostic = train_state.gradient_updates
-    driver_steps_before_diagnostic = train_state.driver_steps
-    real_steps_before_diagnostic = train_state.real_transitions
+    counters_before = (
+        train_state.gradient_updates,
+        train_state.driver_steps,
+        train_state.real_transitions,
+    )
     for stage_index, stage in enumerate(TRANSFER_STAGES):
         cap = max(24, stage.rate_limit + STALL_PATIENCE)
         for scenario_seed in diagnostic_seeds:
@@ -748,39 +725,30 @@ def run_official_dreamerv3_current_baseline(
                     train_ratio=effective_train_ratio,
                 )
             )
-    if train_state.gradient_updates != updates_before_diagnostic:
-        raise AssertionError(
-            "DreamerV3 diagnostic mutated training updates"
-        )
-    if train_state.driver_steps != driver_steps_before_diagnostic:
-        raise AssertionError(
-            "DreamerV3 diagnostic mutated training driver-step state"
-        )
-    if train_state.real_transitions != real_steps_before_diagnostic:
-        raise AssertionError(
-            "DreamerV3 diagnostic mutated real-transition accounting"
-        )
+    if counters_before != (
+        train_state.gradient_updates,
+        train_state.driver_steps,
+        train_state.real_transitions,
+    ):
+        raise AssertionError("DreamerV3 diagnostic mutated training state")
 
     diagnostic = _aggregate(diagnostic_rows)
     _write_episode_csv(
-        output / "training_dreamerv3_relational.csv",
-        training_rows,
+        output / "training_dreamerv3_relational.csv", training_rows
     )
     _write_episode_csv(
         output / "curriculum_validation_dreamerv3_relational.csv",
         validation_rows,
     )
     _write_episode_csv(
-        output / "diagnostic_dreamerv3_relational.csv",
-        diagnostic_rows,
+        output / "diagnostic_dreamerv3_relational.csv", diagnostic_rows
     )
     (output / "curriculum_trace_dreamerv3_relational.json").write_text(
         json.dumps(curriculum_trace, indent=2, sort_keys=True),
         encoding="utf-8",
     )
     (output / "diagnostic_dreamerv3_relational.json").write_text(
-        json.dumps(diagnostic, indent=2, sort_keys=True),
-        encoding="utf-8",
+        json.dumps(diagnostic, indent=2, sort_keys=True), encoding="utf-8"
     )
 
     projection_rows = training_rows + validation_rows + diagnostic_rows
@@ -791,9 +759,7 @@ def run_official_dreamerv3_current_baseline(
         "official_upstream": {
             **dreamer_adapter_manifest(),
             "actual_commit": upstream["head"],
-            "commit_matches_pin": (
-                upstream["head"] == DREAMERV3_UPSTREAM_COMMIT
-            ),
+            "commit_matches_pin": upstream["head"] == DREAMERV3_UPSTREAM_COMMIT,
         },
         "official_config": {
             "preset": DREAMERV3_OFFICIAL_CONFIG,
@@ -817,14 +783,10 @@ def run_official_dreamerv3_current_baseline(
         "training_successes": sum(row.success for row in training_rows),
         "training_failures": sum(row.failure for row in training_rows),
         "training_stalls": sum(row.stalled for row in training_rows),
-        "training_truncations": sum(
-            row.truncation for row in training_rows
-        ),
+        "training_truncations": sum(row.truncation for row in training_rows),
         "final_focus_level": curriculum.focus_level,
         "diagnostic": diagnostic,
-        "diagnostic_successes": sum(
-            item["successes"] for item in diagnostic
-        ),
+        "diagnostic_successes": sum(item["successes"] for item in diagnostic),
         "frontier": current_frontier(diagnostic),
         "validation_learning_frozen": True,
         "diagnostic_learning_frozen": True,
@@ -845,10 +807,7 @@ def run_official_dreamerv3_current_baseline(
                 else 0.0
             ),
             "max_squared_distance": max(
-                (
-                    row.projection_max_squared_distance
-                    for row in projection_rows
-                ),
+                (row.projection_max_squared_distance for row in projection_rows),
                 default=0.0,
             ),
             "tie_events": sum(
@@ -862,7 +821,6 @@ def run_official_dreamerv3_current_baseline(
         "stage_manifest": stage_manifest(),
     }
     (output / "summary_dreamerv3_relational.json").write_text(
-        json.dumps(result, indent=2, sort_keys=True),
-        encoding="utf-8",
+        json.dumps(result, indent=2, sort_keys=True), encoding="utf-8"
     )
     return result
