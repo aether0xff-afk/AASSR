@@ -9,6 +9,7 @@ from .current_generation import (
     RelationalGRUBranchCritic,
     RelationalInvariantDQN,
 )
+from .pentest_curriculum_env import relational_action_features
 from .policy import ScoredAction
 from .skills import SKILL_VERB
 from .types import Action, StateSnapshot
@@ -145,7 +146,7 @@ class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
             return ()
 
         keys = tuple(
-            self.encode_state(state) + self._action_features(state, action)
+            self.encode_state(state) + relational_action_features(state, action)
             for state, action in zip(states, actions, strict=True)
         )
         unique: list[tuple[float, ...]] = []
@@ -161,6 +162,8 @@ class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
 
         with self.torch.no_grad():
             values = self.online(self._tensor(unique)).squeeze(1).detach().cpu().tolist()
+        self.raw_actions_scored += len(actions)
+        self.unique_features_scored += len(unique)
         self.pair_score_batch_calls += 1
         self.pair_score_batch_rows += len(states)
         self.pair_score_unique_rows += len(unique)
@@ -289,7 +292,7 @@ class HardwareCurrentRelationalPolicy(CurrentRelationalPolicy):
             next(value_iter)
         except StopIteration:
             pass
-        else:  # pragma: no cover - defensive contract check
+        else:  # pragma: no cover
             raise RuntimeError("Policy primitive batch left unused DQN scores")
         return tuple(output)
 
