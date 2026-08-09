@@ -1,0 +1,133 @@
+from __future__ import annotations
+
+import pytest
+
+pytest.importorskip("torch")
+
+from aassr_v2.dreamerv3_baseline import (
+    DREAMERV3_ACTION_SLOT_COUNT,
+    DREAMERV3_ACTION_SLOTS,
+    dreamer_action_slot_key,
+    dreamer_action_surface_mask,
+    dreamer_adapter_manifest,
+    dreamer_observation_vector,
+    dreamer_relational_action_features,
+    project_dreamer_action,
+)
+from aassr_v2.pentest_agent_main_test import AGENT_STATE_SIZE
+from aassr_v2.pentest_curriculum_causal import OBSERVATION_CONTRACT
+from aassr_v2.pentest_transfer_stages import TRANSFER_STAGES, TransferDiagnosticWorld
+from aassr_v2.types import Action, StateSnapshot
+
+
+def _renamed_state(
+    *,
+    route: str,
+    profile: str,
+    object_id: str,
+    raw_slot: int,
+) -> tuple[StateSnapshot, Action]:
+    action = Action(
+        "request_object",
+        parameters={
+            "route_id": route,
+            "profile_id": profile,
+            "object_id": object_id,
+        },
+    )
+    facts = frozenset(
+        {
+            "authenticated",
+            f"known_route:{route}",
+            f"known_profile:{profile}",
+            f"known_object:{object_id}",
+            f"observed_route_role:{route}:object",
+            f"observed_profile_role:{profile}:read",
+        }
+    )
+    vector = [0.0] * AGENT_STATE_SIZE
+    vector[0] = 1.0
+    vector[8] = 0.04
+    vector[11 + raw_slot % max(1, AGENT_STATE_SIZE - 11)] = 1.0
+    return (
+        StateSnapshot(
+            vector=tuple(vector),
+            facts=facts,
+            available_actions=(action,),
+            goal_progress=0.0,
+            metadata={"observation_contract": OBSERVATION_CONTRACT},
+        ),
+        action,
+    )
+
+
+def test_dreamer_action_vocabulary_is_fixed_unique_and_complete_size() -> None:
+    assert DREAMERV3_ACTION_SLOT_COUNT == 240
+    assert len(DREAMERV3_ACTION_SLOTS) == len(set(DREAMERV3_ACTION_SLOTS))
+    assert all(slot[0] in {"request", "request_object"} for slot in DREAMERV3_ACTION_SLOTS)
+    assert all(slot[3] == "none" for slot in DREAMERV3_ACTION_SLOTS if slot[0] == "request")
+    assert all(slot[3] != "none" for slot in DREAMERV3_ACTION_SLOTS if slot[0] == "request_object")
+
+
+def test_dreamer_adapter_is_seed_rename_invariant() -> None:
+    left, left_action = _renamed_state(
+        route="route-28",
+        profile="profile-14",
+        object_id="object-07",
+        raw_slot=3,
+    )
+    right, right_action = _renamed_state(
+        route="route-05",
+        profile="profile-02",
+        object_id="object-31",
+        raw_slot=17,
+    )
+
+    assert dreamer_observation_vector(left) == dreamer_observation_vector(right)
+    assert dreamer_action_slot_key(left, left_action) == dreamer_action_slot_key(
+        right, right_action
+    )
+    assert dreamer_relational_action_features(
+        left, left_action
+    ) == dreamer_relational_action_features(right, right_action)
+    assert dreamer_action_surface_mask(left) == dreamer_action_surface_mask(right)
+
+
+def test_exact_relational_proposal_projects_to_a_currently_legal_action() -> None:
+    world = TransferDiagnosticWorld(90_001, stage=TRANSFER_STAGES[0])
+    state = world.snapshot()
+    assert state.available_actions
+    chosen = state.available_actions[-1]
+    proposal = dreamer_relational_action_features(state, chosen)
+
+    projection = project_dreamer_action(state, proposal)
+    assert projection.action in state.available_actions
+    assert projection.squared_distance == pytest.approx(0.0)
+    assert projection.relational_features == proposal
+    assert dreamer_action_surface_mask(state)[projection.slot_index] == 1.0
+
+
+def test_every_predeclared_stage_surface_is_covered_without_hidden_scenario_access() -> None:
+    for stage in TRANSFER_STAGES:
+        for seed in (90_001, 90_007, 90_016):
+            state = TransferDiagnosticWorld(seed, stage=stage).snapshot()
+            mask = dreamer_action_surface_mask(state)
+            assert len(mask) == DREAMERV3_ACTION_SLOT_COUNT
+            for action in state.available_actions:
+                slot = dreamer_action_slot_key(state, action)
+                assert slot in DREAMERV3_ACTION_SLOTS
+                projection = project_dreamer_action(
+                    state,
+                    dreamer_relational_action_features(state, action),
+                )
+                assert projection.action in state.available_actions
+                assert mask[projection.slot_index] == 1.0
+
+
+def test_adapter_manifest_declares_official_unmodified_upstream() -> None:
+    manifest = dreamer_adapter_manifest()
+    assert manifest["condition"] == "dreamerv3_relational"
+    assert manifest["upstream_repository"] == "danijar/dreamerv3"
+    assert manifest["upstream_agent_modified"] is False
+    assert manifest["oracle_information"] is False
+    assert manifest["slot_count"] == 240
