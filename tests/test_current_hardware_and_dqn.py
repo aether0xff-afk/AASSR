@@ -79,6 +79,39 @@ def test_hardware_raw_dqn_matches_plain_dynamic_dqn_initial_q_values_on_cpu() ->
     assert stats["fused_next_action_reduce"] == 1
 
 
+def test_raw_and_relational_dqn_controls_have_identical_initial_network_shape_and_weights() -> None:
+    """Keep representation, not network capacity, as the DQN control difference."""
+
+    raw = build_raw_dqn_agent(
+        seed=20260809,
+        train_transitions=256,
+        device="cpu",
+    )
+    relational = build_relational_dqn_agent(
+        seed=20260809,
+        train_transitions=256,
+        device="cpu",
+    )
+
+    raw_state = raw.dqn.online.state_dict()
+    relational_state = relational.dqn.online.state_dict()
+    assert tuple(raw_state) == tuple(relational_state)
+    for name in raw_state:
+        assert raw_state[name].shape == relational_state[name].shape
+        assert raw_state[name].equal(relational_state[name]), name
+
+    raw_shapes = tuple(
+        tuple(parameter.shape) for parameter in raw.dqn.online.parameters()
+    )
+    relational_shapes = tuple(
+        tuple(parameter.shape) for parameter in relational.dqn.online.parameters()
+    )
+    assert raw_shapes == relational_shapes
+    assert raw.dqn.model_stats()["model_units"] == relational.dqn.model_stats()[
+        "model_units"
+    ]
+
+
 def test_hardware_critic_matches_relational_critic_initial_forward_on_cpu() -> None:
     seed = 777
     reference = RelationalGRUBranchCritic(seed)
