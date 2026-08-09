@@ -10,7 +10,7 @@ from collections import Counter, deque
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from statistics import fmean
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 from .current_protocol import current_frontier
 from .dreamerv3_baseline import (
@@ -37,7 +37,7 @@ from .pentest_transfer_stages import (
 from . import pentest_curriculum_schedule as schedule
 
 
-DREAMERV3_CURRENT_PROTOCOL_VERSION = "dreamerv3-current-protocol-v1"
+DREAMERV3_CURRENT_PROTOCOL_VERSION = "dreamerv3-current-protocol-v2-official-driver-cadence"
 DREAMERV3_VALIDATION_SEEDS: tuple[int, ...] = tuple(range(93_001, 93_009))
 DREAMERV3_OFFICIAL_CONFIG = "dmc_proprio+size1m"
 
@@ -63,7 +63,12 @@ class DreamerEpisodeResult:
 
 @dataclass(slots=True)
 class _DreamerTrainState:
+    # Scientific sample budget: only real primitive HTTP actions.
     real_transitions: int = 0
+    # Official Embodied training cadence: Driver callbacks include the is_first
+    # reset observation. The upstream train loop increments its Counter for every
+    # callback before evaluating the Ratio scheduler, so keep this separately.
+    driver_steps: int = 0
     gradient_updates: int = 0
 
 
@@ -116,7 +121,10 @@ class _DreamerPentestEnv:
         return {
             "state": self.elements.Space(self.np.float32, (AGENT_STATE_SIZE,)),
             "action_mask": self.elements.Space(
-                self.np.float32, (DREAMERV3_ACTION_SLOT_COUNT,), 0.0, 1.0
+                self.np.float32,
+                (DREAMERV3_ACTION_SLOT_COUNT,),
+                0.0,
+                1.0,
             ),
             "reward": self.elements.Space(self.np.float32),
             "is_first": self.elements.Space(bool),
@@ -155,10 +163,12 @@ class _DreamerPentestEnv:
         state = self._snapshot()
         return {
             "state": self.np.asarray(
-                dreamer_observation_vector(state), dtype=self.np.float32
+                dreamer_observation_vector(state),
+                dtype=self.np.float32,
             ),
             "action_mask": self.np.asarray(
-                dreamer_action_surface_mask(state), dtype=self.np.float32
+                dreamer_action_surface_mask(state),
+                dtype=self.np.float32,
             ),
             "reward": self.np.float32(reward),
             "is_first": bool(is_first),
@@ -203,7 +213,9 @@ class _DreamerPentestEnv:
             truncation=int(status == "truncation"),
             primitive_transitions=self.transitions,
             reward=reward,
-            projection_mean_squared_distance=(fmean(distances) if distances else 0.0),
+            projection_mean_squared_distance=(
+                fmean(distances) if distances else 0.0
+            ),
             projection_max_squared_distance=(max(distances) if distances else 0.0),
             projection_tie_events=self.projection_tie_events,
         )
@@ -305,6 +317,7 @@ def _load_official_dreamer(
         import embodied
         import ruamel.yaml as yaml
         from dreamerv3.agent import Agent
+
         dreamer_main = importlib.import_module("dreamerv3.main")
     except ImportError as exc:
         raise RuntimeError(
@@ -390,7 +403,10 @@ def _make_agent(
     )
 
 
-def _write_episode_csv(path: Path, rows: Sequence[DreamerEpisodeResult]) -> None:
+def _write_episode_csv(
+    path: Path,
+    rows: Sequence[DreamerEpisodeResult],
+) -> None:
     if not rows:
         path.write_text("", encoding="utf-8")
         return
@@ -410,14 +426,20 @@ def _aggregate(rows: Sequence[DreamerEpisodeResult]) -> list[dict[str, Any]]:
                 "stage": stage.name,
                 "episodes": len(items),
                 "successes": sum(item.success for item in items),
-                "success_rate": fmean(item.success for item in items) if items else 0.0,
+                "success_rate": (
+                    fmean(item.success for item in items) if items else 0.0
+                ),
                 "stalled": sum(item.stalled for item in items),
                 "truncations": sum(item.truncation for item in items),
                 "mean_primitive_steps": (
-                    fmean(item.primitive_transitions for item in items) if items else 0.0
+                    fmean(item.primitive_transitions for item in items)
+                    if items
+                    else 0.0
                 ),
                 "projection_mean_squared_distance": (
-                    fmean(item.projection_mean_squared_distance for item in items)
+                    fmean(
+                        item.projection_mean_squared_distance for item in items
+                    )
                     if items
                     else 0.0
                 ),
@@ -456,21 +478,32 @@ def _run_episode(
     )
     driver = embodied.Driver([lambda: env], parallel=False)
     if mode == "train":
-        if replay is None or train_stream is None or train_carry is None or train_state is None:
-            raise ValueError("Dreamer training episode is missing replay/train state")
+        if (
+            replay is None
+            or train_stream is None
+            or train_carry is None
+            or train_state is None
+        ):
+            raise ValueError(
+                "Dreamer training episode is missing replay/train state"
+            )
+        # Upstream order is replay.add before trainfn, and its global Driver
+        # Counter increments for every callback including is_first. Preserve that
+        # exact cadence while keeping the scientific real-action budget separate.
         driver.on_step(replay.add)
-
         batch_steps = int(batch_size) * int(batch_length)
 
         def trainfn(tran: Mapping[str, Any], worker: int) -> None:
             del worker
-            if bool(tran["is_first"]):
-                return
-            train_state.real_transitions += 1
+            train_state.driver_steps += 1
+            if not bool(tran["is_first"]):
+                train_state.real_transitions += 1
             if len(replay) < batch_steps:
                 return
             desired = int(
-                train_state.real_transitions * float(train_ratio) / float(batch_steps)
+                train_state.driver_steps
+                * float(train_ratio)
+                / float(batch_steps)
             )
             while train_state.gradient_updates < desired:
                 batch = next(train_stream)
@@ -512,18 +545,28 @@ def run_official_dreamerv3_current_baseline(
     The algorithm implementation comes from the pinned upstream checkout. This
     function supplies only the relational environment adapter, exact real-step
     accounting, and the same independent adaptive curriculum used by the current
-    DQN/AASSR conditions.
+    DQN/AASSR conditions. The training-update scheduler uses upstream Embodied
+    Driver-step semantics, including is_first reset observations, exactly as the
+    official train loop does.
     """
 
     if transition_budget <= 0 or block_target <= 0:
-        raise ValueError("Dreamer transition budget and block target must be positive")
+        raise ValueError(
+            "Dreamer transition budget and block target must be positive"
+        )
     train_set = set(map(int, train_seeds))
     validation_set = set(map(int, validation_seeds))
     diagnostic_set = set(map(int, diagnostic_seeds))
     if not train_set or not validation_set or not diagnostic_set:
         raise ValueError("Dreamer seed pools must be non-empty")
-    if train_set & validation_set or train_set & diagnostic_set or validation_set & diagnostic_set:
-        raise ValueError("Dreamer train/validation/diagnostic seed pools overlap")
+    if (
+        train_set & validation_set
+        or train_set & diagnostic_set
+        or validation_set & diagnostic_set
+    ):
+        raise ValueError(
+            "Dreamer train/validation/diagnostic seed pools overlap"
+        )
 
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
@@ -553,7 +596,9 @@ def run_official_dreamerv3_current_baseline(
     agent = _make_agent(upstream, config, probe)
     dreamer_main = upstream["main"]
     replay = dreamer_main.make_replay(config, "replay")
-    train_stream = iter(agent.stream(dreamer_main.make_stream(config, replay, "train")))
+    train_stream = iter(
+        agent.stream(dreamer_main.make_stream(config, replay, "train"))
+    )
     train_carry = [agent.init_train(int(config.batch_size))]
     train_state = _DreamerTrainState()
 
@@ -597,7 +642,9 @@ def run_official_dreamerv3_current_baseline(
                 train_ratio=effective_train_ratio,
             )
             if row.primitive_transitions <= 0:
-                raise RuntimeError("DreamerV3 training consumed no real transitions")
+                raise RuntimeError(
+                    "DreamerV3 training consumed no real transitions"
+                )
             training_rows.append(row)
             transition_total += row.primitive_transitions
             block_used += row.primitive_transitions
@@ -607,6 +654,8 @@ def run_official_dreamerv3_current_baseline(
         focus_stage = TRANSFER_STAGES[curriculum.focus_level]
         eval_cap = max(24, focus_stage.rate_limit + STALL_PATIENCE)
         updates_before = train_state.gradient_updates
+        driver_steps_before = train_state.driver_steps
+        real_steps_before = train_state.real_transitions
         for scenario_seed in validation_seeds:
             block_validation.append(
                 _run_episode(
@@ -628,7 +677,17 @@ def run_official_dreamerv3_current_baseline(
                 )
             )
         if train_state.gradient_updates != updates_before:
-            raise AssertionError("DreamerV3 validation mutated training updates")
+            raise AssertionError(
+                "DreamerV3 validation mutated training updates"
+            )
+        if train_state.driver_steps != driver_steps_before:
+            raise AssertionError(
+                "DreamerV3 validation mutated training driver-step state"
+            )
+        if train_state.real_transitions != real_steps_before:
+            raise AssertionError(
+                "DreamerV3 validation mutated real-transition accounting"
+            )
         validation_rows.extend(block_validation)
         validation_success = fmean(row.success for row in block_validation)
         movement = curriculum.observe_block(validation_success)
@@ -642,6 +701,7 @@ def run_official_dreamerv3_current_baseline(
                 "movement": movement,
                 "focus_after": curriculum.focus_level,
                 "train_weights": weights,
+                "dreamer_driver_steps": train_state.driver_steps,
                 "gradient_updates": train_state.gradient_updates,
             }
         )
@@ -649,15 +709,23 @@ def run_official_dreamerv3_current_baseline(
 
     if transition_total != transition_budget:
         raise AssertionError(
-            f"DreamerV3 real transition budget drift: {transition_total} != {transition_budget}"
+            "DreamerV3 real transition budget drift: "
+            f"{transition_total} != {transition_budget}"
         )
     if train_state.real_transitions != transition_budget:
         raise AssertionError(
-            "DreamerV3 callback real-step accounting disagrees with episode accounting"
+            "DreamerV3 callback real-step accounting disagrees with episode "
+            "accounting"
+        )
+    if train_state.driver_steps < train_state.real_transitions:
+        raise AssertionError(
+            "DreamerV3 driver-step count cannot be below real transitions"
         )
 
     diagnostic_rows: list[DreamerEpisodeResult] = []
     updates_before_diagnostic = train_state.gradient_updates
+    driver_steps_before_diagnostic = train_state.driver_steps
+    real_steps_before_diagnostic = train_state.real_transitions
     for stage_index, stage in enumerate(TRANSFER_STAGES):
         cap = max(24, stage.rate_limit + STALL_PATIENCE)
         for scenario_seed in diagnostic_seeds:
@@ -681,15 +749,31 @@ def run_official_dreamerv3_current_baseline(
                 )
             )
     if train_state.gradient_updates != updates_before_diagnostic:
-        raise AssertionError("DreamerV3 diagnostic mutated training updates")
+        raise AssertionError(
+            "DreamerV3 diagnostic mutated training updates"
+        )
+    if train_state.driver_steps != driver_steps_before_diagnostic:
+        raise AssertionError(
+            "DreamerV3 diagnostic mutated training driver-step state"
+        )
+    if train_state.real_transitions != real_steps_before_diagnostic:
+        raise AssertionError(
+            "DreamerV3 diagnostic mutated real-transition accounting"
+        )
 
     diagnostic = _aggregate(diagnostic_rows)
-    _write_episode_csv(output / "training_dreamerv3_relational.csv", training_rows)
+    _write_episode_csv(
+        output / "training_dreamerv3_relational.csv",
+        training_rows,
+    )
     _write_episode_csv(
         output / "curriculum_validation_dreamerv3_relational.csv",
         validation_rows,
     )
-    _write_episode_csv(output / "diagnostic_dreamerv3_relational.csv", diagnostic_rows)
+    _write_episode_csv(
+        output / "diagnostic_dreamerv3_relational.csv",
+        diagnostic_rows,
+    )
     (output / "curriculum_trace_dreamerv3_relational.json").write_text(
         json.dumps(curriculum_trace, indent=2, sort_keys=True),
         encoding="utf-8",
@@ -707,7 +791,9 @@ def run_official_dreamerv3_current_baseline(
         "official_upstream": {
             **dreamer_adapter_manifest(),
             "actual_commit": upstream["head"],
-            "commit_matches_pin": upstream["head"] == DREAMERV3_UPSTREAM_COMMIT,
+            "commit_matches_pin": (
+                upstream["head"] == DREAMERV3_UPSTREAM_COMMIT
+            ),
         },
         "official_config": {
             "preset": DREAMERV3_OFFICIAL_CONFIG,
@@ -723,31 +809,51 @@ def run_official_dreamerv3_current_baseline(
         "research_seed": int(research_seed),
         "transitions_used": transition_total,
         "exact_budget": transition_total == transition_budget,
+        "dreamer_driver_steps": train_state.driver_steps,
+        "official_train_ratio_step_semantics": (
+            "embodied-driver-step-including-is_first"
+        ),
         "gradient_updates": train_state.gradient_updates,
         "training_successes": sum(row.success for row in training_rows),
         "training_failures": sum(row.failure for row in training_rows),
         "training_stalls": sum(row.stalled for row in training_rows),
-        "training_truncations": sum(row.truncation for row in training_rows),
+        "training_truncations": sum(
+            row.truncation for row in training_rows
+        ),
         "final_focus_level": curriculum.focus_level,
         "diagnostic": diagnostic,
-        "diagnostic_successes": sum(item["successes"] for item in diagnostic),
+        "diagnostic_successes": sum(
+            item["successes"] for item in diagnostic
+        ),
         "frontier": current_frontier(diagnostic),
         "validation_learning_frozen": True,
         "diagnostic_learning_frozen": True,
-        "sparse_reward": {"success": 1.0, "failure": -1.0, "otherwise": 0.0},
+        "sparse_reward": {
+            "success": 1.0,
+            "failure": -1.0,
+            "otherwise": 0.0,
+        },
         "bootstrap_cut_on_episode_boundary": True,
         "projection": {
             "episodes": len(projection_rows),
             "mean_squared_distance": (
-                fmean(row.projection_mean_squared_distance for row in projection_rows)
+                fmean(
+                    row.projection_mean_squared_distance
+                    for row in projection_rows
+                )
                 if projection_rows
                 else 0.0
             ),
             "max_squared_distance": max(
-                (row.projection_max_squared_distance for row in projection_rows),
+                (
+                    row.projection_max_squared_distance
+                    for row in projection_rows
+                ),
                 default=0.0,
             ),
-            "tie_events": sum(row.projection_tie_events for row in projection_rows),
+            "tie_events": sum(
+                row.projection_tie_events for row in projection_rows
+            ),
         },
         "train_seeds": list(map(int, train_seeds)),
         "validation_seeds": list(map(int, validation_seeds)),
