@@ -4,9 +4,14 @@ import pytest
 
 pytest.importorskip("torch")
 
+from aassr_v2.current_experiment_suite import (
+    CURRENT_FINAL_EXPERIMENT_CONDITIONS,
+    assemble_current_generation_suite,
+)
 from aassr_v2.dreamerv3_baseline import (
     DREAMERV3_ACTION_SLOT_COUNT,
     DREAMERV3_ACTION_SLOTS,
+    DREAMERV3_UPSTREAM_COMMIT,
     dreamer_action_slot_key,
     dreamer_action_surface_mask,
     dreamer_adapter_manifest,
@@ -131,3 +136,75 @@ def test_adapter_manifest_declares_official_unmodified_upstream() -> None:
     assert manifest["upstream_agent_modified"] is False
     assert manifest["oracle_information"] is False
     assert manifest["slot_count"] == 240
+
+
+def _fake_current_summary() -> dict[str, object]:
+    front = {"highest_contiguous_nonzero_level": 0, "first_zero_success_level": 1}
+    return {
+        "architecture_version": "aassr-current-generation-v1",
+        "research_seed": 7,
+        "transition_budget_per_training_condition": 10_000,
+        "diagnostic_successes": {
+            "dqn_raw": 1,
+            "dqn_relational": 2,
+            "aassr_current_no_imagination": 3,
+            "aassr_current_full": 4,
+        },
+        "frontier": {
+            "dqn_raw": front,
+            "dqn_relational": front,
+            "aassr_current_no_imagination": front,
+            "aassr_current_full": front,
+        },
+        "train_seeds": [90_001],
+        "validation_seeds": [93_001],
+        "diagnostic_seeds": [7],
+        "stage_manifest": [{"level": 0}],
+        "diagnostic_full_stage_sweep": True,
+        "final_blind_consumed": False,
+    }
+
+
+def _fake_dreamer_summary() -> dict[str, object]:
+    return {
+        "condition": "dreamerv3_relational",
+        "research_seed": 7,
+        "transitions_used": 10_000,
+        "exact_budget": True,
+        "diagnostic_successes": 5,
+        "frontier": {
+            "highest_contiguous_nonzero_level": 1,
+            "first_zero_success_level": 2,
+        },
+        "official_upstream": {
+            "actual_commit": DREAMERV3_UPSTREAM_COMMIT,
+            "commit_matches_pin": True,
+        },
+        "train_seeds": [90_001],
+        "validation_seeds": [93_001],
+        "diagnostic_seeds": [7],
+        "stage_manifest": [{"level": 0}],
+        "final_blind_consumed": False,
+    }
+
+
+def test_five_condition_suite_requires_matching_scientific_contracts() -> None:
+    result = assemble_current_generation_suite(
+        _fake_current_summary(),
+        _fake_dreamer_summary(),
+    )
+    assert tuple(result["experiment_conditions"]) == CURRENT_FINAL_EXPERIMENT_CONDITIONS
+    assert result["training_checkpoint_count"] == 4
+    assert result["nominal_total_training_transitions"] == 40_000
+    assert result["diagnostic_successes"]["dreamerv3_relational"] == 5
+    assert result["comparison_contract"]["dreamerv3_upstream_algorithm_modified"] is False
+
+
+def test_five_condition_suite_rejects_noncanonical_dreamer_checkout() -> None:
+    dreamer = _fake_dreamer_summary()
+    dreamer["official_upstream"] = {
+        "actual_commit": "deadbeef",
+        "commit_matches_pin": False,
+    }
+    with pytest.raises(ValueError, match="pinned official DreamerV3"):
+        assemble_current_generation_suite(_fake_current_summary(), dreamer)
