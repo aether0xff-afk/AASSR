@@ -57,12 +57,12 @@ class FullyRelationalNeuralDeltaProphecy(CurrentNeuralDeltaProphecy):
 class FrozenReplayRelationalCalibratedProphecy(
     ReplayRelationalCalibratedProphecy
 ):
-    """Use one exact pre-transition holdout view for all same-step calibration.
+    """Frozen same-transition calibration with batched holdout refreshes.
 
-    The evaluator already freezes the holdout set used for its before/after score.
-    The current Neural-Delta calibrator must obey the same boundary: if the real
-    transition itself is assigned to holdout, it may calibrate *later* decisions
-    but never a prediction of the transition that produced it.
+    A calibration refresh evaluates exactly the same selected holdout transitions
+    as the scalar implementation, but sends them through one Neural-Delta batch.
+    This removes repeated GPU launch/synchronization overhead without changing the
+    holdout set, refresh cadence, scoring equation, or anti-hindsight boundary.
     """
 
     name = "current-frozen-relational-holdout-calibrated-prophecy"
@@ -71,6 +71,8 @@ class FrozenReplayRelationalCalibratedProphecy(
         super().__init__(*args, **kwargs)
         self._frozen_holdout: tuple[Any, ...] | None = None
         self.freeze_count = 0
+        self.calibration_batch_refreshes = 0
+        self.calibration_batch_rows = 0
 
     def freeze_holdout(self, items: tuple[Any, ...]) -> None:
         self._frozen_holdout = tuple(items)
@@ -103,13 +105,17 @@ class FrozenReplayRelationalCalibratedProphecy(
         if len(items) < self.minimum_count:
             value = 0.0
         else:
+            selected = tuple(items[-self.evaluation_limit :])
+            rows = self.base.predict_batch(
+                tuple(item.state for item in selected),
+                tuple(item.action for item in selected),
+                samples=1,
+            )
+            self.calibration_batch_refreshes += 1
+            self.calibration_batch_rows += len(selected)
             scores = []
-            for item in items[-self.evaluation_limit :]:
-                prediction = self.base.predict(
-                    item.state,
-                    item.action,
-                    samples=1,
-                )[0]
+            for item, row in zip(selected, rows, strict=True):
+                prediction = row[0]
                 predicted = prediction.next_state
                 error = fmean(
                     abs(left - right)
@@ -150,6 +156,9 @@ class FrozenReplayRelationalCalibratedProphecy(
             **super().diagnostics(),
             "holdout_freezes": self.freeze_count,
             "holdout_currently_frozen": int(self._frozen_holdout is not None),
+            "calibration_batch_refreshes": self.calibration_batch_refreshes,
+            "calibration_batch_rows": self.calibration_batch_rows,
+            "calibration_refresh_batching": 1,
         }
 
 
@@ -162,11 +171,11 @@ class CurrentSkillProphecy(RelationalContextualSkillAwareProphecy):
 
 
 class CurrentPentestRuntimeAgent(CurrentPentestAASSRAgent):
-    """Safe canonical current-generation runtime.
+    """Transitional current wrapper retained for compatibility tests only.
 
-    This thin layer exists so methodology guardrails can advance without editing
-    any historical v0.4/reproduction implementation. Legacy classes remain
-    importable, but the public current builder below always returns this runtime.
+    The package-level current builder now constructs the standalone current agent;
+    this class remains importable so earlier current-generation branches/tests can
+    reproduce their wiring without modifying frozen v0.4 code.
     """
 
     def __init__(
@@ -183,16 +192,10 @@ class CurrentPentestRuntimeAgent(CurrentPentestAASSRAgent):
             use_imagination=bool(use_imagination),
             device=device,
         )
-        # Overwrite archived/base wiring metadata with the independent active
-        # manifest before any caller can inspect or persist diagnostics.
         self.current_generation_version = CURRENT_GENERATION_VERSION
         self.current_components = dict(CURRENT_COMPONENTS)
         self.legacy_components_active = LEGACY_COMPONENTS_ACTIVE
 
-        # The base class is retained only as a wiring substrate. Replace the
-        # transient Neural Delta it constructed before any real transition can be
-        # observed so the active world model never receives raw identifier-index
-        # state input.
         neural = FullyRelationalNeuralDeltaProphecy(
             HttpAgentCodec(),
             config=NeuralDeltaConfig(
@@ -225,8 +228,6 @@ class CurrentPentestRuntimeAgent(CurrentPentestAASSRAgent):
         self.knowledge_prophecy = knowledge
         self.skill_prophecy = skill
 
-        # Rewire every active prediction consumer. Historical objects constructed
-        # by the base initializer become unreachable from the current runtime.
         self.core.base_prophecy = skill
         self.core.prophecy = skill
         self.effect_prophecy = skill
@@ -248,9 +249,6 @@ class CurrentPentestRuntimeAgent(CurrentPentestAASSRAgent):
                 training=False,
             )
 
-        # Freeze before AdvancedTransitionEvaluator can add the current sample to
-        # replay. Both pre-update and post-update model checks therefore use the
-        # exact same calibration evidence.
         self.calibrated_prophecy.freeze_holdout(
             tuple(self.evaluator.replay.holdout())
         )
@@ -286,7 +284,7 @@ def build_current_pentest_aassr_core(
     use_imagination: bool = True,
     device: str = "cpu",
 ) -> CurrentPentestRuntimeAgent:
-    """Public current-generation builder; legacy builders are reproduction-only."""
+    """Compatibility builder for the transitional runtime, not package default."""
 
     return CurrentPentestRuntimeAgent(
         seed=int(seed),
