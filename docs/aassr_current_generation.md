@@ -32,6 +32,7 @@ historical 2x2 training-mechanism runner.
 | Transfer state identity | rename-invariant relational descriptor | active |
 | Transfer action identity | route/profile/object relation features | active |
 | Policy | relational DQN + separate information-value residual | active |
+| Policy hardware | explicit shared torch device, sync-free Bellman target reduction | active |
 | Prophecy | Neural Delta ensemble | active |
 | Prophecy state input | rename-invariant relational state vector | active |
 | Prophecy action input | relational action features | active |
@@ -41,7 +42,7 @@ historical 2x2 training-mechanism runner.
 | Imagination | multi-step parallel-universe tree | active at frozen evaluation |
 | Branch scorer/pruning | GRU Branch Critic trained from final real outcome | active |
 | Skill | relational ASeq template rebound to current concrete actions | active |
-| GPU path | Neural Delta batch + depth-wise Imagination batching | active |
+| GPU path | DQN + Neural Delta on one requested device; depth-wise Imagination batching | active |
 | Current experiment protocol | standalone current protocol | active |
 | Effect-composed snapshot model | historical path | disabled |
 | hand-written Goal/StateDelta scorer | historical path | disabled |
@@ -51,6 +52,40 @@ historical 2x2 training-mechanism runner.
 `current_manifest.py` is the sole executable source of truth for the active
 component set. `LEGACY_COMPONENTS_ACTIVE` must remain empty. CI checks both the
 manifest and the actual instantiated object graph.
+
+## Hardware execution contract
+
+The current runtime no longer treats `--device cuda:0` as a Prophecy-only option.
+The same requested torch device is used for the active relational DQN and the
+Neural Delta world model.
+
+The DQN Bellman target implementation also avoids the historical CPU-shaped
+reduction pattern in which every replay row converted a next-action maximum to a
+Python scalar. On CUDA, that would force repeated device/host synchronization.
+The current hardware backend keeps those maxima as device tensors until the loss
+is formed. Artifacts explicitly record `per_row_target_item_syncs = 0`.
+
+Neural Delta primitive branches are evaluated depth-wise in batches during
+Imagination. Relational Skill macros retain their variable-length scalar fallback.
+This is a semantics-preserving batching optimization rather than a change to the
+planning algorithm.
+
+TF32 is a recorded execution option for CUDA float32 runs. It can be disabled with
+`--no-tf32`. Deterministic-algorithm mode remains enabled. `torch.compile` is not
+part of the active contract because the current workload has dynamic action-set
+sizes and short online updates where compile/recompile overhead may dominate,
+especially on the local Windows path.
+
+To verify the actual local CUDA path rather than merely the CPU-equivalent code
+path, run:
+
+```powershell
+python scripts/check_current_generation_hardware.py --device cuda:0
+```
+
+The check performs real DQN and Neural Delta forwards and requires AASSR DQN,
+AASSR Prophecy and the bare-DQN control to resolve to the requested CUDA device,
+with depth batching enabled and no per-row Bellman-target host sync.
 
 ## Two identity contracts
 
@@ -87,6 +122,34 @@ of itself. Explicit Knowledge follows the same anti-hindsight rule: only Knowled
 that existed before the action may influence the action's contextual prediction.
 Context-free holdout prediction never sees live episode Knowledge.
 
+## Current experiment conditions
+
+The current main has three reported conditions:
+
+1. `dqn_bare`
+2. `aassr_current_no_imagination`
+3. `aassr_current_full`
+
+`dqn_bare` is deliberately **DQN-only**, not an old raw-ID baseline. It shares the
+same current relational state/action representation so that a representation
+mismatch does not masquerade as an AASSR advantage. It also shares the same v3
+observation contract, response-causal environment, action surface, sparse external
+reward, adaptive-curriculum rule, seed pools, transition budget and hardware-aware
+DQN backend.
+
+It does **not** instantiate or use ASEQ, Knowledge, Prophecy, Imagination, Skills,
+the branch Critic, FeatureMemory, or the information-value residual.
+
+The bare DQN and AASSR train separate checkpoints and advance their adaptive
+curricula independently under the same predeclared rule. Within AASSR,
+`aassr_current_no_imagination` and `aassr_current_full` are evaluated from the
+**same persistent AASSR checkpoint**.
+
+Training exploration for both learners is indexed by the fraction of the global
+real-transition budget consumed. It does not reset at curriculum block boundaries.
+This corrects the earlier current-main wiring in which the AASSR epsilon index was
+accidentally restarted from a small per-block episode number.
+
 ## Same-checkpoint Imagination protocol
 
 Training-time Imagination intervention is disabled. Real interaction trains:
@@ -98,13 +161,14 @@ Training-time Imagination intervention is disabled. Real interaction trains:
 - GRU Branch Critic from final episode outcome,
 - Knowledge and relational Skill discovery.
 
-After training, the *same persistent checkpoint* is evaluated twice:
+After training, the *same persistent AASSR checkpoint* is evaluated twice:
 
 1. Policy-only / no Imagination;
 2. Full current AASSR with Imagination enabled when the learned Critic is ready.
 
-This avoids comparing two separately trained stochastic agents when estimating the
-marginal effect of Imagination.
+This avoids comparing two separately trained stochastic AASSR agents when
+estimating the marginal effect of Imagination. The independent `dqn_bare` checkpoint
+provides the external DQN-only control.
 
 ## GOAL status
 
@@ -129,16 +193,19 @@ CI fails if:
   current object graph;
 - renamed structural states/actions produce different current Policy or Prophecy
   inputs;
+- AASSR and bare DQN stop sharing the hardware-aware DQN backend;
+- the DQN target path reintroduces per-row host synchronization;
+- the bare DQN condition acquires an AASSR module;
 - same-checkpoint evaluation mutates persistent learning state.
 
 ## Before another full main
 
-Do not repeat the 90,000-transition main until all of the following are green:
+Do not repeat the old 90,000-transition main. Before a new full current-generation
+experiment, all of the following must be green:
 
-1. current-generation component/rename-invariance gate;
-2. real-transition smoke;
-3. same-checkpoint evaluation freeze smoke;
-4. reduced L0 learning smoke showing that the agent can discover at least one
-   successful trajectory without Oracle/guided/correct-action intervention;
+1. current-generation component/rename-invariance/hardware gate;
+2. local CUDA hardware-path smoke on the target machine;
+3. real-transition learning smoke;
+4. bare-DQN/current-AASSR condition smoke with frozen evaluation;
 5. a larger reduced run in which the learned GRU Critic becomes ready and the
    Full condition records real Imagination runs on the same checkpoint.
