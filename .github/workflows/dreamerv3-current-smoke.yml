@@ -1,0 +1,104 @@
+name: DreamerV3 current baseline smoke
+
+on:
+  pull_request:
+    paths:
+      - "src/aassr_v2/dreamerv3_baseline.py"
+      - "src/aassr_v2/dreamerv3_external.py"
+      - "src/aassr_v2/dreamerv3_hardware.py"
+      - "src/aassr_v2/current_experiment_suite.py"
+      - "scripts/check_dreamerv3_official_cpu_smoke.py"
+      - "scripts/run_dreamerv3_current_baseline.py"
+      - "tests/test_dreamerv3*.py"
+      - ".github/workflows/dreamerv3-current-smoke.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: dreamerv3-current-smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  official-cpu-api:
+    strategy:
+      fail-fast: false
+      matrix:
+        jax-version: ["0.4.33", "0.6.0"]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout AASSR
+        uses: actions/checkout@v4
+      - name: Checkout pinned official DreamerV3
+        uses: actions/checkout@v4
+        with:
+          repository: danijar/dreamerv3
+          ref: e3f02248693a79dc8b0ebd62c93683888ddaccfe
+          path: external/dreamerv3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install AASSR and DreamerV3 CPU dependencies
+        run: |
+          python -m pip install --upgrade pip "setuptools<82"
+          python -m pip install -e ".[dev,gpu]"
+          python -m pip install \
+            "numpy<2" \
+            "jax[cpu]==${{ matrix.jax-version }}" \
+            chex \
+            colored_traceback \
+            einops \
+            "elements>=3.19.1" \
+            "granular>=0.20.3" \
+            jaxtyping \
+            "ninjax>=3.5.1" \
+            optax \
+            "portal>=3.5.0" \
+            ruamel.yaml \
+            tqdm
+      - name: Verify pinned upstream SHA and JAX runtime
+        run: |
+          test "$(git -C external/dreamerv3 rev-parse HEAD)" = "e3f02248693a79dc8b0ebd62c93683888ddaccfe"
+          python - <<'PY'
+          import jax
+          print("jax=", jax.__version__)
+          assert jax.__version__ == "${{ matrix.jax-version }}"
+          PY
+      - name: Compile Dreamer bridge
+        run: |
+          python -m py_compile src/aassr_v2/dreamerv3_baseline.py
+          python -m py_compile src/aassr_v2/dreamerv3_external.py
+          python -m py_compile src/aassr_v2/dreamerv3_hardware.py
+          python -m py_compile src/aassr_v2/current_experiment_suite.py
+          python -m py_compile scripts/check_dreamerv3_official_cpu_smoke.py
+          python -m py_compile scripts/run_dreamerv3_current_baseline.py
+      - name: Run official DreamerV3 Agent Replay Driver train smoke
+        run: |
+          python scripts/check_dreamerv3_official_cpu_smoke.py \
+            --dreamer-root external/dreamerv3 \
+            --real-transitions 96 \
+            --output runs/dreamerv3_official_cpu_smoke-${{ matrix.jax-version }}.json
+      - name: Assert official API path actually trained
+        run: |
+          python - <<'PY'
+          import json
+          import jax
+          from pathlib import Path
+          result = json.loads(Path("runs/dreamerv3_official_cpu_smoke-${{ matrix.jax-version }}.json").read_text())
+          assert result["status"] == "official_dreamerv3_cpu_api_verified"
+          assert result["canonical_benchmark"] is False
+          assert result["upstream_commit"] == "e3f02248693a79dc8b0ebd62c93683888ddaccfe"
+          assert result["real_transitions"] == 96
+          assert result["gradient_updates"] == result["expected_gradient_updates"]
+          assert result["jax_hardware"]["actual_platforms"] == ["cpu"]
+          assert result["jax_hardware"]["accelerator_present"] is False
+          assert jax.__version__ == "${{ matrix.jax-version }}"
+          print(result)
+          PY
+      - name: Archive official DreamerV3 CPU smoke
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dreamerv3-current-official-cpu-smoke-jax-${{ matrix.jax-version }}
+          path: runs/dreamerv3_official_cpu_smoke-${{ matrix.jax-version }}.json
+          if-no-files-found: warn
