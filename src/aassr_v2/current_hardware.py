@@ -23,6 +23,7 @@ class CurrentHardwareInfo:
     dqn_gpu_sync_free_targets: bool = True
     dqn_fused_next_action_reduce: bool = True
     imagination_depth_batching: bool = True
+    critic_depth_batching: bool = True
     critic_on_shared_device: bool = True
     torch_compile_enabled: bool = False
 
@@ -35,13 +36,7 @@ def configure_current_hardware(
     *,
     allow_tf32: bool = True,
 ) -> CurrentHardwareInfo:
-    """Configure the active float32 torch path without changing the algorithm.
-
-    TF32 is a recorded local execution option. Deterministic-algorithm mode stays
-    enabled to preserve the current research contract. `torch.compile` remains
-    deliberately off: dynamic action cardinality and short online updates make
-    compile/recompile overhead risky on the Windows local path.
-    """
+    """Configure the active float32 torch path without changing the algorithm."""
 
     try:
         import torch
@@ -72,7 +67,7 @@ def configure_current_hardware(
         tf32_enabled = bool(allow_tf32)
         try:
             torch.backends.cuda.matmul.allow_tf32 = tf32_enabled
-        except (AttributeError, RuntimeError):  # pragma: no cover - torch-version dependent
+        except (AttributeError, RuntimeError):  # pragma: no cover
             pass
         try:
             torch.backends.cudnn.allow_tf32 = tf32_enabled
@@ -82,7 +77,6 @@ def configure_current_hardware(
         if callable(setter):
             setter("high" if tf32_enabled else "highest")
 
-    deterministic = bool(torch.are_deterministic_algorithms_enabled())
     return CurrentHardwareInfo(
         requested_device=str(device),
         resolved_device=str(resolved),
@@ -93,17 +87,12 @@ def configure_current_hardware(
         torch_version=str(torch.__version__),
         float_dtype="float32",
         tf32_enabled=tf32_enabled,
-        deterministic_algorithms=deterministic,
+        deterministic_algorithms=bool(torch.are_deterministic_algorithms_enabled()),
     )
 
 
 class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
-    """The current relational DQN on an explicit torch device.
-
-    Bellman next-action values are scored in one flat batch and reduced with one
-    device scatter-reduce. This avoids both per-row `.item()` synchronization and
-    one separate max kernel per replay row.
-    """
+    """Current relational DQN with batched, sync-free Bellman target reduction."""
 
     name = "hardware-relational-invariant-dqn"
 
@@ -201,7 +190,7 @@ class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
 
 
 class HardwareRelationalGRUBranchCritic(RelationalGRUBranchCritic):
-    """Current relational GRU Critic on the same device as Policy/Prophecy."""
+    """Relational GRU Critic with one batched score call per tree depth."""
 
     name = "hardware-relational-gru-branch-critic"
 
@@ -215,6 +204,9 @@ class HardwareRelationalGRUBranchCritic(RelationalGRUBranchCritic):
             tuple(self.gru.parameters()) + tuple(self.output.parameters()),
             lr=learning_rate,
         )
+        self.scalar_score_calls = 0
+        self.batch_score_calls = 0
+        self.batch_score_rows = 0
 
     def _tensor(self, values: Any) -> Any:
         return self.torch.as_tensor(
@@ -253,6 +245,7 @@ class HardwareRelationalGRUBranchCritic(RelationalGRUBranchCritic):
         memory: Any = None,
         prophecy_confidence: float = 1.0,
     ) -> BranchCriticStep:
+        self.scalar_score_calls += 1
         encoded = self.encoder.encode(
             CriticTransition(before, action, after, prophecy_confidence)
         )
@@ -264,11 +257,64 @@ class HardwareRelationalGRUBranchCritic(RelationalGRUBranchCritic):
             )
         return BranchCriticStep(value, next_hidden.detach().clone())
 
+    def score_step_batch(
+        self,
+        befores: Sequence[StateSnapshot],
+        actions: Sequence[Action],
+        afters: Sequence[StateSnapshot],
+        memories: Sequence[Any],
+        prophecy_confidences: Sequence[float],
+    ) -> tuple[BranchCriticStep, ...]:
+        length = len(befores)
+        if not (
+            length == len(actions)
+            == len(afters)
+            == len(memories)
+            == len(prophecy_confidences)
+        ):
+            raise ValueError("critic batch inputs have different lengths")
+        if not length:
+            return ()
+
+        encoded = tuple(
+            self.encoder.encode(
+                CriticTransition(before, action, after, confidence)
+            )
+            for before, action, after, confidence in zip(
+                befores,
+                actions,
+                afters,
+                prophecy_confidences,
+                strict=True,
+            )
+        )
+        hidden_rows = [
+            self.initial_memory() if memory is None else memory.to(self.device)
+            for memory in memories
+        ]
+        hidden = self.torch.cat(hidden_rows, dim=0)
+        with self.torch.no_grad():
+            next_hidden = self.gru(self._tensor(encoded), hidden)
+            values = self.torch.sigmoid(self.output(next_hidden).squeeze(1))
+            host_values = values.detach().cpu().tolist()
+        self.batch_score_calls += 1
+        self.batch_score_rows += length
+        return tuple(
+            BranchCriticStep(
+                float(value),
+                next_hidden[index : index + 1].detach().clone(),
+            )
+            for index, value in enumerate(host_values)
+        )
+
     def hardware_stats(self) -> dict[str, Any]:
         return {
             "device": str(self.device),
             "device_type": self.device.type,
             "hardware_optimized": 1,
+            "scalar_score_calls": self.scalar_score_calls,
+            "batch_score_calls": self.batch_score_calls,
+            "batch_score_rows": self.batch_score_rows,
         }
 
 
@@ -280,7 +326,7 @@ def install_hardware_dqn(
     device: str,
     allow_tf32: bool = True,
 ) -> CurrentHardwareInfo:
-    """Install the shared-device Policy DQN and branch Critic for current AASSR."""
+    """Install shared-device Policy DQN and batched branch Critic for AASSR."""
 
     from .current_generation import CurrentRelationalPolicy
 
@@ -307,21 +353,22 @@ def install_hardware_dqn(
 
 def hardware_diagnostics(agent: object) -> dict[str, Any]:
     info = getattr(agent, "hardware_info", None)
-    if isinstance(info, CurrentHardwareInfo):
-        output = info.as_dict()
-    else:
-        output = {}
-    dqn = getattr(agent, "dqn", None)
-    dqn_stats = getattr(dqn, "model_stats", None)
+    output = info.as_dict() if isinstance(info, CurrentHardwareInfo) else {}
+    dqn_stats = getattr(getattr(agent, "dqn", None), "model_stats", None)
     if callable(dqn_stats):
         output["dqn"] = dict(dqn_stats())
-    prophecy = getattr(agent, "base_neural_prophecy", None)
-    prophecy_diagnostics = getattr(prophecy, "diagnostics", None)
+    prophecy_diagnostics = getattr(
+        getattr(agent, "base_neural_prophecy", None),
+        "diagnostics",
+        None,
+    )
     if callable(prophecy_diagnostics):
         output["prophecy"] = dict(prophecy_diagnostics())
-    critic = getattr(agent, "critic", None)
-    critic_hardware = getattr(critic, "hardware_stats", None)
+    critic_hardware = getattr(getattr(agent, "critic", None), "hardware_stats", None)
     if callable(critic_hardware):
         output["critic"] = dict(critic_hardware())
+    planner_diagnostics = getattr(getattr(agent, "planner", None), "runtime_diagnostics", None)
+    if callable(planner_diagnostics):
+        output["planner"] = dict(planner_diagnostics())
     output["depth_batching"] = bool(getattr(agent, "current_depth_batching", False))
     return output
