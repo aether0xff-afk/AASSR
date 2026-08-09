@@ -5,6 +5,8 @@ import pytest
 pytest.importorskip("torch")
 
 from aassr_v2.current_experiment_suite import (
+    CANONICAL_DREAMERV3_ACTION_ADAPTER,
+    CANONICAL_DREAMERV3_ACTION_SPACE,
     CANONICAL_DREAMERV3_COMPUTE_DTYPE,
     CANONICAL_DREAMERV3_JAX_PLATFORM,
     CANONICAL_DREAMERV3_PRESET,
@@ -167,8 +169,8 @@ def test_adapter_manifest_declares_official_categorical_unmodified_upstream() ->
     assert manifest["upstream_repository"] == "danijar/dreamerv3"
     assert manifest["upstream_agent_modified"] is False
     assert manifest["oracle_information"] is False
-    assert manifest["actor_action_space"] == "categorical-relational-slot-240"
-    assert manifest["legal_action_adapter"] == "nearest-current-relational-slot"
+    assert manifest["actor_action_space"] == CANONICAL_DREAMERV3_ACTION_SPACE
+    assert manifest["legal_action_adapter"] == CANONICAL_DREAMERV3_ACTION_ADAPTER
     assert manifest["slot_count"] == 240
 
 
@@ -218,6 +220,9 @@ def _fake_dreamer_summary() -> dict[str, object]:
             "commit_matches_pin": True,
             "upstream_agent_modified": False,
             "oracle_information": False,
+            "actor_action_space": CANONICAL_DREAMERV3_ACTION_SPACE,
+            "legal_action_adapter": CANONICAL_DREAMERV3_ACTION_ADAPTER,
+            "slot_count": 240,
         },
         "official_config": {
             "preset": CANONICAL_DREAMERV3_PRESET,
@@ -227,6 +232,9 @@ def _fake_dreamer_summary() -> dict[str, object]:
             "jax_platform": CANONICAL_DREAMERV3_JAX_PLATFORM,
             "prealloc": True,
         },
+        "official_train_ratio_step_semantics": (
+            "embodied-driver-step-including-is_first"
+        ),
         "sparse_reward": {
             "success": 1.0,
             "failure": -1.0,
@@ -253,17 +261,29 @@ def test_five_condition_suite_requires_matching_scientific_contracts() -> None:
     assert result["nominal_total_training_transitions"] == 40_000
     assert result["diagnostic_successes"]["dreamerv3_relational"] == 5
     assert result["comparison_contract"]["dreamerv3_upstream_algorithm_modified"] is False
+    assert result["comparison_contract"]["dreamerv3_actor_action_space"] == (
+        CANONICAL_DREAMERV3_ACTION_SPACE
+    )
 
 
 def test_five_condition_suite_rejects_noncanonical_dreamer_checkout() -> None:
     dreamer = _fake_dreamer_summary()
     dreamer["official_upstream"] = {
+        **dreamer["official_upstream"],
         "actual_commit": "deadbeef",
         "commit_matches_pin": False,
-        "upstream_agent_modified": False,
-        "oracle_information": False,
     }
     with pytest.raises(ValueError, match="pinned official DreamerV3"):
+        assemble_current_generation_suite(_fake_current_summary(), dreamer)
+
+
+def test_five_condition_suite_rejects_noncanonical_action_adapter() -> None:
+    dreamer = _fake_dreamer_summary()
+    dreamer["official_upstream"] = {
+        **dreamer["official_upstream"],
+        "actor_action_space": "continuous-relational-vector-92",
+    }
+    with pytest.raises(ValueError, match="dreamerv3_actor_action_space"):
         assemble_current_generation_suite(_fake_current_summary(), dreamer)
 
 
