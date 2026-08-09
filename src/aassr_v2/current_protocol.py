@@ -120,7 +120,13 @@ def run_current_episode(
     training: bool,
     budget_cap: bool = False,
 ) -> tuple[CurrentEpisodeRow, int]:
-    """Execute one current-generation episode with sparse external reward only."""
+    """Execute one episode under the current sparse-reward protocol.
+
+    During training, exploration is indexed by the fraction of the *global real
+    transition budget* already consumed. It never resets at a curriculum block
+    boundary. The supplied `episode` remains the recorded episode label and is
+    used directly only in frozen evaluation, where exploration is disabled.
+    """
 
     stage = TRANSFER_STAGES[int(stage_index)]
     world = TransferDiagnosticWorld(int(scenario_seed), stage=stage)
@@ -141,13 +147,17 @@ def run_current_episode(
         and not world.rate_limited
     ):
         remaining = transition_cap - transitions
-        exploration = exploration_index(
-            transition_start + transitions,
-            transition_budget,
+        decision_index = (
+            exploration_index(
+                transition_start + transitions,
+                transition_budget,
+            )
+            if training
+            else int(episode)
         )
         step = agent.step(
             world,
-            episode=exploration,
+            episode=decision_index,
             training=training,
             primitive_budget=remaining,
         )
