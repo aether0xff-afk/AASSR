@@ -17,11 +17,10 @@ from .types import StateSnapshot
 class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
     """Current tree with depth batching for both Prophecy and learned Critic.
 
-    `DepthBatchedImaginationTree` already batches all primitive Prophecy calls at
-    one search depth. The current learned GRU Critic is also batch-capable, so the
-    complete set of predicted child transitions at that depth is scored in one GRU
-    call rather than one tiny GPU call plus host synchronization per branch.
-    Stateless/historical scorers keep the inherited scalar semantics as fallback.
+    All primitive Prophecy work at one depth is batched by the current Prophecy
+    view, and every resulting child transition is then scored by one Critic batch.
+    Candidate metadata carries recurrent memories directly, avoiding a second
+    O(N^2) search over the depth work list when child nodes are constructed.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -154,7 +153,7 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
                 )
 
             candidate_metadata: list[
-                tuple[ImaginationNode, Any, Any, float]
+                tuple[ImaginationNode, Any, Any, float, Any]
             ] = []
             for (node, scored_action), step in zip(work, steps, strict=True):
                 predictions = sorted(
@@ -169,12 +168,13 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
                             scored_action,
                             prediction,
                             self._prediction_confidence(prediction),
+                            step.memory,
                         )
                     )
 
             score_input = tuple(
                 (node, scored_action, prediction.next_state, confidence)
-                for node, scored_action, prediction, confidence in candidate_metadata
+                for node, scored_action, prediction, confidence, _ in candidate_metadata
             )
             scored_rows = self._score_candidates(score_input)
 
@@ -184,6 +184,7 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
                 scored_action,
                 prediction,
                 step_confidence,
+                prophecy_memory,
             ), (
                 immediate_value,
                 scorer_memory,
@@ -239,17 +240,7 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
                     step_confidence=step_confidence,
                     cumulative_confidence=cumulative_confidence,
                     policy_memory=branch_policy_memory,
-                    prophecy_memory=next(
-                        step.memory
-                        for (work_node, work_action), step in zip(
-                            work,
-                            steps,
-                            strict=True,
-                        )
-                        if work_node is node
-                        and work_action.action.signature
-                        == scored_action.action.signature
-                    ),
+                    prophecy_memory=prophecy_memory,
                     terminal_reason=terminal_reason,
                     scorer_memory=scorer_memory,
                 )
