@@ -1,0 +1,88 @@
+name: DreamerV3 current baseline smoke
+
+on:
+  pull_request:
+    paths:
+      - "src/aassr_v2/dreamerv3_baseline.py"
+      - "src/aassr_v2/dreamerv3_external.py"
+      - "src/aassr_v2/current_experiment_suite.py"
+      - "scripts/check_dreamerv3_official_cpu_smoke.py"
+      - "scripts/run_dreamerv3_current_baseline.py"
+      - "tests/test_dreamerv3*.py"
+      - ".github/workflows/dreamerv3-current-smoke.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: dreamerv3-current-smoke-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  official-cpu-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout AASSR
+        uses: actions/checkout@v4
+      - name: Checkout pinned official DreamerV3
+        uses: actions/checkout@v4
+        with:
+          repository: danijar/dreamerv3
+          ref: e3f02248693a79dc8b0ebd62c93683888ddaccfe
+          path: external/dreamerv3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install AASSR and minimal official DreamerV3 CPU dependencies
+        run: |
+          python -m pip install --upgrade pip "setuptools<82"
+          python -m pip install -e ".[dev,gpu]"
+          python -m pip install \
+            "numpy<2" \
+            "jax[cpu]==0.4.33" \
+            chex \
+            colored_traceback \
+            einops \
+            "elements>=3.19.1" \
+            "granular>=0.20.3" \
+            jaxtyping \
+            "ninjax>=3.5.1" \
+            optax \
+            "portal>=3.5.0" \
+            ruamel.yaml \
+            tqdm
+      - name: Verify pinned upstream SHA
+        run: |
+          test "$(git -C external/dreamerv3 rev-parse HEAD)" = "e3f02248693a79dc8b0ebd62c93683888ddaccfe"
+      - name: Compile Dreamer bridge
+        run: |
+          python -m py_compile src/aassr_v2/dreamerv3_baseline.py
+          python -m py_compile src/aassr_v2/dreamerv3_external.py
+          python -m py_compile src/aassr_v2/current_experiment_suite.py
+          python -m py_compile scripts/check_dreamerv3_official_cpu_smoke.py
+      - name: Run official DreamerV3 Agent Replay Driver train smoke
+        run: |
+          python scripts/check_dreamerv3_official_cpu_smoke.py \
+            --dreamer-root external/dreamerv3 \
+            --real-transitions 96 \
+            --output runs/dreamerv3_official_cpu_smoke.json
+      - name: Assert official API path actually trained
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path("runs/dreamerv3_official_cpu_smoke.json").read_text())
+          assert result["status"] == "official_dreamerv3_cpu_api_verified"
+          assert result["canonical_benchmark"] is False
+          assert result["upstream_commit"] == "e3f02248693a79dc8b0ebd62c93683888ddaccfe"
+          assert result["real_transitions"] == 96
+          assert result["gradient_updates"] > 0
+          print(result)
+          PY
+      - name: Archive official DreamerV3 CPU smoke
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dreamerv3-current-official-cpu-smoke
+          path: runs/dreamerv3_official_cpu_smoke.json
+          if-no-files-found: warn
