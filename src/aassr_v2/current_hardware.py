@@ -4,7 +4,13 @@ from dataclasses import asdict, dataclass
 from typing import Any, Sequence
 
 from .branch_critic import BranchCriticStep, CriticTransition
-from .current_generation import RelationalGRUBranchCritic, RelationalInvariantDQN
+from .current_generation import (
+    CurrentRelationalPolicy,
+    RelationalGRUBranchCritic,
+    RelationalInvariantDQN,
+)
+from .policy import ScoredAction
+from .skills import SKILL_VERB
 from .types import Action, StateSnapshot
 
 
@@ -20,10 +26,12 @@ class CurrentHardwareInfo:
     float_dtype: str
     tf32_enabled: bool
     deterministic_algorithms: bool
+    policy_depth_batching: bool = True
     dqn_gpu_sync_free_targets: bool = True
     dqn_fused_next_action_reduce: bool = True
     imagination_depth_batching: bool = True
     critic_depth_batching: bool = True
+    critic_training_batching: bool = True
     critic_on_shared_device: bool = True
     torch_compile_enabled: bool = False
 
@@ -36,7 +44,7 @@ def configure_current_hardware(
     *,
     allow_tf32: bool = True,
 ) -> CurrentHardwareInfo:
-    """Configure the active float32 torch path without changing the algorithm."""
+    """Configure the active float32 torch path without changing task semantics."""
 
     try:
         import torch
@@ -92,7 +100,7 @@ def configure_current_hardware(
 
 
 class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
-    """Current relational DQN with batched, sync-free Bellman target reduction."""
+    """Relational DQN with explicit device, fused targets and pair batching."""
 
     name = "hardware-relational-invariant-dqn"
 
@@ -115,6 +123,9 @@ class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
         self.target.eval()
         self.device_target_reductions = 0
         self.fused_target_reduce_calls = 0
+        self.pair_score_batch_calls = 0
+        self.pair_score_batch_rows = 0
+        self.pair_score_unique_rows = 0
 
     def _tensor(self, values: Any, *, dtype: Any | None = None) -> Any:
         return self.torch.as_tensor(
@@ -122,6 +133,38 @@ class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
             dtype=dtype or self.torch.float32,
             device=self.device,
         )
+
+    def score_state_action_batch(
+        self,
+        states: Sequence[StateSnapshot],
+        actions: Sequence[Action],
+    ) -> tuple[float, ...]:
+        if len(states) != len(actions):
+            raise ValueError("DQN pair batch states/actions length mismatch")
+        if not states:
+            return ()
+
+        keys = tuple(
+            self.encode_state(state) + self._action_features(state, action)
+            for state, action in zip(states, actions, strict=True)
+        )
+        unique: list[tuple[float, ...]] = []
+        index_by_key: dict[tuple[float, ...], int] = {}
+        inverse: list[int] = []
+        for key in keys:
+            index = index_by_key.get(key)
+            if index is None:
+                index = len(unique)
+                index_by_key[key] = index
+                unique.append(key)
+            inverse.append(index)
+
+        with self.torch.no_grad():
+            values = self.online(self._tensor(unique)).squeeze(1).detach().cpu().tolist()
+        self.pair_score_batch_calls += 1
+        self.pair_score_batch_rows += len(states)
+        self.pair_score_unique_rows += len(unique)
+        return tuple(float(values[index]) for index in inverse)
 
     def _train_step(self) -> None:
         batch = self.randomizer.sample(list(self.replay), self.batch_size)
@@ -183,14 +226,76 @@ class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
                 "fused_target_reduce_calls": self.fused_target_reduce_calls,
                 "per_row_target_item_syncs": 0,
                 "fused_next_action_reduce": 1,
+                "pair_score_batch_calls": self.pair_score_batch_calls,
+                "pair_score_batch_rows": self.pair_score_batch_rows,
+                "pair_score_unique_rows": self.pair_score_unique_rows,
                 "hardware_optimized": 1,
             }
         )
         return stats
 
 
+class HardwareCurrentRelationalPolicy(CurrentRelationalPolicy):
+    """Current Policy with one DQN pair batch for an entire tree frontier."""
+
+    name = "hardware-current-relational-policy"
+
+    def rank_batch(
+        self,
+        states: Sequence[StateSnapshot],
+        limits: Sequence[int],
+        memories: Sequence[Any],
+    ) -> tuple[tuple[ScoredAction, ...], ...]:
+        if not (len(states) == len(limits) == len(memories)):
+            raise ValueError("Policy batch states/limits/memories length mismatch")
+        if any(limit <= 0 for limit in limits):
+            raise ValueError("Policy batch limits must be positive")
+        if not states:
+            return ()
+
+        pair_states: list[StateSnapshot] = []
+        pair_actions: list[Action] = []
+        for state in states:
+            for action in state.available_actions:
+                if action.verb_name != SKILL_VERB:
+                    pair_states.append(state)
+                    pair_actions.append(action)
+        primitive_values = self.dqn.score_state_action_batch(
+            pair_states,
+            pair_actions,
+        )
+        value_iter = iter(primitive_values)
+
+        output = []
+        for state, limit, memory in zip(states, limits, memories, strict=True):
+            deltas = {} if memory is None else memory.deltas
+            rows = []
+            for action in state.available_actions:
+                if action.verb_name == SKILL_VERB:
+                    entry = self._skill_values.get(str(action.target))
+                    base = 0.0 if entry is None else entry.mean
+                else:
+                    external = next(value_iter)
+                    base = external + self._information_entry(state, action).mean
+                rows.append(
+                    ScoredAction(
+                        action,
+                        float(base) + float(deltas.get(action.signature, 0.0)),
+                    )
+                )
+            rows.sort(key=lambda item: (-item.score, item.action.signature))
+            output.append(tuple(rows[:limit]))
+        try:
+            next(value_iter)
+        except StopIteration:
+            pass
+        else:  # pragma: no cover - defensive contract check
+            raise RuntimeError("Policy primitive batch left unused DQN scores")
+        return tuple(output)
+
+
 class HardwareRelationalGRUBranchCritic(RelationalGRUBranchCritic):
-    """Relational GRU Critic with one batched score call per tree depth."""
+    """GRU Critic with depth-batched scoring and episode-batched training."""
 
     name = "hardware-relational-gru-branch-critic"
 
@@ -207,6 +312,9 @@ class HardwareRelationalGRUBranchCritic(RelationalGRUBranchCritic):
         self.scalar_score_calls = 0
         self.batch_score_calls = 0
         self.batch_score_rows = 0
+        self.train_batch_calls = 0
+        self.train_batch_time_steps = 0
+        self.train_batch_transition_rows = 0
 
     def _tensor(self, values: Any) -> Any:
         return self.torch.as_tensor(
@@ -222,19 +330,56 @@ class HardwareRelationalGRUBranchCritic(RelationalGRUBranchCritic):
             device=self.device,
         )
 
-    def _episode_loss(
-        self,
-        encoded: Sequence[tuple[float, ...]],
-        target: float,
-    ) -> Any:
-        hidden = self.initial_memory()
-        logits = []
-        for item in encoded:
-            hidden = self.gru(self._tensor(item).unsqueeze(0), hidden)
-            logits.append(self.output(hidden)[0, 0])
-        stacked = self.torch.stack(logits)
-        targets = self.torch.full_like(stacked, target)
-        return self.nn.functional.binary_cross_entropy_with_logits(stacked, targets)
+    def _train_step(self) -> None:
+        batch = self.randomizer.sample(list(self.replay), self.batch_size)
+        lengths = [len(encoded) for encoded, _ in batch]
+        max_length = max(lengths)
+        batch_size = len(batch)
+        feature_size = self.encoder.feature_size
+        hidden = self.torch.zeros(
+            (batch_size, self.hidden_units),
+            dtype=self.torch.float32,
+            device=self.device,
+        )
+        targets = self._tensor([target for _, target in batch])
+        loss_sums = self.torch.zeros(
+            batch_size,
+            dtype=self.torch.float32,
+            device=self.device,
+        )
+        zero = (0.0,) * feature_size
+
+        for step_index in range(max_length):
+            rows = [
+                encoded[step_index] if step_index < len(encoded) else zero
+                for encoded, _ in batch
+            ]
+            hidden = self.gru(self._tensor(rows), hidden)
+            logits = self.output(hidden).squeeze(1)
+            per_row = self.nn.functional.binary_cross_entropy_with_logits(
+                logits,
+                targets,
+                reduction="none",
+            )
+            mask = self._tensor(
+                [float(step_index < length) for length in lengths]
+            )
+            loss_sums = loss_sums + per_row * mask
+
+        length_tensor = self._tensor(lengths)
+        loss = (loss_sums / length_tensor).mean()
+        self.optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        self.nn.utils.clip_grad_norm_(
+            tuple(self.gru.parameters()) + tuple(self.output.parameters()),
+            5.0,
+        )
+        self.optimizer.step()
+        self.gradient_updates += 1
+        self._losses.append(float(loss.detach().cpu().item()))
+        self.train_batch_calls += 1
+        self.train_batch_time_steps += max_length
+        self.train_batch_transition_rows += sum(lengths)
 
     def score_step(
         self,
@@ -288,11 +433,13 @@ class HardwareRelationalGRUBranchCritic(RelationalGRUBranchCritic):
                 strict=True,
             )
         )
-        hidden_rows = [
-            self.initial_memory() if memory is None else memory.to(self.device)
-            for memory in memories
-        ]
-        hidden = self.torch.cat(hidden_rows, dim=0)
+        hidden = self.torch.cat(
+            [
+                self.initial_memory() if memory is None else memory.to(self.device)
+                for memory in memories
+            ],
+            dim=0,
+        )
         with self.torch.no_grad():
             next_hidden = self.gru(self._tensor(encoded), hidden)
             values = self.torch.sigmoid(self.output(next_hidden).squeeze(1))
@@ -315,6 +462,9 @@ class HardwareRelationalGRUBranchCritic(RelationalGRUBranchCritic):
             "scalar_score_calls": self.scalar_score_calls,
             "batch_score_calls": self.batch_score_calls,
             "batch_score_rows": self.batch_score_rows,
+            "train_batch_calls": self.train_batch_calls,
+            "train_batch_time_steps": self.train_batch_time_steps,
+            "train_batch_transition_rows": self.train_batch_transition_rows,
         }
 
 
@@ -326,9 +476,7 @@ def install_hardware_dqn(
     device: str,
     allow_tf32: bool = True,
 ) -> CurrentHardwareInfo:
-    """Install shared-device Policy DQN and batched branch Critic for AASSR."""
-
-    from .current_generation import CurrentRelationalPolicy
+    """Install the hardware Policy DQN and batched branch Critic for AASSR."""
 
     info = configure_current_hardware(device, allow_tf32=allow_tf32)
     dqn = HardwareRelationalInvariantDQN(
@@ -336,7 +484,7 @@ def install_hardware_dqn(
         train_transitions=int(train_transitions),
         device=info.resolved_device,
     )
-    policy = CurrentRelationalPolicy(dqn)
+    policy = HardwareCurrentRelationalPolicy(dqn)
     critic = HardwareRelationalGRUBranchCritic(
         int(seed) ^ 0x43524954,
         device=info.resolved_device,
@@ -371,4 +519,5 @@ def hardware_diagnostics(agent: object) -> dict[str, Any]:
     if callable(planner_diagnostics):
         output["planner"] = dict(planner_diagnostics())
     output["depth_batching"] = bool(getattr(agent, "current_depth_batching", False))
+    output["critic_batching"] = bool(getattr(agent, "current_critic_batching", False))
     return output
