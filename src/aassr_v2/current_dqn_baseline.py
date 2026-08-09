@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from types import SimpleNamespace
 from typing import Any
 
 from .action_plugins import PluginOutcome
@@ -189,8 +188,6 @@ class BareRelationalDQNAgent:
                 **self.hardware_info.as_dict(),
                 "dqn": dict(self.dqn.model_stats()),
             },
-            # Compatibility shape for code that reports whether a planner exists.
-            "core": SimpleNamespace(planner=None),
         }
 
 
