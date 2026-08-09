@@ -13,7 +13,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
             "Verify that current AASSR neural components and bare DQN use the "
-            "requested torch device and that depth batching remains enabled."
+            "requested torch device and that Prophecy/Critic depth batching works."
         )
     )
     parser.add_argument("--device", default="cuda:0")
@@ -48,13 +48,8 @@ def main() -> None:
         actions,
         samples=1,
     )
-    aassr.critic.score_step(
-        state,
-        actions[0],
-        state,
-        memory=None,
-        prophecy_confidence=0.5,
-    )
+    # Planner call exercises the depth-batched Prophecy and Critic path together.
+    aassr.planner.plan(state, maximum_depth=1)
 
     aassr_hw = hardware_diagnostics(aassr)
     bare_hw = bare.diagnostics()["hardware"]
@@ -73,6 +68,12 @@ def main() -> None:
         raise AssertionError("DQN target path reintroduced per-row host syncs")
     if aassr_hw["dqn"]["fused_next_action_reduce"] != 1:
         raise AssertionError("DQN target reductions are not fused")
+    if aassr_hw["planner"]["critic_batch_calls"] <= 0:
+        raise AssertionError("current planner did not batch Critic scoring")
+    if aassr_hw["planner"]["critic_scalar_fallback_rows"] != 0:
+        raise AssertionError("current planner fell back to scalar Critic scoring")
+    if aassr_hw["critic"]["scalar_score_calls"] != 0:
+        raise AssertionError("current Critic performed per-branch scalar scoring")
 
     print(
         json.dumps(
