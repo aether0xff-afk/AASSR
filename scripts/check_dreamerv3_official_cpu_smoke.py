@@ -121,6 +121,24 @@ def main() -> None:
         raise AssertionError((consumed, args.real_transitions))
     if train_state.real_transitions != consumed:
         raise AssertionError((train_state.real_transitions, consumed))
+
+    expected_driver_steps = consumed + episodes
+    if train_state.driver_steps != expected_driver_steps:
+        raise AssertionError(
+            (train_state.driver_steps, expected_driver_steps)
+        )
+    batch_steps = int(config.batch_size) * int(config.batch_length)
+    expected_updates = int(
+        train_state.driver_steps * 8.0 / float(batch_steps)
+    )
+    if train_state.gradient_updates != expected_updates:
+        raise AssertionError(
+            (
+                "DreamerV3 train cadence diverged from official Driver-step Ratio",
+                train_state.gradient_updates,
+                expected_updates,
+            )
+        )
     if train_state.gradient_updates <= 0:
         raise AssertionError(
             "official DreamerV3 CPU smoke never reached agent.train(); increase "
@@ -128,6 +146,8 @@ def main() -> None:
         )
 
     updates_before_eval = train_state.gradient_updates
+    driver_steps_before_eval = train_state.driver_steps
+    real_steps_before_eval = train_state.real_transitions
     eval_row = _run_episode(
         upstream=upstream,
         agent=agent,
@@ -147,6 +167,10 @@ def main() -> None:
     )
     if train_state.gradient_updates != updates_before_eval:
         raise AssertionError("official DreamerV3 eval mutated training updates")
+    if train_state.driver_steps != driver_steps_before_eval:
+        raise AssertionError("official DreamerV3 eval mutated Driver-step state")
+    if train_state.real_transitions != real_steps_before_eval:
+        raise AssertionError("official DreamerV3 eval mutated real-step state")
 
     result = {
         "status": "official_dreamerv3_cpu_api_verified",
@@ -155,7 +179,12 @@ def main() -> None:
         "jax_platform": "cpu",
         "upstream_debug_preset": True,
         "real_transitions": consumed,
+        "driver_steps": train_state.driver_steps,
+        "official_train_ratio_step_semantics": (
+            "embodied-driver-step-including-is_first"
+        ),
         "gradient_updates": train_state.gradient_updates,
+        "expected_gradient_updates": expected_updates,
         "training_episodes": episodes,
         "training_successes": sum(row.success for row in train_rows),
         "eval_status": eval_row.status,
