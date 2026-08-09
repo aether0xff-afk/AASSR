@@ -4,6 +4,7 @@ from .current_agent import (
     CurrentStandalonePentestAASSRAgent,
     build_current_standalone_pentest_aassr_core,
 )
+from .current_decision_optimization import install_current_decision_optimizations
 from .current_hardware import install_hardware_dqn
 from .current_planner import CurrentFullyBatchedImaginationTree
 from .current_validation import install_current_fast_validation
@@ -39,7 +40,9 @@ def build_current_pentest_aassr_core(
     Neural Delta prediction and learned GRU branch scoring. DQN, Neural Delta and
     the GRU Critic share the requested torch device. Holdout validation keeps the
     same samples/frequency/signal while skipping symbolic StateSnapshot/action
-    reconstruction that the cosine validator never consumes.
+    reconstruction that the cosine validator never consumes. Decision gating also
+    skips Prophecy coverage when an earlier gate already makes it irrelevant, and
+    memoizes repeated relational confidence values when coverage is required.
     """
 
     if not enable_batching:
@@ -63,4 +66,5 @@ def build_current_pentest_aassr_core(
         allow_tf32=bool(allow_tf32),
     )
     install_current_fast_validation(agent)
+    install_current_decision_optimizations(agent)
     return agent
