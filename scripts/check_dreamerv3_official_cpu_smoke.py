@@ -12,6 +12,7 @@ from aassr_v2.dreamerv3_external import (
     _official_config,
     _run_episode,
 )
+from aassr_v2.dreamerv3_hardware import actual_jax_hardware_manifest
 
 
 def main() -> None:
@@ -47,9 +48,6 @@ def main() -> None:
         prealloc=False,
     )
 
-    # Overlay the official upstream debug preset only for API/contract smoke cost.
-    # Final suite assembly explicitly rejects CPU, train_ratio=8, and noncanonical
-    # config artifacts, so this path cannot become a benchmark result.
     configs = upstream["yaml"].YAML(typ="safe").load(
         (upstream["root"] / "dreamerv3" / "configs.yaml").read_text(
             encoding="utf-8"
@@ -80,6 +78,10 @@ def main() -> None:
         phase="probe",
     )
     agent = _make_agent(upstream, config, probe)
+    jax_hardware = actual_jax_hardware_manifest("cpu")
+    if "cpu" not in jax_hardware["actual_platforms"]:
+        raise AssertionError(jax_hardware)
+
     replay = upstream["main"].make_replay(config, "replay")
     train_stream = iter(
         agent.stream(upstream["main"].make_stream(config, replay, "train"))
@@ -124,9 +126,7 @@ def main() -> None:
 
     expected_driver_steps = consumed + episodes
     if train_state.driver_steps != expected_driver_steps:
-        raise AssertionError(
-            (train_state.driver_steps, expected_driver_steps)
-        )
+        raise AssertionError((train_state.driver_steps, expected_driver_steps))
     batch_steps = int(config.batch_size) * int(config.batch_length)
     expected_updates = int(
         train_state.driver_steps * 8.0 / float(batch_steps)
@@ -177,6 +177,7 @@ def main() -> None:
         "canonical_benchmark": False,
         "upstream_commit": upstream["head"],
         "jax_platform": "cpu",
+        "jax_hardware": jax_hardware,
         "upstream_debug_preset": True,
         "real_transitions": consumed,
         "driver_steps": train_state.driver_steps,
