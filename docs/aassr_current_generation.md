@@ -131,9 +131,7 @@ real-transition budget consumed and never resets at a curriculum block boundary.
 
 ### Official DreamerV3 control
 
-The canonical final experiment additionally includes:
-
-3. `dreamerv3_relational`
+The canonical final experiment additionally includes `dreamerv3_relational`.
 
 The algorithm comes from a pinned, unmodified `danijar/dreamerv3` checkout. AASSR
 provides only a dynamic-action environment adapter and the current experiment
@@ -141,18 +139,21 @@ orchestration. The full adapter/config contract is frozen in
 `docs/dreamerv3_current_baseline.md`.
 
 Dreamer receives the same relational state representation plus a 240-slot structural
-availability mask. Its official fixed continuous action head is mapped to the
-nearest currently legal relational action feature. The projection uses only public
-available actions; it never sees the hidden scenario, target correctness, future
-state, or reward.
+availability mask. Its **official discrete categorical policy path** acts over a
+fixed 240-way relational vocabulary. A currently legal slot is executed directly;
+an unavailable slot is deterministically projected to the nearest currently legal
+relational slot using only public structural information. Hidden scenario state,
+correct-action labels, future state, and reward are never used by the projection.
 
-The canonical Dreamer preset is upstream `dmc_proprio + size1m`, with upstream
-Dreamer losses, RSSM, imagined actor-critic, and train ratio unchanged. The pinned
-upstream commit is recorded and checked by the final suite assembler.
+The canonical Dreamer preset is upstream `dmc_proprio + size1m`: train ratio `1024`,
+`bfloat16`, and the upstream imagination/actor/critic/world-model losses remain
+unchanged. Dreamer's train-ratio scheduler follows the official Embodied Driver-step
+clock, including `is_first` callbacks, while the scientific budget independently
+counts only real primitive HTTP actions.
 
 Dreamer runs in a separate process/environment because its official implementation
-uses JAX. This also prevents PyTorch and JAX from retaining competing CUDA allocators
-inside one process.
+uses JAX. This prevents PyTorch and JAX from retaining competing CUDA allocators
+inside one process and lets the final suite keep an exact upstream pin.
 
 ## Canonical five-condition suite
 
@@ -185,8 +186,9 @@ scripts/assemble_pentest_current_generation_suite.py
 ```
 
 The assembler rejects mismatched research seed, transition budget, train/validation/
-diagnostic seed pools, stage manifest, final-blind status, or Dreamer upstream
-commit.
+diagnostic seed pools, stage manifest, final-blind status, Dreamer upstream commit,
+Dreamer preset/train ratio/dtype/JAX platform, and Dreamer categorical action-adapter
+contract.
 
 ## Current CI contract
 
@@ -200,24 +202,28 @@ The dedicated current-generation gate checks:
 - holdout calibration batching;
 - exact current training budget and frozen evaluation;
 - 192-real-transition current AASSR learning smoke;
-- Dreamer relational action vocabulary uniqueness and rename invariance;
+- Dreamer 240-way categorical action vocabulary uniqueness and rename invariance;
 - every predeclared stage action surface maps into the Dreamer adapter;
-- Dreamer nearest-action projection always returns a current legal action;
+- legal categorical slots map with zero distance and unavailable slots map only to
+  current legal actions;
 - Dreamer environment adapter reset/real-step/terminal budget semantics without JAX;
-- five-condition suite contract and pinned-upstream enforcement.
+- five-condition suite contract and pinned/canonical Dreamer enforcement.
 
-The official JAX Dreamer algorithm is intentionally not installed into ordinary
-PyTorch CI. Its actual CUDA execution is a separate target-machine gate.
+A separate `DreamerV3 current baseline smoke` workflow checks out the pinned official
+upstream repository and actually executes upstream `Agent -> Replay -> Driver ->
+agent.train()` on CPU with the upstream debug preset. That smoke verifies API
+compatibility and the official Driver-step train-ratio cadence, but is explicitly not
+a benchmark result. The canonical Dreamer result still requires JAX/CUDA.
 
 ## Before the next full main
 
 Do not relaunch the old v0.4 main. Before freezing the new full experiment:
 
-1. current-generation CI must remain green;
+1. all current-generation and official-Dreamer contract CI must remain green;
 2. run the current PyTorch hardware check on the target CUDA machine;
 3. run a reduced current AASSR experiment until the learned Critic reaches readiness
    and Full records actual Imagination runs;
-4. run a reduced pinned official DreamerV3 baseline from Linux/WSL with JAX/CUDA and
-   verify exact real-transition accounting;
+4. run a reduced pinned official DreamerV3 baseline from Linux/WSL with JAX/CUDA,
+   categorical 240-way action space, and exact real-transition accounting;
 5. assemble the reduced five-condition artifact and verify all contracts;
 6. only then freeze and launch the full five-condition experiment.
