@@ -7,6 +7,12 @@ on:
     paths:
       - "scripts/run_imagination_gate_ablation.py"
       - ".github/workflows/imagination-gate-ablation.yml"
+  pull_request:
+    branches:
+      - agent/aassr-current-generation
+    paths:
+      - "scripts/run_imagination_gate_ablation.py"
+      - ".github/workflows/imagination-gate-ablation.yml"
   workflow_dispatch:
 
 jobs:
