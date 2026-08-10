@@ -1,0 +1,57 @@
+name: Imagination gate ablation
+
+on:
+  push:
+    branches:
+      - agent/imagination-gate-ablation
+    paths:
+      - "scripts/run_imagination_gate_ablation.py"
+      - ".github/workflows/imagination-gate-ablation.yml"
+  workflow_dispatch:
+
+jobs:
+  reduced-gate-ablation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package and Torch
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          pip install torch
+
+      - name: Compile ablation runner
+        run: python -m py_compile scripts/run_imagination_gate_ablation.py
+
+      - name: Run reduced same-checkpoint gate ablation
+        run: |
+          python scripts/run_imagination_gate_ablation.py \
+            --output-dir runs/gate_ablation_reduced_seed7 \
+            --seed 7 \
+            --transitions 2048 \
+            --block-target 512 \
+            --diagnostic-max-level 4 \
+            --diagnostic-seed-count 4 \
+            --lambdas 1.0,0.5,0.25,0.0 \
+            --device cpu
+
+      - name: Print summary
+        if: always()
+        run: |
+          if [ -f runs/gate_ablation_reduced_seed7/summary.json ]; then
+            cat runs/gate_ablation_reduced_seed7/summary.json
+          fi
+
+      - name: Upload ablation artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: imagination-gate-ablation-reduced-seed7
+          path: runs/gate_ablation_reduced_seed7
+          if-no-files-found: warn
