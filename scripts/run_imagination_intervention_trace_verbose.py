@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import sys
 import time
@@ -47,8 +48,33 @@ def _short(value: Any, width: int = 42) -> str:
 
 
 def _learning_snapshot(agent: object) -> dict[str, Any]:
+    labels = (
+        "dqn_environment_steps",
+        "dqn_gradient_updates",
+        "dqn_replay",
+        "prophecy_observations",
+        "prophecy_gradient_updates",
+        "prophecy_replay",
+        "critic_episodes",
+        "critic_gradient_updates",
+        "critic_replay",
+        "calibration_train",
+        "calibration_holdout",
+        "policy_information",
+        "policy_skill_values",
+        "feature_memory",
+        "skills",
+        "calibration_bias",
+        "calibration_weights",
+    )
     try:
-        return dict(gate._learning_counters(agent))
+        values = tuple(gate._learning_counters(agent))
+        if len(values) != len(labels):
+            return {
+                "counter_shape_error": f"expected {len(labels)} counters, got {len(values)}",
+                "raw": values,
+            }
+        return dict(zip(labels, values, strict=True))
     except Exception as exc:  # pragma: no cover - diagnostics must never stop a run
         return {"diagnostic_error": repr(exc)}
 
@@ -63,21 +89,26 @@ def _print_learning(prefix: str, agent: object) -> None:
 
 
 def _install_trace_serialization_bridge() -> None:
-    """Keep DetailedTraceCapture runtime-only while gate summary JSON is written.
+    """Keep runtime captures JSON-safe and flush them before any later failure.
 
-    The detailed runner temporarily carries a live DetailedTraceCapture object in each
-    variant result. The shared gate runner writes variants to summary.json before the
-    detailed runner gets a chance to pop that object, which makes json.dumps fail.
+    The detailed runner carries a live DetailedTraceCapture object in each variant
+    result. The shared gate runner serializes variants before detail.main() can pop
+    that object, so the original implementation could finish a long evaluation and
+    then lose every detailed trace at summary.json.
 
-    This bridge stashes the capture outside the result while the shared runner writes
-    its JSON-safe summary, then restores it to the returned in-memory result so the
-    existing detailed runner can emit decision/episode/switch/intervention JSONL files.
-    It does not alter training, evaluation, actions, values, gates, or learned state.
+    This bridge does two things without changing learning or decisions:
+    1. immediately writes decision/episode/switch/intervention JSONL files as soon as
+       each frozen variant finishes;
+    2. removes the live capture from the shared JSON result, then restores it after
+       the shared summary has been written so the existing detailed runner contract
+       remains intact.
     """
 
     original_tracing_evaluate = detail._tracing_evaluate_variant
     original_run_gate_ablation = gate.run_gate_ablation
     captures: dict[str, Any] = {}
+    output = Path(_arg_value("--output-dir", DEFAULT_OUTPUT))
+    output.mkdir(parents=True, exist_ok=True)
 
     def serializable_tracing_evaluate(*args: Any, **kwargs: Any) -> dict[str, Any]:
         result = original_tracing_evaluate(*args, **kwargs)
@@ -86,6 +117,42 @@ def _install_trace_serialization_bridge() -> None:
             condition = str(result.get("condition", ""))
             if not condition:
                 raise AssertionError("trace variant has no condition for capture stash")
+
+            # Crash-durable checkpoint: write the expensive detailed trace *now*,
+            # before the shared runner attempts its final summary serialization.
+            detail._write_trace_files(output, condition=condition, capture=capture)
+            safe = condition.replace("/", "_")
+            checkpoint = {
+                "condition": condition,
+                "decisions": len(capture.events),
+                "episodes": len(capture.episodes),
+                "switch_candidates": sum(
+                    bool(event.get("switch_candidate")) for event in capture.events
+                ),
+                "interventions": sum(
+                    bool(event.get("intervention_allowed")) for event in capture.events
+                ),
+                "changed_actions": sum(
+                    bool(event.get("changed_action")) for event in capture.events
+                ),
+                "imagination_runs": sum(
+                    bool(event.get("used_imagination")) for event in capture.events
+                ),
+            }
+            (output / f"trace_checkpoint_{safe}.json").write_text(
+                json.dumps(checkpoint, indent=2, sort_keys=True),
+                encoding="utf-8",
+            )
+            print(
+                "[TRACE FLUSH] "
+                f"condition={condition} decisions={checkpoint['decisions']} "
+                f"episodes={checkpoint['episodes']} "
+                f"img_runs={checkpoint['imagination_runs']} "
+                f"switches={checkpoint['switch_candidates']} "
+                f"interventions={checkpoint['interventions']} "
+                f"changed={checkpoint['changed_actions']}",
+                flush=True,
+            )
             captures[condition] = capture
         return result
 
