@@ -15,7 +15,10 @@ from aassr_v2.current_relational_model import (
     RelationalStochasticProphecy,
 )
 from aassr_v2.current_relational_skill_prophecy import RelationalStochasticSkillProphecy
-from aassr_v2.current_semantic_calibration import SemanticCalibratedProphecy
+from aassr_v2.current_semantic_calibration import (
+    SemanticCalibratedProphecy,
+    probability_weighted_semantic_score,
+)
 from aassr_v2.knowledge import KnowledgeStore
 from aassr_v2.pentest_agent_main_test import AGENT_STATE_SIZE
 from aassr_v2.replay import ReplayBuffer
@@ -69,6 +72,43 @@ def test_empirical_outcome_mass_is_separate_from_reliability() -> None:
         reverse=True,
     ) == pytest.approx((2.0 / 3.0, 1.0 / 3.0))
     assert len({round(row.probability, 8) for row in rows}) == 1
+
+
+def test_probability_weighted_semantic_score_penalizes_wrong_outcome_mass() -> None:
+    actual, _ = _state("catalog")
+    wrong, _ = _state("auth")
+    mostly_right = (
+        RelationalPrediction(
+            actual,
+            0.9,
+            source="right",
+            outcome_probability=0.9,
+        ),
+        RelationalPrediction(
+            wrong,
+            0.9,
+            source="wrong",
+            outcome_probability=0.1,
+        ),
+    )
+    mostly_wrong = (
+        RelationalPrediction(
+            actual,
+            0.9,
+            source="right",
+            outcome_probability=0.1,
+        ),
+        RelationalPrediction(
+            wrong,
+            0.9,
+            source="wrong",
+            outcome_probability=0.9,
+        ),
+    )
+
+    assert probability_weighted_semantic_score(
+        mostly_right, actual
+    ) > probability_weighted_semantic_score(mostly_wrong, actual)
 
 
 def test_semantic_calibration_preserves_outcome_mass() -> None:
