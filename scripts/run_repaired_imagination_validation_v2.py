@@ -15,7 +15,7 @@ from aassr_v2.current_mixture_entrypoint import (
 )
 
 
-RUN_VERSION = "repaired-imagination-one-shot-validation-v2-mixture"
+RUN_VERSION = "repaired-imagination-one-shot-validation-v3-probability-backup"
 
 
 def _arg_value(name: str, default: str) -> str:
@@ -35,6 +35,21 @@ def _install_frozen_builder() -> None:
     gate.build_current_pentest_aassr_core = build_current_mixture_pentest_aassr_core
     detail.gate = gate
 
+    # Historical trace serialization predates stochastic outcome mass and records
+    # only Prediction.probability (reliability). Preserve both fields so the one
+    # expensive run can verify that chance probabilities are normalized and put
+    # sensible mass on the actually realized semantic outcome.
+    original_prediction = detail._prediction
+
+    def probability_aware_prediction(prediction: object, before: object) -> dict[str, object]:
+        row = original_prediction(prediction, before)
+        row["outcome_probability"] = float(
+            getattr(prediction, "outcome_probability", 1.0)
+        )
+        return row
+
+    detail._prediction = probability_aware_prediction
+
 
 def _patch_summary(output: Path, diagnostics: dict[str, object], margin: float) -> None:
     path = output / "summary.json"
@@ -46,12 +61,18 @@ def _patch_summary(output: Path, diagnostics: dict[str, object], margin: float) 
     summary["current_components"] = dict(MIXTURE_CURRENT_COMPONENTS)
     summary["frozen_builder"] = "build_current_mixture_pentest_aassr_core"
     summary["prophecy_contract"] = {
-        "input": "relational-state-v2+relational-action",
-        "output": "conditional-mixture(relational-next-state-v2,legal-mask,terminal)",
+        "input": "relational-public-state-v2+relational-action",
+        "output": (
+            "conditional-mixture(relational-next-state-v2,legal-mask,"
+            "active-success-failure-truncation)"
+        ),
         "mixture_components": 3,
         "reliability": "ensemble-mode-set-disagreement*semantic-holdout-calibration",
-        "outcome_probability": "separate-never-value-bonus",
+        "outcome_probability": "separate-probability-weighted-chance-backup",
+        "decision_backup": "max-over-agent-actions",
+        "chance_backup": "expected-external-sparse-return",
         "exact_multimodal_replay": "empirical-frequency-override-when-available",
+        "hidden_audit_session_pressure": "masked-by-response-causal-contract",
     }
     summary["gate_contract"] = {
         "minimum_coverage": old_gate.get("minimum_coverage"),
@@ -83,9 +104,9 @@ def main() -> None:
     verbose.main()
     diagnostics = analyzer.analyze(output)
     _patch_summary(output, diagnostics, margin)
-    print("\n[REPAIRED V2 ANALYSIS]")
+    print("\n[REPAIRED V3 ANALYSIS]")
     print(json.dumps(diagnostics, indent=2, sort_keys=True))
-    print(f"[REPAIRED V2 SUMMARY] {output / 'summary.json'}")
+    print(f"[REPAIRED V3 SUMMARY] {output / 'summary.json'}")
 
 
 if __name__ == "__main__":
