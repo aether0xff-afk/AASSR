@@ -1,0 +1,104 @@
+name: AASSR repaired runtime smoke diagnostic
+
+on:
+  push:
+    branches: [agent/imagination-gate-ablation]
+  workflow_dispatch:
+
+concurrency:
+  group: aassr-repaired-smoke-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repaired-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip "setuptools<82"
+          python -m pip install -e ".[dev,gpu]"
+
+      - name: Repaired state probability evaluator contracts
+        run: |
+          pytest -q \
+            tests/test_current_repair_multimodal.py \
+            tests/test_current_repair_action_surface.py \
+            tests/test_current_outcome_probability.py \
+            tests/test_current_semantic_evaluator.py \
+            tests/test_current_relational_state_v2.py \
+            tests/test_current_imagination_state_identity.py
+
+      - name: Repaired Critic planner gate contracts
+        run: |
+          pytest -q \
+            tests/test_current_repair.py \
+            tests/test_current_planner_structural_branching.py \
+            tests/test_current_planner_probability_backup.py \
+            tests/test_current_confidence_gate.py
+
+      - name: Conditional mixture contracts
+        run: pytest -q tests/test_current_mixture_generation.py
+
+      - name: Dreamer v2 fairness contracts
+        run: |
+          pytest -q \
+            tests/test_dreamerv3_adapter.py \
+            tests/test_dreamerv3_external_contract.py \
+            tests/test_dreamerv3_current_state_v2.py
+
+      - name: Run 192-transition same-checkpoint smoke
+        run: |
+          python scripts/run_pentest_current_generation_smoke.py \
+            --output runs/repaired_smoke.json \
+            --transition-budget 192 \
+            --device cpu
+
+      - name: Assert repaired real learning and frozen comparison
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path('runs/repaired_smoke.json').read_text())
+          assert result['same_checkpoint_verified'] is True
+          assert result['legacy_components_active'] == []
+          diagnostics = result['diagnostics']
+          assert diagnostics['policy']['dqn:gradient_updates'] > 0
+          assert diagnostics['prophecy_current']['gradient_updates'] > 0
+          repairs = diagnostics['current_repairs']
+          required = (
+              'relational_input_output_contract',
+              'hidden_audit_session_pressure_masked',
+              'probability_weighted_chance_backup',
+              'max_agent_decision_backup',
+              'expected_sparse_return_objective',
+              'planner_discount_matches_gamma',
+              'critic_sparse_return_aligned',
+              'critic_zero_memory_suffix_training',
+              'root_preserving',
+          )
+          for key in required:
+              assert repairs[key] is True, key
+          print(json.dumps({
+              'training_successes': result['training_successes'],
+              'critic_ready': result['critic_ready'],
+              'no_imagination_successes': result['no_imagination_successes'],
+              'full_successes': result['full_successes'],
+              'dqn_updates': diagnostics['policy']['dqn:gradient_updates'],
+              'prophecy_updates': diagnostics['prophecy_current']['gradient_updates'],
+              'repairs': {key: repairs[key] for key in required},
+          }, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload repaired smoke
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aassr-repaired-smoke-diagnostic
+          path: runs/repaired_smoke.json
+          if-no-files-found: warn
