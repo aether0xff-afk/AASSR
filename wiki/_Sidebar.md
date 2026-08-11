@@ -5,6 +5,7 @@
 - [Core Architecture](Core-Architecture)
 - [ASEQ](ASEQ)
 - [Experiments](Experiments)
+- [Development History](Development-History)
 - [Current Status](Current-Status)
 - [Reproduction](Reproduction)
 - [Glossary](Glossary)
