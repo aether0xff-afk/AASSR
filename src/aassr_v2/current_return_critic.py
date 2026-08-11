@@ -13,21 +13,27 @@ class ReturnAwareHardwareRelationalGRUBranchCritic(
 ):
     """GRU branch critic aligned with the actual sparse {-1,0,+1} objective.
 
-    The environment reward stays sparse. Each episode is assigned one return on
-    the *root-decision time scale*: final_return * gamma**(T-1). Every prefix of
-    that real branch learns to predict the same root-scale return. That keeps a
-    depth-1 fallback root directly comparable with a depth-4 imagined root while
-    still preferring shorter success and distinguishing lockout (-1) from
-    truncation/stall (0).
+    The environment reward stays sparse. Planning can begin from any current real
+    decision with a zero GRU memory, so training must expose that same contract.
+    Every real episode therefore contributes every trajectory suffix. A suffix
+    beginning at decision ``s`` receives the root-scale sparse return
+
+        final_return * gamma ** (remaining_transitions - 1)
+
+    at every prefix inside that suffix. Thus depth-1 and deeper imagined branches
+    remain directly comparable, while the same zero-memory scorer is trained from
+    every real decision state rather than only from episode start.
     """
 
-    name = "hardware-relational-gru-root-discounted-sparse-return-v2"
+    name = "hardware-relational-gru-root-discounted-sparse-return-v3"
+    value_center = 0.0
 
     def __init__(self, seed: int, *, device: str = "cpu") -> None:
         super().__init__(seed, device=device)
         self._next_final_return = 0.0
         self._next_gamma = 1.0
         self.replay = deque(maxlen=4_000)
+        self.suffix_sequences = 0
 
     def set_episode_return(self, final_return: float, gamma: float) -> None:
         self._next_final_return = max(-1.0, min(1.0, float(final_return)))
@@ -42,11 +48,14 @@ class ReturnAwareHardwareRelationalGRUBranchCritic(
         del success
         encoded = tuple(self.encoder.encode(item) for item in trajectory)
         if encoded:
-            root_return = self._next_final_return * self._next_gamma ** (
-                len(encoded) - 1
-            )
-            targets = (float(root_return),) * len(encoded)
-            self.replay.append((encoded, targets))
+            for start in range(len(encoded)):
+                suffix = encoded[start:]
+                root_return = self._next_final_return * self._next_gamma ** (
+                    len(suffix) - 1
+                )
+                targets = (float(root_return),) * len(suffix)
+                self.replay.append((suffix, targets))
+                self.suffix_sequences += 1
         self.episodes += 1
         self.transitions += len(encoded)
         if len(self.replay) < self.batch_size:
@@ -189,3 +198,12 @@ class ReturnAwareHardwareRelationalGRUBranchCritic(
             )
             for index, value in enumerate(host_values)
         )
+
+    def hardware_stats(self) -> dict[str, Any]:
+        return {
+            **super().hardware_stats(),
+            "value_center": self.value_center,
+            "signed_sparse_return": 1,
+            "zero_memory_suffix_training": 1,
+            "suffix_sequences": self.suffix_sequences,
+        }
