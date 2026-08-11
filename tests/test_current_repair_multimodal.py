@@ -6,7 +6,7 @@ from aassr_v2.current_relational_state import install_relational_state_contract
 
 install_relational_state_contract()
 
-from aassr_v2.current_relational_codec import descriptor
+from aassr_v2.current_relational_codec import descriptor, transition_target
 from aassr_v2.current_relational_model import (
     RelationalProphecyConfig,
     RelationalStochasticProphecy,
@@ -49,13 +49,44 @@ def test_same_relational_input_with_two_real_outcomes_stays_multimodal() -> None
             gradient_steps_per_observation=1,
         ),
     )
+
+    catalog_target = transition_target(before, action, catalog)
+    auth_target = transition_target(before, action, auth)
+    assert catalog_target[0] == auth_target[0], (
+        "same public relational state/action must have one common input key"
+    )
+    assert catalog_target[1:] != auth_target[1:], (
+        "catalog/auth outcomes collapsed before reaching Prophecy replay",
+        catalog_target[1],
+        auth_target[1],
+    )
+    assert descriptor(catalog) != descriptor(auth), (
+        "real catalog/auth semantic descriptors unexpectedly alias"
+    )
+
     prophecy.learn(before, action, catalog)
     prophecy.learn(before, action, auth)
 
+    input_key = prophecy._input(before, action)
+    bucket = prophecy._outcomes.get(input_key, {})
+    assert len(bucket) == 2, (
+        "two distinct relational targets did not survive empirical outcome storage",
+        tuple(bucket.items()),
+    )
+
     predictions = prophecy.predict(before, action, samples=3)
-    assert len(predictions) == 2
+    assert len(predictions) == 2, (
+        "stored multimodal bucket was not emitted as two predictions",
+        tuple((item.source, getattr(item, "outcome_probability", None)) for item in predictions),
+    )
     assert all("empirical-outcome-" in item.source for item in predictions)
-    assert len({descriptor(item.next_state) for item in predictions}) == 2
+    predicted_descriptors = {
+        descriptor(item.next_state) for item in predictions
+    }
+    assert len(predicted_descriptors) == 2, (
+        "two empirical targets collapsed during relational decode",
+        tuple(descriptor(item.next_state) for item in predictions),
+    )
     diagnostics = prophecy.diagnostics()
     assert diagnostics["empirical_multimodal_input_keys"] == 1
     assert diagnostics["empirical_distinct_outcomes"] == 2
