@@ -88,7 +88,7 @@ def test_current_manifest_has_no_active_legacy_components() -> None:
     assert CURRENT_GENERATION_VERSION == "aassr-current-generation-v2"
     assert LEGACY_COMPONENTS_ACTIVE == ()
     assert CURRENT_COMPONENTS["policy"].startswith("relational-invariant-dqn")
-    assert CURRENT_COMPONENTS["prophecy"].startswith("relational-stochastic-ensemble")
+    assert CURRENT_COMPONENTS["prophecy"].startswith("relational-stochastic-world-model")
     assert "relational-descriptor" in CURRENT_COMPONENTS["prophecy_output"]
     assert CURRENT_COMPONENTS["critic"].startswith(
         "relational-gru-discounted-sparse-return"
