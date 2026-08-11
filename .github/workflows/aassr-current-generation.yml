@@ -67,6 +67,7 @@ jobs:
             src/aassr_v2/current_return_critic.py \
             src/aassr_v2/current_critic_support.py \
             src/aassr_v2/current_root_dedup.py \
+            src/aassr_v2/current_status_models.py \
             src/aassr_v2/current_repair.py \
             src/aassr_v2/current_mixture_entrypoint.py \
             src/aassr_v2/dreamerv3_baseline.py \
@@ -101,8 +102,11 @@ jobs:
                   assert token not in text, (name, token)
           PY
 
-      - name: Public status v3 contract
-        run: pytest -q tests/test_current_relational_state_v3.py
+      - name: Public status v3 and supervision contract
+        run: |
+          pytest -q \
+            tests/test_current_relational_state_v3.py \
+            tests/test_current_status_supervision.py
 
       - name: Multimodal contract 1 - target distinction
         run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_targets_share_input_but_keep_distinct_outputs
@@ -170,6 +174,7 @@ jobs:
           assert "relational" in components["prophecy"]
           assert "latest-http-status" in components["policy_state_input"]
           assert components["public_response_contract"] == "latest-http-status-preserved"
+          assert components["prophecy_status_objective"] == "dedicated-public-http-status-bce-v1"
           diagnostics = result["diagnostics"]
           assert diagnostics["canonical_runtime"] == "current_standalone"
           assert diagnostics["policy"]["dqn:gradient_updates"] > 0
@@ -177,6 +182,9 @@ jobs:
           assert diagnostics["policy"]["dqn:per_row_target_item_syncs"] == 0
           assert diagnostics["policy"]["dqn:fused_next_action_reduce"] == 1
           assert diagnostics["prophecy_current"]["gradient_updates"] > 0
+          assert diagnostics["prophecy_current"]["status_supervision"] == 1
+          assert diagnostics["prophecy_current"]["status_output_channels"] == 8
+          assert diagnostics["prophecy_current"]["status_loss_weight"] == 0.5
           assert diagnostics["prophecy_state_input_relational"] is True
           assert diagnostics["prophecy_action_input_relational"] is True
           repairs = diagnostics["current_repairs"]
@@ -199,6 +207,7 @@ jobs:
               "train_successes=", result["training_successes"],
               "dqn_updates=", diagnostics["policy"]["dqn:gradient_updates"],
               "prophecy_updates=", diagnostics["prophecy_current"]["gradient_updates"],
+              "status_loss=", diagnostics["prophecy_current"]["last_status_training_loss"],
               "critic_support_rows=", diagnostics["critic_support"]["stored_support_rows"],
               "critic_ready=", result["critic_ready"],
               "no_img=", result["no_imagination_successes"],
@@ -226,6 +235,7 @@ jobs:
           assert "dreamerv3_relational" in CURRENT_FINAL_EXPERIMENT_CONDITIONS
           assert LEGACY_COMPONENTS_ACTIVE == ()
           assert "relational" in CURRENT_COMPONENTS["prophecy"]
+          assert CURRENT_COMPONENTS["prophecy_status_objective"] == "dedicated-public-http-status-bce-v1"
           assert CURRENT_COMPONENTS["chance_objective"] == "expected-external-sparse-return"
           assert CURRENT_COMPONENTS["hidden_pressure_contract"] == "audit-and-session-countdown-masked"
           assert CURRENT_COMPONENTS["public_response_contract"] == "latest-http-status-preserved"
@@ -240,6 +250,8 @@ jobs:
           diagnostics = agent.diagnostics()
           assert diagnostics["canonical_runtime"] == "current_standalone"
           assert diagnostics["current_components"] == dict(CURRENT_COMPONENTS)
+          assert diagnostics["prophecy_current"]["status_supervision"] == 1
+          assert agent.current_status_supervised_world_model is True
           assert agent.current_depth_batching is True
           assert agent.current_critic_batching is True
           assert agent.current_critic_support_gate is True
