@@ -10,14 +10,14 @@ from .pentest_curriculum_env import (
     ROUTE_RELATIONS,
     relational_action_features,
 )
-from .current_relational_state import relational_state_vector_v2
+from .current_relational_state_v3 import relational_state_vector_v3
 from .types import Action, StateSnapshot
 
 
 DREAMERV3_CONDITION = "dreamerv3_relational"
 DREAMERV3_UPSTREAM_REPOSITORY = "danijar/dreamerv3"
 DREAMERV3_UPSTREAM_COMMIT = "e3f02248693a79dc8b0ebd62c93683888ddaccfe"
-DREAMERV3_BASELINE_VERSION = "official-dreamerv3-relational-categorical-v3"
+DREAMERV3_BASELINE_VERSION = "official-dreamerv3-relational-categorical-v4"
 
 _DREAMER_OBJECT_RELATIONS = tuple(
     item for item in OBJECT_RELATIONS if item != "none"
@@ -148,8 +148,8 @@ def dreamer_action_surface_mask(state: StateSnapshot) -> tuple[float, ...]:
 
 
 def dreamer_observation_vector(state: StateSnapshot) -> tuple[float, ...]:
-    """Use exactly the audited v2 relational Policy state representation."""
-    return tuple(float(value) for value in relational_state_vector_v2(state))
+    """Use exactly the active public relational v3 Policy representation."""
+    return tuple(float(value) for value in relational_state_vector_v3(state))
 
 
 def dreamer_relational_action_features(
@@ -255,7 +255,7 @@ def dreamer_adapter_manifest() -> dict[str, object]:
         "adapter_version": DREAMERV3_BASELINE_VERSION,
         "upstream_repository": DREAMERV3_UPSTREAM_REPOSITORY,
         "upstream_commit": DREAMERV3_UPSTREAM_COMMIT,
-        "state_representation": "current-relational-public-state-v2",
+        "state_representation": "current-relational-public-state-v3+latest-http-status",
         "available_action_observation": "240-slot-relational-mask",
         "actor_action_space": "categorical-relational-slot-240",
         "legal_action_adapter": "nearest-current-relational-slot",
