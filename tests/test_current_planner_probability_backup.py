@@ -59,11 +59,14 @@ def _planner(aggregation: str = "mean") -> CurrentFullyBatchedImaginationTree:
     planner.config = SimpleNamespace(
         aggregation=aggregation,
         top_mean_count=2,
+        discount=0.9,
     )
     planner.chance_backup_groups = 0
     planner.decision_backup_nodes = 0
+    planner.task_success_leaves = 0
     planner.task_truncation_leaves = 0
     planner.task_failure_leaves = 0
+    planner.exact_terminal_value_leaves = 0
     return planner
 
 
@@ -76,8 +79,16 @@ def test_stochastic_outcomes_are_probability_weighted_not_equal_votes() -> None:
 def test_risk_adjusted_chance_backup_uses_weighted_variance() -> None:
     planner = _planner("risk_adjusted")
     value = planner._aggregate_outcomes((1.0, -1.0), (0.9, 0.1))
-    # Weighted mean 0.8, weighted std 0.6.
     assert value == pytest.approx(0.2)
+
+
+def test_exact_terminal_values_use_external_sparse_return() -> None:
+    planner = _planner("mean")
+    assert planner._exact_terminal_value("goal", 1) == pytest.approx(1.0)
+    assert planner._exact_terminal_value("failure", 1) == pytest.approx(-1.0)
+    assert planner._exact_terminal_value("truncation", 1) == pytest.approx(0.0)
+    assert planner._exact_terminal_value("goal", 3) == pytest.approx(0.81)
+    assert planner._exact_terminal_value("failure", 3) == pytest.approx(-0.81)
 
 
 def test_future_agent_actions_use_max_not_average() -> None:
@@ -104,7 +115,6 @@ def test_future_agent_actions_use_max_not_average() -> None:
         (root, parent, good_child, bad_child),
         {1: 1.0, 2: 1.0, 3: 1.0},
     )
-
     assert backed[1] == pytest.approx(1.0)
 
 
@@ -128,7 +138,6 @@ def test_chance_outcomes_for_one_action_are_expected_before_decision_max() -> No
         (root, parent, common, rare),
         {1: 1.0, 2: 0.9, 3: 0.1},
     )
-
     assert backed[1] == pytest.approx(0.8)
 
 
@@ -157,7 +166,6 @@ def test_terminal_head_overrides_conflicting_descriptor_status_bits() -> None:
     )
     scaffold = _state(actions=(action,))
     descriptor_values = [0.0] * REL_DESCRIPTOR_SIZE
-    # Deliberately contradictory noisy regression bits: failed + locked.
     descriptor_values[4] = 1.0
     descriptor_values[5] = 1.0
     descriptor_values[-4] = 1.0 / 128.0
