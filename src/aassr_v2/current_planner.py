@@ -4,6 +4,7 @@ from dataclasses import replace
 from statistics import fmean
 from typing import Any
 
+from .current_generation import relational_action_key
 from .imagination_tree import (
     ImaginationNode,
     ImaginationResult,
@@ -11,11 +12,18 @@ from .imagination_tree import (
 )
 from .native_batching import DepthBatchedImaginationTree
 from .policy import PolicyMemory
-from .types import StateSnapshot
+from .skills import SKILL_VERB
+from .types import Action, StateSnapshot
+
+
+def _structural_action_key(state: StateSnapshot, action: Action) -> tuple[Any, ...]:
+    if action.verb_name == SKILL_VERB:
+        return ("skill", str(action.target))
+    return ("primitive", *relational_action_key(state, action))
 
 
 class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
-    """Current tree with one Policy, Prophecy and Critic batch per search depth."""
+    """Current tree with structural branching and depth-batched learned models."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -25,6 +33,34 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
         self.critic_batch_calls = 0
         self.critic_batch_rows = 0
         self.critic_scalar_fallback_rows = 0
+        self.structural_alias_rows_removed = 0
+
+    def _structural_limit(
+        self,
+        state: StateSnapshot,
+        ranked: tuple[Any, ...],
+        *,
+        depth: int,
+    ) -> tuple[Any, ...]:
+        # Root actions remain concrete because the eventual intervention must name
+        # one real executable action. Deeper planning is in relational space: six
+        # seed-renamed aliases must not consume all six branching slots.
+        if depth == 1 and self.config.expand_all_root_actions:
+            return ranked
+        selected = []
+        seen: set[tuple[Any, ...]] = set()
+        duplicate_count = 0
+        for scored in ranked:
+            key = _structural_action_key(state, scored.action)
+            if key in seen:
+                duplicate_count += 1
+                continue
+            seen.add(key)
+            selected.append(scored)
+            if len(selected) >= self.config.branching_factor:
+                break
+        self.structural_alias_rows_removed += duplicate_count
+        return tuple(selected)
 
     def _rank_frontier(
         self,
@@ -32,35 +68,39 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
         *,
         depth: int,
     ) -> tuple[tuple[Any, ...], ...]:
-        limits = tuple(
-            (
-                len(node.state.available_actions)
-                if depth == 1 and self.config.expand_all_root_actions
-                else self.config.branching_factor
-            )
-            for node in frontier
-        )
+        # Ask Policy for the complete ordered surface before structural
+        # deduplication. Requesting only top-K concrete actions first can return K
+        # aliases of one relational action and hide the next-best distinct action.
+        request_limits = tuple(len(node.state.available_actions) for node in frontier)
         batch_rank = getattr(self.policy, "rank_batch", None)
         if callable(batch_rank):
-            rows = batch_rank(
+            raw_rows = batch_rank(
                 tuple(node.state for node in frontier),
-                limits,
+                request_limits,
                 tuple(node.policy_memory for node in frontier),
             )
-            if len(rows) != len(frontier):
+            if len(raw_rows) != len(frontier):
                 raise RuntimeError("current Policy batch returned wrong row count")
             self.policy_batch_calls += 1
             self.policy_batch_rows += len(frontier)
-            return tuple(tuple(row) for row in rows)
-
-        self.policy_scalar_fallback_rows += len(frontier)
-        return tuple(
-            self.policy.rank(
-                node.state,
-                limit=limit,
-                memory=node.policy_memory,
+        else:
+            self.policy_scalar_fallback_rows += len(frontier)
+            raw_rows = tuple(
+                self.policy.rank(
+                    node.state,
+                    limit=limit,
+                    memory=node.policy_memory,
+                )
+                for node, limit in zip(frontier, request_limits, strict=True)
             )
-            for node, limit in zip(frontier, limits, strict=True)
+
+        return tuple(
+            self._structural_limit(
+                node.state,
+                tuple(row),
+                depth=depth,
+            )
+            for node, row in zip(frontier, raw_rows, strict=True)
         )
 
     def _score_candidates(
@@ -183,9 +223,15 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
                 tuple[ImaginationNode, Any, Any, float, Any]
             ] = []
             for (node, scored_action), step in zip(work, steps, strict=True):
+                # ``probability`` is historical model reliability. Explicit
+                # stochastic outcome mass is separate, and is used only to retain
+                # the most common modes if there are more modes than sample slots.
                 predictions = sorted(
                     step.predictions,
-                    key=lambda item: item.probability,
+                    key=lambda item: (
+                        float(getattr(item, "outcome_probability", 1.0)),
+                        float(item.probability),
+                    ),
                     reverse=True,
                 )[: self.config.outcome_samples]
                 for prediction in predictions:
@@ -347,4 +393,5 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
             "critic_batch_calls": self.critic_batch_calls,
             "critic_batch_rows": self.critic_batch_rows,
             "critic_scalar_fallback_rows": self.critic_scalar_fallback_rows,
+            "structural_alias_rows_removed": self.structural_alias_rows_removed,
         }
