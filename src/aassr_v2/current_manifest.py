@@ -14,12 +14,12 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
     "policy_state_input": "relational-public-structural-v2",
     "policy_action_input": "relational-role-features-v1",
     "policy_hardware": "frontier-batched-dqn+fused-sync-free-bellman-v2",
-    "prophecy": "relational-stochastic-ensemble-v1",
+    "prophecy": "relational-stochastic-world-model-v2",
     "prophecy_output": (
         "relational-descriptor-v2+legal-action-mask+"
         "active-success-failure-truncation-v2"
     ),
-    "calibration": "semantic-frozen-replay-relational-holdout-v1",
+    "calibration": "semantic-probability-holdout-calibration-v2",
     "information_evaluator": "semantic-relational-probability-aware-v2",
     "knowledge": "episode-local-response-knowledge-context-v1",
     "imagination": (
@@ -32,7 +32,7 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
     ),
     "critic": (
         "relational-gru-discounted-sparse-return+"
-        "zero-memory-decision-suffixes+batched-train-v5"
+        "zero-memory-decision-suffixes+batched-train-v3"
     ),
     "skills": "relational-aseq-template-v1",
     "goals": "external-final-goal+relational-skill-promotion-v1",
@@ -41,6 +41,9 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
     "current_protocol": "standalone-current-protocol-v2",
     "hidden_pressure_contract": "audit-and-session-countdown-masked",
     "chance_objective": "expected-external-sparse-return",
+    "planner_discount": "same-as-agent-gamma",
+    "imagined_action_identity": "one-action-per-relational-legal-slot",
+    "unknown_role_contract": "known-unobserved-entities-explicitly-unknown",
 }
 
 LEGACY_COMPONENTS_ACTIVE: tuple[str, ...] = ()
