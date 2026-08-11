@@ -22,7 +22,11 @@ REL_DESCRIPTOR_SIZE = (
     7 + 2 + 3 + len(ROUTE_RELATIONS) + len(PROFILE_RELATIONS) + 2 + 1 + 4
 )
 ACTION_SLOT_COUNT = len(DREAMERV3_ACTION_SLOTS)
-TERMINAL_CLASSES = 3
+TERMINAL_ACTIVE = 0
+TERMINAL_SUCCESS = 1
+TERMINAL_FAILURE = 2
+TERMINAL_TRUNCATION = 3
+TERMINAL_CLASSES = 4
 
 
 def descriptor(state: StateSnapshot) -> tuple[float, ...]:
@@ -34,10 +38,38 @@ def descriptor(state: StateSnapshot) -> tuple[float, ...]:
     return values
 
 
+def _control(state: StateSnapshot, index: int) -> float:
+    return float(state.vector[index]) if index < len(state.vector) else 0.0
+
+
 def terminal_class(state: StateSnapshot) -> int:
-    if state.available_actions:
-        return 0
-    return 1 if state.goal_progress >= 1.0 or "success" in state.facts else 2
+    """Classify task terminal semantics, including non-failure truncation.
+
+    The transfer protocol treats rate limiting as truncation with reward 0, not
+    true failure -1. Curriculum snapshots deliberately keep legal actions after a
+    rate-limit event, so available_actions alone cannot define terminality.
+    """
+    facts = state.facts
+    success = (
+        state.goal_progress >= 1.0
+        or "success" in facts
+        or _control(state, 3) >= 0.5
+    )
+    if success:
+        return TERMINAL_SUCCESS
+
+    rate_limited = "rate_limited" in facts or _control(state, 6) >= 0.5
+    if rate_limited:
+        return TERMINAL_TRUNCATION
+
+    locked = "locked" in facts or _control(state, 5) >= 0.5
+    failed = "failed" in facts or _control(state, 4) >= 0.5
+    if locked and failed:
+        return TERMINAL_FAILURE
+
+    if not state.available_actions:
+        return TERMINAL_FAILURE if failed else TERMINAL_TRUNCATION
+    return TERMINAL_ACTIVE
 
 
 def legal_action_mask(state: StateSnapshot) -> tuple[float, ...]:
@@ -114,8 +146,6 @@ def _role_fill(
             identifier = f"{id_prefix}{cursor:02d}"
             cursor += 1
             facts.add(f"known_{prefix}:{identifier}")
-            # Absence of an observed-role fact means "unknown" in the real
-            # observation contract. Do not invent an explicit unknown response.
             if role != "unknown":
                 facts.add(f"observed_{prefix}_role:{identifier}:{role}")
 
@@ -128,7 +158,7 @@ def decode_relational_state(
     predicted_terminal: int,
     source: str,
 ) -> StateSnapshot:
-    """Create a canonical synthetic planner state; never predict concrete IDs."""
+    """Legacy-compatible relational decoder; current v2 installs its replacement."""
     values = [max(0.0, min(1.0, float(v))) for v in predicted_descriptor]
     if len(values) != REL_DESCRIPTOR_SIZE:
         raise ValueError("unexpected relational descriptor size")
@@ -143,12 +173,12 @@ def decode_relational_state(
     vector[8] = values[7]
     vector[10] = values[8]
 
-    success = int(predicted_terminal) == 1
-    failed = int(predicted_terminal) == 2
+    success = int(predicted_terminal) == TERMINAL_SUCCESS
+    failed = int(predicted_terminal) == TERMINAL_FAILURE
+    truncated = int(predicted_terminal) == TERMINAL_TRUNCATION
     vector[3] = float(success)
     vector[4] = float(failed)
-    if success:
-        vector[10] = 1.0
+    vector[6] = float(truncated)
 
     if success or failed:
         action_slots: tuple[int, ...] = ()
@@ -264,6 +294,10 @@ def decode_relational_state(
         facts.add("workflow_completed")
     if values[2] >= 0.5:
         facts.add("proof_acquired")
+    if values[5] >= 0.5:
+        facts.add("locked")
+    if truncated or values[6] >= 0.5:
+        facts.add("rate_limited")
     if success:
         facts.add("success")
     if failed:
@@ -275,6 +309,7 @@ def decode_relational_state(
             "imagined_relational_world": True,
             "imagined_relational_source": source,
             "imagined_action_surface": "predicted_relational_legal_mask",
+            "imagined_terminal_class": int(predicted_terminal),
         }
     )
     return StateSnapshot(
