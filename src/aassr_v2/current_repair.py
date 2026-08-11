@@ -7,9 +7,9 @@ from typing import Any
 
 from .autonomous_agent_core import ActionDecision
 from .current_agent import CurrentProphecyView, CurrentSkillProphecy
-from .current_relational_prophecy import (
+from .current_relational_model import RelationalStochasticProphecy
+from .current_semantic_calibration import (
     RelationalDepthBatchedProphecyView,
-    RelationalStochasticProphecy,
     SemanticCalibratedProphecy,
     SemanticPredictionValidator,
 )
