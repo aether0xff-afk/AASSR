@@ -1,18 +1,8 @@
 name: Imagination gate margin calibration
 
+# Expensive methodology diagnostic. Keep manual so implementation pushes do not
+# repeatedly consume 2k-transition CPU experiments before contracts are frozen.
 on:
-  push:
-    branches:
-      - agent/imagination-gate-ablation
-    paths:
-      - "scripts/run_imagination_gate_margin_calibration.py"
-      - ".github/workflows/imagination-gate-margin-calibration.yml"
-  pull_request:
-    branches:
-      - agent/aassr-current-generation
-    paths:
-      - "scripts/run_imagination_gate_margin_calibration.py"
-      - ".github/workflows/imagination-gate-margin-calibration.yml"
   workflow_dispatch:
 
 jobs:
