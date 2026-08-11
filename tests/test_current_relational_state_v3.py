@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import replace
+import pytest
 
 from aassr_v2.current_relational_codec import legal_action_mask, terminal_class
 from aassr_v2.current_relational_state import AUDIT_PRESSURE_INDEX, SESSION_REMAINING_INDEX
@@ -66,7 +66,7 @@ def test_status_mismatch_materially_reduces_semantic_score() -> None:
         (Prediction(missing, 1.0, source="wrong-status"),),
         forbidden,
     )
-    assert correct == 1.0
+    assert correct == pytest.approx(1.0)
     assert correct - wrong >= 0.29
 
 
