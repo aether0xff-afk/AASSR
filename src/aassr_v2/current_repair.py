@@ -6,10 +6,11 @@ from types import MethodType
 from typing import Any
 
 from .autonomous_agent_core import ActionDecision
-from .current_agent import CurrentProphecyView, CurrentSkillProphecy
+from .current_agent import CurrentProphecyView
 from .current_generation import relational_action_key, relational_state_key
 from .current_manifest import CURRENT_COMPONENTS
 from .current_relational_model import RelationalStochasticProphecy
+from .current_relational_skill_prophecy import RelationalStochasticSkillProphecy
 from .current_semantic_calibration import (
     RelationalDepthBatchedProphecyView,
     SemanticCalibratedProphecy,
@@ -179,7 +180,7 @@ def install_current_repairs(
         device=device,
     )
     calibrated = SemanticCalibratedProphecy(base, replay)
-    skill = CurrentSkillProphecy(
+    skill = RelationalStochasticSkillProphecy(
         calibrated,
         agent.skills,
         agent.knowledge,
@@ -263,6 +264,7 @@ def install_current_repairs(
             "predicted_legal_action_surface": True,
             "multi_outcome_ensemble": True,
             "reliability_outcome_probability_separated": True,
+            "stochastic_skill_rollout": True,
             "semantic_information_evaluator": True,
             "relational_repeat_unlock_value": True,
             "critic_sparse_return_aligned": True,
