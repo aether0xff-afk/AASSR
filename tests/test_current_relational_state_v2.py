@@ -16,11 +16,8 @@ from aassr_v2.current_relational_state import (
 
 install_relational_state_contract()
 
-from aassr_v2.current_relational_codec import (
-    decode_relational_state,
-    descriptor,
-    transition_target,
-)
+from aassr_v2.current_relational_codec import legal_action_mask, terminal_class
+from aassr_v2.current_relational_decode_v2 import decode_relational_state_v2
 from aassr_v2.pentest_agent_main_test import AGENT_STATE_SIZE
 from aassr_v2.pentest_curriculum_env import PROFILE_RELATIONS, ROUTE_RELATIONS
 from aassr_v2.pentest_transfer_stages import TRANSFER_STAGES, TransferDiagnosticWorld
@@ -136,22 +133,23 @@ def test_public_request_and_workflow_progress_change_relational_identity() -> No
 
 
 def test_v2_prophecy_target_and_decode_round_trip_public_progress() -> None:
-    before, action = _state(request_usage=0.25, workflow_fraction=0.125)
+    before, _ = _state(request_usage=0.25, workflow_fraction=0.125)
     after, _ = _state(request_usage=0.5, workflow_fraction=0.25)
-    _, next_descriptor, next_mask, next_terminal = transition_target(
-        before,
-        action,
-        after,
-    )
-    decoded = decode_relational_state(
+    # This is an explicit historical-v2 reproduction test. Do not use the active
+    # codec's transition_target here because the active current runtime is allowed
+    # to be rebound to the v3 status-aware descriptor in the same pytest process.
+    next_descriptor = relational_state_descriptor_v2(after)
+    next_mask = legal_action_mask(after)
+    next_terminal = terminal_class(after)
+    decoded = decode_relational_state_v2(
         next_descriptor,
         next_mask,
         scaffold=before,
         predicted_terminal=next_terminal,
-        source="unit-test",
+        source="unit-test-v2",
     )
 
-    assert descriptor(decoded) == pytest.approx(next_descriptor)
+    assert relational_state_descriptor_v2(decoded) == pytest.approx(next_descriptor)
     assert decoded.vector[7] == 0.0
     assert decoded.vector[8] == pytest.approx(0.5)
     assert decoded.vector[9] == 0.0
