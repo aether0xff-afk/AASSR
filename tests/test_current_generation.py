@@ -22,6 +22,7 @@ from aassr_v2.current_manifest import (
 )
 from aassr_v2.current_planner import CurrentFullyBatchedImaginationTree
 from aassr_v2.current_relational_model import RelationalStochasticProphecy
+from aassr_v2.current_relational_skill_prophecy import RelationalStochasticSkillProphecy
 from aassr_v2.current_return_critic import (
     ReturnAwareHardwareRelationalGRUBranchCritic,
 )
@@ -135,6 +136,7 @@ def test_public_current_builder_constructs_repaired_current_runtime() -> None:
     assert isinstance(agent.dqn, RelationalInvariantDQN)
     assert isinstance(agent.base_neural_prophecy, RelationalStochasticProphecy)
     assert isinstance(agent.calibrated_prophecy, SemanticCalibratedProphecy)
+    assert isinstance(agent.skill_prophecy, RelationalStochasticSkillProphecy)
     assert isinstance(agent.critic, ReturnAwareHardwareRelationalGRUBranchCritic)
     assert isinstance(agent.skills, RelationalSkillLibrary)
     assert isinstance(agent.planner, CurrentFullyBatchedImaginationTree)
@@ -143,6 +145,7 @@ def test_public_current_builder_constructs_repaired_current_runtime() -> None:
     assert agent.current_depth_batching is True
     assert agent.current_critic_batching is True
     assert agent.current_semantic_validation is True
+    assert agent.current_semantic_evaluator is True
 
     assert not isinstance(agent.policy, SemanticContextualPolicy)
     assert not isinstance(agent.base_neural_prophecy, OnlineGRUProphecy)
@@ -158,9 +161,16 @@ def test_public_current_builder_constructs_repaired_current_runtime() -> None:
     assert diagnostics["prophecy_action_input_relational"] is True
     assert diagnostics["legacy_components_active"] == []
     assert diagnostics["current_components"] == dict(CURRENT_COMPONENTS)
-    assert diagnostics["current_repairs"]["relational_input_output_contract"] is True
-    assert diagnostics["current_repairs"]["multi_outcome_ensemble"] is True
-    assert diagnostics["current_repairs"]["critic_sparse_return_aligned"] is True
+    repairs = diagnostics["current_repairs"]
+    assert repairs["relational_input_output_contract"] is True
+    assert repairs["relational_imagination_state_key"] is True
+    assert repairs["multi_outcome_ensemble"] is True
+    assert repairs["reliability_outcome_probability_separated"] is True
+    assert repairs["stochastic_skill_rollout"] is True
+    assert repairs["semantic_information_evaluator"] is True
+    assert repairs["critic_sparse_return_aligned"] is True
+    assert repairs["critic_root_scale_values"] is True
+    assert repairs["deeper_structural_branching"] is True
     assert diagnostics["identity_contracts"]["aseq_cycle_detection"].startswith(
         "concrete"
     )
