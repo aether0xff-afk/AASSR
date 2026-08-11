@@ -65,6 +65,10 @@ def test_mixture_builder_installs_conditional_world_model() -> None:
     assert diagnostics["terminal_classes"] == 4
     assert diagnostics["mixture_training_objective"] == "soft-mixture-likelihood"
     assert diagnostics["epistemic_confidence"] == "ensemble-mode-set-disagreement"
+    assert diagnostics["status_supervision"] == 1
+    assert diagnostics["status_output_channels"] == 8
+    assert diagnostics["status_loss_weight"] == pytest.approx(0.5)
+    assert agent.current_status_supervised_world_model is True
     assert agent.planner.config.aggregation == "mean"
     assert agent.planner.config.discount == pytest.approx(agent.config.gamma)
     assert agent.diagnostics()["current_repairs"]["planner_discount_matches_gamma"] is True
