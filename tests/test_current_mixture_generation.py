@@ -66,6 +66,8 @@ def test_mixture_builder_installs_conditional_world_model() -> None:
     assert diagnostics["mixture_training_objective"] == "soft-mixture-likelihood"
     assert diagnostics["epistemic_confidence"] == "ensemble-mode-set-disagreement"
     assert agent.planner.config.aggregation == "mean"
+    assert agent.planner.config.discount == pytest.approx(agent.config.gamma)
+    assert agent.diagnostics()["current_repairs"]["planner_discount_matches_gamma"] is True
 
 
 def test_mixture_builder_executes_and_learns_one_real_transition() -> None:
@@ -106,13 +108,10 @@ def test_learned_mixture_returns_normalized_distinct_modes_on_novel_related_inpu
     before, action = _state(request_usage=0.0)
     catalog, _ = _state("catalog", request_usage=0.1)
     auth, _ = _state("auth", request_usage=0.1)
-    # Same input, genuinely different semantic targets.
     for _ in range(4):
         model.learn(before, action, catalog)
         model.learn(before, action, auth)
 
-    # Change public pressure so the exact empirical key is novel. The learned
-    # conditional mixture path, not the exact-outcome lookup, must be used.
     novel, novel_action = _state(request_usage=0.25)
     rows = model.predict(novel, novel_action, samples=3)
     assert rows
@@ -121,8 +120,6 @@ def test_learned_mixture_returns_normalized_distinct_modes_on_novel_related_inpu
     assert sum(
         getattr(row, "outcome_probability", 0.0) for row in rows
     ) == pytest.approx(1.0)
-    # A 'multi-outcome' head that returns three aliases of the same semantic
-    # future is still deterministic collapse. Require at least two modes here.
     semantic_modes = {
         tuple(round(value, 4) for value in descriptor(row.next_state))
         for row in rows
