@@ -7,10 +7,11 @@ from typing import Any
 
 from .autonomous_agent_core import ActionDecision
 from .current_agent import CurrentProphecyView
-from .current_generation import relational_action_key, relational_state_key
+from .current_generation import relational_action_key
 from .current_manifest import CURRENT_COMPONENTS
 from .current_relational_model import RelationalStochasticProphecy
 from .current_relational_skill_prophecy import RelationalStochasticSkillProphecy
+from .current_relational_state import relational_state_key_v2
 from .current_semantic_calibration import (
     RelationalDepthBatchedProphecyView,
     SemanticCalibratedProphecy,
@@ -43,6 +44,11 @@ def preserve_root_evaluations(
         if node.depth == 1 and node.root_action is not None:
             depth_one.setdefault(node.root_action.signature, []).append(node)
 
+    probability_by_node = dict(
+        getattr(planner, "_last_outcome_probability_by_node", {})
+    )
+    chance_backup = getattr(planner, "_aggregate_outcomes", None)
+
     for action in state.available_actions:
         if action.signature in by_signature:
             continue
@@ -53,11 +59,17 @@ def preserve_root_evaluations(
                 f"{action.signature}"
             )
         values = tuple(planner._adjusted_value(node) for node in leaves)
+        masses = tuple(probability_by_node.get(node.node_id, 1.0) for node in leaves)
+        aggregate = (
+            chance_backup(values, masses)
+            if callable(chance_backup)
+            else planner._aggregate(values)
+        )
         best = max(leaves, key=planner._adjusted_value)
         by_signature[action.signature] = RootActionEvaluation(
             action=action,
             leaf_values=values,
-            aggregate_value=planner._aggregate(values),
+            aggregate_value=float(aggregate),
             best_path=best.action_path,
             best_leaf_id=best.node_id,
         )
@@ -210,10 +222,7 @@ def install_current_repairs(
     batched = RelationalDepthBatchedProphecyView(agent)
     agent.current_batched_prophecy = batched
     agent.planner.prophecy = batched
-    # Imagination now lives in canonical relational states. Repeated-state
-    # detection must therefore use the same rename-invariant state identity rather
-    # than the concrete ASEQ fingerprint used by the real-world loop guard.
-    agent.planner._state_key = lambda state: repr(relational_state_key(state))
+    agent.planner._state_key = lambda state: repr(relational_state_key_v2(state))
     agent.core.prophecy = prophecy
 
     critic = ReturnAwareHardwareRelationalGRUBranchCritic(
@@ -224,7 +233,13 @@ def install_current_repairs(
     agent.planner.scorer = critic
 
     agent.config = replace(agent.config, imagination_outcome_samples=3)
-    agent.planner.config = replace(agent.planner.config, outcome_samples=3)
+    agent.planner.config = replace(
+        agent.planner.config,
+        outcome_samples=3,
+        # External optimization target is expected sparse return. Actual failure
+        # is already -1, so an extra variance penalty would change the objective.
+        aggregation="mean",
+    )
 
     original_finish = agent.finish_episode
 
@@ -248,7 +263,7 @@ def install_current_repairs(
     _install_planner_audit(agent)
 
     agent.current_relational_repairs = True
-    agent.current_repairs_version = "relational-world-model-repair-v1"
+    agent.current_repairs_version = "relational-world-model-repair-v2"
     agent.current_components = dict(CURRENT_COMPONENTS)
 
     original_diagnostics = agent.diagnostics
@@ -259,15 +274,21 @@ def install_current_repairs(
         output["current_repairs"] = {
             "version": self_agent.current_repairs_version,
             "relational_input_output_contract": True,
+            "relational_public_state_v2": True,
+            "hidden_audit_session_pressure_masked": True,
             "relational_imagination_state_key": True,
             "semantic_decode": True,
             "predicted_legal_action_surface": True,
             "multi_outcome_ensemble": True,
             "reliability_outcome_probability_separated": True,
+            "probability_weighted_chance_backup": True,
+            "max_agent_decision_backup": True,
+            "expected_sparse_return_objective": True,
             "stochastic_skill_rollout": True,
             "semantic_information_evaluator": True,
             "relational_repeat_unlock_value": True,
             "critic_sparse_return_aligned": True,
+            "critic_zero_memory_suffix_training": True,
             "critic_root_scale_values": True,
             "root_preserving": True,
             "deeper_structural_branching": True,
