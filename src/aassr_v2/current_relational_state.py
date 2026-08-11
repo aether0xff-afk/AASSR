@@ -10,7 +10,7 @@ from .pentest_curriculum_env import (
     relational_action_features,
 )
 from .skills import SKILL_VERB
-from .types import Action, StateSnapshot
+from .types import StateSnapshot
 
 
 CONTROL_SIZE = 7
@@ -95,8 +95,6 @@ def workflow_progress_fraction(state: StateSnapshot) -> float:
         except (TypeError, ValueError, ZeroDivisionError):
             continue
 
-    # Generic HTTP worlds do not expose the curriculum dependency counter. Their
-    # public goal progress is the best available structural fallback.
     return _clamp01(state.goal_progress)
 
 
@@ -200,14 +198,9 @@ def relational_state_key_v2(state: StateSnapshot) -> tuple[float, ...]:
 
 
 def install_relational_state_contract() -> None:
-    """Make legacy current classes consume the v2 public-state contract.
-
-    Current-generation classes were originally defined in `current_generation`.
-    Their methods resolve these helper names at runtime, so patching the module
-    globals upgrades the active classes without editing historical reproduction
-    code. Modules that imported helper functions by value are patched explicitly.
-    """
+    """Make legacy current classes consume the v2 public-state contract."""
     from . import current_generation as generation
+    from .current_relational_decode_v2 import decode_relational_state_v2
 
     generation.relational_state_descriptor = relational_state_descriptor_v2
     generation.relational_state_vector = relational_state_vector_v2
@@ -243,6 +236,7 @@ def install_relational_state_contract() -> None:
         codec.relational_state_descriptor = relational_state_descriptor_v2
         codec.relational_state_vector = relational_state_vector_v2
         codec.REL_DESCRIPTOR_SIZE = REL_DESCRIPTOR_SIZE
+        codec.decode_relational_state = decode_relational_state_v2
     except ImportError:  # pragma: no cover
         pass
 
@@ -251,6 +245,7 @@ def install_relational_state_contract() -> None:
 
         model.relational_state_vector = relational_state_vector_v2
         model.REL_DESCRIPTOR_SIZE = REL_DESCRIPTOR_SIZE
+        model.decode_relational_state = decode_relational_state_v2
     except ImportError:  # pragma: no cover
         pass
 
