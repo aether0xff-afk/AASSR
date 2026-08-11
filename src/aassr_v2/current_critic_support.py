@@ -15,7 +15,6 @@ from .current_relational_state import (
     WORKFLOW_PROGRESS_INDEX,
 )
 from .current_relational_state_v3 import (
-    BASE_REL_DESCRIPTOR_SIZE,
     latest_status_code,
     relational_state_descriptor_v3,
 )
@@ -235,6 +234,9 @@ def install_critic_support_gate(
         repairs = dict(output.get("current_repairs", {}))
         repairs.update(
             {
+                "relational_public_state_v3": True,
+                "public_http_status_preserved": True,
+                "status_aware_semantic_calibration": True,
                 "critic_local_support_gate": True,
                 "critic_support_is_gate_not_value": True,
             }
