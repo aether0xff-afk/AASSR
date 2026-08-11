@@ -1,18 +1,14 @@
 from __future__ import annotations
 
-from collections import deque
 from dataclasses import dataclass
-from math import exp
 from statistics import fmean
-from types import SimpleNamespace
 from typing import Any, Sequence
 import random
 
 from .current_generation import relational_action_key
 from .current_relational_codec import (
     ACTION_SLOT_COUNT,
-    legal_action_mask,
-    terminal_class,
+    TERMINAL_CLASSES,
 )
 from .current_relational_decode_v2 import decode_relational_state_v2
 from .current_relational_model import (
@@ -22,11 +18,9 @@ from .current_relational_model import (
 )
 from .current_relational_state import (
     REL_DESCRIPTOR_SIZE,
-    relational_state_descriptor_v2,
     relational_state_vector_v2,
 )
 from .pentest_agent_main_test import ACTION_FEATURE_SIZE, AGENT_STATE_SIZE
-from .skills import SKILL_VERB
 from .types import Action, Prediction, StateSnapshot
 
 
@@ -41,17 +35,17 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
     """Conditional multi-head relational world model.
 
     One structural state/action can legitimately have several next outcomes under
-    partial observability. Each ensemble member therefore predicts a categorical
-    mixture of K semantic futures instead of one deterministic regression target.
-    Exact repeated inputs still use empirical outcome frequencies when available;
-    the learned mixture generalizes those modes to novel but related states.
+    partial observability. Each ensemble member predicts a categorical mixture of
+    K semantic futures instead of one deterministic regression target. The target
+    contains only the relational next-state descriptor, relational legal-action
+    mask, and four-way task terminal class (active/success/failure/truncation).
 
-    Model reliability is epistemic set disagreement between ensemble members.
-    Aleatoric outcome mass is represented by the learned mixture weights and is
-    never added to branch value.
+    ``Prediction.probability`` is epistemic reliability. Stochastic outcome mass
+    lives separately in ``outcome_probability`` and is consumed by the planner's
+    chance backup, never added to branch value.
     """
 
-    name = "current-relational-conditional-mixture-world-model-v2"
+    name = "current-relational-conditional-mixture-world-model-v3"
 
     def __init__(
         self,
@@ -60,126 +54,43 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
         device: str = "cpu",
         config: RelationalMixtureProphecyConfig | None = None,
     ) -> None:
-        try:
-            import torch
-            from torch import nn
-        except ImportError as exc:  # pragma: no cover
-            raise RuntimeError(
-                "ConditionalMixtureRelationalProphecy requires torch"
-            ) from exc
-        self.torch = torch
-        self.nn = nn
-        self.config = config or RelationalMixtureProphecyConfig()
-        if self.config.mixture_components <= 1:
+        config = config or RelationalMixtureProphecyConfig()
+        if config.mixture_components <= 1:
             raise ValueError("mixture_components must be greater than one")
-        self.device = torch.device(device)
-        torch.manual_seed(int(seed))
 
+        # Reuse the audited replay/input/outcome bookkeeping from the relational
+        # base class, then replace only its deterministic heads with mixture heads.
+        super().__init__(seed=int(seed), device=device, config=config)
+        self.config: RelationalMixtureProphecyConfig = config
         self.input_size = AGENT_STATE_SIZE + ACTION_FEATURE_SIZE
         self.component_size = (
-            REL_DESCRIPTOR_SIZE + ACTION_SLOT_COUNT + 3
+            REL_DESCRIPTOR_SIZE + ACTION_SLOT_COUNT + TERMINAL_CLASSES
         )
         self.output_size = (
             self.config.mixture_components * self.component_size
             + self.config.mixture_components
         )
         self.models = [
-            nn.Sequential(
-                nn.Linear(self.input_size, self.config.hidden_units),
-                nn.ReLU(),
-                nn.Linear(self.config.hidden_units, self.config.hidden_units),
-                nn.ReLU(),
-                nn.Linear(self.config.hidden_units, self.output_size),
+            self.nn.Sequential(
+                self.nn.Linear(self.input_size, self.config.hidden_units),
+                self.nn.ReLU(),
+                self.nn.Linear(self.config.hidden_units, self.config.hidden_units),
+                self.nn.ReLU(),
+                self.nn.Linear(self.config.hidden_units, self.output_size),
             ).to(self.device)
             for _ in range(self.config.ensemble_size)
         ]
         self.optimizers = [
-            torch.optim.Adam(model.parameters(), lr=self.config.learning_rate)
+            self.torch.optim.Adam(model.parameters(), lr=self.config.learning_rate)
             for model in self.models
         ]
-        self.replay: deque[
-            tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...], int]
-        ] = deque(maxlen=self.config.replay_capacity)
-        self._outcomes: dict[
-            tuple[float, ...],
-            dict[tuple[tuple[float, ...], tuple[int, ...], int], int],
-        ] = {}
-        self.observations = 0
-        self.gradient_updates = 0
-        self._losses: deque[float] = deque(maxlen=512)
-        self._last_ensemble_variance = 1.0
-        self.batch_prediction_calls = 0
-        self.batch_prediction_rows = 0
-        self.empirical_multioutcome_rows = 0
         self.mixture_prediction_rows = 0
-
-    @property
-    def training_stats(self) -> Any:
-        return SimpleNamespace(updates=int(self.gradient_updates))
-
-    def _tensor(self, values: Any, *, dtype: Any | None = None) -> Any:
-        return self.torch.as_tensor(
-            values,
-            dtype=dtype or self.torch.float32,
-            device=self.device,
-        )
 
     def _input(self, state: StateSnapshot, action: Action) -> tuple[float, ...]:
         values = relational_state_vector_v2(state) + relational_action_key(state, action)
         if len(values) != self.input_size:
             raise ValueError("relational mixture input size drift")
         return values
-
-    @staticmethod
-    def _target(
-        state: StateSnapshot,
-        action: Action,
-        next_state: StateSnapshot,
-    ) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...], int]:
-        return (
-            relational_state_vector_v2(state) + relational_action_key(state, action),
-            relational_state_descriptor_v2(next_state),
-            legal_action_mask(next_state),
-            terminal_class(next_state),
-        )
-
-    @staticmethod
-    def _outcome_key(
-        next_descriptor: Sequence[float],
-        next_mask: Sequence[float],
-        next_terminal: int,
-    ) -> tuple[tuple[float, ...], tuple[int, ...], int]:
-        return (
-            tuple(round(float(value), 8) for value in next_descriptor),
-            tuple(int(float(value) >= 0.5) for value in next_mask),
-            int(next_terminal),
-        )
-
-    def learn(
-        self,
-        state: StateSnapshot,
-        action: Action,
-        actual_next_state: StateSnapshot,
-    ) -> None:
-        if action.verb_name == SKILL_VERB:
-            return
-        model_input, next_descriptor, next_mask, next_terminal = self._target(
-            state,
-            action,
-            actual_next_state,
-        )
-        self.replay.append(
-            (model_input, next_descriptor, next_mask, next_terminal)
-        )
-        bucket = self._outcomes.setdefault(model_input, {})
-        outcome = self._outcome_key(next_descriptor, next_mask, next_terminal)
-        bucket[outcome] = bucket.get(outcome, 0) + 1
-
-        self.observations += 1
-        if len(self.replay) < max(self.config.batch_size, self.config.warmup_steps):
-            return
-        for _ in range(self.config.gradient_steps_per_observation):
-            self._train_step()
 
     def _split_output(self, output: Any) -> tuple[Any, Any, Any, Any]:
         k = self.config.mixture_components
@@ -195,6 +106,8 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
         descriptor_logits = components[:, :, :descriptor_end]
         mask_logits = components[:, :, descriptor_end:mask_end]
         terminal_logits = components[:, :, mask_end:]
+        if terminal_logits.shape[-1] != TERMINAL_CLASSES:
+            raise RuntimeError("mixture terminal head size drift")
         return descriptor_logits, mask_logits, terminal_logits, mixture_logits
 
     def _train_step(self) -> None:
@@ -237,10 +150,9 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
             terminal_target = self._tensor(
                 [row[3] for row in batch],
                 dtype=torch.int64,
-            )
-            terminal_target = terminal_target.unsqueeze(1).expand(-1, k)
+            ).unsqueeze(1).expand(-1, k)
             terminal_loss = nn.functional.cross_entropy(
-                terminal_logits.reshape(-1, 3),
+                terminal_logits.reshape(-1, TERMINAL_CLASSES),
                 terminal_target.reshape(-1),
                 reduction="none",
             ).reshape(-1, k)
@@ -251,8 +163,8 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
                 + 0.25 * terminal_loss
             )
             log_mixture = torch.log_softmax(mixture_logits, dim=1)
-            # Soft mixture likelihood: different heads can own different targets
-            # for the exact same input instead of being forced toward their mean.
+            # Soft mixture likelihood lets different components own legitimately
+            # different targets for the same relational input.
             nll = -torch.logsumexp(log_mixture - reconstruction, dim=1).mean()
             mixture = torch.softmax(mixture_logits, dim=1)
             entropy = -(mixture * log_mixture).sum(dim=1).mean()
@@ -265,22 +177,14 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
             self._losses.append(float(loss.detach().cpu().item()))
         self.gradient_updates += 1
 
-    def _forward(self, states: Sequence[StateSnapshot], actions: Sequence[Action]) -> Any:
-        inputs = self._tensor(
-            [self._input(state, action) for state, action in zip(states, actions, strict=True)]
-        )
-        with self.torch.no_grad():
-            return self.torch.stack([model(inputs) for model in self.models], dim=0)
-
     def _decoded_outputs(self, outputs: Any) -> tuple[Any, Any, Any, Any]:
-        # outputs: [ensemble, batch, flat]
         descriptor_rows = []
         mask_rows = []
         terminal_rows = []
         mixture_rows = []
         for member in range(outputs.shape[0]):
-            desc, mask, terminal, mixture = self._split_output(outputs[member])
-            descriptor_rows.append(self.torch.sigmoid(desc))
+            descriptor, mask, terminal, mixture = self._split_output(outputs[member])
+            descriptor_rows.append(self.torch.sigmoid(descriptor))
             mask_rows.append(self.torch.sigmoid(mask))
             terminal_rows.append(self.torch.softmax(terminal, dim=2))
             mixture_rows.append(self.torch.softmax(mixture, dim=1))
@@ -298,17 +202,16 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
         terminals: Any,
         mixtures: Any,
     ) -> Any:
-        """Epistemic disagreement between predicted mode *sets*.
+        """Epistemic disagreement between predicted mode sets.
 
-        Diversity within one member is aleatoric and should not reduce model
-        reliability. Only failure of different ensemble members to agree on a
-        nearby mode set is penalized.
+        Diversity *within* one member is aleatoric and should not lower model
+        reliability. Only disagreement between ensemble members' mode sets does.
         """
         pair_scores = []
         ensemble = descriptors.shape[0]
         for left in range(ensemble):
             for right in range(left + 1, ensemble):
-                desc_distance = (
+                descriptor_distance = (
                     descriptors[left].unsqueeze(2)
                     - descriptors[right].unsqueeze(1)
                 ).abs().mean(dim=3)
@@ -321,18 +224,14 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
                     - terminals[right].unsqueeze(1)
                 ).abs().mean(dim=3)
                 distance = (
-                    0.55 * desc_distance
+                    0.55 * descriptor_distance
                     + 0.30 * mask_distance
                     + 0.15 * terminal_distance
                 )
                 left_nearest = distance.min(dim=2).values
                 right_nearest = distance.min(dim=1).values
-                left_score = (
-                    left_nearest * mixtures[left]
-                ).sum(dim=1)
-                right_score = (
-                    right_nearest * mixtures[right]
-                ).sum(dim=1)
+                left_score = (left_nearest * mixtures[left]).sum(dim=1)
+                right_score = (right_nearest * mixtures[right]).sum(dim=1)
                 pair_scores.append(0.5 * (left_score + right_score))
         if not pair_scores:
             return self.torch.zeros(
@@ -388,42 +287,6 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
             + 0.15 * terminal_distance
         )
 
-    def _empirical_predictions(
-        self,
-        state: StateSnapshot,
-        action: Action,
-        *,
-        confidence: float,
-        samples: int,
-    ) -> tuple[Prediction, ...]:
-        bucket = self._outcomes.get(self._input(state, action), {})
-        if len(bucket) < 2:
-            return ()
-        selected = sorted(
-            bucket.items(),
-            key=lambda item: (-item[1], item[0]),
-        )[: max(1, int(samples))]
-        total = sum(count for _, count in selected)
-        rows = []
-        for index, ((next_descriptor, next_mask, next_terminal), count) in enumerate(selected):
-            source = f"{self.name}:empirical-outcome-{index}"
-            rows.append(
-                RelationalPrediction(
-                    decode_relational_state_v2(
-                        next_descriptor,
-                        next_mask,
-                        scaffold=state,
-                        predicted_terminal=next_terminal,
-                        source=source,
-                    ),
-                    max(0.0, min(1.0, float(confidence))),
-                    source=source,
-                    outcome_probability=(float(count) / total if total else 1.0 / len(selected)),
-                )
-            )
-        self.empirical_multioutcome_rows += 1
-        return tuple(rows)
-
     def _mixture_predictions(
         self,
         *,
@@ -450,7 +313,9 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
                         "mass": mixtures[member][row_index][component] / ensemble,
                     }
                 )
-        candidates.sort(key=lambda item: (-float(item["mass"]), item["member"], item["component"]))
+        candidates.sort(
+            key=lambda item: (-float(item["mass"]), item["member"], item["component"])
+        )
 
         clusters: list[dict[str, Any]] = []
         for candidate in candidates:
@@ -477,8 +342,8 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
         rows = []
         for index, cluster in enumerate(selected):
             candidate = cluster["representative"]
-            terminal = max(
-                range(3),
+            predicted_terminal = max(
+                range(TERMINAL_CLASSES),
                 key=lambda terminal_index: candidate["terminal"][terminal_index],
             )
             source = (
@@ -490,7 +355,7 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
                         candidate["descriptor"],
                         candidate["mask"],
                         scaffold=state,
-                        predicted_terminal=terminal,
+                        predicted_terminal=predicted_terminal,
                         source=source,
                     ),
                     max(0.0, min(1.0, float(confidence))),
@@ -592,8 +457,7 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
             return ()
         if self.observations < self.config.warmup_steps:
             return (0.0,) * len(states)
-        outputs = self._forward(states, actions)
-        decoded = self._decoded_outputs(outputs)
+        decoded = self._decoded_outputs(self._forward(states, actions))
         return tuple(
             float(value)
             for value in self._confidence_from_decoded(*decoded).detach().cpu().tolist()
@@ -622,8 +486,12 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
             "batch_prediction_rows": self.batch_prediction_rows,
             "state_input_relational": 1,
             "action_input_relational": 1,
-            "prediction_output": "relational-descriptor-v2+legal-mask+terminal-mixture",
+            "prediction_output": (
+                "relational-descriptor-v2+legal-mask+"
+                "active-success-failure-truncation-mixture"
+            ),
             "conditional_mixture_components": self.config.mixture_components,
+            "terminal_classes": TERMINAL_CLASSES,
             "mixture_training_objective": "soft-mixture-likelihood",
             "epistemic_confidence": "ensemble-mode-set-disagreement",
             "reliability_outcome_probability_separated": 1,
