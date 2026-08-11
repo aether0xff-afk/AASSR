@@ -78,9 +78,6 @@ def _canonical_action(slot: int, *, variant: int = 0) -> Action:
     }
     if verb == "request_object":
         parameters["object_id"] = f"imag-object-{object_role}"
-    # Multiplicity is observable in the relational state. This opaque parameter
-    # makes structurally equivalent synthetic actions distinct without changing
-    # relational_action_features/dreamer_action_slot_key.
     if variant:
         parameters["imagined_variant"] = str(variant)
     return Action(verb, parameters=parameters)
@@ -117,7 +114,10 @@ def _role_fill(
             identifier = f"{id_prefix}{cursor:02d}"
             cursor += 1
             facts.add(f"known_{prefix}:{identifier}")
-            facts.add(f"observed_{prefix}_role:{identifier}:{role}")
+            # Absence of an observed-role fact means "unknown" in the real
+            # observation contract. Do not invent an explicit unknown response.
+            if role != "unknown":
+                facts.add(f"observed_{prefix}_role:{identifier}:{role}")
 
 
 def decode_relational_state(
@@ -151,13 +151,10 @@ def decode_relational_state(
         vector[10] = 1.0
 
     if success or failed:
-        active_slots: tuple[int, ...] = ()
         action_slots: tuple[int, ...] = ()
         actions: tuple[Action, ...] = ()
     else:
-        # descriptor[-3] = unique relational action count / 32.
         unique_count = max(1, min(32, int(round(values[-3] * 32.0))))
-        # descriptor[-4] = concrete currently available action count / 128.
         total_count = max(
             unique_count,
             min(128, int(round(values[-4] * 128.0))),
@@ -168,10 +165,10 @@ def decode_relational_state(
         )
         active_slots = tuple(ranked[:unique_count])
         expanded_slots = list(active_slots)
-        variant = 1
         while len(expanded_slots) < total_count:
-            expanded_slots.append(active_slots[(len(expanded_slots) - unique_count) % len(active_slots)])
-            variant += 1
+            expanded_slots.append(
+                active_slots[(len(expanded_slots) - unique_count) % len(active_slots)]
+            )
         action_slots = tuple(expanded_slots)
         per_slot_seen: dict[int, int] = {}
         materialized = []
