@@ -62,6 +62,57 @@ def _print_learning(prefix: str, agent: object) -> None:
     )
 
 
+def _install_trace_serialization_bridge() -> None:
+    """Keep DetailedTraceCapture runtime-only while gate summary JSON is written.
+
+    The detailed runner temporarily carries a live DetailedTraceCapture object in each
+    variant result. The shared gate runner writes variants to summary.json before the
+    detailed runner gets a chance to pop that object, which makes json.dumps fail.
+
+    This bridge stashes the capture outside the result while the shared runner writes
+    its JSON-safe summary, then restores it to the returned in-memory result so the
+    existing detailed runner can emit decision/episode/switch/intervention JSONL files.
+    It does not alter training, evaluation, actions, values, gates, or learned state.
+    """
+
+    original_tracing_evaluate = detail._tracing_evaluate_variant
+    original_run_gate_ablation = gate.run_gate_ablation
+    captures: dict[str, Any] = {}
+
+    def serializable_tracing_evaluate(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        result = original_tracing_evaluate(*args, **kwargs)
+        capture = result.pop("detailed_trace_capture", None)
+        if capture is not None:
+            condition = str(result.get("condition", ""))
+            if not condition:
+                raise AssertionError("trace variant has no condition for capture stash")
+            captures[condition] = capture
+        return result
+
+    def restoring_run_gate_ablation(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        result = original_run_gate_ablation(*args, **kwargs)
+        restored = 0
+        for variant in result.get("variants", ()):
+            condition = str(variant.get("condition", ""))
+            capture = captures.pop(condition, None)
+            if capture is not None:
+                variant["detailed_trace_capture"] = capture
+                restored += 1
+        if captures:
+            raise AssertionError(
+                "unmatched detailed trace captures after summary serialization: "
+                f"{sorted(captures)}"
+            )
+        print(
+            f"[TRACE SAVE] restored {restored} runtime capture(s) after JSON summary write",
+            flush=True,
+        )
+        return result
+
+    detail._tracing_evaluate_variant = serializable_tracing_evaluate
+    gate.run_gate_ablation = restoring_run_gate_ablation
+
+
 def _install_runtime_logging() -> None:
     original_builder = gate.build_current_pentest_aassr_core
     original_episode = gate.run_current_episode
@@ -221,6 +272,7 @@ def main() -> None:
     started = time.perf_counter()
     try:
         _install_runtime_logging()
+        _install_trace_serialization_bridge()
         detail.main()
     except BaseException:
         print(
