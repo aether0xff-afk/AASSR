@@ -14,10 +14,6 @@ from .types import StateSnapshot
 
 
 CONTROL_SIZE = 7
-# Slots 7 and 9 exist only as compatibility channels in the 35-D descriptor.
-# response_causal_observation_v3 intentionally masks exact audit pressure and
-# session TTL remaining, so the current relational learner must never recover or
-# trust values from those raw positions.
 AUDIT_PRESSURE_INDEX = 7
 REQUEST_USAGE_INDEX = 8
 SESSION_REMAINING_INDEX = 9
@@ -29,14 +25,18 @@ ROLE_START_INDEX = 14
 
 REL_DESCRIPTOR_SIZE = (
     CONTROL_SIZE
-    + 4  # masked audit, public request usage, masked session, public workflow progress
-    + 3  # known route/profile/object counts
+    + 4
+    + 3
     + len(ROUTE_RELATIONS)
     + len(PROFILE_RELATIONS)
-    + 2  # own/target object observed
-    + 1  # tried object fraction
-    + 4  # action-surface summary
+    + 2
+    + 1
+    + 4
 )
+ACTION_COUNT_INDEX = REL_DESCRIPTOR_SIZE - 4
+UNIQUE_ACTION_COUNT_INDEX = REL_DESCRIPTOR_SIZE - 3
+REQUEST_FRACTION_INDEX = REL_DESCRIPTOR_SIZE - 2
+OBJECT_REQUEST_FRACTION_INDEX = REL_DESCRIPTOR_SIZE - 1
 
 
 def _clamp01(value: object, default: float = 0.0) -> float:
@@ -74,13 +74,7 @@ def _role_counts(
 
 
 def workflow_progress_fraction(state: StateSnapshot) -> float:
-    """Return only public dependency progress from the audited observation.
-
-    The audited causal environment already writes workflow progress into raw slot
-    10 using a fixed public scale. Hidden workflow depth is deliberately absent
-    from the observation contract, so the current learner must not normalize by
-    stage depth even if a legacy/debug snapshot happens to contain it.
-    """
+    """Return only public dependency progress from the audited observation."""
     explicit = state.metadata.get("relational_workflow_progress")
     if explicit is not None:
         return _clamp01(explicit)
@@ -93,14 +87,11 @@ def workflow_progress_fraction(state: StateSnapshot) -> float:
         if not fact.startswith("workflow_progress:"):
             continue
         parts = fact.split(":")
-        # Current audited form: workflow_progress:<self-observed-count>.
         if len(parts) == 2 and scale is not None:
             try:
                 return _clamp01(float(parts[1]) / max(1.0, float(scale)))
             except (TypeError, ValueError, ZeroDivisionError):
                 continue
-        # Historical compatibility only. Current response_causal snapshots never
-        # expose the denominator, so this branch cannot leak current stage depth.
         if len(parts) == 3:
             try:
                 return _clamp01(float(parts[1]) / max(1.0, float(parts[2])))
@@ -113,11 +104,11 @@ def workflow_progress_fraction(state: StateSnapshot) -> float:
 def relational_state_descriptor_v2(state: StateSnapshot) -> tuple[float, ...]:
     """Rename-invariant public state used by all current transfer learners.
 
-    Exact audit pressure and session-TTL remaining are intentionally *not*
-    observable under response_causal_observation_v3. Their compatibility slots
-    are therefore fixed at zero. Public resource state is represented by the
-    agent's own request count on a fixed scale, public terminal/status controls,
-    and self-observed workflow progress on its fixed scale.
+    Imagined states contain one canonical Action object per legal *structural*
+    action slot. Observable concrete action multiplicity is therefore retained as
+    four scalar surface summaries in metadata, not reconstructed as fake
+    ``imagined_variant`` actions. Real states have no overrides and compute the
+    same summaries directly from their real action surface.
     """
     facts = state.facts
     controls = tuple(
@@ -155,15 +146,33 @@ def relational_state_descriptor_v2(state: StateSnapshot) -> tuple[float, ...]:
         for action in actions
         if action.verb_name != SKILL_VERB
     }
-    request_fraction = (
+    observed_action_count = min(1.0, len(actions) / 128.0)
+    observed_unique_count = min(1.0, len(relational_actions) / 32.0)
+    observed_request_fraction = (
         sum(action.verb_name == "request" for action in actions) / len(actions)
         if actions
         else 0.0
     )
-    object_request_fraction = (
+    observed_object_request_fraction = (
         sum(action.verb_name == "request_object" for action in actions) / len(actions)
         if actions
         else 0.0
+    )
+    action_count_fraction = _clamp01(
+        state.metadata.get("relational_action_count_fraction"),
+        observed_action_count,
+    )
+    unique_action_count_fraction = _clamp01(
+        state.metadata.get("relational_unique_action_count_fraction"),
+        observed_unique_count,
+    )
+    request_fraction = _clamp01(
+        state.metadata.get("relational_request_fraction"),
+        observed_request_fraction,
+    )
+    object_request_fraction = _clamp01(
+        state.metadata.get("relational_object_request_fraction"),
+        observed_object_request_fraction,
     )
 
     descriptor = (
@@ -180,8 +189,8 @@ def relational_state_descriptor_v2(state: StateSnapshot) -> tuple[float, ...]:
         float(bool(_fact_values(facts, "observed_own_object:"))),
         float(bool(_fact_values(facts, "observed_target_object:"))),
         min(1.0, tried_objects / 32.0),
-        min(1.0, len(actions) / 128.0),
-        min(1.0, len(relational_actions) / 32.0),
+        action_count_fraction,
+        unique_action_count_fraction,
         request_fraction,
         object_request_fraction,
     )
@@ -214,14 +223,12 @@ def install_relational_state_contract() -> None:
 
     try:
         from . import current_hardware as hardware
-
         hardware.relational_state_key = relational_state_key_v2
     except ImportError:  # pragma: no cover
         pass
 
     try:
         from . import current_runtime as runtime
-
         if hasattr(runtime, "relational_state_vector"):
             runtime.relational_state_vector = relational_state_vector_v2
         if hasattr(runtime, "relational_state_key"):
@@ -231,33 +238,12 @@ def install_relational_state_contract() -> None:
 
     try:
         from . import dreamerv3_baseline as dreamer
-
         dreamer.relational_state_vector = relational_state_vector_v2
     except ImportError:  # pragma: no cover
         pass
 
     try:
         from . import current_relational_codec as codec
-
-        codec.relational_state_descriptor = relational_state_descriptor_v2
-        codec.relational_state_vector = relational_state_vector_v2
-        codec.REL_DESCRIPTOR_SIZE = REL_DESCRIPTOR_SIZE
         codec.decode_relational_state = decode_relational_state_v2
-    except ImportError:  # pragma: no cover
-        pass
-
-    try:
-        from . import current_relational_model as model
-
-        model.relational_state_vector = relational_state_vector_v2
-        model.REL_DESCRIPTOR_SIZE = REL_DESCRIPTOR_SIZE
-        model.decode_relational_state = decode_relational_state_v2
-    except ImportError:  # pragma: no cover
-        pass
-
-    try:
-        from . import current_repair as repair
-
-        repair.relational_state_key = relational_state_key_v2
     except ImportError:  # pragma: no cover
         pass
