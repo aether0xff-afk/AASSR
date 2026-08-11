@@ -10,7 +10,7 @@ from aassr_v2.native_batching import DepthBatchedImaginationTree
 from aassr_v2.pentest_transfer_stages import TRANSFER_STAGES, TransferDiagnosticWorld
 
 
-def test_current_depth_batcher_executes_neural_delta_batch_path() -> None:
+def test_current_depth_batcher_executes_relational_stochastic_batch_path() -> None:
     agent = build_current_pentest_aassr_core(
         seed=7,
         train_transitions=64,
@@ -37,8 +37,11 @@ def test_current_depth_batcher_executes_neural_delta_batch_path() -> None:
     assert diagnostics["current_imagination_batch_calls"] == 1
     assert diagnostics["current_imagination_batch_rows"] == len(actions)
     assert diagnostics["current_imagination_skill_fallback_rows"] == 0
-    assert agent.base_neural_prophecy.batch_prediction_calls >= 1
-    assert neural["per_row_batch_host_sync"] == 0
+    assert neural["batch_prediction_calls"] >= 1
+    assert neural["batch_prediction_rows"] >= len(actions)
+    assert neural["state_input_relational"] == 1
+    assert neural["action_input_relational"] == 1
+    assert neural["ensemble_outcomes_not_mean_collapsed"] == 1
 
 
 def test_current_parallel_universe_batches_all_neural_stages() -> None:
