@@ -85,7 +85,12 @@ def decode_relational_state_v2(
     source: str,
 ) -> StateSnapshot:
     """Decode a v2 relational prediction without inventing concrete real IDs."""
-    from .current_relational_codec import ACTION_SLOT_COUNT
+    from .current_relational_codec import (
+        ACTION_SLOT_COUNT,
+        TERMINAL_FAILURE,
+        TERMINAL_SUCCESS,
+        TERMINAL_TRUNCATION,
+    )
 
     values = [max(0.0, min(1.0, float(value))) for value in predicted_descriptor]
     if len(values) != REL_DESCRIPTOR_SIZE:
@@ -100,19 +105,38 @@ def decode_relational_state_v2(
         vector.extend([0.0] * (11 - len(vector)))
     for index in range(CONTROL_SIZE):
         vector[index] = values[index]
-    vector[AUDIT_PRESSURE_INDEX] = values[AUDIT_PRESSURE_INDEX]
+    # Compatibility channels remain masked in the current audited contract.
+    vector[AUDIT_PRESSURE_INDEX] = 0.0
     vector[REQUEST_USAGE_INDEX] = values[REQUEST_USAGE_INDEX]
-    vector[SESSION_REMAINING_INDEX] = values[SESSION_REMAINING_INDEX]
+    vector[SESSION_REMAINING_INDEX] = 0.0
 
-    success = int(predicted_terminal) == 1 or values[3] >= 0.5
-    failed = int(predicted_terminal) == 2 or values[4] >= 0.5
+    workflow_fraction = values[WORKFLOW_PROGRESS_INDEX]
+    # response_causal_observation_v3 uses raw slot 10 for public workflow count
+    # on a fixed scale. Do not overwrite it with success or hidden depth state.
+    vector[WORKFLOW_PROGRESS_INDEX] = workflow_fraction
+
+    success = (
+        int(predicted_terminal) == TERMINAL_SUCCESS
+        or values[3] >= 0.5
+    )
+    failed = (
+        int(predicted_terminal) == TERMINAL_FAILURE
+        or (values[4] >= 0.5 and values[5] >= 0.5)
+    )
+    truncated = (
+        int(predicted_terminal) == TERMINAL_TRUNCATION
+        or values[6] >= 0.5
+    )
     if success:
         failed = False
+        truncated = False
+    elif failed:
+        truncated = False
+
     vector[3] = float(success)
     vector[4] = float(failed)
-    # Raw observation slot 10 is the environment success/goal bit, not workflow
-    # dependency progress. Workflow progress is preserved in public metadata.
-    vector[10] = float(success)
+    vector[5] = float(failed or values[5] >= 0.5)
+    vector[6] = float(truncated)
 
     action_count_index = REL_DESCRIPTOR_SIZE - 4
     unique_action_count_index = REL_DESCRIPTOR_SIZE - 3
@@ -235,33 +259,36 @@ def decode_relational_state_v2(
         facts.add("workflow_completed")
     if values[2] >= 0.5:
         facts.add("proof_acquired")
+    if vector[5] >= 0.5:
+        facts.add("locked")
+    if truncated:
+        facts.add("rate_limited")
     if success:
         facts.add("success")
     if failed:
         facts.add("failed")
 
     metadata = dict(scaffold.metadata)
-    workflow_fraction = values[WORKFLOW_PROGRESS_INDEX]
     metadata.update(
         {
             "imagined_relational_world": True,
             "imagined_relational_source": source,
             "imagined_action_surface": "predicted_relational_legal_mask",
+            "imagined_terminal_class": int(predicted_terminal),
             "relational_workflow_progress": workflow_fraction,
         }
     )
-    depth = metadata.get("workflow_depth")
+    # Current audited snapshots expose the fixed workflow scale, never hidden
+    # workflow depth. Keep only count-on-public-scale metadata when available.
+    scale = metadata.get("workflow_progress_scale")
     try:
-        depth_value = max(1, int(depth)) if depth is not None else None
+        scale_value = max(1.0, float(scale)) if scale is not None else None
     except (TypeError, ValueError):
-        depth_value = None
-    if depth_value is not None:
-        progress = max(
-            0,
-            min(depth_value, int(round(workflow_fraction * depth_value))),
-        )
+        scale_value = None
+    if scale_value is not None:
+        progress = max(0, int(round(workflow_fraction * scale_value)))
         metadata["workflow_progress"] = progress
-        facts.add(f"workflow_progress:{progress}:{depth_value}")
+        facts.add(f"workflow_progress:{progress}")
 
     return StateSnapshot(
         vector=tuple(vector),
