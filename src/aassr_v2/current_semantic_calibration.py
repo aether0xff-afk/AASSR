@@ -144,9 +144,12 @@ class SemanticCalibratedProphecy:
     ) -> tuple[Prediction, ...]:
         calibration = self._calibration(state, action)
         return tuple(
-            Prediction(
-                prediction.next_state,
-                max(0.0, min(1.0, prediction.probability * calibration)),
+            replace(
+                prediction,
+                probability=max(
+                    0.0,
+                    min(1.0, float(prediction.probability) * calibration),
+                ),
                 source=f"{prediction.source}:semantic-calibrated",
             )
             for prediction in predictions
@@ -190,9 +193,16 @@ class SemanticCalibratedProphecy:
         return self.predict(state, action, samples=samples)
 
     def confidence(self, state: StateSnapshot, action: Action) -> float:
-        return min(
-            float(self.base.confidence(state, action)),
-            self._calibration(state, action),
+        # Same reliability contract as the Prediction path: learned ensemble
+        # confidence multiplied by semantic holdout calibration. Outcome mass is
+        # deliberately separate and never enters this gate.
+        return max(
+            0.0,
+            min(
+                1.0,
+                float(self.base.confidence(state, action))
+                * self._calibration(state, action),
+            ),
         )
 
     def coverage(
@@ -213,6 +223,8 @@ class SemanticCalibratedProphecy:
             "calibration_cache_entries": len(self._cache),
             "holdout_freezes": self.freeze_count,
             "semantic_calibration": 1,
+            "calibrated_reliability_product": 1,
+            "outcome_probability_preserved": 1,
         }
 
 
