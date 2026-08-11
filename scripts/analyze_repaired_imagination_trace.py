@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from collections import Counter
+from math import exp, log
 from pathlib import Path
 from statistics import fmean
 from typing import Any, Iterable
@@ -18,7 +19,7 @@ from aassr_v2.skills import SKILL_VERB
 from aassr_v2.types import Action, Prediction, StateSnapshot
 
 
-ANALYSIS_VERSION = "repaired-imagination-trace-analysis-v1"
+ANALYSIS_VERSION = "repaired-imagination-trace-analysis-v2-probability"
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -36,8 +37,6 @@ def _parse_parameters(text: str) -> dict[str, Any]:
     if not text:
         return {}
     output: dict[str, Any] = {}
-    # Pentest action parameters are scalar IDs/tokens, so stable-value JSON never
-    # contains an unescaped comma in the active benchmark contract.
     for item in text.split(","):
         key, encoded = item.split("=", 1)
         output[key] = json.loads(encoded)
@@ -94,6 +93,16 @@ def _prediction(row: dict[str, Any]) -> Prediction:
     )
 
 
+def _normalized_masses(rows: list[dict[str, Any]]) -> list[float]:
+    if not rows:
+        return []
+    raw = [max(0.0, float(row.get("outcome_probability", 1.0))) for row in rows]
+    total = sum(raw)
+    if total <= 1e-12:
+        return [1.0 / len(rows)] * len(rows)
+    return [value / total for value in raw]
+
+
 def _structural_key(state: StateSnapshot, action: Action) -> tuple[Any, ...]:
     if action.verb_name == SKILL_VERB:
         return ("skill", str(action.target))
@@ -122,19 +131,51 @@ def _mask_jaccard(left: StateSnapshot, right: StateSnapshot) -> float:
 
 
 def _analyze_transition(trace: dict[str, Any]) -> dict[str, Any] | None:
-    predictions = tuple(
-        _prediction(row) for row in trace.get("predictions", ())
+    raw_rows = [
+        row
+        for row in trace.get("predictions", ())
         if isinstance(row, dict) and "next_state" in row
-    )
+    ]
+    predictions = tuple(_prediction(row) for row in raw_rows)
     if not predictions:
         return None
     actual = _state(dict(trace["after"]))
+    masses = _normalized_masses(raw_rows)
+    individual_scores = [
+        semantic_prediction_score((prediction,), actual)
+        for prediction in predictions
+    ]
+    best_index = max(
+        range(len(individual_scores)),
+        key=lambda index: individual_scores[index],
+    )
+    weighted_score = sum(
+        mass * score for mass, score in zip(masses, individual_scores, strict=True)
+    )
+    entropy = -sum(
+        mass * log(max(1e-12, mass)) for mass in masses if mass > 0.0
+    )
+    raw_mass_sum = sum(
+        max(0.0, float(row.get("outcome_probability", 1.0)))
+        for row in raw_rows
+    )
     distinct = {
         tuple(round(value, 8) for value in descriptor(item.next_state))
         for item in predictions
     }
+    reliability = sum(
+        mass * max(0.0, min(1.0, float(prediction.probability)))
+        for mass, prediction in zip(masses, predictions, strict=True)
+    )
+    best_mode_mass = masses[best_index]
     return {
-        "semantic_score": semantic_prediction_score(predictions, actual),
+        "semantic_score": max(individual_scores),
+        "probability_weighted_semantic_score": weighted_score,
+        "actual_best_mode_probability": best_mode_mass,
+        "actual_best_mode_surprisal": -log(max(1e-12, best_mode_mass)),
+        "effective_outcome_count": exp(entropy),
+        "outcome_mass_sum_error": abs(raw_mass_sum - 1.0),
+        "reliability": reliability,
         "distinct_relational_futures": len(distinct),
         "topk_legal_mask_jaccard": max(
             _mask_jaccard(item.next_state, actual) for item in predictions
@@ -219,6 +260,20 @@ def _analyze_condition(events: list[dict[str, Any]]) -> dict[str, Any]:
                 near_structure_ties += 1
 
     semantic_scores = [row["semantic_score"] for row in transition_rows]
+    weighted_semantic_scores = [
+        row["probability_weighted_semantic_score"] for row in transition_rows
+    ]
+    best_mode_masses = [
+        row["actual_best_mode_probability"] for row in transition_rows
+    ]
+    best_mode_surprisal = [
+        row["actual_best_mode_surprisal"] for row in transition_rows
+    ]
+    effective_outcomes = [
+        row["effective_outcome_count"] for row in transition_rows
+    ]
+    mass_errors = [row["outcome_mass_sum_error"] for row in transition_rows]
+    reliabilities = [row["reliability"] for row in transition_rows]
     distinct_futures = [row["distinct_relational_futures"] for row in transition_rows]
     mask_scores = [row["topk_legal_mask_jaccard"] for row in transition_rows]
     terminal_matches = [row["topk_terminal_match"] for row in transition_rows]
@@ -253,6 +308,14 @@ def _analyze_condition(events: list[dict[str, Any]]) -> dict[str, Any]:
         "prophecy": {
             "real_transitions_scored": len(transition_rows),
             "semantic_topk_score": _distribution(semantic_scores),
+            "semantic_probability_weighted_score": _distribution(
+                weighted_semantic_scores
+            ),
+            "actual_best_mode_probability": _distribution(best_mode_masses),
+            "actual_best_mode_surprisal": _distribution(best_mode_surprisal),
+            "effective_outcome_count": _distribution(effective_outcomes),
+            "outcome_mass_sum_error": _distribution(mass_errors),
+            "reliability": _distribution(reliabilities),
             "legal_action_mask_topk_jaccard": _distribution(mask_scores),
             "terminal_topk_match_rate": (
                 fmean(terminal_matches) if terminal_matches else None
