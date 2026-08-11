@@ -19,7 +19,35 @@ class RelationalStochasticSkillProphecy(CurrentSkillProphecy):
     reliability separately from stochastic outcome mass.
     """
 
-    name = "current-relational-stochastic-skill-prophecy-v1"
+    name = "current-relational-stochastic-skill-prophecy-v2"
+
+    def _base_context_predictions(
+        self,
+        state: StateSnapshot,
+        action: Action,
+        *,
+        knowledge: KnowledgeStore,
+        samples: int,
+    ) -> tuple[Prediction, ...]:
+        """Use the base model's explicit context API when it exists.
+
+        The repaired semantic calibrator intentionally ignores concrete Knowledge
+        re-injection because public response facts already live in the relational
+        state. Keeping this helper on the Skill wrapper still matters: promoted
+        Skills may be evaluated with episode Knowledge, and the previous v1 code
+        called this method without defining it at all.
+        """
+        contextual = getattr(self.base, "predict_with_context", None)
+        if callable(contextual):
+            return tuple(
+                contextual(
+                    state,
+                    action,
+                    knowledge=knowledge,
+                    samples=samples,
+                )
+            )
+        return tuple(self.base.predict(state, action, samples=samples))
 
     def _skill_predictions(
         self,
@@ -154,4 +182,5 @@ class RelationalStochasticSkillProphecy(CurrentSkillProphecy):
             "skill_outcome_beam": "planner_samples",
             "skill_reliability_outcome_mass_separate": 1,
             "skill_confidence_stochastic": 1,
+            "skill_context_path_defined": 1,
         }
