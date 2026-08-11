@@ -4,6 +4,10 @@ import pytest
 
 pytest.importorskip("torch")
 
+from aassr_v2.current_relational_state import install_relational_state_contract
+
+install_relational_state_contract()
+
 from aassr_v2.current_generation import relational_action_key
 from aassr_v2.current_relational_model import (
     RelationalPrediction,
