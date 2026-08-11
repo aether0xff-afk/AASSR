@@ -8,6 +8,7 @@ from typing import Any
 from .autonomous_agent_core import ActionDecision
 from .current_agent import CurrentProphecyView, CurrentSkillProphecy
 from .current_generation import relational_action_key
+from .current_manifest import CURRENT_COMPONENTS
 from .current_relational_model import RelationalStochasticProphecy
 from .current_semantic_calibration import (
     RelationalDepthBatchedProphecyView,
@@ -231,14 +232,9 @@ def install_current_repairs(
 
     agent.current_relational_repairs = True
     agent.current_repairs_version = "relational-world-model-repair-v1"
-    agent.current_components = {
-        **dict(getattr(agent, "current_components", {})),
-        "prophecy": "relational-stochastic-ensemble-v1",
-        "prophecy_output": "relational-descriptor+legal-action-mask+terminal-v1",
-        "calibration": "semantic-frozen-holdout-v1",
-        "critic": "relational-gru-discounted-sparse-return-v1",
-        "imagination": "root-preserving-multi-outcome-tree-v3",
-    }
+    # The manifest is the single public source of truth. Never let a runtime
+    # installer silently publish a second set of component labels.
+    agent.current_components = dict(CURRENT_COMPONENTS)
 
     original_diagnostics = agent.diagnostics
 
