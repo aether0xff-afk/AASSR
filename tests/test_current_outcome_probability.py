@@ -10,9 +10,12 @@ from aassr_v2.current_relational_model import (
     RelationalProphecyConfig,
     RelationalStochasticProphecy,
 )
+from aassr_v2.current_relational_skill_prophecy import RelationalStochasticSkillProphecy
 from aassr_v2.current_semantic_calibration import SemanticCalibratedProphecy
+from aassr_v2.knowledge import KnowledgeStore
 from aassr_v2.pentest_agent_main_test import AGENT_STATE_SIZE
 from aassr_v2.replay import ReplayBuffer
+from aassr_v2.skills import SKILL_VERB
 from aassr_v2.types import Action, StateSnapshot
 
 
@@ -95,3 +98,83 @@ def test_semantic_calibration_preserves_outcome_mass() -> None:
     assert [row.probability for row in rows] == pytest.approx(
         [row.probability * 0.5 for row in raw]
     )
+
+
+def test_stochastic_skill_uses_defined_context_path_and_preserves_mass() -> None:
+    before, primitive = _state()
+    catalog, _ = _state("catalog")
+    auth, _ = _state("auth")
+    calls = {"context": 0}
+
+    class Base:
+        training_stats = object()
+
+        def predict_with_context(self, state, action, *, knowledge, samples):
+            del state, action, knowledge, samples
+            calls["context"] += 1
+            return (
+                RelationalPrediction(
+                    catalog,
+                    0.8,
+                    source="catalog",
+                    outcome_probability=0.7,
+                ),
+                RelationalPrediction(
+                    auth,
+                    0.8,
+                    source="auth",
+                    outcome_probability=0.3,
+                ),
+            )
+
+        def predict(self, state, action, *, samples):
+            return self.predict_with_context(
+                state,
+                action,
+                knowledge=KnowledgeStore(),
+                samples=samples,
+            )
+
+        def confidence(self, state, action):
+            del state, action
+            return 0.8
+
+        def diagnostics(self):
+            return {}
+
+    class Library:
+        def template_length(self, skill_id):
+            assert skill_id == "skill-test"
+            return 1
+
+        def resolve_primitive(self, skill_id, index, state):
+            del state
+            assert skill_id == "skill-test"
+            assert index == 0
+            return primitive
+
+        @staticmethod
+        def augment_state(state):
+            return state
+
+    knowledge = KnowledgeStore()
+    skill_prophecy = RelationalStochasticSkillProphecy(
+        Base(),
+        Library(),
+        knowledge,
+    )
+    skill_action = Action(SKILL_VERB, target="skill-test")
+    rows = skill_prophecy.predict_with_context(
+        before,
+        skill_action,
+        knowledge=knowledge,
+        samples=3,
+    )
+
+    assert calls["context"] == 1
+    assert len(rows) == 2
+    assert sum(row.outcome_probability for row in rows) == pytest.approx(1.0)
+    assert sorted(
+        (row.outcome_probability for row in rows),
+        reverse=True,
+    ) == pytest.approx((0.7, 0.3))
