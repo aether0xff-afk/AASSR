@@ -15,6 +15,7 @@ from .current_planner import CurrentFullyBatchedImaginationTree
 from .current_relational_state_v3 import install_status_aware_relational_contract
 from .current_repair import install_current_repairs
 from .current_root_dedup import install_structural_root_dedup
+from .current_status_models import install_status_supervised_world_model
 from .current_validation import install_current_fast_validation
 
 
@@ -50,7 +51,8 @@ def build_current_pentest_aassr_core(
     pressure, hidden session-TTL remaining, hidden stage depth, and concrete
     route/profile/object identity remain unavailable to learners.
 
-    Imagination uses stochastic relational futures and expected sparse return.
+    The world model gives the public status slice an explicit supervised loss so
+    dangerous response errors cannot be diluted by the rest of the descriptor.
     Prophecy reliability and local Critic training support are fail-closed gates,
     never value bonuses. Expensive root prediction/Critic work is deduplicated by
     structural relational action identity while final execution remains concrete.
@@ -82,6 +84,11 @@ def build_current_pentest_aassr_core(
 
     install_current_fast_validation(agent)
     install_current_repairs(
+        agent,
+        seed=int(seed),
+        device=hardware.resolved_device,
+    )
+    install_status_supervised_world_model(
         agent,
         seed=int(seed),
         device=hardware.resolved_device,
