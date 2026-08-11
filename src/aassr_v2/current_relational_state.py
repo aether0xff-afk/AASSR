@@ -14,6 +14,10 @@ from .types import StateSnapshot
 
 
 CONTROL_SIZE = 7
+# Slots 7 and 9 exist only as compatibility channels in the 35-D descriptor.
+# response_causal_observation_v3 intentionally masks exact audit pressure and
+# session TTL remaining, so the current relational learner must never recover or
+# trust values from those raw positions.
 AUDIT_PRESSURE_INDEX = 7
 REQUEST_USAGE_INDEX = 8
 SESSION_REMAINING_INDEX = 9
@@ -25,7 +29,7 @@ ROLE_START_INDEX = 14
 
 REL_DESCRIPTOR_SIZE = (
     CONTROL_SIZE
-    + 4  # audit pressure, request usage, session remaining, workflow progress
+    + 4  # masked audit, public request usage, masked session, public workflow progress
     + 3  # known route/profile/object counts
     + len(ROUTE_RELATIONS)
     + len(PROFILE_RELATIONS)
@@ -70,30 +74,38 @@ def _role_counts(
 
 
 def workflow_progress_fraction(state: StateSnapshot) -> float:
-    """Return public dependency progress without reading hidden scenario state."""
+    """Return only public dependency progress from the audited observation.
+
+    The audited causal environment already writes workflow progress into raw slot
+    10 using a fixed public scale. Hidden workflow depth is deliberately absent
+    from the observation contract, so the current learner must not normalize by
+    stage depth even if a legacy/debug snapshot happens to contain it.
+    """
     explicit = state.metadata.get("relational_workflow_progress")
     if explicit is not None:
         return _clamp01(explicit)
 
-    progress = state.metadata.get("workflow_progress")
-    depth = state.metadata.get("workflow_depth")
-    if progress is not None and depth is not None:
-        try:
-            denominator = max(1.0, float(depth))
-            return _clamp01(float(progress) / denominator)
-        except (TypeError, ValueError):
-            pass
+    if len(state.vector) > WORKFLOW_PROGRESS_INDEX:
+        return _clamp01(state.vector[WORKFLOW_PROGRESS_INDEX])
 
+    scale = state.metadata.get("workflow_progress_scale")
     for fact in state.facts:
         if not fact.startswith("workflow_progress:"):
             continue
         parts = fact.split(":")
-        if len(parts) != 3:
-            continue
-        try:
-            return _clamp01(float(parts[1]) / max(1.0, float(parts[2])))
-        except (TypeError, ValueError, ZeroDivisionError):
-            continue
+        # Current audited form: workflow_progress:<self-observed-count>.
+        if len(parts) == 2 and scale is not None:
+            try:
+                return _clamp01(float(parts[1]) / max(1.0, float(scale)))
+            except (TypeError, ValueError, ZeroDivisionError):
+                continue
+        # Historical compatibility only. Current response_causal snapshots never
+        # expose the denominator, so this branch cannot leak current stage depth.
+        if len(parts) == 3:
+            try:
+                return _clamp01(float(parts[1]) / max(1.0, float(parts[2])))
+            except (TypeError, ValueError, ZeroDivisionError):
+                continue
 
     return _clamp01(state.goal_progress)
 
@@ -101,30 +113,24 @@ def workflow_progress_fraction(state: StateSnapshot) -> float:
 def relational_state_descriptor_v2(state: StateSnapshot) -> tuple[float, ...]:
     """Rename-invariant public state used by all current transfer learners.
 
-    Unlike v1, this contract keeps the observable resource-pressure axes that
-    actually define later curriculum levels: audit/lockout pressure, request/rate
-    usage, session lifetime remaining, and dependency workflow progress.
+    Exact audit pressure and session-TTL remaining are intentionally *not*
+    observable under response_causal_observation_v3. Their compatibility slots
+    are therefore fixed at zero. Public resource state is represented by the
+    agent's own request count on a fixed scale, public terminal/status controls,
+    and self-observed workflow progress on its fixed scale.
     """
     facts = state.facts
     controls = tuple(
         _clamp01(state.vector[index] if index < len(state.vector) else 0.0)
         for index in range(CONTROL_SIZE)
     )
-    audit_pressure = _clamp01(
-        state.vector[AUDIT_PRESSURE_INDEX]
-        if len(state.vector) > AUDIT_PRESSURE_INDEX
-        else 0.0
-    )
+    audit_pressure = 0.0
     request_usage = _clamp01(
         state.vector[REQUEST_USAGE_INDEX]
         if len(state.vector) > REQUEST_USAGE_INDEX
         else 0.0
     )
-    session_remaining = _clamp01(
-        state.vector[SESSION_REMAINING_INDEX]
-        if len(state.vector) > SESSION_REMAINING_INDEX
-        else 0.0
-    )
+    session_remaining = 0.0
     workflow_progress = workflow_progress_fraction(state)
 
     known_routes = len(_fact_values(facts, "known_route:"))
