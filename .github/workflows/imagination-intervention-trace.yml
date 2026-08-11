@@ -1,18 +1,8 @@
 name: Imagination intervention detailed trace
 
+# Expensive trace experiment. Run manually only after the implementation contract
+# is frozen; ordinary pushes are covered by unit/current-generation gates.
 on:
-  push:
-    branches:
-      - agent/imagination-gate-ablation
-    paths:
-      - "scripts/run_imagination_intervention_trace.py"
-      - ".github/workflows/imagination-intervention-trace.yml"
-  pull_request:
-    branches:
-      - agent/aassr-current-generation
-    paths:
-      - "scripts/run_imagination_intervention_trace.py"
-      - ".github/workflows/imagination-intervention-trace.yml"
   workflow_dispatch:
 
 jobs:
