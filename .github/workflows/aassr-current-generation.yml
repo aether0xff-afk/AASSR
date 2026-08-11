@@ -57,14 +57,16 @@ jobs:
             src/aassr_v2/current_validation.py \
             src/aassr_v2/current_experiment_suite.py \
             src/aassr_v2/current_relational_state.py \
+            src/aassr_v2/current_relational_state_v3.py \
             src/aassr_v2/current_relational_codec.py \
-            src/aassr_v2/current_relational_decode_v2.py \
             src/aassr_v2/current_relational_model.py \
             src/aassr_v2/current_relational_mixture_model.py \
             src/aassr_v2/current_relational_skill_prophecy.py \
             src/aassr_v2/current_semantic_calibration.py \
             src/aassr_v2/current_semantic_evaluator.py \
             src/aassr_v2/current_return_critic.py \
+            src/aassr_v2/current_critic_support.py \
+            src/aassr_v2/current_root_dedup.py \
             src/aassr_v2/current_repair.py \
             src/aassr_v2/current_mixture_entrypoint.py \
             src/aassr_v2/dreamerv3_baseline.py \
@@ -99,6 +101,9 @@ jobs:
                   assert token not in text, (name, token)
           PY
 
+      - name: Public status v3 contract
+        run: pytest -q tests/test_current_relational_state_v3.py
+
       - name: Multimodal contract 1 - target distinction
         run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_targets_share_input_but_keep_distinct_outputs
       - name: Multimodal contract 2 - empirical storage
@@ -132,7 +137,9 @@ jobs:
             tests/test_current_repair.py \
             tests/test_current_planner_structural_branching.py \
             tests/test_current_planner_probability_backup.py \
-            tests/test_current_confidence_gate.py
+            tests/test_current_confidence_gate.py \
+            tests/test_current_critic_support.py \
+            tests/test_current_root_dedup.py
 
       - name: Conditional mixture builder regressions
         run: pytest -q tests/test_current_mixture_generation.py
@@ -161,6 +168,8 @@ jobs:
           assert result["legacy_components_active"] == []
           components = result["current_components"]
           assert "relational" in components["prophecy"]
+          assert "latest-http-status" in components["policy_state_input"]
+          assert components["public_response_contract"] == "latest-http-status-preserved"
           diagnostics = result["diagnostics"]
           assert diagnostics["canonical_runtime"] == "current_standalone"
           assert diagnostics["policy"]["dqn:gradient_updates"] > 0
@@ -173,15 +182,24 @@ jobs:
           repairs = diagnostics["current_repairs"]
           assert repairs["relational_input_output_contract"] is True
           assert repairs["hidden_audit_session_pressure_masked"] is True
+          assert repairs["relational_public_state_v3"] is True
+          assert repairs["public_http_status_preserved"] is True
+          assert repairs["status_aware_semantic_calibration"] is True
           assert repairs["probability_weighted_chance_backup"] is True
           assert repairs["max_agent_decision_backup"] is True
           assert repairs["critic_sparse_return_aligned"] is True
           assert repairs["critic_zero_memory_suffix_training"] is True
+          assert repairs["critic_local_support_gate"] is True
+          assert repairs["critic_support_is_gate_not_value"] is True
+          assert repairs["structural_root_compute_dedup"] is True
+          assert repairs["concrete_root_execution_preserved"] is True
           assert repairs["planner_discount_matches_gamma"] is True
+          assert diagnostics["critic_support"]["stored_support_rows"] > 0
           print(
               "train_successes=", result["training_successes"],
               "dqn_updates=", diagnostics["policy"]["dqn:gradient_updates"],
               "prophecy_updates=", diagnostics["prophecy_current"]["gradient_updates"],
+              "critic_support_rows=", diagnostics["critic_support"]["stored_support_rows"],
               "critic_ready=", result["critic_ready"],
               "no_img=", result["no_imagination_successes"],
               "full=", result["full_successes"],
@@ -210,6 +228,7 @@ jobs:
           assert "relational" in CURRENT_COMPONENTS["prophecy"]
           assert CURRENT_COMPONENTS["chance_objective"] == "expected-external-sparse-return"
           assert CURRENT_COMPONENTS["hidden_pressure_contract"] == "audit-and-session-countdown-masked"
+          assert CURRENT_COMPONENTS["public_response_contract"] == "latest-http-status-preserved"
           assert "same-device" in CURRENT_COMPONENTS["hardware"]
           assert aassr_v2.build_pentest_aassr_core is build_current_pentest_aassr_core
           agent = build_current_pentest_aassr_core(seed=7, train_transitions=64, use_imagination=True, device="cpu")
@@ -223,6 +242,8 @@ jobs:
           assert diagnostics["current_components"] == dict(CURRENT_COMPONENTS)
           assert agent.current_depth_batching is True
           assert agent.current_critic_batching is True
+          assert agent.current_critic_support_gate is True
+          assert agent.current_structural_root_dedup is True
           assert agent.planner.config.aggregation == "mean"
           assert agent.planner.config.discount == agent.config.gamma
           PY
