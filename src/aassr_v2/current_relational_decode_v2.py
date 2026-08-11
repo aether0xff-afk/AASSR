@@ -84,9 +84,16 @@ def decode_relational_state_v2(
     predicted_terminal: int,
     source: str,
 ) -> StateSnapshot:
-    """Decode a v2 relational prediction without inventing concrete real IDs."""
+    """Decode a v2 relational prediction without inventing concrete real IDs.
+
+    The explicit four-way terminal head is authoritative. Descriptor control bits
+    are auxiliary regression targets and may be noisy early in training; they are
+    never allowed to reinterpret a predicted truncation as a true failure or vice
+    versa.
+    """
     from .current_relational_codec import (
         ACTION_SLOT_COUNT,
+        TERMINAL_ACTIVE,
         TERMINAL_FAILURE,
         TERMINAL_SUCCESS,
         TERMINAL_TRUNCATION,
@@ -99,43 +106,34 @@ def decode_relational_state_v2(
         )
     if len(mask_probabilities) != ACTION_SLOT_COUNT:
         raise ValueError("unexpected relational action-mask size")
+    terminal = int(predicted_terminal)
+    if terminal not in {
+        TERMINAL_ACTIVE,
+        TERMINAL_SUCCESS,
+        TERMINAL_FAILURE,
+        TERMINAL_TRUNCATION,
+    }:
+        raise ValueError(f"unknown relational terminal class: {terminal}")
 
     vector = list(float(value) for value in scaffold.vector)
     if len(vector) < 11:
         vector.extend([0.0] * (11 - len(vector)))
     for index in range(CONTROL_SIZE):
         vector[index] = values[index]
-    # Compatibility channels remain masked in the current audited contract.
     vector[AUDIT_PRESSURE_INDEX] = 0.0
     vector[REQUEST_USAGE_INDEX] = values[REQUEST_USAGE_INDEX]
     vector[SESSION_REMAINING_INDEX] = 0.0
 
     workflow_fraction = values[WORKFLOW_PROGRESS_INDEX]
-    # response_causal_observation_v3 uses raw slot 10 for public workflow count
-    # on a fixed scale. Do not overwrite it with success or hidden depth state.
     vector[WORKFLOW_PROGRESS_INDEX] = workflow_fraction
 
-    success = (
-        int(predicted_terminal) == TERMINAL_SUCCESS
-        or values[3] >= 0.5
-    )
-    failed = (
-        int(predicted_terminal) == TERMINAL_FAILURE
-        or (values[4] >= 0.5 and values[5] >= 0.5)
-    )
-    truncated = (
-        int(predicted_terminal) == TERMINAL_TRUNCATION
-        or values[6] >= 0.5
-    )
-    if success:
-        failed = False
-        truncated = False
-    elif failed:
-        truncated = False
-
+    success = terminal == TERMINAL_SUCCESS
+    failed = terminal == TERMINAL_FAILURE
+    truncated = terminal == TERMINAL_TRUNCATION
+    # Public terminal/status controls must agree with the explicit class.
     vector[3] = float(success)
     vector[4] = float(failed)
-    vector[5] = float(failed or values[5] >= 0.5)
+    vector[5] = float(failed)
     vector[6] = float(truncated)
 
     action_count_index = REL_DESCRIPTOR_SIZE - 4
@@ -259,14 +257,12 @@ def decode_relational_state_v2(
         facts.add("workflow_completed")
     if values[2] >= 0.5:
         facts.add("proof_acquired")
-    if vector[5] >= 0.5:
-        facts.add("locked")
-    if truncated:
-        facts.add("rate_limited")
     if success:
         facts.add("success")
-    if failed:
-        facts.add("failed")
+    elif failed:
+        facts.update(("failed", "locked"))
+    elif truncated:
+        facts.add("rate_limited")
 
     metadata = dict(scaffold.metadata)
     metadata.update(
@@ -274,12 +270,10 @@ def decode_relational_state_v2(
             "imagined_relational_world": True,
             "imagined_relational_source": source,
             "imagined_action_surface": "predicted_relational_legal_mask",
-            "imagined_terminal_class": int(predicted_terminal),
+            "imagined_terminal_class": terminal,
             "relational_workflow_progress": workflow_fraction,
         }
     )
-    # Current audited snapshots expose the fixed workflow scale, never hidden
-    # workflow depth. Keep only count-on-public-scale metadata when available.
     scale = metadata.get("workflow_progress_scale")
     try:
         scale_value = max(1.0, float(scale)) if scale is not None else None
