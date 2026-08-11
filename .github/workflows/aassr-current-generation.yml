@@ -101,29 +101,21 @@ jobs:
 
       - name: Multimodal contract 1 - target distinction
         run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_targets_share_input_but_keep_distinct_outputs
-
       - name: Multimodal contract 2 - empirical storage
         run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_empirical_store_keeps_two_outcomes
-
       - name: Multimodal contract 3 - empirical emission
         run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_empirical_store_emits_two_predictions
-
       - name: Multimodal contract 4 - semantic decode
         run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_empirical_decode_keeps_two_semantic_modes
 
-      - name: Base current-generation regressions
-        run: |
-          pytest -q \
-            tests/test_current_generation.py \
-            tests/test_current_generation_batching.py \
-            tests/test_current_calibration_index.py \
-            tests/test_current_encoding_cache.py \
-            tests/test_current_hot_path_profile.py \
-            tests/test_current_neural_delta_loss_sync.py \
-            tests/test_current_decision_optimization.py \
-            tests/test_current_validation_fastpath.py \
-            tests/test_current_hardware_and_dqn.py \
-            tests/test_current_default_entrypoint.py
+      - name: Base core generation regressions
+        run: pytest -q tests/test_current_generation.py tests/test_current_default_entrypoint.py
+      - name: Base batching and cache regressions
+        run: pytest -q tests/test_current_generation_batching.py tests/test_current_calibration_index.py tests/test_current_encoding_cache.py tests/test_current_neural_delta_loss_sync.py
+      - name: Base decision and validation regressions
+        run: pytest -q tests/test_current_decision_optimization.py tests/test_current_validation_fastpath.py
+      - name: Base hardware and profiling regressions
+        run: pytest -q tests/test_current_hardware_and_dqn.py tests/test_current_hot_path_profile.py
 
       - name: Repaired state and semantic evaluator regressions
         run: |
@@ -200,22 +192,13 @@ jobs:
         run: |
           python - <<'PY'
           import aassr_v2
-          from aassr_v2 import (
-              CURRENT_COMPONENTS,
-              CURRENT_GENERATION_VERSION,
-              LEGACY_COMPONENTS_ACTIVE,
-              build_current_pentest_aassr_core,
-          )
+          from aassr_v2 import CURRENT_COMPONENTS, CURRENT_GENERATION_VERSION, LEGACY_COMPONENTS_ACTIVE, build_current_pentest_aassr_core
           from aassr_v2.autonomous_agent_core import AutonomousLearningAgent
           from aassr_v2.current_experiment_suite import CURRENT_FINAL_EXPERIMENT_CONDITIONS
-          from aassr_v2.current_hardware import (
-              HardwareRelationalGRUBranchCritic,
-              HardwareRelationalInvariantDQN,
-          )
+          from aassr_v2.current_hardware import HardwareRelationalGRUBranchCritic, HardwareRelationalInvariantDQN
           from aassr_v2.current_planner import CurrentFullyBatchedImaginationTree
           from aassr_v2.dreamerv3_baseline import dreamer_adapter_manifest
           from aassr_v2.integrated_agent import IntegratedAASSRAgent
-
           print(CURRENT_GENERATION_VERSION)
           for key, value in CURRENT_COMPONENTS.items():
               print(f"{key}: {value}")
@@ -229,12 +212,7 @@ jobs:
           assert CURRENT_COMPONENTS["hidden_pressure_contract"] == "audit-and-session-countdown-masked"
           assert "same-device" in CURRENT_COMPONENTS["hardware"]
           assert aassr_v2.build_pentest_aassr_core is build_current_pentest_aassr_core
-          agent = build_current_pentest_aassr_core(
-              seed=7,
-              train_transitions=64,
-              use_imagination=True,
-              device="cpu",
-          )
+          agent = build_current_pentest_aassr_core(seed=7, train_transitions=64, use_imagination=True, device="cpu")
           assert IntegratedAASSRAgent not in type(agent).mro()
           assert AutonomousLearningAgent not in type(agent).mro()
           assert isinstance(agent.dqn, HardwareRelationalInvariantDQN)
