@@ -15,6 +15,7 @@ from .current_semantic_calibration import (
     SemanticCalibratedProphecy,
     SemanticPredictionValidator,
 )
+from .current_semantic_evaluator import RelationalAdvancedTransitionEvaluator
 from .current_return_critic import ReturnAwareHardwareRelationalGRUBranchCritic
 from .imagination_tree import ImaginationResult, RootActionEvaluation
 from .skills import SKILL_VERB
@@ -171,7 +172,8 @@ def install_current_repairs(
     if getattr(agent, "current_relational_repairs", False):
         return agent
 
-    replay = agent.evaluator.replay
+    old_evaluator = agent.evaluator
+    replay = old_evaluator.replay
     base = RelationalStochasticProphecy(
         seed=int(seed) ^ 0x52454C41,
         device=device,
@@ -183,16 +185,26 @@ def install_current_repairs(
         agent.knowledge,
     )
     prophecy = CurrentProphecyView(skill)
+    validator = SemanticPredictionValidator(samples=3)
+    evaluator = RelationalAdvancedTransitionEvaluator(
+        prophecy,
+        replay=replay,
+        validator=validator,
+        predictor=old_evaluator.predictor,
+        logger=old_evaluator.logger,
+        samples=3,
+        intrinsic_cap=float(old_evaluator.intrinsic_cap),
+    )
 
     agent.base_neural_prophecy = base
     agent.calibrated_prophecy = calibrated
     agent.knowledge_prophecy = calibrated
     agent.skill_prophecy = skill
     agent.prophecy = prophecy
-    agent.evaluator.prophecy = prophecy
-    agent.evaluator.validator = SemanticPredictionValidator(samples=3)
+    agent.evaluator = evaluator
     agent.current_fast_validation = False
     agent.current_semantic_validation = True
+    agent.current_semantic_evaluator = True
 
     batched = RelationalDepthBatchedProphecyView(agent)
     agent.current_batched_prophecy = batched
@@ -232,8 +244,6 @@ def install_current_repairs(
 
     agent.current_relational_repairs = True
     agent.current_repairs_version = "relational-world-model-repair-v1"
-    # The manifest is the single public source of truth. Never let a runtime
-    # installer silently publish a second set of component labels.
     agent.current_components = dict(CURRENT_COMPONENTS)
 
     original_diagnostics = agent.diagnostics
@@ -247,6 +257,8 @@ def install_current_repairs(
             "semantic_decode": True,
             "predicted_legal_action_surface": True,
             "multi_outcome_ensemble": True,
+            "semantic_information_evaluator": True,
+            "relational_repeat_unlock_value": True,
             "critic_sparse_return_aligned": True,
             "root_preserving": True,
             **dict(getattr(self_agent, "_repair_planner_diagnostics", {})),
