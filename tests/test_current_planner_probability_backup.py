@@ -6,9 +6,12 @@ import pytest
 
 from aassr_v2.current_planner import CurrentFullyBatchedImaginationTree
 from aassr_v2.current_relational_codec import (
+    ACTION_SLOT_COUNT,
     TERMINAL_TRUNCATION,
     terminal_class,
 )
+from aassr_v2.current_relational_decode_v2 import decode_relational_state_v2
+from aassr_v2.current_relational_state import REL_DESCRIPTOR_SIZE
 from aassr_v2.imagination_tree import ImaginationNode
 from aassr_v2.pentest_agent_main_test import AGENT_STATE_SIZE
 from aassr_v2.policy import PolicyMemory
@@ -102,7 +105,6 @@ def test_future_agent_actions_use_max_not_average() -> None:
         {1: 1.0, 2: 1.0, 3: 1.0},
     )
 
-    # The bad action is optional. Its existence must not reduce the state value.
     assert backed[1] == pytest.approx(1.0)
 
 
@@ -146,3 +148,35 @@ def test_rate_limit_is_task_truncation_even_when_actions_remain() -> None:
 
     assert terminal_class(state) == TERMINAL_TRUNCATION
     assert planner._task_terminal_reason(state) == "truncation"
+
+
+def test_terminal_head_overrides_conflicting_descriptor_status_bits() -> None:
+    action = Action(
+        "request",
+        parameters={"route_id": "route-01", "profile_id": "profile-browse"},
+    )
+    scaffold = _state(actions=(action,))
+    descriptor_values = [0.0] * REL_DESCRIPTOR_SIZE
+    # Deliberately contradictory noisy regression bits: failed + locked.
+    descriptor_values[4] = 1.0
+    descriptor_values[5] = 1.0
+    descriptor_values[-4] = 1.0 / 128.0
+    descriptor_values[-3] = 1.0 / 32.0
+    mask = [0.0] * ACTION_SLOT_COUNT
+    mask[0] = 1.0
+
+    decoded = decode_relational_state_v2(
+        descriptor_values,
+        mask,
+        scaffold=scaffold,
+        predicted_terminal=TERMINAL_TRUNCATION,
+        source="unit-test",
+    )
+
+    assert "rate_limited" in decoded.facts
+    assert "failed" not in decoded.facts
+    assert "locked" not in decoded.facts
+    assert decoded.vector[4] == 0.0
+    assert decoded.vector[5] == 0.0
+    assert decoded.vector[6] == 1.0
+    assert terminal_class(decoded) == TERMINAL_TRUNCATION
