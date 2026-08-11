@@ -236,6 +236,9 @@ def install_current_repairs(
     agent.planner.config = replace(
         agent.planner.config,
         outcome_samples=3,
+        # Critic targets, exact terminal values, and imagined continuation must
+        # use the same time preference as the real Policy task objective.
+        discount=float(agent.config.gamma),
         # External optimization target is expected sparse return. Actual failure
         # is already -1, so an extra variance penalty would change the objective.
         aggregation="mean",
@@ -284,6 +287,13 @@ def install_current_repairs(
             "probability_weighted_chance_backup": True,
             "max_agent_decision_backup": True,
             "expected_sparse_return_objective": True,
+            "planner_discount_matches_gamma": (
+                abs(
+                    float(self_agent.planner.config.discount)
+                    - float(self_agent.config.gamma)
+                )
+                <= 1e-12
+            ),
             "stochastic_skill_rollout": True,
             "semantic_information_evaluator": True,
             "relational_repeat_unlock_value": True,
