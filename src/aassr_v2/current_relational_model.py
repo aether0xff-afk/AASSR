@@ -35,7 +35,15 @@ class RelationalProphecyConfig:
 
 
 class RelationalStochasticProphecy:
-    """Relational-input/relational-target ensemble with non-averaged outcomes."""
+    """Relational world model with explicit observed multi-outcome support.
+
+    Neural ensemble members provide generalization to unseen relational states.
+    When the *same* relational state/action input has produced multiple different
+    relational outcomes in real experience, those outcomes are retained as a
+    categorical empirical distribution and emitted as distinct imagined worlds.
+    This prevents inherently partially-observed transitions from being forced
+    through one deterministic mean target.
+    """
 
     name = "current-relational-stochastic-world-model-v1"
 
@@ -75,12 +83,17 @@ class RelationalStochasticProphecy:
         self.replay: deque[
             tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...], int]
         ] = deque(maxlen=self.config.replay_capacity)
+        self._outcomes: dict[
+            tuple[float, ...],
+            dict[tuple[tuple[float, ...], tuple[int, ...], int], int],
+        ] = {}
         self.observations = 0
         self.gradient_updates = 0
         self._losses: deque[float] = deque(maxlen=512)
         self._last_ensemble_variance = 1.0
         self.batch_prediction_calls = 0
         self.batch_prediction_rows = 0
+        self.empirical_multioutcome_rows = 0
 
     @property
     def training_stats(self) -> Any:
@@ -99,6 +112,18 @@ class RelationalStochasticProphecy:
             raise ValueError("relational world-model input size drift")
         return values
 
+    @staticmethod
+    def _outcome_key(
+        next_descriptor: Sequence[float],
+        next_mask: Sequence[float],
+        next_terminal: int,
+    ) -> tuple[tuple[float, ...], tuple[int, ...], int]:
+        return (
+            tuple(round(float(value), 8) for value in next_descriptor),
+            tuple(int(float(value) >= 0.5) for value in next_mask),
+            int(next_terminal),
+        )
+
     def learn(
         self,
         state: StateSnapshot,
@@ -107,12 +132,18 @@ class RelationalStochasticProphecy:
     ) -> None:
         if action.verb_name == SKILL_VERB:
             return
-        _, next_descriptor, next_mask, next_terminal = transition_target(
+        model_input, next_descriptor, next_mask, next_terminal = transition_target(
             state, action, actual_next_state
         )
+        if model_input != self._input(state, action):
+            raise AssertionError("relational Prophecy train input contract drift")
         self.replay.append(
-            (self._input(state, action), next_descriptor, next_mask, next_terminal)
+            (model_input, next_descriptor, next_mask, next_terminal)
         )
+        bucket = self._outcomes.setdefault(model_input, {})
+        outcome = self._outcome_key(next_descriptor, next_mask, next_terminal)
+        bucket[outcome] = bucket.get(outcome, 0) + 1
+
         self.observations += 1
         if len(self.replay) < max(self.config.batch_size, self.config.warmup_steps):
             return
@@ -197,6 +228,42 @@ class RelationalStochasticProphecy:
             max=0.995,
         )
 
+    def _empirical_predictions(
+        self,
+        state: StateSnapshot,
+        action: Action,
+        *,
+        confidence: float,
+        samples: int,
+    ) -> tuple[Prediction, ...]:
+        bucket = self._outcomes.get(self._input(state, action), {})
+        # One observed outcome is not evidence of multimodality; keep neural
+        # generalization. Two or more distinct outcomes are explicit evidence.
+        if len(bucket) < 2:
+            return ()
+        selected = sorted(
+            bucket.items(),
+            key=lambda item: (-item[1], item[0]),
+        )[: max(1, int(samples))]
+        predictions = []
+        for index, ((next_descriptor, next_mask, next_terminal), _) in enumerate(selected):
+            source = f"{self.name}:empirical-outcome-{index}"
+            predictions.append(
+                Prediction(
+                    decode_relational_state(
+                        next_descriptor,
+                        next_mask,
+                        scaffold=state,
+                        predicted_terminal=next_terminal,
+                        source=source,
+                    ),
+                    max(0.0, min(1.0, float(confidence))),
+                    source=source,
+                )
+            )
+        self.empirical_multioutcome_rows += 1
+        return tuple(predictions)
+
     def predict_batch(
         self,
         states: Sequence[StateSnapshot],
@@ -234,7 +301,19 @@ class RelationalStochasticProphecy:
 
         member_count = min(int(samples), self.config.ensemble_size)
         rows: list[tuple[Prediction, ...]] = []
-        for row_index, state in enumerate(states):
+        for row_index, (state, action) in enumerate(
+            zip(states, actions, strict=True)
+        ):
+            empirical = self._empirical_predictions(
+                state,
+                action,
+                confidence=float(confidence[row_index]),
+                samples=samples,
+            )
+            if empirical:
+                rows.append(empirical)
+                continue
+
             predictions = []
             for member in range(member_count):
                 predicted_terminal = max(
@@ -289,6 +368,8 @@ class RelationalStochasticProphecy:
         return self.confidence_batch((state,), (action,))[0]
 
     def diagnostics(self) -> dict[str, int | float | str]:
+        multimodal_inputs = sum(len(bucket) > 1 for bucket in self._outcomes.values())
+        distinct_outcomes = sum(len(bucket) for bucket in self._outcomes.values())
         return {
             "name": self.name,
             "device": str(self.device),
@@ -306,4 +387,7 @@ class RelationalStochasticProphecy:
             "action_input_relational": 1,
             "prediction_output": "relational-descriptor+legal-mask+terminal",
             "ensemble_outcomes_not_mean_collapsed": 1,
+            "empirical_multimodal_input_keys": multimodal_inputs,
+            "empirical_distinct_outcomes": distinct_outcomes,
+            "empirical_multioutcome_prediction_rows": self.empirical_multioutcome_rows,
         }
