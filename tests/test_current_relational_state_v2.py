@@ -21,25 +21,30 @@ from aassr_v2.current_relational_codec import (
     transition_target,
 )
 from aassr_v2.pentest_agent_main_test import AGENT_STATE_SIZE
+from aassr_v2.pentest_transfer_stages import TRANSFER_STAGES, TransferDiagnosticWorld
 from aassr_v2.types import Action, StateSnapshot
 
 
 def _state(
     *,
-    audit: float,
-    requests: float,
-    session: float,
-    workflow_progress: int,
-    workflow_depth: int = 4,
+    hidden_audit_noise: float = 0.0,
+    request_usage: float = 0.0,
+    hidden_session_noise: float = 0.0,
+    workflow_fraction: float = 0.0,
 ) -> tuple[StateSnapshot, Action]:
     action = Action(
         "request",
         parameters={"route_id": "route-05", "profile_id": "profile-browse"},
     )
     vector = [0.0] * AGENT_STATE_SIZE
-    vector[7] = audit
-    vector[8] = requests
-    vector[9] = session
+    # These two raw positions deliberately receive arbitrary noise. The audited
+    # relational contract must mask them rather than accidentally reintroducing
+    # hidden audit/TTL information through a legacy snapshot.
+    vector[7] = hidden_audit_noise
+    vector[8] = request_usage
+    vector[9] = hidden_session_noise
+    vector[10] = workflow_fraction
+    progress = int(round(workflow_fraction * 8.0))
     return (
         StateSnapshot(
             tuple(vector),
@@ -47,65 +52,63 @@ def _state(
                 {
                     "known_route:route-05",
                     "known_profile:profile-browse",
-                    f"workflow_progress:{workflow_progress}:{workflow_depth}",
+                    f"workflow_progress:{progress}",
                 }
             ),
             available_actions=(action,),
             metadata={
-                "workflow_progress": workflow_progress,
-                "workflow_depth": workflow_depth,
+                "observation_contract": "response_causal_observation_v3",
+                "request_count_scale": 100.0,
+                "workflow_progress_scale": 8.0,
             },
         ),
         action,
     )
 
 
-def test_v2_descriptor_keeps_all_public_resource_pressure_axes() -> None:
+def test_v2_descriptor_keeps_public_progress_and_masks_hidden_pressure() -> None:
     state, _ = _state(
-        audit=0.6,
-        requests=0.4,
-        session=0.25,
-        workflow_progress=2,
+        hidden_audit_noise=0.6,
+        request_usage=0.4,
+        hidden_session_noise=0.25,
+        workflow_fraction=0.5,
     )
     values = relational_state_descriptor_v2(state)
 
     assert len(values) == REL_DESCRIPTOR_SIZE == 35
-    assert values[AUDIT_PRESSURE_INDEX] == pytest.approx(0.6)
+    assert values[AUDIT_PRESSURE_INDEX] == 0.0
     assert values[REQUEST_USAGE_INDEX] == pytest.approx(0.4)
-    assert values[SESSION_REMAINING_INDEX] == pytest.approx(0.25)
+    assert values[SESSION_REMAINING_INDEX] == 0.0
     assert values[WORKFLOW_PROGRESS_INDEX] == pytest.approx(0.5)
 
 
-def test_resource_pressure_changes_relational_identity() -> None:
-    safe, _ = _state(
-        audit=0.1,
-        requests=0.2,
-        session=0.9,
-        workflow_progress=1,
+def test_hidden_audit_and_session_noise_do_not_change_relational_identity() -> None:
+    left, _ = _state(
+        hidden_audit_noise=0.1,
+        request_usage=0.2,
+        hidden_session_noise=0.9,
+        workflow_fraction=0.25,
     )
-    pressured, _ = _state(
-        audit=0.9,
-        requests=0.8,
-        session=0.2,
-        workflow_progress=3,
+    right, _ = _state(
+        hidden_audit_noise=0.9,
+        request_usage=0.2,
+        hidden_session_noise=0.1,
+        workflow_fraction=0.25,
     )
 
-    assert relational_state_key_v2(safe) != relational_state_key_v2(pressured)
+    assert relational_state_key_v2(left) == relational_state_key_v2(right)
 
 
-def test_v2_prophecy_target_and_decode_round_trip_resource_pressure() -> None:
-    before, action = _state(
-        audit=0.2,
-        requests=0.25,
-        session=0.75,
-        workflow_progress=1,
-    )
-    after, _ = _state(
-        audit=0.7,
-        requests=0.5,
-        session=0.5,
-        workflow_progress=2,
-    )
+def test_public_request_and_workflow_progress_change_relational_identity() -> None:
+    early, _ = _state(request_usage=0.1, workflow_fraction=0.125)
+    later, _ = _state(request_usage=0.7, workflow_fraction=0.5)
+
+    assert relational_state_key_v2(early) != relational_state_key_v2(later)
+
+
+def test_v2_prophecy_target_and_decode_round_trip_public_progress() -> None:
+    before, action = _state(request_usage=0.25, workflow_fraction=0.125)
+    after, _ = _state(request_usage=0.5, workflow_fraction=0.25)
     _, next_descriptor, next_mask, next_terminal = transition_target(
         before,
         action,
@@ -120,8 +123,32 @@ def test_v2_prophecy_target_and_decode_round_trip_resource_pressure() -> None:
     )
 
     assert descriptor(decoded) == pytest.approx(next_descriptor)
-    assert decoded.vector[7] == pytest.approx(0.7)
+    assert decoded.vector[7] == 0.0
     assert decoded.vector[8] == pytest.approx(0.5)
-    assert decoded.vector[9] == pytest.approx(0.5)
-    assert decoded.metadata["relational_workflow_progress"] == pytest.approx(0.5)
+    assert decoded.vector[9] == 0.0
+    assert decoded.vector[10] == pytest.approx(0.25)
+    assert decoded.metadata["relational_workflow_progress"] == pytest.approx(0.25)
     assert decoded.metadata["workflow_progress"] == 2
+    assert "workflow_depth" not in decoded.metadata
+
+
+def test_real_transfer_snapshot_uses_fixed_public_scales_without_hidden_depth() -> None:
+    world = TransferDiagnosticWorld(90_001, stage=TRANSFER_STAGES[5])
+    world.request_count = 7
+    world.workflow_progress = 2
+    world.audit_score = 2
+    world.session_requests_remaining = 3
+
+    state = world.snapshot()
+    values = relational_state_descriptor_v2(state)
+
+    assert state.vector[7] == 0.0
+    assert state.vector[8] == pytest.approx(0.07)
+    assert state.vector[9] == 0.0
+    assert state.vector[10] == pytest.approx(0.25)
+    assert values[AUDIT_PRESSURE_INDEX] == 0.0
+    assert values[REQUEST_USAGE_INDEX] == pytest.approx(0.07)
+    assert values[SESSION_REMAINING_INDEX] == 0.0
+    assert values[WORKFLOW_PROGRESS_INDEX] == pytest.approx(0.25)
+    assert "workflow_depth" not in state.metadata
+    assert "workflow_progress:2" in state.facts
