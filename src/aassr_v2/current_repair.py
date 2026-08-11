@@ -7,6 +7,7 @@ from typing import Any
 
 from .autonomous_agent_core import ActionDecision
 from .current_agent import CurrentProphecyView, CurrentSkillProphecy
+from .current_generation import relational_action_key
 from .current_relational_model import RelationalStochasticProphecy
 from .current_semantic_calibration import (
     RelationalDepthBatchedProphecyView,
@@ -15,7 +16,14 @@ from .current_semantic_calibration import (
 )
 from .current_return_critic import ReturnAwareHardwareRelationalGRUBranchCritic
 from .imagination_tree import ImaginationResult, RootActionEvaluation
-from .types import StateSnapshot
+from .skills import SKILL_VERB
+from .types import Action, StateSnapshot
+
+
+def _structural_action_key(state: StateSnapshot, action: Action) -> tuple[Any, ...]:
+    if action.verb_name == SKILL_VERB:
+        return ("skill", str(action.target))
+    return ("primitive", *relational_action_key(state, action))
 
 
 def preserve_root_evaluations(
@@ -81,22 +89,43 @@ def _install_planner_audit(agent: object) -> None:
     ) -> ImaginationResult:
         raw = original_plan(state, maximum_depth=maximum_depth)
         result = preserve_root_evaluations(planner_self, state, raw)
-        values = sorted(
-            (float(item.aggregate_value) for item in result.root_evaluations),
-            reverse=True,
+        ordered = sorted(
+            result.root_evaluations,
+            key=lambda item: (-float(item.aggregate_value), item.action.signature),
         )
+        values = [float(item.aggregate_value) for item in ordered]
         gap = values[0] - values[1] if len(values) > 1 else float("inf")
-        ties = (
-            sum(abs(value - values[0]) <= 1e-12 for value in values)
+        top = (
+            tuple(
+                item
+                for item in ordered
+                if abs(float(item.aggregate_value) - values[0]) <= 1e-12
+            )
             if values
-            else 0
+            else ()
         )
+        structural_groups = {
+            _structural_action_key(state, item.action) for item in top
+        }
+        ties = len(top)
+        group_count = len(structural_groups)
+
         agent._repair_last_root_top_gap = float(gap)
         agent._repair_last_root_top_ties = int(ties)
+        agent._repair_last_root_top_structural_groups = int(group_count)
         counters["plans"] += 1
         counters["expected_roots"] += len(state.available_actions)
         counters["evaluated_roots"] += len(result.root_evaluations)
+        counters["unique_structural_roots"] += len(
+            {_structural_action_key(state, item.action) for item in result.root_evaluations}
+        )
         counters["exact_top_ties"] += int(ties > 1)
+        counters["exact_top_ties_equivalent_aliases"] += int(
+            ties > 1 and group_count == 1
+        )
+        counters["exact_top_ties_distinct_structures"] += int(
+            ties > 1 and group_count > 1
+        )
         counters["near_top_ties"] += int(ties == 1 and gap < 0.01)
         return result
 
@@ -111,11 +140,16 @@ def _install_planner_audit(agent: object) -> None:
     ) -> ActionDecision:
         if decision.imagination_gate_reason == "policy_agreement":
             ties = int(getattr(self_agent, "_repair_last_root_top_ties", 0))
+            groups = int(
+                getattr(self_agent, "_repair_last_root_top_structural_groups", 0)
+            )
             gap = float(
                 getattr(self_agent, "_repair_last_root_top_gap", float("inf"))
             )
-            if ties > 1:
-                reason = "critic_exact_tie_policy_tiebreak"
+            if ties > 1 and groups == 1:
+                reason = "critic_exact_tie_equivalent_aliases"
+            elif ties > 1:
+                reason = "critic_exact_tie_distinct_structures_policy_tiebreak"
             elif gap < 0.01:
                 reason = "critic_near_tie_policy_best"
             else:
