@@ -7,14 +7,15 @@ from types import SimpleNamespace
 from typing import Any, Sequence
 import random
 
-from .current_generation import relational_action_key, relational_state_vector
+from .current_generation import relational_action_key
 from .current_relational_codec import (
     ACTION_SLOT_COUNT,
     REL_DESCRIPTOR_SIZE,
     TERMINAL_CLASSES,
-    decode_relational_state,
     transition_target,
 )
+from .current_relational_decode_v2 import decode_relational_state_v2
+from .current_relational_state import relational_state_vector_v2
 from .pentest_agent_main_test import ACTION_FEATURE_SIZE, AGENT_STATE_SIZE
 from .skills import SKILL_VERB
 from .types import Action, Prediction, StateSnapshot
@@ -60,13 +61,13 @@ class RelationalStochasticProphecy:
     """Relational world model with explicit observed multi-outcome support.
 
     Neural ensemble members provide generalization to unseen relational states.
-    When the *same* relational state/action input has produced multiple different
+    When the same relational state/action input has produced multiple different
     relational outcomes in real experience, those outcomes are retained as a
     categorical empirical distribution and emitted as distinct imagined worlds.
     Reliability and empirical outcome probability are explicitly separate.
     """
 
-    name = "current-relational-stochastic-world-model-v1"
+    name = "current-relational-stochastic-world-model-v2"
 
     def __init__(
         self,
@@ -128,7 +129,7 @@ class RelationalStochasticProphecy:
         )
 
     def _input(self, state: StateSnapshot, action: Action) -> tuple[float, ...]:
-        values = relational_state_vector(state) + relational_action_key(state, action)
+        values = relational_state_vector_v2(state) + relational_action_key(state, action)
         if len(values) != self.input_size:
             raise ValueError("relational world-model input size drift")
         return values
@@ -270,7 +271,7 @@ class RelationalStochasticProphecy:
             source = f"{self.name}:empirical-outcome-{index}"
             predictions.append(
                 RelationalPrediction(
-                    decode_relational_state(
+                    decode_relational_state_v2(
                         next_descriptor,
                         next_mask,
                         scaffold=state,
@@ -355,7 +356,7 @@ class RelationalStochasticProphecy:
                 source = f"{self.name}:member-{member}"
                 predictions.append(
                     RelationalPrediction(
-                        decode_relational_state(
+                        decode_relational_state_v2(
                             descriptors[member][row_index],
                             masks[member][row_index],
                             scaffold=state,
@@ -418,7 +419,10 @@ class RelationalStochasticProphecy:
             "batch_prediction_rows": self.batch_prediction_rows,
             "state_input_relational": 1,
             "action_input_relational": 1,
-            "prediction_output": "relational-descriptor+legal-mask+terminal",
+            "prediction_output": (
+                "relational-descriptor-v2+legal-mask+"
+                "active-success-failure-truncation"
+            ),
             "ensemble_outcomes_not_mean_collapsed": 1,
             "reliability_outcome_probability_separated": 1,
             "empirical_multimodal_input_keys": multimodal_inputs,
