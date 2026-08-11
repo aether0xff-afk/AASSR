@@ -4,13 +4,14 @@ from itertools import combinations
 from statistics import fmean
 from typing import Any, Iterable, Sequence
 
-from .current_generation import relational_action_key, relational_state_key
+from .current_generation import relational_action_key
 from .current_relational_codec import (
     descriptor,
     legal_action_mask,
     semantic_prediction_score,
     terminal_class,
 )
+from .current_relational_state import relational_state_key_v2
 from .knowledge import KnowledgeEntry, KnowledgeStore
 from .learning import (
     AdvancedEvaluation,
@@ -34,19 +35,44 @@ def _mask_jaccard(left: StateSnapshot, right: StateSnapshot) -> float:
     return 1.0 if not union else len(left_set & right_set) / len(union)
 
 
+def _normalized_outcome_masses(
+    predictions: Sequence[Prediction],
+) -> tuple[float, ...]:
+    raw = [
+        max(0.0, float(getattr(item, "outcome_probability", 1.0)))
+        for item in predictions
+    ]
+    total = sum(raw)
+    if total <= 1e-12:
+        return (1.0 / len(raw),) * len(raw) if raw else ()
+    return tuple(value / total for value in raw)
+
+
 def semantic_prediction_uncertainty(
     predictions: Sequence[Prediction],
 ) -> float:
-    """Uncertainty in the same relational space used by the repaired world model."""
+    """Relational uncertainty with reliability and outcome mass kept separate.
+
+    Epistemic unreliability is weighted by stochastic outcome mass. Legitimate
+    multimodal diversity is aleatoric uncertainty and is measured with pairwise
+    outcome-mass weights, so a 1% rare mode cannot count as much as a 50% mode.
+    """
     materialized = tuple(predictions)
     if not materialized:
         return 1.0
-    confidence_uncertainty = 1.0 - fmean(
-        max(0.0, min(1.0, float(item.probability)))
-        for item in materialized
+    masses = _normalized_outcome_masses(materialized)
+    reliability = sum(
+        mass * max(0.0, min(1.0, float(item.probability)))
+        for mass, item in zip(masses, materialized, strict=True)
     )
-    pairwise = []
-    for left, right in combinations(materialized, 2):
+    confidence_uncertainty = 1.0 - reliability
+
+    weighted_distance = 0.0
+    total_pair_mass = 0.0
+    for (left_index, left), (right_index, right) in combinations(
+        tuple(enumerate(materialized)),
+        2,
+    ):
         left_state = left.next_state
         right_state = right.next_state
         state_distance = fmean(
@@ -57,12 +83,19 @@ def semantic_prediction_uncertainty(
                 strict=True,
             )
         )
-        pairwise.append(
+        distance = (
             0.55 * state_distance
             + 0.30 * (1.0 - _mask_jaccard(left_state, right_state))
             + 0.15 * float(terminal_class(left_state) != terminal_class(right_state))
         )
-    diversity = fmean(pairwise) if pairwise else 0.0
+        pair_mass = masses[left_index] * masses[right_index]
+        weighted_distance += pair_mass * distance
+        total_pair_mass += pair_mass
+    diversity = (
+        weighted_distance / total_pair_mass
+        if total_pair_mass > 1e-12
+        else 0.0
+    )
     return max(
         0.0,
         min(1.0, 0.5 * confidence_uncertainty + 0.5 * diversity),
@@ -107,14 +140,13 @@ class RelationalActionUnlockValueEstimator:
 class RelationalAdvancedTransitionEvaluator(AdvancedTransitionEvaluator):
     """Information-value evaluator aligned with the repaired relational model.
 
-    The historical evaluator compared predicted synthetic futures to the raw
-    concrete 528-slot vector. That reintroduced the exact identity mismatch the
-    repaired Prophecy removes. This evaluator keeps the replay/anti-hindsight
-    protocol but computes prediction quality, uncertainty, repeat identity and
-    unlocked-action value entirely in relational space.
+    Replay/holdout anti-hindsight behavior is unchanged, but prediction quality,
+    uncertainty, repeat identity and unlocked-action value are all relational.
+    The v2 state key is referenced directly rather than depending on import-time
+    monkeypatching of the historical current-generation module.
     """
 
-    name = "relational-advanced-transition-evaluator-v1"
+    name = "relational-advanced-transition-evaluator-v2"
 
     def __init__(
         self,
@@ -137,8 +169,6 @@ class RelationalAdvancedTransitionEvaluator(AdvancedTransitionEvaluator):
             intrinsic_cap=intrinsic_cap,
         )
         self.relational_unlock_estimator = RelationalActionUnlockValueEstimator()
-        # Compatibility attribute; callers outside this class should not use the
-        # concrete-signature estimator inherited from the historical evaluator.
         self.unlock_estimator = self.relational_unlock_estimator
         self._recent_pairs: list[tuple[Any, ...]] = []
 
@@ -215,7 +245,7 @@ class RelationalAdvancedTransitionEvaluator(AdvancedTransitionEvaluator):
         knowledge.apply(entries, outcome.removed_facts)
 
         repeat_key = (
-            relational_state_key(before),
+            relational_state_key_v2(before),
             _action_key(before, action),
         )
         repeat_penalty = 1.0 if repeat_key in self._recent_pairs[-16:] else 0.0
