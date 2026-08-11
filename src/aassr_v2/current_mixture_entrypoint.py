@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 from . import current_repair as repair_module
 from .current_agent import (
     CurrentStandalonePentestAASSRAgent,
@@ -18,9 +20,15 @@ from .current_validation import install_current_fast_validation
 
 MIXTURE_CURRENT_COMPONENTS = {
     **dict(CURRENT_COMPONENTS),
-    "prophecy": "relational-conditional-mixture-ensemble-v2",
-    "prophecy_output": "relational-descriptor-v2+legal-action-mask+terminal-mixture-v2",
-    "imagination": "root-preserving-parallel-universe-tree-v4+conditional-multi-outcome-depth-batched",
+    "prophecy": "relational-conditional-mixture-ensemble-v3",
+    "prophecy_output": (
+        "relational-descriptor-v2+legal-action-mask+"
+        "active-success-failure-truncation-mixture-v3"
+    ),
+    "imagination": (
+        "root-preserving-parallel-universe-tree-v5+"
+        "probability-chance-max-decision-depth-batched"
+    ),
 }
 
 
@@ -36,10 +44,9 @@ def build_current_mixture_pentest_aassr_core(
 ) -> CurrentStandalonePentestAASSRAgent:
     """Build the frozen repaired candidate used by the one-shot validation.
 
-    This is the same current-generation stack as the canonical builder except the
-    relational world model itself uses a learned conditional mixture objective,
-    so multimodal next-state targets are not averaged even for previously unseen
-    relational states.
+    This is the current-generation stack with the conditional relational mixture
+    world model. Chance outcomes are probability-weighted; future action choices
+    are max-backed; confidence remains a reliability gate only.
     """
     if not enable_batching:
         raise ValueError("repaired mixture current generation requires batching")
@@ -72,6 +79,11 @@ def build_current_mixture_pentest_aassr_core(
     finally:
         repair_module.RelationalStochasticProphecy = previous_model
 
+    # Match the actual optimization objective: expected sparse return. Real
+    # failure risk is already present in {-1,0,+1} outcome values and must not be
+    # double-penalized by an extra variance preference.
+    agent.planner.config = replace(agent.planner.config, aggregation="mean")
+    agent.core.planner = agent.planner
     agent.current_components = dict(MIXTURE_CURRENT_COMPONENTS)
     install_current_confidence_gate(agent)
     install_current_decision_optimizations(agent)
