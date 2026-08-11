@@ -7,7 +7,7 @@ from typing import Any
 
 from .autonomous_agent_core import ActionDecision
 from .current_agent import CurrentProphecyView, CurrentSkillProphecy
-from .current_generation import relational_action_key
+from .current_generation import relational_action_key, relational_state_key
 from .current_manifest import CURRENT_COMPONENTS
 from .current_relational_model import RelationalStochasticProphecy
 from .current_semantic_calibration import (
@@ -209,6 +209,10 @@ def install_current_repairs(
     batched = RelationalDepthBatchedProphecyView(agent)
     agent.current_batched_prophecy = batched
     agent.planner.prophecy = batched
+    # Imagination now lives in canonical relational states. Repeated-state
+    # detection must therefore use the same rename-invariant state identity rather
+    # than the concrete ASEQ fingerprint used by the real-world loop guard.
+    agent.planner._state_key = lambda state: repr(relational_state_key(state))
     agent.core.prophecy = prophecy
 
     critic = ReturnAwareHardwareRelationalGRUBranchCritic(
@@ -254,13 +258,17 @@ def install_current_repairs(
         output["current_repairs"] = {
             "version": self_agent.current_repairs_version,
             "relational_input_output_contract": True,
+            "relational_imagination_state_key": True,
             "semantic_decode": True,
             "predicted_legal_action_surface": True,
             "multi_outcome_ensemble": True,
+            "reliability_outcome_probability_separated": True,
             "semantic_information_evaluator": True,
             "relational_repeat_unlock_value": True,
             "critic_sparse_return_aligned": True,
+            "critic_root_scale_values": True,
             "root_preserving": True,
+            "deeper_structural_branching": True,
             **dict(getattr(self_agent, "_repair_planner_diagnostics", {})),
         }
         return output
