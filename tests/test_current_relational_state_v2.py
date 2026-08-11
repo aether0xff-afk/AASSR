@@ -6,6 +6,7 @@ from aassr_v2.current_relational_state import (
     AUDIT_PRESSURE_INDEX,
     REL_DESCRIPTOR_SIZE,
     REQUEST_USAGE_INDEX,
+    ROLE_START_INDEX,
     SESSION_REMAINING_INDEX,
     WORKFLOW_PROGRESS_INDEX,
     install_relational_state_contract,
@@ -21,6 +22,7 @@ from aassr_v2.current_relational_codec import (
     transition_target,
 )
 from aassr_v2.pentest_agent_main_test import AGENT_STATE_SIZE
+from aassr_v2.pentest_curriculum_env import PROFILE_RELATIONS, ROUTE_RELATIONS
 from aassr_v2.pentest_transfer_stages import TRANSFER_STAGES, TransferDiagnosticWorld
 from aassr_v2.types import Action, StateSnapshot
 
@@ -37,9 +39,6 @@ def _state(
         parameters={"route_id": "route-05", "profile_id": "profile-browse"},
     )
     vector = [0.0] * AGENT_STATE_SIZE
-    # These two raw positions deliberately receive arbitrary noise. The audited
-    # relational contract must mask them rather than accidentally reintroducing
-    # hidden audit/TTL information through a legacy snapshot.
     vector[7] = hidden_audit_noise
     vector[8] = request_usage
     vector[9] = hidden_session_noise
@@ -80,6 +79,36 @@ def test_v2_descriptor_keeps_public_progress_and_masks_hidden_pressure() -> None
     assert values[REQUEST_USAGE_INDEX] == pytest.approx(0.4)
     assert values[SESSION_REMAINING_INDEX] == 0.0
     assert values[WORKFLOW_PROGRESS_INDEX] == pytest.approx(0.5)
+
+
+def test_unobserved_known_entities_contribute_explicit_unknown_role_mass() -> None:
+    action = Action(
+        "request",
+        parameters={"route_id": "route-00", "profile_id": "profile-browse"},
+    )
+    facts = frozenset(
+        {
+            "known_route:route-00",
+            "known_route:route-01",
+            "known_route:route-02",
+            "observed_route_role:route-00:catalog",
+            "known_profile:profile-browse",
+            "known_profile:profile-01",
+        }
+    )
+    state = StateSnapshot(
+        (0.0,) * AGENT_STATE_SIZE,
+        facts=facts,
+        available_actions=(action,),
+    )
+    values = relational_state_descriptor_v2(state)
+
+    route_start = ROLE_START_INDEX
+    profile_start = route_start + len(ROUTE_RELATIONS)
+    assert values[route_start + ROUTE_RELATIONS.index("catalog")] == pytest.approx(1 / 3)
+    assert values[route_start + ROUTE_RELATIONS.index("unknown")] == pytest.approx(2 / 3)
+    assert values[profile_start + PROFILE_RELATIONS.index("browse")] == pytest.approx(1 / 2)
+    assert values[profile_start + PROFILE_RELATIONS.index("unknown")] == pytest.approx(1 / 2)
 
 
 def test_hidden_audit_and_session_noise_do_not_change_relational_identity() -> None:
