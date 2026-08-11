@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from typing import Sequence
 
 from .current_relational_state import (
@@ -41,42 +42,109 @@ def _canonical_action(slot: int) -> Action:
     return Action(verb, parameters=parameters)
 
 
-def _role_fill(
-    facts: set[str],
+def _desired_role_counts(
     *,
-    prefix: str,
-    id_prefix: str,
-    existing: int,
     target: int,
     probabilities: Sequence[float],
     roles: Sequence[str],
-) -> None:
-    remaining = max(0, target - existing)
-    if not remaining:
-        return
+) -> dict[str, int]:
     weights = [max(0.0, float(value)) for value in probabilities]
     total = sum(weights)
     if total <= 1e-12:
         weights = [float(role == "unknown") for role in roles]
         total = sum(weights) or 1.0
-    counts = [int(remaining * value / total) for value in weights]
-    for _ in range(remaining - sum(counts)):
+    exact = [target * value / total for value in weights]
+    counts = [int(value) for value in exact]
+    for _ in range(max(0, target - sum(counts))):
         index = max(
             range(len(roles)),
-            key=lambda item: (
-                remaining * weights[item] / total - counts[item],
-                -item,
-            ),
+            key=lambda item: (exact[item] - counts[item], -item),
         )
         counts[index] += 1
+    return dict(zip(roles, counts, strict=True))
+
+
+def _existing_entity_roles(
+    facts: set[str],
+    *,
+    prefix: str,
+    roles: Sequence[str],
+) -> tuple[set[str], Counter[str]]:
+    known_prefix = f"known_{prefix}:"
+    observed_prefix = f"observed_{prefix}_role:"
+    identifiers = {
+        fact.removeprefix(known_prefix)
+        for fact in facts
+        if fact.startswith(known_prefix)
+    }
+    observed: dict[str, str] = {}
+    for fact in facts:
+        if not fact.startswith(observed_prefix):
+            continue
+        payload = fact.removeprefix(observed_prefix)
+        try:
+            identifier, role = payload.rsplit(":", 1)
+        except ValueError:
+            continue
+        observed[identifier] = role if role in roles else "unknown"
+        identifiers.add(identifier)
+
+    counts: Counter[str] = Counter()
+    for identifier in identifiers:
+        role = observed.get(identifier)
+        if role is None and prefix == "profile" and identifier == "profile-browse":
+            role = "browse"
+        if role not in roles:
+            role = "unknown"
+        counts[role] += 1
+    return identifiers, counts
+
+
+def _role_fill(
+    facts: set[str],
+    *,
+    prefix: str,
+    id_prefix: str,
+    target: int,
+    probabilities: Sequence[float],
+    roles: Sequence[str],
+) -> None:
+    """Fill anonymous known entities toward the predicted full role histogram."""
+    identifiers, current = _existing_entity_roles(
+        facts,
+        prefix=prefix,
+        roles=roles,
+    )
+    remaining = max(0, int(target) - len(identifiers))
+    if not remaining:
+        return
+    desired = _desired_role_counts(
+        target=int(target),
+        probabilities=probabilities,
+        roles=roles,
+    )
+    normalized = [max(0.0, float(value)) for value in probabilities]
+    total = sum(normalized) or 1.0
     cursor = 0
-    for role, count in zip(roles, counts, strict=True):
-        for _ in range(count):
+    for _ in range(remaining):
+        role = max(
+            roles,
+            key=lambda item: (
+                desired.get(item, 0) - current.get(item, 0),
+                normalized[roles.index(item)] / total,
+                -roles.index(item),
+            ),
+        )
+        while True:
             identifier = f"{id_prefix}{cursor:02d}"
             cursor += 1
-            facts.add(f"known_{prefix}:{identifier}")
-            if role != "unknown":
-                facts.add(f"observed_{prefix}_role:{identifier}:{role}")
+            if identifier not in identifiers:
+                break
+        identifiers.add(identifier)
+        current[role] += 1
+        facts.add(f"known_{prefix}:{identifier}")
+        if role != "unknown":
+            facts.add(f"observed_{prefix}_role:{identifier}:{role}")
 
 
 def decode_relational_state_v2(
@@ -146,10 +214,6 @@ def decode_relational_state_v2(
             for index, probability in enumerate(mask_probabilities)
             if float(probability) >= 0.5
         )
-        # An active state must have at least one legal structural action. During
-        # early/noisy prediction, fall back to the highest-probability slot rather
-        # than manufacturing concrete duplicates. Truncation may legitimately have
-        # an empty mask, so it receives no fallback.
         if not active_slots and terminal == TERMINAL_ACTIVE:
             best = max(
                 range(ACTION_SLOT_COUNT),
@@ -159,16 +223,12 @@ def decode_relational_state_v2(
     actions = tuple(_canonical_action(slot) for slot in active_slots)
 
     facts: set[str] = {"imagined_relational_world"}
-    route_ids: set[str] = set()
-    profile_ids: set[str] = set()
     object_ids: set[str] = set()
 
     for slot, action in zip(active_slots, actions, strict=True):
         _, route_role, profile_role, object_role = DREAMERV3_ACTION_SLOTS[slot]
         route_id = str(action.parameters["route_id"])
         profile_id = str(action.parameters["profile_id"])
-        route_ids.add(route_id)
-        profile_ids.add(profile_id)
         facts.add(f"known_route:{route_id}")
         facts.add(f"known_profile:{profile_id}")
         if route_role != "unknown":
@@ -198,7 +258,6 @@ def decode_relational_state_v2(
         facts,
         prefix="route",
         id_prefix="imag-route-extra-",
-        existing=len(route_ids),
         target=route_target,
         probabilities=values[route_start:profile_start],
         roles=ROUTE_RELATIONS,
@@ -207,7 +266,6 @@ def decode_relational_state_v2(
         facts,
         prefix="profile",
         id_prefix="imag-profile-extra-",
-        existing=len(profile_ids),
         target=profile_target,
         probabilities=values[
             profile_start : profile_start + len(PROFILE_RELATIONS)
