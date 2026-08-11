@@ -30,9 +30,11 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
     outcomes for one action are chance branches and are backed up with their
     stochastic ``outcome_probability``. Different actions available at the same
     imagined state are decision branches and are backed up with ``max`` because
-    the future agent can choose among them. This prevents rare outcomes from
-    receiving equal voting weight and prevents a bad *optional* future action
-    from lowering the value of an otherwise good state.
+    the future agent can choose among them.
+
+    Predicted task terminals use the exact external sparse return instead of a
+    learned Critic estimate: success +1, true lockout failure -1, truncation 0,
+    discounted only by the number of imagined transitions from the current root.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -47,8 +49,10 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
         self.outcome_probability_rows = 0
         self.chance_backup_groups = 0
         self.decision_backup_nodes = 0
+        self.task_success_leaves = 0
         self.task_truncation_leaves = 0
         self.task_failure_leaves = 0
+        self.exact_terminal_value_leaves = 0
         self._last_outcome_probability_by_node: dict[int, float] = {}
 
     def _structural_limit(
@@ -58,9 +62,6 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
         *,
         depth: int,
     ) -> tuple[Any, ...]:
-        # Root actions remain concrete because the eventual intervention must name
-        # one real executable action. Deeper planning is in relational space: six
-        # seed-renamed aliases must not consume all six branching slots.
         if depth == 1 and self.config.expand_all_root_actions:
             return ranked
         selected = []
@@ -84,9 +85,6 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
         *,
         depth: int,
     ) -> tuple[tuple[Any, ...], ...]:
-        # Ask Policy for the complete ordered surface before structural
-        # deduplication. Requesting only top-K concrete actions first can return K
-        # aliases of one relational action and hide the next-best distinct action.
         request_limits = tuple(len(node.state.available_actions) for node in frontier)
         batch_rank = getattr(self.policy, "rank_batch", None)
         if callable(batch_rank):
@@ -203,12 +201,6 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
         values: Sequence[float],
         probabilities: Sequence[float],
     ) -> float:
-        """Back up one action's stochastic outcomes without value shaping.
-
-        Outcome probability determines expectation/risk only; it is never added
-        to Critic value. Agent-controlled action alternatives are *not* passed to
-        this function and are handled by max in ``_bellman_backups``.
-        """
         if len(values) != len(probabilities) or not values:
             raise ValueError("chance backup requires aligned non-empty rows")
         weights = [max(0.0, float(value)) for value in probabilities]
@@ -222,7 +214,10 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
         if self.config.aggregation == "max":
             return max(materialized)
         if self.config.aggregation == "mean":
-            return sum(weight * value for weight, value in zip(weights, materialized, strict=True))
+            return sum(
+                weight * value
+                for weight, value in zip(weights, materialized, strict=True)
+            )
         if self.config.aggregation == "top_mean":
             ranked = sorted(
                 zip(materialized, weights, strict=True),
@@ -234,7 +229,10 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
                 return fmean(value for value, _ in ranked)
             return sum(value * weight for value, weight in ranked) / selected_weight
         if self.config.aggregation == "risk_adjusted":
-            mean = sum(weight * value for weight, value in zip(weights, materialized, strict=True))
+            mean = sum(
+                weight * value
+                for weight, value in zip(weights, materialized, strict=True)
+            )
             variance = sum(
                 weight * (value - mean) ** 2
                 for weight, value in zip(weights, materialized, strict=True)
@@ -257,6 +255,17 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
             return "failure"
         return None
 
+    def _exact_terminal_value(self, reason: str, depth: int) -> float:
+        if reason == "goal":
+            reward = 1.0
+        elif reason == "failure":
+            reward = -1.0
+        elif reason == "truncation":
+            reward = 0.0
+        else:
+            raise ValueError(f"not an external task terminal: {reason}")
+        return (self.config.discount ** (depth - 1)) * reward
+
     def _bellman_backups(
         self,
         nodes: Sequence[ImaginationNode],
@@ -267,7 +276,6 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
         dict[int, tuple[str, ...]],
         dict[tuple[int, str], list[ImaginationNode]],
     ]:
-        """Compute max-over-actions / probability-over-outcomes tree values."""
         by_parent_action: dict[tuple[int, str], list[ImaginationNode]] = {}
         actions_by_parent: dict[int, set[str]] = {}
         for child in nodes:
@@ -440,15 +448,6 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
                 scorer_memory,
                 value_mode,
             ) in zip(candidate_metadata, scored_rows, strict=True):
-                if value_mode == "absolute":
-                    cumulative_value = immediate_value
-                    value_center = float(getattr(self.scorer, "value_center", 0.5))
-                    policy_feedback = immediate_value - value_center
-                else:
-                    cumulative_value = node.cumulative_value + (
-                        self.config.discount ** (depth - 1)
-                    ) * immediate_value
-                    policy_feedback = immediate_value
                 cumulative_confidence = (
                     node.cumulative_confidence * step_confidence
                 )
@@ -466,10 +465,27 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
                     terminal_reason = "goal"
                 else:
                     terminal_reason = self._task_terminal_reason(prediction.next_state)
-                if terminal_reason == "truncation":
-                    self.task_truncation_leaves += 1
-                elif terminal_reason == "failure":
-                    self.task_failure_leaves += 1
+
+                value_center = float(getattr(self.scorer, "value_center", 0.5))
+                if terminal_reason in {"goal", "failure", "truncation"}:
+                    cumulative_value = self._exact_terminal_value(terminal_reason, depth)
+                    policy_feedback = cumulative_value - value_center
+                    self.exact_terminal_value_leaves += 1
+                    if terminal_reason == "goal":
+                        self.task_success_leaves += 1
+                    elif terminal_reason == "failure":
+                        self.task_failure_leaves += 1
+                    else:
+                        self.task_truncation_leaves += 1
+                elif value_mode == "absolute":
+                    cumulative_value = immediate_value
+                    policy_feedback = immediate_value - value_center
+                else:
+                    cumulative_value = node.cumulative_value + (
+                        self.config.discount ** (depth - 1)
+                    ) * immediate_value
+                    policy_feedback = immediate_value
+
                 if terminal_reason is None:
                     if cumulative_confidence < self.config.minimum_path_confidence:
                         terminal_reason = "low_confidence"
@@ -590,6 +606,8 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
             "outcome_probability_rows": self.outcome_probability_rows,
             "chance_backup_groups": self.chance_backup_groups,
             "decision_backup_nodes": self.decision_backup_nodes,
+            "task_success_leaves": self.task_success_leaves,
             "task_truncation_leaves": self.task_truncation_leaves,
             "task_failure_leaves": self.task_failure_leaves,
+            "exact_terminal_value_leaves": self.exact_terminal_value_leaves,
         }
