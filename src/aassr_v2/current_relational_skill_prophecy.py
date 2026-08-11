@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from statistics import fmean
 from typing import Any
 
 from .current_agent import CurrentSkillProphecy
 from .current_relational_model import RelationalPrediction
 from .knowledge import KnowledgeStore
+from .skills import SKILL_VERB
 from .types import Action, Prediction, StateSnapshot
 
 
@@ -118,6 +120,32 @@ class RelationalStochasticSkillProphecy(CurrentSkillProphecy):
             for index, (current, reliability, mass) in enumerate(branches)
         )
 
+    def confidence(self, state: StateSnapshot, action: Action) -> float:
+        if action.verb_name != SKILL_VERB:
+            return super().confidence(state, action)
+        predictions = self._skill_predictions(
+            state,
+            action,
+            knowledge=self.knowledge,
+            samples=3,
+        )
+        if not predictions:
+            return 0.0
+        weighted = []
+        for prediction in predictions:
+            mass = float(getattr(prediction, "outcome_probability", 0.0))
+            weighted.append(mass * float(prediction.probability))
+        total_mass = sum(
+            float(getattr(prediction, "outcome_probability", 0.0))
+            for prediction in predictions
+        )
+        if total_mass <= 0.0:
+            return max(
+                0.0,
+                min(1.0, fmean(float(item.probability) for item in predictions)),
+            )
+        return max(0.0, min(1.0, sum(weighted) / total_mass))
+
     def diagnostics(self) -> dict[str, Any]:
         output = super().diagnostics()
         return {
@@ -125,4 +153,5 @@ class RelationalStochasticSkillProphecy(CurrentSkillProphecy):
             "stochastic_skill_outcomes": 1,
             "skill_outcome_beam": "planner_samples",
             "skill_reliability_outcome_mass_separate": 1,
+            "skill_confidence_stochastic": 1,
         }
