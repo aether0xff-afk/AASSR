@@ -3,15 +3,19 @@ from __future__ import annotations
 from typing import Sequence
 
 from .current_relational_state import (
+    ACTION_COUNT_INDEX,
     AUDIT_PRESSURE_INDEX,
     CONTROL_SIZE,
     KNOWN_OBJECT_INDEX,
     KNOWN_PROFILE_INDEX,
     KNOWN_ROUTE_INDEX,
+    OBJECT_REQUEST_FRACTION_INDEX,
     REL_DESCRIPTOR_SIZE,
+    REQUEST_FRACTION_INDEX,
     REQUEST_USAGE_INDEX,
     ROLE_START_INDEX,
     SESSION_REMAINING_INDEX,
+    UNIQUE_ACTION_COUNT_INDEX,
     WORKFLOW_PROGRESS_INDEX,
 )
 from .dreamerv3_baseline import DREAMERV3_ACTION_SLOTS
@@ -19,7 +23,8 @@ from .pentest_curriculum_env import PROFILE_RELATIONS, ROUTE_RELATIONS
 from .types import Action, StateSnapshot
 
 
-def _canonical_action(slot: int, *, variant: int = 0) -> Action:
+def _canonical_action(slot: int) -> Action:
+    """Materialize one anonymous Action per relational legal-action slot."""
     verb, route_role, profile_role, object_role = DREAMERV3_ACTION_SLOTS[slot]
     route_id = f"imag-route-{route_role}"
     profile_id = (
@@ -33,8 +38,6 @@ def _canonical_action(slot: int, *, variant: int = 0) -> Action:
     }
     if verb == "request_object":
         parameters["object_id"] = f"imag-object-{object_role}"
-    if variant:
-        parameters["imagined_variant"] = str(variant)
     return Action(verb, parameters=parameters)
 
 
@@ -84,12 +87,12 @@ def decode_relational_state_v2(
     predicted_terminal: int,
     source: str,
 ) -> StateSnapshot:
-    """Decode a v2 relational prediction without inventing concrete real IDs.
+    """Decode a relational future without recreating concrete episode IDs.
 
-    The explicit four-way terminal head is authoritative. Descriptor control bits
-    are auxiliary regression targets and may be noisy early in training; they are
-    never allowed to reinterpret a predicted truncation as a true failure or vice
-    versa.
+    ``available_actions`` contains exactly one anonymous Action per predicted
+    structural legal-action slot. Observable concrete multiplicity is kept only
+    in descriptor metadata. The four-way terminal head is authoritative over
+    noisy auxiliary status bits.
     """
     from .current_relational_codec import (
         ACTION_SLOT_COUNT,
@@ -130,51 +133,37 @@ def decode_relational_state_v2(
     success = terminal == TERMINAL_SUCCESS
     failed = terminal == TERMINAL_FAILURE
     truncated = terminal == TERMINAL_TRUNCATION
-    # Public terminal/status controls must agree with the explicit class.
     vector[3] = float(success)
     vector[4] = float(failed)
     vector[5] = float(failed)
     vector[6] = float(truncated)
 
-    action_count_index = REL_DESCRIPTOR_SIZE - 4
-    unique_action_count_index = REL_DESCRIPTOR_SIZE - 3
     if success or failed:
-        action_slots: tuple[int, ...] = ()
-        actions: tuple[Action, ...] = ()
+        active_slots: tuple[int, ...] = ()
     else:
-        unique_count = max(
-            1,
-            min(32, int(round(values[unique_action_count_index] * 32.0))),
+        active_slots = tuple(
+            index
+            for index, probability in enumerate(mask_probabilities)
+            if float(probability) >= 0.5
         )
-        total_count = max(
-            unique_count,
-            min(128, int(round(values[action_count_index] * 128.0))),
-        )
-        ranked = sorted(
-            range(ACTION_SLOT_COUNT),
-            key=lambda index: (-float(mask_probabilities[index]), index),
-        )
-        active_slots = tuple(ranked[:unique_count])
-        expanded = list(active_slots)
-        while len(expanded) < total_count:
-            expanded.append(
-                active_slots[(len(expanded) - unique_count) % len(active_slots)]
+        # An active state must have at least one legal structural action. During
+        # early/noisy prediction, fall back to the highest-probability slot rather
+        # than manufacturing concrete duplicates. Truncation may legitimately have
+        # an empty mask, so it receives no fallback.
+        if not active_slots and terminal == TERMINAL_ACTIVE:
+            best = max(
+                range(ACTION_SLOT_COUNT),
+                key=lambda index: (float(mask_probabilities[index]), -index),
             )
-        action_slots = tuple(expanded)
-        per_slot_seen: dict[int, int] = {}
-        materialized = []
-        for slot in action_slots:
-            variant = per_slot_seen.get(slot, 0)
-            materialized.append(_canonical_action(slot, variant=variant))
-            per_slot_seen[slot] = variant + 1
-        actions = tuple(materialized)
+            active_slots = (best,)
+    actions = tuple(_canonical_action(slot) for slot in active_slots)
 
     facts: set[str] = {"imagined_relational_world"}
     route_ids: set[str] = set()
     profile_ids: set[str] = set()
     object_ids: set[str] = set()
 
-    for slot, action in zip(action_slots, actions, strict=True):
+    for slot, action in zip(active_slots, actions, strict=True):
         _, route_role, profile_role, object_role = DREAMERV3_ACTION_SLOTS[slot]
         route_id = str(action.parameters["route_id"])
         profile_id = str(action.parameters["profile_id"])
@@ -265,13 +254,23 @@ def decode_relational_state_v2(
         facts.add("rate_limited")
 
     metadata = dict(scaffold.metadata)
+    action_count_fraction = 0.0 if success or failed else values[ACTION_COUNT_INDEX]
+    unique_count_fraction = 0.0 if success or failed else values[UNIQUE_ACTION_COUNT_INDEX]
+    request_fraction = 0.0 if success or failed else values[REQUEST_FRACTION_INDEX]
+    object_request_fraction = (
+        0.0 if success or failed else values[OBJECT_REQUEST_FRACTION_INDEX]
+    )
     metadata.update(
         {
             "imagined_relational_world": True,
             "imagined_relational_source": source,
-            "imagined_action_surface": "predicted_relational_legal_mask",
+            "imagined_action_surface": "one-action-per-relational-legal-slot",
             "imagined_terminal_class": terminal,
             "relational_workflow_progress": workflow_fraction,
+            "relational_action_count_fraction": action_count_fraction,
+            "relational_unique_action_count_fraction": unique_count_fraction,
+            "relational_request_fraction": request_fraction,
+            "relational_object_request_fraction": object_request_fraction,
         }
     )
     scale = metadata.get("workflow_progress_scale")
