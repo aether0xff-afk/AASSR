@@ -13,6 +13,29 @@ from .skills import SKILL_VERB
 from .types import Action, Prediction, StateSnapshot
 
 
+def probability_weighted_semantic_score(
+    predictions: Sequence[Prediction],
+    actual: StateSnapshot,
+) -> float:
+    """Expected semantic correctness under the model's stochastic outcome mass."""
+    materialized = tuple(predictions)
+    if not materialized:
+        return 0.0
+    raw = [
+        max(0.0, float(getattr(item, "outcome_probability", 1.0)))
+        for item in materialized
+    ]
+    total = sum(raw)
+    if total <= 1e-12:
+        weights = [1.0 / len(materialized)] * len(materialized)
+    else:
+        weights = [value / total for value in raw]
+    return sum(
+        weight * semantic_prediction_score((prediction,), actual)
+        for weight, prediction in zip(weights, materialized, strict=True)
+    )
+
+
 class SemanticPredictionValidator:
     def __init__(self, *, samples: int = 3, recent_limit: int = 64) -> None:
         self.samples = int(samples)
@@ -38,7 +61,7 @@ class SemanticPredictionValidator:
         )
         self.batch_calls += 1
         scores = [
-            semantic_prediction_score(predictions, item.next_state)
+            probability_weighted_semantic_score(predictions, item.next_state)
             for item, predictions in zip(selected, rows, strict=True)
         ]
         return ValidationScore(len(scores), fmean(scores))
@@ -53,9 +76,9 @@ class SemanticPredictionValidator:
 
 
 class SemanticCalibratedProphecy:
-    """Frozen holdout calibration on semantic state/action/terminal correctness."""
+    """Frozen holdout reliability for the full stochastic semantic forecast."""
 
-    name = "current-semantic-holdout-calibrated-prophecy-v1"
+    name = "current-semantic-probability-holdout-calibrated-prophecy-v2"
 
     def __init__(
         self,
@@ -129,7 +152,7 @@ class SemanticCalibratedProphecy:
                 samples=self.base.config.ensemble_size,
             )
             value = fmean(
-                semantic_prediction_score(predictions, item.next_state)
+                probability_weighted_semantic_score(predictions, item.next_state)
                 for item, predictions in zip(selected, rows, strict=True)
             )
             value = max(0.0, min(1.0, value))
@@ -187,15 +210,10 @@ class SemanticCalibratedProphecy:
         knowledge: object,
         samples: int,
     ) -> tuple[Prediction, ...]:
-        # Public response facts already live in state. Re-unioning concrete
-        # Knowledge into canonical imagined IDs would double-count renamed entities.
         del knowledge
         return self.predict(state, action, samples=samples)
 
     def confidence(self, state: StateSnapshot, action: Action) -> float:
-        # Same reliability contract as the Prediction path: learned ensemble
-        # confidence multiplied by semantic holdout calibration. Outcome mass is
-        # deliberately separate and never enters this gate.
         return max(
             0.0,
             min(
@@ -223,6 +241,7 @@ class SemanticCalibratedProphecy:
             "calibration_cache_entries": len(self._cache),
             "holdout_freezes": self.freeze_count,
             "semantic_calibration": 1,
+            "probability_weighted_calibration": 1,
             "calibrated_reliability_product": 1,
             "outcome_probability_preserved": 1,
         }
