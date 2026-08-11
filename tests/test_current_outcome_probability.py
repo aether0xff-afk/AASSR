@@ -4,6 +4,7 @@ import pytest
 
 pytest.importorskip("torch")
 
+from aassr_v2.current_generation import relational_action_key
 from aassr_v2.current_relational_model import (
     RelationalPrediction,
     RelationalProphecyConfig,
@@ -82,10 +83,7 @@ def test_semantic_calibration_preserves_outcome_mass() -> None:
     calibrated = SemanticCalibratedProphecy(base, ReplayBuffer())
     raw = base.predict(before, action, samples=3)
     calibrated._cache[(
-        tuple(float(value) for value in __import__(
-            "aassr_v2.current_generation",
-            fromlist=["relational_action_key"],
-        ).relational_action_key(before, action)),
+        relational_action_key(before, action),
         0,
         int(base.gradient_updates) // calibrated.refresh_stride,
     )] = 0.5
