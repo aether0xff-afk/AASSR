@@ -1,18 +1,8 @@
 name: Imagination gate ablation
 
+# Expensive diagnostic: never rerun on every implementation push. Invoke only
+# after methodology/code contracts are frozen, or run the GPU command locally.
 on:
-  push:
-    branches:
-      - agent/imagination-gate-ablation
-    paths:
-      - "scripts/run_imagination_gate_ablation.py"
-      - ".github/workflows/imagination-gate-ablation.yml"
-  pull_request:
-    branches:
-      - agent/aassr-current-generation
-    paths:
-      - "scripts/run_imagination_gate_ablation.py"
-      - ".github/workflows/imagination-gate-ablation.yml"
   workflow_dispatch:
 
 jobs:
