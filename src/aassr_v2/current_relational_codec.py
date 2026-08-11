@@ -3,10 +3,11 @@ from __future__ import annotations
 from statistics import fmean
 from typing import Sequence
 
-from .current_generation import (
-    relational_action_key,
-    relational_state_descriptor,
-    relational_state_vector,
+from .current_generation import relational_action_key
+from .current_relational_state import (
+    REL_DESCRIPTOR_SIZE,
+    relational_state_descriptor_v2,
+    relational_state_vector_v2,
 )
 from .dreamerv3_baseline import (
     DREAMERV3_ACTION_SLOTS,
@@ -18,9 +19,6 @@ from .skills import SKILL_VERB
 from .types import Action, Prediction, StateSnapshot
 
 
-REL_DESCRIPTOR_SIZE = (
-    7 + 2 + 3 + len(ROUTE_RELATIONS) + len(PROFILE_RELATIONS) + 2 + 1 + 4
-)
 ACTION_SLOT_COUNT = len(DREAMERV3_ACTION_SLOTS)
 TERMINAL_ACTIVE = 0
 TERMINAL_SUCCESS = 1
@@ -30,7 +28,7 @@ TERMINAL_CLASSES = 4
 
 
 def descriptor(state: StateSnapshot) -> tuple[float, ...]:
-    values = tuple(float(v) for v in relational_state_descriptor(state))
+    values = tuple(float(v) for v in relational_state_descriptor_v2(state))
     if len(values) != REL_DESCRIPTOR_SIZE:
         raise AssertionError(
             f"relational descriptor size drift: {len(values)} != {REL_DESCRIPTOR_SIZE}"
@@ -89,7 +87,7 @@ def transition_target(
 ) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...], int]:
     """Exact permutation-invariant input/target contract used by Prophecy."""
     return (
-        relational_state_vector(state) + relational_action_key(state, action),
+        relational_state_vector_v2(state) + relational_action_key(state, action),
         descriptor(next_state),
         legal_action_mask(next_state),
         terminal_class(next_state),
@@ -173,9 +171,9 @@ def decode_relational_state(
     vector[8] = values[7]
     vector[10] = values[8]
 
-    success = int(predicted_terminal) == TERMINAL_SUCCESS
-    failed = int(predicted_terminal) == TERMINAL_FAILURE
-    truncated = int(predicted_terminal) == TERMINAL_TRUNCATION
+    success = predicted_terminal == TERMINAL_SUCCESS
+    failed = predicted_terminal == TERMINAL_FAILURE
+    truncated = predicted_terminal == TERMINAL_TRUNCATION
     vector[3] = float(success)
     vector[4] = float(failed)
     vector[6] = float(truncated)
@@ -259,9 +257,7 @@ def decode_relational_state(
         id_prefix="imag-profile-extra-",
         existing=len(profile_ids),
         target=profile_target,
-        probabilities=values[
-            profile_start : profile_start + len(PROFILE_RELATIONS)
-        ],
+        probabilities=values[profile_start : profile_start + len(PROFILE_RELATIONS)],
         roles=PROFILE_RELATIONS,
     )
 
@@ -340,8 +336,8 @@ def semantic_prediction_score(
     for prediction in predictions:
         predicted = prediction.next_state
         semantic_error = fmean(
-            abs(a - b)
-            for a, b in zip(
+            abs(left - right)
+            for left, right in zip(
                 descriptor(predicted),
                 target_descriptor,
                 strict=True,
