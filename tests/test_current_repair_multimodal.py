@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import pytest
 
+from aassr_v2.current_relational_state import install_relational_state_contract
+
+install_relational_state_contract()
+
 from aassr_v2.current_relational_codec import descriptor
 from aassr_v2.current_relational_model import (
     RelationalProphecyConfig,
