@@ -21,6 +21,28 @@ from .types import Action, Prediction, StateSnapshot
 
 
 @dataclass(frozen=True, slots=True)
+class RelationalPrediction(Prediction):
+    """Prediction with outcome mass separated from model reliability.
+
+    ``Prediction.probability`` is kept as the historical reliability field because
+    the existing planner/Skill contracts already interpret it that way. Stochastic
+    outcome frequency therefore lives in ``outcome_probability`` and can never
+    accidentally become a Critic/value bonus.
+    """
+
+    outcome_probability: float = 1.0
+
+    def __post_init__(self) -> None:
+        Prediction.__post_init__(self)
+        if not 0.0 <= self.outcome_probability <= 1.0:
+            raise ValueError("outcome_probability must be between 0 and 1")
+
+    @property
+    def reliability(self) -> float:
+        return float(self.probability)
+
+
+@dataclass(frozen=True, slots=True)
 class RelationalProphecyConfig:
     hidden_units: int = 128
     ensemble_size: int = 3
@@ -41,8 +63,7 @@ class RelationalStochasticProphecy:
     When the *same* relational state/action input has produced multiple different
     relational outcomes in real experience, those outcomes are retained as a
     categorical empirical distribution and emitted as distinct imagined worlds.
-    This prevents inherently partially-observed transitions from being forced
-    through one deterministic mean target.
+    Reliability and empirical outcome probability are explicitly separate.
     """
 
     name = "current-relational-stochastic-world-model-v1"
@@ -237,19 +258,18 @@ class RelationalStochasticProphecy:
         samples: int,
     ) -> tuple[Prediction, ...]:
         bucket = self._outcomes.get(self._input(state, action), {})
-        # One observed outcome is not evidence of multimodality; keep neural
-        # generalization. Two or more distinct outcomes are explicit evidence.
         if len(bucket) < 2:
             return ()
         selected = sorted(
             bucket.items(),
             key=lambda item: (-item[1], item[0]),
         )[: max(1, int(samples))]
+        selected_total = sum(count for _, count in selected)
         predictions = []
-        for index, ((next_descriptor, next_mask, next_terminal), _) in enumerate(selected):
+        for index, ((next_descriptor, next_mask, next_terminal), count) in enumerate(selected):
             source = f"{self.name}:empirical-outcome-{index}"
             predictions.append(
-                Prediction(
+                RelationalPrediction(
                     decode_relational_state(
                         next_descriptor,
                         next_mask,
@@ -259,6 +279,11 @@ class RelationalStochasticProphecy:
                     ),
                     max(0.0, min(1.0, float(confidence))),
                     source=source,
+                    outcome_probability=(
+                        float(count) / float(selected_total)
+                        if selected_total > 0
+                        else 1.0 / len(selected)
+                    ),
                 )
             )
         self.empirical_multioutcome_rows += 1
@@ -281,7 +306,14 @@ class RelationalStochasticProphecy:
         self.batch_prediction_rows += len(states)
         if self.observations < self.config.warmup_steps:
             return tuple(
-                (Prediction(state, 0.0, source=f"{self.name}:unseen"),)
+                (
+                    RelationalPrediction(
+                        state,
+                        0.0,
+                        source=f"{self.name}:unseen",
+                        outcome_probability=1.0,
+                    ),
+                )
                 for state in states
             )
 
@@ -322,7 +354,7 @@ class RelationalStochasticProphecy:
                 )
                 source = f"{self.name}:member-{member}"
                 predictions.append(
-                    Prediction(
+                    RelationalPrediction(
                         decode_relational_state(
                             descriptors[member][row_index],
                             masks[member][row_index],
@@ -332,6 +364,7 @@ class RelationalStochasticProphecy:
                         ),
                         float(confidence[row_index]),
                         source=source,
+                        outcome_probability=1.0 / max(1, member_count),
                     )
                 )
             rows.append(tuple(predictions))
@@ -387,6 +420,7 @@ class RelationalStochasticProphecy:
             "action_input_relational": 1,
             "prediction_output": "relational-descriptor+legal-mask+terminal",
             "ensemble_outcomes_not_mean_collapsed": 1,
+            "reliability_outcome_probability_separated": 1,
             "empirical_multimodal_input_keys": multimodal_inputs,
             "empirical_distinct_outcomes": distinct_outcomes,
             "empirical_multioutcome_prediction_rows": self.empirical_multioutcome_rows,
