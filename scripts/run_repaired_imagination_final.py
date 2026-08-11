@@ -15,6 +15,7 @@ PREFLIGHT_TESTS = (
     "tests/test_current_semantic_evaluator.py",
     "tests/test_current_relational_state_v2.py",
     "tests/test_current_relational_state_v3.py",
+    "tests/test_current_relational_import_order.py",
     "tests/test_current_status_supervision.py",
     "tests/test_current_planner_structural_branching.py",
     "tests/test_current_planner_probability_backup.py",
