@@ -8,6 +8,7 @@ from aassr_v2.current_mixture_entrypoint import (
     MIXTURE_CURRENT_COMPONENTS,
     build_current_mixture_pentest_aassr_core,
 )
+from aassr_v2.current_relational_codec import descriptor
 from aassr_v2.current_relational_mixture_model import (
     ConditionalMixtureRelationalProphecy,
     RelationalMixtureProphecyConfig,
@@ -31,12 +32,17 @@ def _state(role: str | None = None, *, request_usage: float = 0.0) -> tuple[Stat
         facts.add(f"observed_route_role:route-05:{role}")
     vector = [0.0] * AGENT_STATE_SIZE
     vector[8] = request_usage
-    vector[9] = 1.0
+    vector[10] = 0.0
     return (
         StateSnapshot(
             tuple(vector),
             facts=frozenset(facts),
             available_actions=(action,),
+            metadata={
+                "observation_contract": "response_causal_observation_v3",
+                "request_count_scale": 100.0,
+                "workflow_progress_scale": 8.0,
+            },
         ),
         action,
     )
@@ -56,8 +62,10 @@ def test_mixture_builder_installs_conditional_world_model() -> None:
     assert agent.current_components == MIXTURE_CURRENT_COMPONENTS
     diagnostics = agent.base_neural_prophecy.diagnostics()
     assert diagnostics["conditional_mixture_components"] == 3
+    assert diagnostics["terminal_classes"] == 4
     assert diagnostics["mixture_training_objective"] == "soft-mixture-likelihood"
     assert diagnostics["epistemic_confidence"] == "ensemble-mode-set-disagreement"
+    assert agent.planner.config.aggregation == "mean"
 
 
 def test_mixture_builder_executes_and_learns_one_real_transition() -> None:
@@ -81,7 +89,7 @@ def test_mixture_builder_executes_and_learns_one_real_transition() -> None:
     assert agent.critic.stats().episodes == 1
 
 
-def test_learned_mixture_returns_normalized_modes_on_novel_related_input() -> None:
+def test_learned_mixture_returns_normalized_distinct_modes_on_novel_related_input() -> None:
     model = ConditionalMixtureRelationalProphecy(
         seed=13,
         device="cpu",
@@ -113,4 +121,11 @@ def test_learned_mixture_returns_normalized_modes_on_novel_related_input() -> No
     assert sum(
         getattr(row, "outcome_probability", 0.0) for row in rows
     ) == pytest.approx(1.0)
+    # A 'multi-outcome' head that returns three aliases of the same semantic
+    # future is still deterministic collapse. Require at least two modes here.
+    semantic_modes = {
+        tuple(round(value, 4) for value in descriptor(row.next_state))
+        for row in rows
+    }
+    assert len(semantic_modes) >= 2
     assert model.diagnostics()["learned_mixture_prediction_rows"] >= 1
