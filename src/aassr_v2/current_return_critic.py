@@ -13,12 +13,15 @@ class ReturnAwareHardwareRelationalGRUBranchCritic(
 ):
     """GRU branch critic aligned with the actual sparse {-1,0,+1} objective.
 
-    The environment reward stays sparse. The critic receives the final real return
-    and trains each transition on its discounted Monte-Carlo return, so true
-    lockout (-1) is no longer collapsed together with truncation/stall (0).
+    The environment reward stays sparse. Each episode is assigned one return on
+    the *root-decision time scale*: final_return * gamma**(T-1). Every prefix of
+    that real branch learns to predict the same root-scale return. That keeps a
+    depth-1 fallback root directly comparable with a depth-4 imagined root while
+    still preferring shorter success and distinguishing lockout (-1) from
+    truncation/stall (0).
     """
 
-    name = "hardware-relational-gru-discounted-sparse-return-v1"
+    name = "hardware-relational-gru-root-discounted-sparse-return-v2"
 
     def __init__(self, seed: int, *, device: str = "cpu") -> None:
         super().__init__(seed, device=device)
@@ -39,11 +42,10 @@ class ReturnAwareHardwareRelationalGRUBranchCritic(
         del success
         encoded = tuple(self.encoder.encode(item) for item in trajectory)
         if encoded:
-            targets = tuple(
-                self._next_final_return
-                * self._next_gamma ** (len(encoded) - index - 1)
-                for index in range(len(encoded))
+            root_return = self._next_final_return * self._next_gamma ** (
+                len(encoded) - 1
             )
+            targets = (float(root_return),) * len(encoded)
             self.replay.append((encoded, targets))
         self.episodes += 1
         self.transitions += len(encoded)
