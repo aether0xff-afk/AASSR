@@ -133,7 +133,7 @@ def test_semantic_score_ignores_irrelevant_concrete_raw_slots() -> None:
     assert score == pytest.approx(1.0)
 
 
-def test_return_critic_distinguishes_failure_truncation_and_success() -> None:
+def test_return_critic_distinguishes_failure_truncation_and_success_on_root_scale() -> None:
     pytest.importorskip("torch")
     before, action, after = _transition("route-05", marker=100)
     trajectory = (
@@ -144,7 +144,7 @@ def test_return_critic_distinguishes_failure_truncation_and_success() -> None:
 
     critic.set_episode_return(1.0, 0.9)
     critic.observe_episode(trajectory, success=True)
-    assert critic.replay[-1][1] == pytest.approx((0.9, 1.0))
+    assert critic.replay[-1][1] == pytest.approx((0.9, 0.9))
 
     critic.set_episode_return(0.0, 0.9)
     critic.observe_episode(trajectory, success=False)
@@ -152,7 +152,7 @@ def test_return_critic_distinguishes_failure_truncation_and_success() -> None:
 
     critic.set_episode_return(-1.0, 0.9)
     critic.observe_episode(trajectory, success=False)
-    assert critic.replay[-1][1] == pytest.approx((-0.9, -1.0))
+    assert critic.replay[-1][1] == pytest.approx((-0.9, -0.9))
 
 
 def test_root_preservation_restores_beam_pruned_root() -> None:
