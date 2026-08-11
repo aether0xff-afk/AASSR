@@ -3,7 +3,11 @@ from __future__ import annotations
 from statistics import fmean
 from typing import Sequence
 
-from .current_generation import relational_action_key, relational_state_descriptor
+from .current_generation import (
+    relational_action_key,
+    relational_state_descriptor,
+    relational_state_vector,
+)
 from .dreamerv3_baseline import (
     DREAMERV3_ACTION_SLOTS,
     DREAMERV3_ACTION_SLOT_INDEX,
@@ -51,16 +55,16 @@ def transition_target(
     action: Action,
     next_state: StateSnapshot,
 ) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...], int]:
-    """Permutation-invariant Prophecy input/target contract."""
+    """Exact permutation-invariant input/target contract used by Prophecy."""
     return (
-        descriptor(state) + relational_action_key(state, action),
+        relational_state_vector(state) + relational_action_key(state, action),
         descriptor(next_state),
         legal_action_mask(next_state),
         terminal_class(next_state),
     )
 
 
-def _canonical_action(slot: int) -> Action:
+def _canonical_action(slot: int, *, variant: int = 0) -> Action:
     verb, route_role, profile_role, object_role = DREAMERV3_ACTION_SLOTS[slot]
     route_id = f"imag-route-{route_role}"
     profile_id = (
@@ -74,6 +78,11 @@ def _canonical_action(slot: int) -> Action:
     }
     if verb == "request_object":
         parameters["object_id"] = f"imag-object-{object_role}"
+    # Multiplicity is observable in the relational state. This opaque parameter
+    # makes structurally equivalent synthetic actions distinct without changing
+    # relational_action_features/dreamer_action_slot_key.
+    if variant:
+        parameters["imagined_variant"] = str(variant)
     return Action(verb, parameters=parameters)
 
 
@@ -143,22 +152,41 @@ def decode_relational_state(
 
     if success or failed:
         active_slots: tuple[int, ...] = ()
+        action_slots: tuple[int, ...] = ()
+        actions: tuple[Action, ...] = ()
     else:
         # descriptor[-3] = unique relational action count / 32.
-        count = max(1, min(32, int(round(values[-3] * 32.0))))
+        unique_count = max(1, min(32, int(round(values[-3] * 32.0))))
+        # descriptor[-4] = concrete currently available action count / 128.
+        total_count = max(
+            unique_count,
+            min(128, int(round(values[-4] * 128.0))),
+        )
         ranked = sorted(
             range(ACTION_SLOT_COUNT),
             key=lambda index: (-float(mask_probabilities[index]), index),
         )
-        active_slots = tuple(ranked[:count])
+        active_slots = tuple(ranked[:unique_count])
+        expanded_slots = list(active_slots)
+        variant = 1
+        while len(expanded_slots) < total_count:
+            expanded_slots.append(active_slots[(len(expanded_slots) - unique_count) % len(active_slots)])
+            variant += 1
+        action_slots = tuple(expanded_slots)
+        per_slot_seen: dict[int, int] = {}
+        materialized = []
+        for slot in action_slots:
+            seen = per_slot_seen.get(slot, 0)
+            materialized.append(_canonical_action(slot, variant=seen))
+            per_slot_seen[slot] = seen + 1
+        actions = tuple(materialized)
 
-    actions = tuple(_canonical_action(slot) for slot in active_slots)
     facts: set[str] = {"imagined_relational_world"}
     route_ids: set[str] = set()
     profile_ids: set[str] = set()
     object_ids: set[str] = set()
 
-    for slot, action in zip(active_slots, actions, strict=True):
+    for slot, action in zip(action_slots, actions, strict=True):
         _, route_role, profile_role, object_role = DREAMERV3_ACTION_SLOTS[slot]
         route_id = str(action.parameters["route_id"])
         profile_id = str(action.parameters["profile_id"])
@@ -255,7 +283,7 @@ def decode_relational_state(
     return StateSnapshot(
         vector=tuple(vector),
         facts=frozenset(facts),
-        available_actions=() if success or failed else actions,
+        available_actions=actions,
         goal_progress=1.0 if success else float(scaffold.goal_progress),
         metadata=metadata,
     )
