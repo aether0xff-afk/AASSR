@@ -156,7 +156,7 @@ def test_neural_identity_cache_eviction_is_bounded_and_recomputes_exactly():
     assert diagnostics["model_input_cache_entries"] <= 2
 
 
-def test_fast_validator_reuses_exact_model_inputs_after_model_revision():
+def test_semantic_validator_recomputes_batch_after_model_revision_without_raw_vector_cache():
     agent = build_current_pentest_aassr_core(
         seed=11,
         train_transitions=256,
@@ -177,8 +177,8 @@ def test_fast_validator_reuses_exact_model_inputs_after_model_revision():
 
     neural = agent.base_neural_prophecy
     neural.observations = neural.config.warmup_steps
+    calls_before = neural.batch_prediction_calls
     first = agent.evaluator.validator.evaluate(agent.prophecy, rows)
-    diagnostics_before = neural.diagnostics()
     neural.gradient_updates += 1
     second = agent.evaluator.validator.evaluate(agent.prophecy, rows)
     diagnostics_after = neural.diagnostics()
@@ -189,11 +189,12 @@ def test_fast_validator_reuses_exact_model_inputs_after_model_revision():
         abs=0.0,
         rel=0.0,
     )
-    assert diagnostics_after["model_input_cache_hits"] >= (
-        diagnostics_before["model_input_cache_hits"] + 64
-    )
+    assert diagnostics_after["batch_prediction_calls"] == calls_before + 2
+    assert diagnostics_after["batch_prediction_rows"] >= 128
     validator = agent.evaluator.validator.runtime_diagnostics()
     assert validator["cache_misses"] == 2
+    assert validator["batch_calls"] == 2
+    assert validator["expected_vector_calls"] == 0
 
 
 def test_hardware_pair_batch_encodes_identical_state_once_and_matches_reference():
