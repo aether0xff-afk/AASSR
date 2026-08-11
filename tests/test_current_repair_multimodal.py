@@ -23,21 +23,19 @@ def _state(role: str | None = None) -> tuple[StateSnapshot, Action]:
     facts = {"known_route:route-05", "known_profile:profile-browse"}
     if role is not None:
         facts.add(f"observed_route_role:route-05:{role}")
-    state = StateSnapshot(
-        (0.0,) * AGENT_STATE_SIZE,
-        facts=frozenset(facts),
-        available_actions=(action,),
+    return (
+        StateSnapshot(
+            (0.0,) * AGENT_STATE_SIZE,
+            facts=frozenset(facts),
+            available_actions=(action,),
+        ),
+        action,
     )
-    return state, action
 
 
-def test_same_relational_input_with_two_real_outcomes_stays_multimodal() -> None:
+def _prophecy() -> RelationalStochasticProphecy:
     pytest.importorskip("torch")
-    before, action = _state()
-    catalog, _ = _state("catalog")
-    auth, _ = _state("auth")
-
-    prophecy = RelationalStochasticProphecy(
+    return RelationalStochasticProphecy(
         seed=13,
         device="cpu",
         config=RelationalProphecyConfig(
@@ -50,43 +48,65 @@ def test_same_relational_input_with_two_real_outcomes_stays_multimodal() -> None
         ),
     )
 
-    catalog_target = transition_target(before, action, catalog)
-    auth_target = transition_target(before, action, auth)
-    assert catalog_target[0] == auth_target[0], (
-        "same public relational state/action must have one common input key"
-    )
-    assert catalog_target[1:] != auth_target[1:], (
-        "catalog/auth outcomes collapsed before reaching Prophecy replay",
-        catalog_target[1],
-        auth_target[1],
-    )
-    assert descriptor(catalog) != descriptor(auth), (
-        "real catalog/auth semantic descriptors unexpectedly alias"
-    )
 
+def _learn_two_outcomes() -> tuple[
+    RelationalStochasticProphecy,
+    StateSnapshot,
+    Action,
+]:
+    before, action = _state()
+    catalog, _ = _state("catalog")
+    auth, _ = _state("auth")
+    prophecy = _prophecy()
     prophecy.learn(before, action, catalog)
     prophecy.learn(before, action, auth)
+    return prophecy, before, action
 
-    input_key = prophecy._input(before, action)
-    bucket = prophecy._outcomes.get(input_key, {})
-    assert len(bucket) == 2, (
-        "two distinct relational targets did not survive empirical outcome storage",
-        tuple(bucket.items()),
-    )
 
-    predictions = prophecy.predict(before, action, samples=3)
-    assert len(predictions) == 2, (
-        "stored multimodal bucket was not emitted as two predictions",
-        tuple((item.source, getattr(item, "outcome_probability", None)) for item in predictions),
-    )
-    assert all("empirical-outcome-" in item.source for item in predictions)
-    predicted_descriptors = {
-        descriptor(item.next_state) for item in predictions
-    }
-    assert len(predicted_descriptors) == 2, (
-        "two empirical targets collapsed during relational decode",
-        tuple(descriptor(item.next_state) for item in predictions),
-    )
+def test_multimodal_targets_share_input_but_keep_distinct_outputs() -> None:
+    before, action = _state()
+    catalog, _ = _state("catalog")
+    auth, _ = _state("auth")
+    catalog_target = transition_target(before, action, catalog)
+    auth_target = transition_target(before, action, auth)
+
+    assert catalog_target[0] == auth_target[0]
+    assert catalog_target[1:] != auth_target[1:]
+    assert descriptor(catalog) != descriptor(auth)
+
+
+def test_multimodal_empirical_store_keeps_two_outcomes() -> None:
+    prophecy, before, action = _learn_two_outcomes()
+    bucket = prophecy._outcomes.get(prophecy._input(before, action), {})
+
+    assert len(bucket) == 2, tuple(bucket.items())
     diagnostics = prophecy.diagnostics()
     assert diagnostics["empirical_multimodal_input_keys"] == 1
     assert diagnostics["empirical_distinct_outcomes"] == 2
+
+
+def test_multimodal_empirical_store_emits_two_predictions() -> None:
+    prophecy, before, action = _learn_two_outcomes()
+    predictions = prophecy.predict(before, action, samples=3)
+
+    assert len(predictions) == 2, tuple(
+        (item.source, getattr(item, "outcome_probability", None))
+        for item in predictions
+    )
+    assert all("empirical-outcome-" in item.source for item in predictions)
+    assert sum(
+        getattr(item, "outcome_probability", 0.0) for item in predictions
+    ) == pytest.approx(1.0)
+
+
+def test_multimodal_empirical_decode_keeps_two_semantic_modes() -> None:
+    prophecy, before, action = _learn_two_outcomes()
+    predictions = prophecy.predict(before, action, samples=3)
+    predicted_descriptors = {
+        descriptor(item.next_state) for item in predictions
+    }
+
+    assert len(predictions) == 2
+    assert len(predicted_descriptors) == 2, tuple(
+        descriptor(item.next_state) for item in predictions
+    )
