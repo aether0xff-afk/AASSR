@@ -98,6 +98,8 @@ class SemanticCalibratedProphecy:
         self._cache: dict[tuple[Any, int, int], float] = {}
         self.refreshes = 0
         self.freeze_count = 0
+        self.batch_refreshes = 0
+        self.batch_rows = 0
 
     @property
     def training_stats(self) -> Any:
@@ -151,6 +153,8 @@ class SemanticCalibratedProphecy:
                 tuple(item.action for item in selected),
                 samples=self.base.config.ensemble_size,
             )
+            self.batch_refreshes += 1
+            self.batch_rows += len(selected)
             value = fmean(
                 probability_weighted_semantic_score(predictions, item.next_state)
                 for item, predictions in zip(selected, rows, strict=True)
@@ -239,6 +243,9 @@ class SemanticCalibratedProphecy:
             "calibration": self.name,
             "calibration_refreshes": self.refreshes,
             "calibration_cache_entries": len(self._cache),
+            "calibration_batch_refreshes": self.batch_refreshes,
+            "calibration_batch_rows": self.batch_rows,
+            "calibration_refresh_batching": 1,
             "holdout_freezes": self.freeze_count,
             "semantic_calibration": 1,
             "probability_weighted_calibration": 1,
