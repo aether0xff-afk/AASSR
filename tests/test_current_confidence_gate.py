@@ -14,11 +14,24 @@ from aassr_v2.types import Action, StateSnapshot
 
 
 def _state() -> tuple[StateSnapshot, Action, Action]:
+    # These must be genuinely different relational actions. Concrete route-ID
+    # renames are intentionally memoized to one confidence because the repaired
+    # Prophecy is identifier-invariant. Use different observable action structures
+    # so per-root reliability gating is exercised rather than alias memoization.
     policy = Action("request", parameters={"route_id": "route-policy"})
-    imagined = Action("request", parameters={"route_id": "route-imagined"})
+    imagined = Action(
+        "request_object",
+        parameters={"route_id": "route-imagined", "object_id": "object-imagined"},
+    )
     state = StateSnapshot(
         vector=(0.0,) * 32,
-        facts=frozenset({"known_route:route-policy", "known_route:route-imagined"}),
+        facts=frozenset(
+            {
+                "known_route:route-policy",
+                "known_route:route-imagined",
+                "known_object:object-imagined",
+            }
+        ),
         available_actions=(policy, imagined),
         goal_progress=0.0,
         metadata={},
