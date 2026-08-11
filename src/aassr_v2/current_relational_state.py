@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import Sequence
+from typing import Callable, Sequence
 
 from .pentest_agent_main_test import AGENT_STATE_SIZE
 from .pentest_curriculum_env import (
@@ -55,30 +55,46 @@ def _fact_values(facts: frozenset[str], prefix: str) -> tuple[str, ...]:
     )
 
 
-def _role_counts(
+def _entity_role_distribution(
     facts: frozenset[str],
-    prefix: str,
+    *,
+    known_prefix: str,
+    observed_prefix: str,
     roles: Sequence[str],
+    implicit_role: Callable[[str], str | None] | None = None,
 ) -> tuple[float, ...]:
-    counts = Counter()
+    """Role distribution over every public known entity, including unknowns."""
+    known = set(_fact_values(facts, known_prefix))
+    observed: dict[str, str] = {}
     for fact in facts:
-        if not fact.startswith(prefix):
+        if not fact.startswith(observed_prefix):
             continue
+        payload = fact.removeprefix(observed_prefix)
         try:
-            _, role = fact.removeprefix(prefix).rsplit(":", 1)
+            identifier, role = payload.rsplit(":", 1)
         except ValueError:
             continue
+        if role not in roles:
+            role = "unknown"
+        observed[identifier] = role
+        known.add(identifier)
+
+    counts = Counter()
+    for identifier in known:
+        role = observed.get(identifier)
+        if role is None and implicit_role is not None:
+            role = implicit_role(identifier)
+        if role not in roles:
+            role = "unknown"
         counts[role] += 1
-    normalizer = float(max(1, sum(counts.values())))
+    normalizer = float(max(1, len(known)))
     return tuple(counts[role] / normalizer for role in roles)
 
 
 def workflow_progress_fraction(state: StateSnapshot) -> float:
-    """Return only public dependency progress from the audited observation."""
     explicit = state.metadata.get("relational_workflow_progress")
     if explicit is not None:
         return _clamp01(explicit)
-
     if len(state.vector) > WORKFLOW_PROGRESS_INDEX:
         return _clamp01(state.vector[WORKFLOW_PROGRESS_INDEX])
 
@@ -97,18 +113,16 @@ def workflow_progress_fraction(state: StateSnapshot) -> float:
                 return _clamp01(float(parts[1]) / max(1.0, float(parts[2])))
             except (TypeError, ValueError, ZeroDivisionError):
                 continue
-
     return _clamp01(state.goal_progress)
 
 
 def relational_state_descriptor_v2(state: StateSnapshot) -> tuple[float, ...]:
-    """Rename-invariant public state used by all current transfer learners.
+    """Rename-invariant audited public state for current transfer learners.
 
-    Imagined states contain one canonical Action object per legal *structural*
-    action slot. Observable concrete action multiplicity is therefore retained as
-    four scalar surface summaries in metadata, not reconstructed as fake
-    ``imagined_variant`` actions. Real states have no overrides and compute the
-    same summaries directly from their real action surface.
+    Unknown-role mass is explicit: every known route/profile without an observed
+    semantic role contributes to ``unknown`` rather than disappearing from the
+    role distribution. ``profile-browse`` has an implicit public browse role.
+    Imagined concrete multiplicity remains a scalar summary only.
     """
     facts = state.facts
     controls = tuple(
@@ -129,15 +143,20 @@ def relational_state_descriptor_v2(state: StateSnapshot) -> tuple[float, ...]:
     known_objects = len(_fact_values(facts, "known_object:"))
     tried_objects = len(_fact_values(facts, "tried_object:"))
 
-    route_roles = _role_counts(
+    route_roles = _entity_role_distribution(
         facts,
-        "observed_route_role:",
-        ROUTE_RELATIONS,
+        known_prefix="known_route:",
+        observed_prefix="observed_route_role:",
+        roles=ROUTE_RELATIONS,
     )
-    profile_roles = _role_counts(
+    profile_roles = _entity_role_distribution(
         facts,
-        "observed_profile_role:",
-        PROFILE_RELATIONS,
+        known_prefix="known_profile:",
+        observed_prefix="observed_profile_role:",
+        roles=PROFILE_RELATIONS,
+        implicit_role=lambda identifier: (
+            "browse" if identifier == "profile-browse" else None
+        ),
     )
 
     actions = tuple(state.available_actions)
@@ -213,7 +232,6 @@ def relational_state_key_v2(state: StateSnapshot) -> tuple[float, ...]:
 
 
 def install_relational_state_contract() -> None:
-    """Make legacy current classes consume the v2 public-state contract."""
     from . import current_generation as generation
     from .current_relational_decode_v2 import decode_relational_state_v2
 
@@ -226,7 +244,6 @@ def install_relational_state_contract() -> None:
         hardware.relational_state_key = relational_state_key_v2
     except ImportError:  # pragma: no cover
         pass
-
     try:
         from . import current_runtime as runtime
         if hasattr(runtime, "relational_state_vector"):
@@ -235,13 +252,11 @@ def install_relational_state_contract() -> None:
             runtime.relational_state_key = relational_state_key_v2
     except ImportError:  # pragma: no cover
         pass
-
     try:
         from . import dreamerv3_baseline as dreamer
         dreamer.relational_state_vector = relational_state_vector_v2
     except ImportError:  # pragma: no cover
         pass
-
     try:
         from . import current_relational_codec as codec
         codec.decode_relational_state = decode_relational_state_v2
