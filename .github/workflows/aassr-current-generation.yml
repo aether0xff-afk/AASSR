@@ -99,6 +99,18 @@ jobs:
                   assert token not in text, (name, token)
           PY
 
+      - name: Multimodal contract 1 - target distinction
+        run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_targets_share_input_but_keep_distinct_outputs
+
+      - name: Multimodal contract 2 - empirical storage
+        run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_empirical_store_keeps_two_outcomes
+
+      - name: Multimodal contract 3 - empirical emission
+        run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_empirical_store_emits_two_predictions
+
+      - name: Multimodal contract 4 - semantic decode
+        run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_empirical_decode_keeps_two_semantic_modes
+
       - name: Assert active architecture and repaired Imagination contracts
         run: |
           pytest -q \
@@ -114,7 +126,6 @@ jobs:
             tests/test_current_default_entrypoint.py \
             tests/test_current_repair.py \
             tests/test_current_repair_action_surface.py \
-            tests/test_current_repair_multimodal.py \
             tests/test_current_outcome_probability.py \
             tests/test_current_semantic_evaluator.py \
             tests/test_current_relational_state_v2.py \
@@ -124,7 +135,8 @@ jobs:
             tests/test_current_mixture_generation.py \
             tests/test_current_confidence_gate.py \
             tests/test_dreamerv3_adapter.py \
-            tests/test_dreamerv3_external_contract.py
+            tests/test_dreamerv3_external_contract.py \
+            tests/test_dreamerv3_current_state_v2.py
 
       - name: Run same-checkpoint real-environment learning smoke
         run: |
@@ -160,6 +172,7 @@ jobs:
           assert repairs["max_agent_decision_backup"] is True
           assert repairs["critic_sparse_return_aligned"] is True
           assert repairs["critic_zero_memory_suffix_training"] is True
+          assert repairs["planner_discount_matches_gamma"] is True
           print(
               "train_successes=", result["training_successes"],
               "dqn_updates=", diagnostics["policy"]["dqn:gradient_updates"],
@@ -220,6 +233,7 @@ jobs:
           assert agent.current_depth_batching is True
           assert agent.current_critic_batching is True
           assert agent.planner.config.aggregation == "mean"
+          assert agent.planner.config.discount == agent.config.gamma
           PY
 
       - name: Archive current-generation smoke
