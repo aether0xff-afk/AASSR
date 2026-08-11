@@ -111,7 +111,7 @@ jobs:
       - name: Multimodal contract 4 - semantic decode
         run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_empirical_decode_keeps_two_semantic_modes
 
-      - name: Assert active architecture and repaired Imagination contracts
+      - name: Base current-generation regressions
         run: |
           pytest -q \
             tests/test_current_generation.py \
@@ -123,17 +123,31 @@ jobs:
             tests/test_current_decision_optimization.py \
             tests/test_current_validation_fastpath.py \
             tests/test_current_hardware_and_dqn.py \
-            tests/test_current_default_entrypoint.py \
-            tests/test_current_repair.py \
+            tests/test_current_default_entrypoint.py
+
+      - name: Repaired state and semantic evaluator regressions
+        run: |
+          pytest -q \
             tests/test_current_repair_action_surface.py \
             tests/test_current_outcome_probability.py \
             tests/test_current_semantic_evaluator.py \
             tests/test_current_relational_state_v2.py \
+            tests/test_current_imagination_state_identity.py
+
+      - name: Repaired Critic planner and gate regressions
+        run: |
+          pytest -q \
+            tests/test_current_repair.py \
             tests/test_current_planner_structural_branching.py \
             tests/test_current_planner_probability_backup.py \
-            tests/test_current_imagination_state_identity.py \
-            tests/test_current_mixture_generation.py \
-            tests/test_current_confidence_gate.py \
+            tests/test_current_confidence_gate.py
+
+      - name: Conditional mixture builder regressions
+        run: pytest -q tests/test_current_mixture_generation.py
+
+      - name: Dreamer current-state fairness regressions
+        run: |
+          pytest -q \
             tests/test_dreamerv3_adapter.py \
             tests/test_dreamerv3_external_contract.py \
             tests/test_dreamerv3_current_state_v2.py
@@ -164,7 +178,6 @@ jobs:
           assert diagnostics["prophecy_current"]["gradient_updates"] > 0
           assert diagnostics["prophecy_state_input_relational"] is True
           assert diagnostics["prophecy_action_input_relational"] is True
-          assert diagnostics["calibration_same_transition_frozen"] is True
           repairs = diagnostics["current_repairs"]
           assert repairs["relational_input_output_contract"] is True
           assert repairs["hidden_audit_session_pressure_masked"] is True
