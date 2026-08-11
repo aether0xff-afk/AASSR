@@ -17,6 +17,7 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
     "prophecy": "relational-stochastic-ensemble-v1",
     "prophecy_output": "relational-descriptor+legal-action-mask+terminal-v1",
     "calibration": "semantic-frozen-replay-relational-holdout-v1",
+    "information_evaluator": "semantic-relational-repeat-unlock-v1",
     "knowledge": "episode-local-response-knowledge-context-v1",
     "imagination": "root-preserving-parallel-universe-tree-v3+multi-outcome-depth-batched",
     "hardware": "dqn+relational-world-model+return-gru-critic-same-device+full-depth-batching-v4",
