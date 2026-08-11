@@ -7,12 +7,14 @@ from .current_agent import (
     build_current_standalone_pentest_aassr_core,
 )
 from .current_confidence_gate import install_current_confidence_gate
+from .current_critic_support import install_critic_support_gate
 from .current_decision_optimization import install_current_decision_optimizations
 from .current_hardware import install_hardware_dqn
 from .current_hot_path_profile import install_current_hot_path_profiler
 from .current_planner import CurrentFullyBatchedImaginationTree
-from .current_relational_state import install_relational_state_contract
+from .current_relational_state_v3 import install_status_aware_relational_contract
 from .current_repair import install_current_repairs
+from .current_root_dedup import install_structural_root_dedup
 from .current_validation import install_current_fast_validation
 
 
@@ -43,18 +45,15 @@ def build_current_pentest_aassr_core(
 ) -> CurrentStandalonePentestAASSRAgent:
     """Build the sole active current-generation pentest AASSR runtime.
 
-    The active runtime uses one permutation-invariant contract end-to-end:
-    relational Policy input, relational stochastic Prophecy input/output, semantic
-    holdout calibration, and a relational GRU Critic trained on the real sparse
-    {-1, 0, +1} episode return. The public relational state retains only audited
-    observable state: terminal lockout/rate-limit controls, self-counted request
-    usage, self-observed workflow progress, response semantics, and legal action
-    structure. Exact audit pressure, hidden session TTL remaining, hidden stage
-    depth, and concrete route/profile/object identity are not learner inputs.
+    The active public relational state is v3: it keeps the latest actually
+    observed HTTP status (200/302/400/401/403/404/409/429) while exact audit
+    pressure, hidden session-TTL remaining, hidden stage depth, and concrete
+    route/profile/object identity remain unavailable to learners.
 
-    Imagination keeps every observable root action, carries multiple futures,
-    backs stochastic outcomes up by their probability, chooses among future agent
-    actions with max, and treats Prophecy confidence only as reliability.
+    Imagination uses stochastic relational futures and expected sparse return.
+    Prophecy reliability and local Critic training support are fail-closed gates,
+    never value bonuses. Expensive root prediction/Critic work is deduplicated by
+    structural relational action identity while final execution remains concrete.
     """
 
     if not enable_batching:
@@ -64,7 +63,7 @@ def build_current_pentest_aassr_core(
             "entrypoint for historical scalar reproduction"
         )
 
-    install_relational_state_contract()
+    install_status_aware_relational_contract()
 
     agent = build_current_standalone_pentest_aassr_core(
         seed=int(seed),
@@ -81,21 +80,17 @@ def build_current_pentest_aassr_core(
         allow_tf32=bool(allow_tf32),
     )
 
-    # Construct the compatibility validator first. The repaired stack then
-    # replaces it with semantic validation while preserving the evaluator/replay
-    # partitioning and same-transition anti-hindsight contract.
     install_current_fast_validation(agent)
     install_current_repairs(
         agent,
         seed=int(seed),
         device=hardware.resolved_device,
     )
-    # The external objective is expected sparse return. Probability already
-    # represents real aleatoric risk; subtracting an additional outcome standard
-    # deviation would introduce a new risk preference not present in the task.
     agent.planner.config = replace(agent.planner.config, aggregation="mean")
     agent.core.planner = agent.planner
     install_current_confidence_gate(agent)
+    install_critic_support_gate(agent)
+    install_structural_root_dedup(agent)
     install_current_decision_optimizations(agent)
     if profile_hot_path:
         install_current_hot_path_profiler(agent)
