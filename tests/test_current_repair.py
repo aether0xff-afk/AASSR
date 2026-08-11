@@ -4,6 +4,10 @@ from types import SimpleNamespace
 
 import pytest
 
+from aassr_v2.current_relational_state import install_relational_state_contract
+
+install_relational_state_contract()
+
 from aassr_v2.branch_critic import CriticTransition
 from aassr_v2.current_relational_codec import (
     decode_relational_state,
