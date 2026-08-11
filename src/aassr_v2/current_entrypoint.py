@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 from .current_agent import (
     CurrentStandalonePentestAASSRAgent,
     build_current_standalone_pentest_aassr_core,
@@ -44,10 +46,15 @@ def build_current_pentest_aassr_core(
     The active runtime uses one permutation-invariant contract end-to-end:
     relational Policy input, relational stochastic Prophecy input/output, semantic
     holdout calibration, and a relational GRU Critic trained on the real sparse
-    {-1, 0, +1} episode return. The public relational state retains observable
-    audit, request, session-lifetime, and workflow-progress pressure. Imagination
-    keeps every observable root action, carries multiple futures instead of a
-    concrete-ID mean state, and treats Prophecy confidence only as reliability.
+    {-1, 0, +1} episode return. The public relational state retains only audited
+    observable state: terminal lockout/rate-limit controls, self-counted request
+    usage, self-observed workflow progress, response semantics, and legal action
+    structure. Exact audit pressure, hidden session TTL remaining, hidden stage
+    depth, and concrete route/profile/object identity are not learner inputs.
+
+    Imagination keeps every observable root action, carries multiple futures,
+    backs stochastic outcomes up by their probability, chooses among future agent
+    actions with max, and treats Prophecy confidence only as reliability.
     """
 
     if not enable_batching:
@@ -57,10 +64,6 @@ def build_current_pentest_aassr_core(
             "entrypoint for historical scalar reproduction"
         )
 
-    # Install the v2 public-state contract before constructing any trainable
-    # current component. Legacy reproduction modules remain importable, while the
-    # canonical builder never initializes Policy/Critic/Prophecy on the incomplete
-    # v1 representation.
     install_relational_state_contract()
 
     agent = build_current_standalone_pentest_aassr_core(
@@ -87,6 +90,11 @@ def build_current_pentest_aassr_core(
         seed=int(seed),
         device=hardware.resolved_device,
     )
+    # The external objective is expected sparse return. Probability already
+    # represents real aleatoric risk; subtracting an additional outcome standard
+    # deviation would introduce a new risk preference not present in the task.
+    agent.planner.config = replace(agent.planner.config, aggregation="mean")
+    agent.core.planner = agent.planner
     install_current_confidence_gate(agent)
     install_current_decision_optimizations(agent)
     if profile_hot_path:
