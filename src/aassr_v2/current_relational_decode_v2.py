@@ -161,7 +161,30 @@ def decode_relational_state_v2(
     structural legal-action slot. Observable concrete multiplicity is kept only
     in descriptor metadata. The four-way terminal head is authoritative over
     noisy auxiliary status bits.
+
+    This function is also an import-order compatibility boundary. A caller may
+    have imported the v2 decoder before the active relational-v3 contract was
+    installed. In that case the stale Python function reference can still receive
+    a 43-D v3 target. Detect that shape and delegate to the v3 decoder so public
+    HTTP status is preserved rather than silently dropped or rejected.
     """
+    values = [max(0.0, min(1.0, float(value))) for value in predicted_descriptor]
+
+    # Lazy import avoids a module cycle: v3 decode itself deliberately calls this
+    # function again with only the 35-D base slice.
+    from .current_relational_state_v3 import REL_DESCRIPTOR_SIZE_V3
+
+    if len(values) == REL_DESCRIPTOR_SIZE_V3:
+        from .current_relational_state_v3 import decode_relational_state_v3
+
+        return decode_relational_state_v3(
+            values,
+            mask_probabilities,
+            scaffold=scaffold,
+            predicted_terminal=predicted_terminal,
+            source=source,
+        )
+
     from .current_relational_codec import (
         ACTION_SLOT_COUNT,
         TERMINAL_ACTIVE,
@@ -170,7 +193,6 @@ def decode_relational_state_v2(
         TERMINAL_TRUNCATION,
     )
 
-    values = [max(0.0, min(1.0, float(value))) for value in predicted_descriptor]
     if len(values) != REL_DESCRIPTOR_SIZE:
         raise ValueError(
             f"unexpected relational descriptor size {len(values)} != {REL_DESCRIPTOR_SIZE}"
