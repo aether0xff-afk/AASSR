@@ -21,7 +21,7 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
     "knowledge": "episode-local-response-knowledge-context-v1",
     "imagination": "root-preserving-parallel-universe-tree-v3+multi-outcome-depth-batched",
     "hardware": "dqn+relational-world-model+return-gru-critic-same-device+full-depth-batching-v4",
-    "critic": "relational-gru-discounted-sparse-return+batched-train-v3",
+    "critic": "relational-gru-discounted-sparse-return-root-scale+batched-train-v4",
     "skills": "relational-aseq-template-v1",
     "goals": "external-final-goal+relational-skill-promotion-v1",
     "effect_composition": "superseded-by-relational-world-model-disabled",
