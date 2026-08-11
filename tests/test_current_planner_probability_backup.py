@@ -60,6 +60,10 @@ def _planner(aggregation: str = "mean") -> CurrentFullyBatchedImaginationTree:
         aggregation=aggregation,
         top_mean_count=2,
         discount=0.9,
+        # Repaired current Imagination uses confidence only as a gate; value
+        # adjustment therefore has no uncertainty penalty. The minimal planner
+        # fixture must still provide the inherited config field.
+        uncertainty_penalty=0.0,
     )
     planner.chance_backup_groups = 0
     planner.decision_backup_nodes = 0
