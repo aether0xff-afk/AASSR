@@ -9,6 +9,7 @@ from .current_decision_optimization import install_current_decision_optimization
 from .current_hardware import install_hardware_dqn
 from .current_hot_path_profile import install_current_hot_path_profiler
 from .current_planner import CurrentFullyBatchedImaginationTree
+from .current_repair import install_current_repairs
 from .current_validation import install_current_fast_validation
 
 
@@ -39,17 +40,12 @@ def build_current_pentest_aassr_core(
 ) -> CurrentStandalonePentestAASSRAgent:
     """Build the sole active current-generation pentest AASSR runtime.
 
-    The current runtime is standalone and uses mandatory depth batching for both
-    Neural Delta prediction and learned GRU branch scoring. DQN, Neural Delta and
-    the GRU Critic share the requested torch device. Holdout validation keeps the
-    same samples/frequency/signal while skipping symbolic StateSnapshot/action
-    reconstruction that the cosine validator never consumes.
-
-    Prophecy confidence is a reliability signal only: it gates whether imagined
-    roots are comparable, but it is removed from planner value penalties, Critic
-    value features, and the intervention-margin calculation. Reliable branches
-    are ranked only by the learned Critic and must still exceed the fixed
-    intervention margin before they can override Policy.
+    The active runtime uses one permutation-invariant contract end-to-end:
+    relational Policy input, relational stochastic Prophecy input/output, semantic
+    holdout calibration, and a relational GRU Critic trained on the real sparse
+    {-1, 0, +1} episode return. Imagination keeps every observable root action,
+    carries multiple ensemble futures instead of a concrete-ID mean state, and
+    treats Prophecy confidence only as a reliability gate.
     """
 
     if not enable_batching:
@@ -65,14 +61,23 @@ def build_current_pentest_aassr_core(
         device=device,
     )
     _enable_current_full_batching(agent)
-    install_hardware_dqn(
+    hardware = install_hardware_dqn(
         agent,
         seed=int(seed),
         train_transitions=int(train_transitions),
         device=device,
         allow_tf32=bool(allow_tf32),
     )
+
+    # Construct the compatibility validator first. The repaired stack then
+    # replaces it with semantic validation while preserving the evaluator/replay
+    # partitioning and same-transition anti-hindsight contract.
     install_current_fast_validation(agent)
+    install_current_repairs(
+        agent,
+        seed=int(seed),
+        device=hardware.resolved_device,
+    )
     install_current_confidence_gate(agent)
     install_current_decision_optimizations(agent)
     if profile_hot_path:
