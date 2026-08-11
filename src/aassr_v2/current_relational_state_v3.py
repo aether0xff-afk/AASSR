@@ -195,8 +195,9 @@ def semantic_prediction_score_v3(
 def install_status_aware_relational_contract() -> None:
     """Install relational v3 before Policy/Prophecy/Critic construction.
 
-    Compatibility aliases are patched deliberately so historical modules can stay
-    importable while the active current-generation builder uses the v3 contract.
+    Historical v2 remains internally 35-D and reproducible. Only active consumer
+    modules are rebound to the 43-D v3 descriptor, avoiding import-order mutation
+    of the v2 module's own size assertion.
     """
     from . import current_generation as generation
     from . import current_hardware as hardware
@@ -208,8 +209,7 @@ def install_status_aware_relational_contract() -> None:
     from . import current_semantic_evaluator as evaluator
     from . import dreamerv3_baseline as dreamer
 
-    state_v2.REL_DESCRIPTOR_SIZE = REL_DESCRIPTOR_SIZE_V3
-    state_v2.STATUS_START_INDEX = STATUS_START_INDEX
+    state_v2.STATUS_START_INDEX_V3 = STATUS_START_INDEX
     state_v2.STATUS_CODES_V3 = STATUS_CODES_V3
     state_v2.relational_state_descriptor_v3 = relational_state_descriptor_v3
     state_v2.relational_state_vector_v3 = relational_state_vector_v3
