@@ -2,12 +2,20 @@ from __future__ import annotations
 
 import random
 from statistics import fmean
-from typing import Any
+from typing import Any, Type
 
+from .current_agent import CurrentProphecyView
 from .current_relational_codec import ACTION_SLOT_COUNT, TERMINAL_CLASSES
 from .current_relational_mixture_model import ConditionalMixtureRelationalProphecy
 from .current_relational_model import RelationalStochasticProphecy
+from .current_relational_skill_prophecy import RelationalStochasticSkillProphecy
 from .current_relational_state_v3 import STATUS_SIZE, STATUS_START_INDEX
+from .current_semantic_calibration import (
+    RelationalDepthBatchedProphecyView,
+    SemanticCalibratedProphecy,
+    SemanticPredictionValidator,
+)
+from .current_semantic_evaluator import RelationalAdvancedTransitionEvaluator
 
 
 STATUS_LOSS_WEIGHT = 0.5
@@ -209,3 +217,66 @@ class StatusAwareConditionalMixtureRelationalProphecy(
             "status_loss_weight": STATUS_LOSS_WEIGHT,
             "last_status_training_loss": self._last_status_training_loss,
         }
+
+
+def install_status_supervised_world_model(
+    agent: object,
+    *,
+    seed: int,
+    device: str,
+    model_class: Type[RelationalStochasticProphecy] = StatusAwareRelationalStochasticProphecy,
+) -> object:
+    """Replace the just-built untrained current world model with a status-aware one.
+
+    Builders call this immediately after ``install_current_repairs`` and before
+    any environment transition is collected. Replay/evaluator auxiliaries are
+    preserved, so the replacement changes only the world-model training objective
+    and its dependent Prophecy views.
+    """
+    if getattr(agent, "current_status_supervised_world_model", False):
+        return agent
+
+    old_evaluator = agent.evaluator
+    replay = old_evaluator.replay
+    if int(getattr(agent.base_neural_prophecy, "observations", 0)) != 0:
+        raise RuntimeError(
+            "status-supervised world model must be installed before real training"
+        )
+
+    base = model_class(
+        seed=int(seed) ^ 0x52454C41,
+        device=device,
+    )
+    calibrated = SemanticCalibratedProphecy(base, replay)
+    skill = RelationalStochasticSkillProphecy(
+        calibrated,
+        agent.skills,
+        agent.knowledge,
+    )
+    prophecy = CurrentProphecyView(skill)
+    validator = SemanticPredictionValidator(samples=3)
+    evaluator = RelationalAdvancedTransitionEvaluator(
+        prophecy,
+        replay=replay,
+        validator=validator,
+        predictor=old_evaluator.predictor,
+        logger=old_evaluator.logger,
+        samples=3,
+        intrinsic_cap=float(old_evaluator.intrinsic_cap),
+    )
+
+    agent.base_neural_prophecy = base
+    agent.calibrated_prophecy = calibrated
+    agent.knowledge_prophecy = calibrated
+    agent.skill_prophecy = skill
+    agent.prophecy = prophecy
+    agent.evaluator = evaluator
+    agent.current_semantic_validation = True
+    agent.current_semantic_evaluator = True
+
+    batched = RelationalDepthBatchedProphecyView(agent)
+    agent.current_batched_prophecy = batched
+    agent.planner.prophecy = batched
+    agent.core.prophecy = prophecy
+    agent.current_status_supervised_world_model = True
+    return agent
