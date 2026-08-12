@@ -1,97 +1,178 @@
 # Experiments
 
-이 페이지는 AASSR의 **실험 설계, 비교군, 현재까지의 핵심 결과, 결과를 해석할 때의 경계**를 정리한다.
+이 페이지는 AASSR의 **실험 protocol, 비교 조건, evidence level, historical diagnostic, current claim boundary**를 정리한다.
 
 > [!IMPORTANT]
-> AASSR 저장소에는 여러 세대의 결과가 함께 존재한다. 이 페이지에서는 결과를 **benchmark validation / mechanism diagnostic / current-generation validation / future final suite**로 나누어 기록한다. 서로 다른 세대의 숫자를 한 표에서 단순 비교하지 않는다.
+> AASSR 저장소에는 여러 세대의 결과가 함께 남아 있다. 이 페이지에서는 숫자를 반드시 다음 중 하나로 분류한다.
+>
+> ```text
+> benchmark validation
+> mechanism diagnostic
+> historical root-cause diagnostic
+> current-generation reduced validation
+> multi-seed benchmark
+> final blinded evaluation
+> ```
+>
+> 서로 다른 세대의 숫자를 한 표에 섞어 “성능 추세”처럼 해석하지 않는다.
+
+전체 연구 질문과 가설: [Research Questions](Research-Questions)  
+RQ별 변수·지표·claim 상태: [Evidence Matrix](Evidence-Matrix)
 
 ---
 
-# 1. 연구 질문
+## 목차
 
-AASSR의 큰 연구 질문은 다음과 같다.
-
-> **중간 보상이 거의 없는 sparse-reward 환경에서, 에이전트가 경험의 구조를 기억하고 미래를 예측하며 실제 행동 전에 가능한 결과를 상상하면 일반적인 model-free RL보다 더 안정적으로 장기 문제를 해결할 수 있는가?**
-
-이를 한 번에 검증하면 어느 부분이 효과를 냈는지 알 수 없기 때문에 현재 실험은 여러 하위 질문으로 나눈다.
-
-1. 환경 자체가 너무 쉽거나 불가능하지 않은가?
-2. raw representation보다 relational representation이 도움이 되는가?
-3. ASEQ가 self-loop를 실제로 줄이는가?
-4. AASSR의 non-Imagination stack이 relational DQN보다 나은가?
-5. 같은 AASSR checkpoint에서 Imagination ON이 OFF보다 나은가?
-6. AASSR Full은 official DreamerV3와 어떻게 다른가?
+1. [실험 철학](#1-실험-철학)
+2. [보상과 관측 계약](#2-보상과-관측-계약)
+3. [Benchmark validation](#3-benchmark-validation)
+4. [RQ1 — Autonomous first success](#4-rq1--autonomous-first-success)
+5. [RQ2 — Raw vs Relational](#5-rq2--raw-vs-relational)
+6. [RQ3 — ASEQ self-loop](#6-rq3--aseq-self-loop)
+7. [RQ4/RQ5 — Prophecy & Calibration](#7-rq4rq5--prophecy--calibration)
+8. [RQ6 — Critic local support](#8-rq6--critic-local-support)
+9. [RQ7 — Imagination same-checkpoint](#9-rq7--imagination-same-checkpoint)
+10. [RQ8 — Five-condition final suite](#10-rq8--five-condition-final-suite)
+11. [RQ9 — Skill](#11-rq9--skill)
+12. [통계와 보고 형식](#12-통계와-보고-형식)
+13. [최종 claim gate](#13-최종-claim-gate)
 
 ---
 
-# 2. 보상 계약
+# 1. 실험 철학
 
-현재 pentest 계열 실험의 외부 reward는 다음으로 고정한다.
+AASSR은 여러 메커니즘이 결합된 시스템이다.
+
+```text
+Relational Representation
++ ASEQ
++ Policy
++ Knowledge
++ Prophecy
++ Calibration
++ Critic
++ Local Support
++ Imagination
++ Skills
+```
+
+따라서 Full AASSR 하나만 돌려 baseline과 비교하면 **왜 차이가 났는지 알 수 없다.**
+
+연구 설계는 다음 순서로 효과를 분리한다.
+
+```text
+dqn_raw
+  ↓ representation effect
+dqn_relational
+  ↓ AASSR stack beyond representation
+aassr_current_no_imagination
+  ↓ Imagination marginal effect
+aassr_current_full
+```
+
+그리고 외부 model-based family comparison:
+
+```text
+dreamerv3_relational
+↔
+aassr_current_full
+```
+
+관련 개념: [Ablation](Ablation-Benchmarking-and-Reproducibility), [Confounder](Ablation-Benchmarking-and-Reproducibility), [Same-checkpoint evaluation](Causality-Leakage-and-Evaluation)
+
+---
+
+# 2. 보상과 관측 계약
+
+## 2.1 External reward
+
+현재 pentest 계열 task reward:
 
 ```text
 proof success       +1
-true lockout        -1
+true failure        -1
 stall                0
 rate-limit trunc.    0
 transition-cap       0
 ordinary transition  0
 ```
 
-다음은 사용하지 않는다.
+다음은 task reward로 사용하지 않는다.
 
-- guided trajectory
-- oracle action injection
-- response-guided 정답 경로 주입
-- intermediate shaping reward
-- 사람이 만든 성공 action sequence 주입
+- guided progress score
+- oracle route proximity
+- hidden target proximity
+- intermediate proof hint
+- 사람이 만든 성공 action sequence
 
-즉 성공과 실제 실패를 제외한 대부분의 transition은 reward `0`이다.
+즉 [sparse reward](Sparse-Reward-and-Credit-Assignment) 자체를 유지한다.
+
+## 2.2 Internal information signal
+
+[Policy](Policy)의 information residual은 external reward와 별도다.
+
+```text
+external task reward
+!=
+internal information-value signal
+```
+
+따라서 information residual을 “중간 reward shaping”으로 보고 success reward에 더한 값으로 해석하면 안 된다.
+
+## 2.3 Observation boundary
+
+Learner는 [response-causal](Causality-Leakage-and-Evaluation) public information만 사용한다.
+
+허용 예:
+
+- 실제 response에서 관측한 latest HTTP-like status
+- 발견된 route/profile/object relation
+- 현재 legal action surface
+- response에서 획득한 session/CSRF fact
+
+금지 예:
+
+- hidden target identity
+- exact hidden audit pressure
+- exact hidden session countdown
+- future outcome
+- hidden curriculum label을 learner state로 직접 주입
 
 ---
 
-# 3. HTTP Pentest Benchmark
+# 3. Benchmark validation
 
-실제 네트워크를 공격하지 않고도 web penetration-testing과 비슷한 장기 의사결정 구조를 만들기 위해 **safe in-process HTTP lab**을 사용한다.
-
-## 3.1 환경 흐름
+AASSR은 실제 외부 시스템을 공격하지 않고 **safe in-process HTTP decision lab**을 사용한다.
 
 ```mermaid
 flowchart LR
-    E[Entry response] --> D[Route / auth info discovery]
-    D --> L[Login / session]
-    L --> O[Object candidates]
-    O --> A[Authorization boundary reasoning]
-    A --> C[CSRF / workflow state change]
+    E[Entry] --> D[Discovery]
+    D --> L[Login / Session]
+    L --> O[Object Candidates]
+    O --> A[Authorization Boundary]
+    A --> C[CSRF / Workflow]
     C --> P[Proof]
 ```
 
-환경은 다음을 모사한다.
+환경은 다음과 같은 public interaction structure를 모사한다.
 
-- HTTP-like status: `200/302/400/401/403/404/409/429`
-- login redirect
-- session cookie
-- CSRF token
+- `200/302/400/401/403/404/409/429`
+- redirect
+- session
+- CSRF
 - object authorization
-- state-changing workflow prerequisites
+- workflow prerequisites
 - audit / lockout
 - rate limit
 - session expiration
 - decoy routes
-- seed마다 달라지는 opaque identifiers
+- seed마다 바뀌는 opaque identifiers
 
-실제 network socket, shell, external HTTP client는 사용하지 않는다.
+실제 network socket, shell, external target은 사용하지 않는다.
 
-## 3.2 난도
+## 3.1 난도 validation
 
-| Tier | Objects | Decoys | Lockout | Rate limit | Session TTL | Partial observability |
-|---|---:|---:|---:|---:|---:|---:|
-| Easy | 3 | 0 | 4 | 16 | 8 | 1.0 |
-| Medium | 8 | 4 | 3 | 12 | 7 | 0.0 |
-| Hard | 14 | 8 | 3 | 16 | 12 | 0.0 |
-
-## 3.3 Benchmark validation baseline
-
-40 evaluation seeds에서 환경 자체를 검증한 결과:
+40 evaluation seeds에서 benchmark validation baseline:
 
 | Tier | Oracle | Random | Browse-first | Response-guided | Abstract Q |
 |---|---:|---:|---:|---:|---:|
@@ -99,41 +180,129 @@ flowchart LR
 | Medium | 100.0% | 0.0% | 0.0% | **30.0%** | 0.0% |
 | Hard | 100.0% | 0.0% | 0.0% | **20.0%** | 0.0% |
 
-해석:
-
-- Oracle이 모든 seed에서 풀 수 있으므로 환경이 구조적으로 불가능하지 않다.
-- Random으로는 사실상 풀리지 않는다.
-- 응답 의미를 적극적으로 사용하는 strong heuristic은 Easy를 풀지만 난도가 올라가며 성능이 떨어진다.
-- Hard에서도 일부 seed는 풀리므로 전부 불가능한 saturation 구간은 아니다.
-
-최종 환경 판정은:
+이 결과의 의미:
 
 ```text
-accepted_for_agent_evaluation
+Oracle 100%
+→ task가 구조적으로 불가능하지 않음
+
+Random ~0%
+→ 무작위 행동만으로 쉽게 풀리지 않음
+
+Response-guided degradation
+→ 난도 차이가 존재
 ```
 
-이다.
-
-이 판정은 **AASSR의 우위를 의미하지 않는다.** 단지 agent comparison에 사용할 수 있는 환경이라는 뜻이다.
+이 결과는 **AASSR 우위 evidence가 아니다.** Benchmark가 agent comparison에 사용할 수 있는지 검증한 것이다.
 
 ---
 
-# 4. ASEQ self-loop diagnostics
+# 4. RQ1 — Autonomous first success
 
-## 질문
+질문:
 
-> DQN이 higher-level transfer에서 실패한 이유가 목표 자체를 이해하지 못해서인가, 아니면 같은 행동을 반복하는 self-loop 때문인가?
+> guided trajectory와 shaping reward 없이 real success experience가 발생하는가?
 
-재학습 없이 기존 checkpoint를 평가한 결과, L1 unseen에서 raw greedy는 3 checkpoint × 8 seeds = 24 episodes 모두 stalled였다.
+관련: [Research Questions — RQ1](Research-Questions#rq1--희소-보상만으로-최초-성공을-발견할-수-있는가)
 
-exact ASEQ guard를 적용하면:
+## 관측해야 할 값
+
+- first proof transition index
+- total training proofs
+- curriculum promotion / demotion
+- frontier exposure
+- stalled episodes
+
+## 중요한 fairness rule
+
+Curriculum은 difficulty exposure를 조절할 수 있지만 **정답 action을 주면 안 된다.**
 
 ```text
-raw greedy       : stalled 24/24
-exact ASEQ guard : stalled  0/24
+허용
+Easy → Medium → Hard exposure
+
+금지
+“이 상태에서는 login을 눌러라”
+“이 object가 정답이다”
 ```
 
-성공률:
+## 현재 evidence 해석
+
+과거 autonomous pilot과 focused training에서 human-written success sequence 없이 proof가 발생한 사례가 있다.
+
+이것은:
+
+> “autonomous proof discovery가 가능하다”
+
+라는 좁은 evidence다.
+
+이것만으로:
+
+> “AASSR이 baseline보다 sample-efficient하다”
+
+를 말할 수는 없다.
+
+---
+
+# 5. RQ2 — Raw vs Relational
+
+질문:
+
+> [Relational Representation](Relational-Representation-and-Generalization)이 concrete ID 중심 representation보다 unseen transfer를 개선하는가?
+
+## 핵심 control
+
+```text
+dqn_raw
+vs
+dqn_relational
+```
+
+가능한 한 representation 외 요소를 고정한다.
+
+| 고정 | 변경 |
+|---|---|
+| reward | representation |
+| transition budget | representation |
+| DQN training protocol | representation |
+| eval seeds | representation |
+| curriculum exposure | representation |
+
+## Primary metrics
+
+- unseen success
+- tier별 success
+- milestone reach
+- stalled rate
+- mean requests
+
+## Secondary diagnostics
+
+- state/action collision rate
+- representation alias frequency
+- rename permutation consistency
+
+> [!NOTE]
+> Current [State Representation v3](State-Representation)은 latest public HTTP status를 보존한다. 따라서 과거 relational v2와 current v3 결과를 같은 representation condition으로 취급하면 안 된다.
+
+---
+
+# 6. RQ3 — ASEQ self-loop
+
+질문:
+
+> semantic `S → A → S` evidence를 사용하면 stalled behavior를 줄일 수 있는가?
+
+## 6.1 No-retraining diagnostic
+
+과거 L1 unseen에서 3 checkpoints × 8 seeds:
+
+```text
+raw greedy stalled       24 / 24
+exact ASEQ stalled        0 / 24
+```
+
+성공:
 
 | checkpoint | raw greedy | exact ASEQ |
 |---|---:|---:|
@@ -141,279 +310,436 @@ exact ASEQ guard : stalled  0/24
 | L2 pre-demotion | 0/8 | 7/8 |
 | post-demotion retrained | 0/8 | 5/8 |
 
-따라서 **self-loop가 실제 주요 병목 중 하나였음**을 확인했다.
+이 결과는 **ASEQ guard의 mechanism diagnostic**이다.
 
-자세한 해석: **[ASEQ](ASEQ)**
+## 6.2 Consistent retraining diagnostic
 
----
-
-# 5. Exact-ASEQ consistent retraining
-
-학습과 평가에 같은 exact ASEQ 규칙을 일관되게 사용한 6k focused run:
+학습과 평가 모두 exact ASEQ rule을 사용한 focused run:
 
 | training mode | training successes | L0 | L1 | L2 |
 |---|---:|---:|---:|---:|
 | legacy filter | 29 | 15 | 14 | 0 |
 | exact ASEQ | **50** | **30** | **19** | **1** |
 
-최종 unseen + exact ASEQ evaluation:
+Unseen evaluation:
 
 | trained with | L0 | L1 | L2 |
 |---|---:|---:|---:|
 | legacy filter | 1/8 | 1/8 | 0/8 |
 | exact ASEQ | **8/8** | **7/8** | **1/8** |
 
-그러나 제한이 있다.
+제한:
 
 - research seed 1개
 - unseen seed 8개
-- L0~L2 focused experiment
-- current-generation Full AASSR의 최종 성능 실험이 아님
+- focused L0~L2 experiment
+- current Full final benchmark가 아님
 
-따라서 이 결과는 **ASEQ 메커니즘의 유효성 evidence**이지, 전체 AASSR의 최종 성능 숫자로 사용하지 않는다.
+따라서 이 숫자를 current AASSR leaderboard에 넣지 않는다.
 
 ---
 
-# 6. Current-generation five-condition design
+# 7. RQ4/RQ5 — Prophecy & Calibration
 
-최종 current-generation 비교는 다음 5개 row를 목표로 한다.
-
-| Condition | 학습 representation | World model / Imagination | 목적 |
-|---|---|---|---|
-| `dqn_raw` | raw v3 | 없음 | 가장 단순한 corrected DQN 기준선 |
-| `dqn_relational` | relational | 없음 | representation 효과 분리 |
-| `dreamerv3_relational` | relational | official DreamerV3 | 표준 model-based baseline |
-| `aassr_current_no_imagination` | relational | AASSR stack, planner OFF | AASSR non-Imagination 효과 |
-| `aassr_current_full` | relational | AASSR stack, planner ON | Imagination marginal effect |
-
-비교 해석:
+Current [Prophecy](Prophecy) contract:
 
 ```text
-dqn_raw -> dqn_relational
-= representation effect
-
-dqn_relational -> AASSR no-Imagination
-= AASSR stack beyond representation
-
-AASSR no-Imagination -> Full
-= same-checkpoint Imagination marginal effect
-
-dqn_relational -> DreamerV3
-= official world-model + imagined actor-critic baseline
-
-DreamerV3 <-> AASSR Full
-= model-based imagination family comparison
+relational-conditional-mixture-ensemble-v5-status-balanced
 ```
 
-## Same-checkpoint rule
+Current [Calibration](Calibration) contract:
 
-AASSR OFF/ON은 **절대 따로 재학습하지 않는다.**
+```text
+semantic-probability-holdout-calibration-v3-status-aware
+```
+
+두 모듈은 하나의 metric으로 평가하면 안 된다.
+
+## 7.1 Prophecy prediction metrics
+
+### State structure
+- semantic descriptor error / similarity
+- top-k outcome semantic quality
+
+### Action surface
+- legal-mask accuracy
+- legal-slot precision / recall
+
+### Terminal
+- active / success / failure / truncation class accuracy
+- rare terminal recall
+
+### Public status
+- categorical status accuracy
+- status confusion matrix
+- rare `403/404/429` recall
+
+### Multimodality
+- mixture component usage
+- outcome mass normalization
+- multiple empirical outcome preservation
+
+## 7.2 Calibration metrics
+
+Prediction quality와 reliability quality는 다르다.
+
+필요한 diagnostic:
+
+```text
+reliability bucket
+→ actual holdout prediction quality
+```
+
+예:
+
+| Reliability bucket | Observed quality |
+|---|---:|
+| 0.9–1.0 | ? |
+| 0.8–0.9 | ? |
+| 0.7–0.8 | ? |
+| ... | ... |
+
+가능하면 expected calibration error류의 summary뿐 아니라 **decision-critical channel별 reliability**를 같이 본다.
+
+## 7.3 왜 이게 필요해졌나?
+
+2026-08-11 diagnostic에서 전체 semantic quality는 높게 보였지만 planner intervention은 많은 `403/404/429` 오류를 만들었다.
+
+전체 root cause는 별도 보관한다.
+
+→ [Historical Imagination Diagnostic — 2026-08-11](Historical-Imagination-Diagnostic-2026-08-11)
+
+---
+
+# 8. RQ6 — Critic local support
+
+[Critic](Critic)은 real sparse return을 학습한다.
+
+하지만 다음은 다르다.
+
+```text
+Critic has trained globally
+!=
+current state/action is supported by real training data
+```
+
+## 핵심 ablation
+
+가능한 비교:
+
+```text
+same checkpoint
+same planner
+same Prophecy
+
+A: local support gate OFF
+B: local support gate ON
+```
+
+단, gate OFF가 위험한 unsupported action을 허용할 수 있으므로 diagnostic environment와 failure accounting을 엄격히 유지한다.
+
+## Primary mechanism metrics
+
+- support pass rate
+- support reject rate
+- unsupported high-value candidate count
+- intervention error rate
+- successful intervention rate
+- planner activity after gate
+
+## Fail-closed의 두 실패 모드
+
+### 너무 느슨함
+
+```text
+OOD value extrapolation
+→ planner exploit
+```
+
+### 너무 엄격함
+
+```text
+모든 root unsupported
+→ intervention 0
+→ planner inert
+```
+
+따라서 **안전성과 planner usability를 동시에 측정**한다.
+
+---
+
+# 9. RQ7 — Imagination same-checkpoint
+
+가장 중요한 causal experiment 중 하나다.
+
+## 9.1 Rule
 
 ```text
 one AASSR training run
-        |
-        v
+        ↓
 frozen checkpoint
-      /    \
-     /      \
- OFF eval  ON eval
+     /             \
+OFF                   ON
+Policy-only       Imagination
 ```
 
-평가 중 persistent learning state가 바뀌면 hard failure다.
+OFF와 ON을 따로 재학습하면 hard comparison failure다.
 
----
+## 9.2 왜 training-time Imagination을 끄는가?
 
-# 7. Official DreamerV3 baseline
-
-DreamerV3는 저장소 안에서 알고리즘을 AASSR에 맞게 뜯어고친 버전이 아니다.
-
-원칙:
-
-- pinned official `danijar/dreamerv3`
-- upstream Agent/RSSM/imagination/actor-critic/loss 수정 없음
-- 별도 Linux/WSL + JAX/CUDA process
-- current relational state 사용
-- fixed 240-way structural categorical action vocabulary
-- 현재 unavailable action을 선택하면 public structural distance로 nearest legal slot에 deterministic projection
-- hidden scenario, reward, correct action을 projection에 사용하지 않음
-
-Canonical configuration:
+현재 primary marginal-effect comparison에서 training-time planner가 replay distribution까지 바꾸면:
 
 ```text
-preset      : dmc_proprio + size1m
-train ratio : 1024
-dtype       : bfloat16
-platform    : cuda
+planner effect
++ training trajectory effect
++ replay effect
 ```
 
-과학적 sample budget은 **실제 primitive HTTP action**만 센다.
+가 섞인다.
 
----
-
-# 8. Repaired Imagination 2k validation — 2026-08-11
-
-## 설계
-
-- research seed: `7`
-- training budget: `2,048 real transitions`
-- 하나의 AASSR checkpoint 학습
-- same frozen checkpoint에서 OFF/ON 비교
-- fixed intervention margin: `0.05`
-
-## 결과
-
-| Condition | Success | L0 | L1 | L2 | L3 | L4 | True failure |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| no-Imagination | **4/20** | 4/4 | 0/4 | 0/4 | 0/4 | 0/4 | 0 |
-| Full | **4/20** | 4/4 | 0/4 | 0/4 | 0/4 | 0/4 | 2 |
-
-Full diagnostics:
+그래서 current manifest는:
 
 ```text
-Imagination plans        297
-switch candidates        218
-executed interventions    86
-changed actions            86
+training_imagination = disabled-same-checkpoint
 ```
 
-86개 intervention은 모두 L3 `object_choices`에서 발생했다.
+계약을 둔다.
 
-그중:
+## 9.3 Planner metrics
 
-```text
-PluginOutcome.error=True : 58 / 86
-404                       : 30
-403                       : 26
-429                       :  2
-direct success-producing  :  0
-```
+### Opportunity
+- plan count
+- root count
+- structural root count
 
-## 이 결과가 의미하는 것
+### Gate
+- unreliable suppressions
+- unsupported suppressions
+- insufficient-advantage suppressions
 
-이전 단계의 병목은 미래 가치가 tie로 붕괴해 Imagination이 **0회 intervention**하는 것이었다.
+### Intervention
+- switch candidates
+- final interventions
+- changed actions
+- direct success-producing interventions
+- bad-status interventions
 
-2k run에서는 Critic이 충분히 값을 갈라 86회 override했다.
-
-즉:
-
-```text
-과거 병목
-Imagination cannot influence action
-        |
-        v
-해결
-        |
-        v
-새 병목
-Imagination confidently changes to wrong actions
-```
-
-## Matched-state audit
-
-68개 intervention state에서 동일 scenario + 동일 semantic state의 no-Imagination counterpart를 찾았다.
-
-```text
-Full intervention -> error
-Policy original    -> no error
-= 50 cases
-
-Full intervention -> no error
-Policy original    -> error
-= 0 cases
-```
-
-따라서 단순 stochastic bad luck만으로 설명하기 어렵다.
-
----
-
-# 9. 2k 이후 확인된 root causes
-
-## 9.1 Latest HTTP status 누락
-
-당시 relational v2는 public `403/404/429` status channel을 버리고 있었다.
-
-그 결과 위험 신호가 semantic representation에서 충분히 드러나지 않았다.
-
-## 9.2 Calibration metric blind spot
-
-당시 probability-weighted semantic score는 약 `0.916`, terminal match는 약 `0.991`이었지만 실제 intervention quality는 나빴다.
-
-즉 전체 semantic score가 높아도 decision-critical response error를 놓칠 수 있었다.
-
-## 9.3 Global critic readiness != local support
-
-학습 성공은 L0에 집중되어 있었고 curriculum focus도 L1까지만 갔는데, Critic은 unseen L3에서 86번 override했다.
-
-따라서 “Critic이 학습됨”과 “현재 state/action에서 Critic을 믿을 수 있음”을 분리해야 했다.
-
-## 9.4 Root alias 계산 폭발
-
-L3에서 concrete roots는 약 `172`, structural relational roots는 약 `17`이었다.
-
-같은 구조의 alias를 depth-1에서 전부 다시 계산해 Full이 no-Imagination보다 매우 느려졌다.
-
----
-
-# 10. 2k 이후 코드에 들어간 repair
-
-현재 manifest 기준:
-
-1. relational public state v3 + latest HTTP status
-2. status-supervised stochastic Prophecy
-3. status-aware semantic calibration
-4. local real-training Critic support gate
-5. structural root compute deduplication
-6. chance probability / decision max backup 유지
-7. expected external sparse return objective 유지
-
-> [!CAUTION]
-> 이 수리들은 **코드에 구현되어 있다는 것**과 **새 장기 실험에서 성능 향상이 확인됐다는 것**이 다르다. 다음 reduced validation 결과가 나오기 전에는 성능 개선을 확정적으로 주장하지 않는다.
-
----
-
-# 11. 실험 결과를 보고할 때 반드시 같이 보는 지표
-
-성공률 하나만 보면 원인을 놓칠 수 있다.
-
-현재 권장 지표:
-
-- proof success
+### Final task
+- success
 - true failure
 - stalled
-- truncation / rate-limit
-- stage milestone reach
-- mean requests
-- curriculum focus/exposure
-- Imagination plan count
-- intervention count
-- changed action count
-- direct success-producing intervention
-- intervention error rate
-- root coverage
-- semantic top-k quality
-- probability-weighted semantic quality
-- legal-mask accuracy
-- terminal accuracy
-- HTTP status accuracy
-- local Critic support pass/fail
-- runtime / wall time
+- truncation
+- milestone reach
+
+### Runtime
+- wall time
+- world-model calls
+- Critic calls
+- dedup ratio
+
+## 9.4 Historical 2026-08-11 result
+
+과거 diagnostic:
+
+```text
+no-Imagination 4/20
+Full           4/20
+interventions  86
+bad-status     58/86
+```
+
+이 숫자는 current v5/status-aware/local-support architecture의 final result가 아니다.
+
+상세: [Historical Imagination Diagnostic — 2026-08-11](Historical-Imagination-Diagnostic-2026-08-11)
 
 ---
 
-# 12. 아직 하지 않은 최종 주장
+# 10. RQ8 — Five-condition final suite
 
-현재 위키에서 다음 표현은 사용하지 않는다.
+최종 current-generation comparison row:
+
+| Condition | Representation | Model-based component | 역할 |
+|---|---|---|---|
+| `dqn_raw` | raw current | none | corrected model-free baseline |
+| `dqn_relational` | relational current | none | representation ablation |
+| `dreamerv3_relational` | relational current | official DreamerV3 | external model-based baseline |
+| `aassr_current_no_imagination` | relational current | AASSR models, planner OFF | non-Imagination AASSR stack |
+| `aassr_current_full` | relational current | AASSR planner ON | Imagination marginal effect |
+
+## 10.1 AASSR OFF/ON checkpoint 수
+
+AASSR는 checkpoint 하나다.
 
 ```text
-“AASSR이 DreamerV3보다 우수하다”
-“AASSR Full이 DQN보다 최종적으로 우수하다”
-“Imagination이 성능을 향상시킨다”
+Raw DQN checkpoint
+Relational DQN checkpoint
+DreamerV3 checkpoint
+AASSR checkpoint
 ```
 
-이들은 final/reduced five-condition evidence가 충분히 나온 뒤에만 판단한다.
+그 AASSR checkpoint를 OFF/ON 두 평가 mode로 사용한다.
 
-현재 가장 정확한 표현은:
+## 10.2 Fair sample budget
 
-> **AASSR current-generation은 sparse-reward pentest benchmark에서 relational Policy, empirical ASEQ, stochastic world model, sparse-return Critic, multi-step Imagination을 하나의 runtime으로 통합했으며, Imagination이 실제 행동을 변경할 수 있음까지는 확인됐다. 현재 연구는 그 intervention의 신뢰성과 일반화 성능을 검증하는 단계다.**
+과학적 sample budget은 **real primitive environment action**으로 센다.
 
-다음: **[Current Status](Current-Status)**
+Imagined rollout step은 environment sample로 세지 않는다.
+
+다만 compute cost는 별도 runtime metric으로 반드시 보고한다.
+
+## 10.3 DreamerV3 fairness boundary
+
+DreamerV3 baseline은 upstream 알고리즘을 AASSR에 유리하도록 개조하는 것이 아니라, pinned official implementation을 current observation/action interface에 adapter로 연결하는 방향을 사용한다.
+
+최종 result에는 반드시:
+
+- upstream pin
+- preset
+- JAX platform
+- train ratio
+- dtype
+- adapter contract
+
+를 기록한다.
+
+---
+
+# 11. RQ9 — Skill
+
+[Skill](Skills)은 primary five-condition suite와 별도 mechanism experiment로 보는 편이 해석이 쉽다.
+
+질문:
+
+> repeated successful real ASeq를 relational template로 승격하면 unseen seed에서 primitive-only보다 재사용 효율이 좋아지는가?
+
+## 비교 후보
+
+```text
+primitive-only
+vs
+concrete macro
+vs
+relational Skill
+```
+
+## 지표
+
+- Skill promotion count
+- promotion precision
+- concrete rebinding success
+- unavailable primitive rate
+- Skill completion success
+- transitions saved
+- stochastic rollout branch survival
+- primitive exploration suppression
+
+Skill이 잘 작동해도 그것이 곧 “창의성”은 아니다.
+
+관련: [Hierarchical RL & Skills](Hierarchical-RL-and-Skills)
+
+---
+
+# 12. 통계와 보고 형식
+
+최종 performance table은 평균 성공률 하나로 끝내지 않는다.
+
+## 12.1 최소 보고 단위
+
+```text
+research seed
+×
+tier / evaluation pool
+×
+condition
+```
+
+각 cell에서:
+
+- success count / denominator
+- true failure
+- stalled
+- truncation
+- mean/median requests
+- runtime
+
+을 보존한다.
+
+## 12.2 Aggregate
+
+가능하면:
+
+- mean across research seeds
+- standard deviation
+- seed-level raw values
+- binomial success uncertainty 또는 적절한 confidence interval
+
+을 함께 보고한다.
+
+작은 `n`에서 소수점 둘째 자리까지 정밀한 차이를 과해석하지 않는다.
+
+## 12.3 Mechanism metric과 final metric 분리
+
+```text
+Prophecy accuracy
+Critic support pass
+Planner intervention
+```
+
+은 **mechanism metric**이다.
+
+```text
+proof success
+true failure
+```
+
+은 **task metric**이다.
+
+Mechanism metric이 좋아졌다고 final success가 자동으로 좋아진 것은 아니다.
+
+---
+
+# 13. 최종 claim gate
+
+다음 표현은 evidence level을 충족하기 전까지 사용하지 않는다.
+
+```text
+“AASSR이 DQN보다 우수하다.”
+“AASSR이 DreamerV3보다 우수하다.”
+“Imagination이 성능을 향상시킨다.”
+“Relational representation이 일반화를 유의미하게 개선한다.”
+```
+
+각 문장을 사용하려면 대응되는 RQ의 current-generation controlled evidence가 있어야 한다.
+
+Claim 상태는 [Evidence Matrix](Evidence-Matrix)와 [Current Status](Current-Status)에 기록한다.
+
+---
+
+## 결과 분류 예시
+
+```text
+24/24 stall → 0/24
+= ASEQ mechanism diagnostic
+
+2026-08-11 4/20 vs 4/20, 86 interventions
+= historical Imagination root-cause diagnostic
+
+current Prophecy v5 manifest
+= architecture contract
+
+future five-condition multi-seed aggregate
+= current performance evidence
+
+final unseen blind set
+= final claim evidence
+```
+
+---
+
+## 다음으로 읽기
+
+- [Research Questions](Research-Questions)
+- [Evidence Matrix](Evidence-Matrix)
+- [Current Status](Current-Status)
+- [Historical Imagination Diagnostic — 2026-08-11](Historical-Imagination-Diagnostic-2026-08-11)
+- [Reproduction](Reproduction)
