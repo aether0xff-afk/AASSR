@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from types import MethodType
 
 from aassr_v2.autonomous_agent_core import ActionDecision
@@ -66,8 +67,15 @@ class _Agent:
         return {}
 
 
+class _RecordedAgent(_Agent):
+    def __init__(self) -> None:
+        super().__init__()
+        self._imagination_diagnostics: Counter[str] = Counter()
+        self._core_select_action = MethodType(_recorded_intervention, self)
+
+
 def _raw_intervention(self, state, *, episode: int, explore: bool):
-    del episode, explore
+    del self, state, episode, explore
     return ActionDecision(
         CANDIDATE,
         True,
@@ -83,6 +91,19 @@ def _raw_intervention(self, state, *, episode: int, explore: bool):
         imagination_switch_candidate=True,
         imagination_intervention_allowed=True,
     )
+
+
+def _recorded_intervention(self, state, *, episode: int, explore: bool):
+    decision = _raw_intervention(self, state, episode=episode, explore=explore)
+    diagnostics = self._imagination_diagnostics
+    diagnostics["opportunities"] += 1
+    diagnostics["eligible"] += 1
+    diagnostics["runs"] += 1
+    diagnostics["switch_candidates"] += 1
+    diagnostics["interventions"] += 1
+    diagnostics["changed_actions"] += 1
+    diagnostics["gate:intervention"] += 1
+    return decision
 
 
 def _observe_support(agent: _Agent, state: StateSnapshot, action: Action, count: int = 20):
@@ -108,6 +129,32 @@ def test_candidate_without_local_critic_support_cannot_override_policy() -> None
     decision = agent._core_select_action(state, episode=0, explore=False)
     assert decision.action.signature == CANDIDATE.signature
     assert decision.imagination_intervention_allowed is True
+
+
+def test_support_block_reconciles_pre_recorded_intervention() -> None:
+    agent = _RecordedAgent()
+    install_critic_support_gate(agent)
+    state = _state(3)
+    _observe_support(agent, state, POLICY)
+
+    decision = agent._core_select_action(state, episode=0, explore=False)
+    assert decision.action.signature == POLICY.signature
+    assert decision.imagination_intervention_allowed is False
+    assert decision.imagination_changed_action is False
+    assert decision.imagination_gate_reason == "critic_candidate_out_of_distribution"
+
+    counters = agent._imagination_diagnostics
+    assert counters["runs"] == 1
+    assert counters["switch_candidates"] == 1
+    assert counters["interventions"] == 0
+    assert counters["changed_actions"] == 0
+    assert counters["suppressed_switches"] == 1
+    assert counters["gate:intervention"] == 0
+    assert counters["gate:critic_candidate_out_of_distribution"] == 1
+    assert (
+        agent._critic_support_diagnostics["reconciled_pre_support_interventions"]
+        == 1
+    )
 
 
 def test_critic_support_drops_when_public_problem_scale_is_unseen() -> None:
