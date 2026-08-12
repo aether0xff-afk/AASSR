@@ -152,35 +152,36 @@ def install_critic_support_gate(
         final_return: float,
         training: bool = True,
     ) -> None:
-        # Count only episodes that actually contribute a real Critic trajectory,
-        # matching the learner's own observe_episode condition.
-        if training and bool(getattr(self_agent, "_critic_trajectory", ())):
-            value = float(final_return)
-            if value > 0.0:
-                counters["critic_positive_return_episodes"] += 1
-            elif value < 0.0:
-                counters["critic_negative_return_episodes"] += 1
-            else:
-                counters["critic_zero_return_episodes"] += 1
-        return original_finish_episode(final_return=final_return, training=training)
+        # Snapshot this before the delegate clears episode-local trajectory state.
+        contributed = training and bool(getattr(self_agent, "_critic_trajectory", ()))
+        value = float(final_return)
+        result = original_finish_episode(final_return=value, training=training)
+        if not contributed:
+            return result
+
+        # The historical agent counted every <=0 return as "non_successes" and
+        # critic_ready used that bucket.  Remove zero-return episodes from that
+        # bucket so the existing property now means positive-vs-negative support
+        # everywhere it is consumed (confidence gate, fast gate, diagnostics).
+        if value > 0.0:
+            counters["critic_positive_return_episodes"] += 1
+            self_agent._critic_counts["positive_returns"] += 1
+        elif value < 0.0:
+            counters["critic_negative_return_episodes"] += 1
+            self_agent._critic_counts["negative_returns"] += 1
+        else:
+            counters["critic_zero_return_episodes"] += 1
+            self_agent._critic_counts["zero_returns"] += 1
+            if int(self_agent._critic_counts.get("non_successes", 0)) > 0:
+                self_agent._critic_counts["non_successes"] -= 1
+        return result
 
     agent.finish_episode = MethodType(finish_episode_with_signed_support, agent)
 
     def critic_reliably_ready(self_agent: object) -> bool:
-        stats = self_agent.critic.stats()
-        return bool(
-            int(counters["critic_positive_return_episodes"])
-            >= MIN_CRITIC_POSITIVE_RETURNS
-            and int(counters["critic_negative_return_episodes"])
-            >= MIN_CRITIC_NEGATIVE_RETURNS
-            and int(
-                counters["critic_positive_return_episodes"]
-                + counters["critic_negative_return_episodes"]
-                + counters["critic_zero_return_episodes"]
-            )
-            >= MIN_CRITIC_READY_EPISODES
-            and int(stats.gradient_updates) > 0
-        )
+        # Canonical critic_ready now sees non_successes == negative returns because
+        # the wrapper above removes neutral episodes from that legacy counter.
+        return bool(self_agent.critic_ready)
 
     agent.critic_reliably_ready = MethodType(critic_reliably_ready, agent)
 
@@ -304,13 +305,12 @@ def install_critic_support_gate(
             "threshold": threshold,
             "structural_action_buckets": len(support_rows),
             "stored_support_rows": sum(len(rows) for rows in support_rows.values()),
-            "signed_readiness": bool(self_agent.critic_reliably_ready()),
+            "signed_readiness": bool(self_agent.critic_ready),
             "minimum_ready_episodes": MIN_CRITIC_READY_EPISODES,
             "minimum_positive_returns": MIN_CRITIC_POSITIVE_RETURNS,
             "minimum_negative_returns": MIN_CRITIC_NEGATIVE_RETURNS,
             **dict(counters),
         }
-        output["critic_ready"] = bool(self_agent.critic_reliably_ready())
         repairs = dict(output.get("current_repairs", {}))
         repairs.update(
             {
