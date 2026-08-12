@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from aassr_v2.current_core_manifest import (
     CORE_FORBIDDEN_DOMAIN_TOKENS,
     CURRENT_CORE_COMPONENTS,
@@ -33,6 +35,7 @@ def test_pentest_plugin_owns_http_and_environment_binding() -> None:
 
 
 def test_current_builder_exposes_core_and_plugin_as_separate_runtime_objects() -> None:
+    pytest.importorskip("torch")
     agent = build_current_pentest_aassr_core(
         seed=7,
         train_transitions=64,
