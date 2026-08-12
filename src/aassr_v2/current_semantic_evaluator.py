@@ -189,7 +189,13 @@ class RelationalAdvancedTransitionEvaluator(AdvancedTransitionEvaluator):
         )
         uncertainty_before = semantic_prediction_uncertainty(context_predictions)
 
-        holdout_reference = self.replay.holdout()
+        # The validator itself uses only its most recent `recent_limit` rows. Keep
+        # the anti-hindsight snapshot frozen before environment.step(), but copy
+        # only the rows that can affect the score instead of the full holdout on
+        # every real transition. This is exactly value-preserving and bounds the
+        # snapshot work at the validator horizon (64 in the current runtime).
+        recent_limit = max(1, int(getattr(self.validator, "recent_limit", 64)))
+        holdout_reference = tuple(self.replay._holdout[-recent_limit:])
         holdout_before = self.validator.evaluate(
             self.prophecy,
             holdout_reference,

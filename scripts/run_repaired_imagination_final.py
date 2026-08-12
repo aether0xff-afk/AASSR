@@ -12,6 +12,9 @@ PREFLIGHT_TESTS = (
     "tests/test_current_probability_contract.py",
     "tests/test_current_latent_contracts.py",
     "tests/test_current_checkpoint.py",
+    "tests/test_current_runtime_performance.py",
+    "tests/test_current_runtime_performance_policy.py",
+    "tests/test_current_replay_performance.py",
     "tests/test_current_repair.py",
     "tests/test_current_repair_action_surface.py",
     "tests/test_current_repair_multimodal.py",
@@ -35,6 +38,7 @@ def _run_preflight() -> None:
     compile_targets = (
         "scripts/run_repaired_imagination_validation_v2.py",
         "scripts/analyze_repaired_imagination_trace.py",
+        "scripts/profile_current_runtime_performance.py",
         "src/aassr_v2/current_relational_state.py",
         "src/aassr_v2/current_relational_state_v3.py",
         "src/aassr_v2/current_relational_decode_v2.py",
@@ -47,6 +51,9 @@ def _run_preflight() -> None:
         "src/aassr_v2/current_critic_support.py",
         "src/aassr_v2/current_root_dedup.py",
         "src/aassr_v2/current_decision_optimization.py",
+        "src/aassr_v2/current_runtime_performance.py",
+        "src/aassr_v2/current_runtime_performance_policy.py",
+        "src/aassr_v2/current_replay_performance.py",
         "src/aassr_v2/current_checkpoint.py",
         "src/aassr_v2/current_run_artifacts.py",
         "src/aassr_v2/current_planner.py",
@@ -58,7 +65,7 @@ def _run_preflight() -> None:
         check=True,
     )
 
-    print("[PREFLIGHT] run audited current-generation contract tests")
+    print("[PREFLIGHT] run audited current-generation + performance contracts")
     subprocess.run(
         [sys.executable, "-m", "pytest", "-q", *PREFLIGHT_TESTS],
         check=True,

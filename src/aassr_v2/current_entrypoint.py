@@ -16,6 +16,9 @@ from .current_planner import CurrentFullyBatchedImaginationTree
 from .current_relational_state_v3 import install_status_aware_relational_contract
 from .current_repair import install_current_repairs
 from .current_root_dedup import install_structural_root_dedup
+from .current_runtime_performance_policy import (
+    install_current_runtime_performance_device_aware,
+)
 from .current_status_models import (
     StatusAwareConditionalMixtureRelationalProphecy,
     install_status_supervised_world_model,
@@ -52,6 +55,7 @@ def build_current_pentest_aassr_core(
     enable_batching: bool = True,
     allow_tf32: bool = True,
     profile_hot_path: bool = False,
+    enable_performance_optimizations: bool = True,
 ) -> CurrentStandalonePentestAASSRAgent:
     """Build the sole active current-generation pentest AASSR runtime.
 
@@ -65,6 +69,13 @@ def build_current_pentest_aassr_core(
     Prophecy confidence and local Critic support are fail-closed reliability gates,
     never value bonuses. Structural aliases share expensive model/Critic compute
     while final execution remains a concrete real action.
+
+    ``enable_performance_optimizations`` changes only implementation mechanics:
+    indexing, redundant state encoding, accelerator synchronization and tensor
+    packing. It does not alter seeds, replay samples, update cadence, batch size,
+    losses, exploration or action/value semantics. CPU keeps only the Python
+    indexing fast path; accelerator-specific packing/synchronization changes are
+    enabled only when the resolved model device is CUDA.
     """
 
     if not enable_batching:
@@ -107,6 +118,8 @@ def build_current_pentest_aassr_core(
         device=hardware.resolved_device,
         model_class=StatusAwareConditionalMixtureRelationalProphecy,
     )
+    if enable_performance_optimizations:
+        install_current_runtime_performance_device_aware(agent)
     agent.planner.config = replace(agent.planner.config, aggregation="mean")
     agent.core.planner = agent.planner
     agent.current_components = dict(CURRENT_COMPONENTS)
