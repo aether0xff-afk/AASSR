@@ -186,7 +186,23 @@ def install_critic_support_gate(
         counters["signed_episode_accounting_hook_unavailable"] += 1
 
     def critic_reliably_ready(self_agent: object) -> bool:
-        return bool(self_agent.critic_ready)
+        """Require cumulative *and recent* signed sparse-return evidence.
+
+        The base property keeps the historical episode/update threshold. The
+        ReturnAware current Critic additionally exposes a bounded recent return
+        window so a long run cannot remain permanently ready after all recent
+        negative (or positive) evidence has disappeared from the active regime.
+        """
+        if not bool(self_agent.critic_ready):
+            return False
+        recent_support = getattr(self_agent.critic, "recent_signed_support", None)
+        if not callable(recent_support):
+            return True
+        support = recent_support()
+        return (
+            int(support.get("positive", 0)) >= MIN_CRITIC_POSITIVE_RETURNS
+            and int(support.get("negative", 0)) >= MIN_CRITIC_NEGATIVE_RETURNS
+        )
 
     agent.critic_reliably_ready = MethodType(critic_reliably_ready, agent)
 
@@ -298,6 +314,7 @@ def install_critic_support_gate(
     agent._core_select_action = MethodType(support_gated_select, agent)
     agent.current_critic_support_gate = True
     agent.current_signed_critic_readiness = True
+    agent.current_recent_signed_critic_readiness = True
     agent.current_critic_support_threshold = threshold
     agent._critic_support_diagnostics = counters
 
@@ -305,15 +322,21 @@ def install_critic_support_gate(
 
     def diagnostics_with_support(self_agent: object) -> dict[str, Any]:
         output = dict(original_diagnostics())
+        recent_support = getattr(self_agent.critic, "recent_signed_support", None)
+        recent = recent_support() if callable(recent_support) else {}
         output["critic_support"] = {
             "enabled": True,
             "threshold": threshold,
             "structural_action_buckets": len(support_rows),
             "stored_support_rows": sum(len(rows) for rows in support_rows.values()),
             "signed_readiness": bool(self_agent.critic_ready),
+            "reliable_recent_signed_readiness": bool(
+                self_agent.critic_reliably_ready()
+            ),
             "minimum_ready_episodes": MIN_CRITIC_READY_EPISODES,
             "minimum_positive_returns": MIN_CRITIC_POSITIVE_RETURNS,
             "minimum_negative_returns": MIN_CRITIC_NEGATIVE_RETURNS,
+            "recent_signed_support": dict(recent),
             **dict(counters),
         }
         repairs = dict(output.get("current_repairs", {}))
@@ -325,6 +348,7 @@ def install_critic_support_gate(
                 "critic_local_support_gate": True,
                 "critic_support_is_gate_not_value": True,
                 "critic_signed_negative_return_readiness": True,
+                "critic_recent_signed_return_readiness": True,
                 "intervention_counters_are_post_support": True,
             }
         )
