@@ -10,16 +10,29 @@ from .skills import SKILL_VERB
 from .types import Action, Prediction, StateSnapshot
 
 
-class RelationalStochasticSkillProphecy(CurrentSkillProphecy):
-    """Relational Skill rollout that preserves several stochastic futures.
+SKILL_COMPLETE_OUTCOME_LIMIT = 64
+_UNRESOLVED_TAIL_SOURCE = "unresolved-tail"
 
-    Historical Skill Prophecy selected one best predicted outcome after every
-    primitive, silently collapsing the repaired multi-outcome world model. This
-    wrapper keeps a small outcome beam across the whole macro and multiplies
-    reliability separately from stochastic outcome mass.
+
+class RelationalStochasticSkillProphecy(CurrentSkillProphecy):
+    """Relational Skill rollout with explicit stochastic outcome mass.
+
+    When the primitive world model declares a complete outcome distribution, a
+    Skill may not silently turn a top-k beam into a conditional probability
+    distribution. Up to ``SKILL_COMPLETE_OUTCOME_LIMIT`` macro branches are kept
+    with their original mass. If combinatorics exceed that bound, discarded mass
+    is represented explicitly as a zero-reliability unresolved tail. Any Skill
+    with unresolved tail therefore fails closed at the reliability gate instead
+    of becoming an overconfident Imagination intervention.
     """
 
-    name = "current-relational-stochastic-skill-prophecy-v2"
+    name = "current-relational-stochastic-skill-prophecy-v3-tail-safe"
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.skill_complete_rollouts = 0
+        self.skill_unresolved_rollouts = 0
+        self.skill_unresolved_mass_total = 0.0
 
     def _base_context_predictions(
         self,
@@ -29,14 +42,6 @@ class RelationalStochasticSkillProphecy(CurrentSkillProphecy):
         knowledge: KnowledgeStore,
         samples: int,
     ) -> tuple[Prediction, ...]:
-        """Use the base model's explicit context API when it exists.
-
-        The repaired semantic calibrator intentionally ignores concrete Knowledge
-        re-injection because public response facts already live in the relational
-        state. Keeping this helper on the Skill wrapper still matters: promoted
-        Skills may be evaluated with episode Knowledge, and the previous v1 code
-        called this method without defining it at all.
-        """
         contextual = getattr(self.base, "predict_with_context", None)
         if callable(contextual):
             return tuple(
@@ -58,10 +63,18 @@ class RelationalStochasticSkillProphecy(CurrentSkillProphecy):
         samples: int,
     ) -> tuple[Prediction, ...]:
         skill_id = str(action.target)
-        beam_width = max(1, int(samples))
+        complete_base = bool(
+            getattr(self.base, "complete_outcome_distribution", False)
+        )
+        beam_width = (
+            SKILL_COMPLETE_OUTCOME_LIMIT
+            if complete_base
+            else max(1, int(samples))
+        )
         branches: list[tuple[StateSnapshot, float, float]] = [
             (state, 1.0, 1.0)
         ]
+        unresolved_mass = 0.0
 
         for index in range(self.library.template_length(skill_id)):
             candidates: list[tuple[StateSnapshot, float, float]] = []
@@ -101,12 +114,15 @@ class RelationalStochasticSkillProphecy(CurrentSkillProphecy):
                             prediction.next_state,
                             reliability * float(prediction.probability),
                             mass
-                            * float(
-                                getattr(
-                                    prediction,
-                                    "outcome_probability",
-                                    fallback_mass,
-                                )
+                            * max(
+                                0.0,
+                                float(
+                                    getattr(
+                                        prediction,
+                                        "outcome_probability",
+                                        fallback_mass,
+                                    )
+                                ),
                             ),
                         )
                     )
@@ -124,21 +140,30 @@ class RelationalStochasticSkillProphecy(CurrentSkillProphecy):
                 key=lambda item: (item[2], item[1]),
                 reverse=True,
             )
-            branches = candidates[:beam_width]
-            retained_mass = sum(item[2] for item in branches)
-            if retained_mass > 0.0:
-                branches = [
-                    (current, reliability, mass / retained_mass)
-                    for current, reliability, mass in branches
-                ]
-            else:
-                uniform = 1.0 / len(branches)
-                branches = [
-                    (current, reliability, uniform)
-                    for current, reliability, _ in branches
-                ]
 
-        return tuple(
+            if complete_base:
+                retained = candidates[:beam_width]
+                dropped = candidates[beam_width:]
+                unresolved_mass += sum(max(0.0, item[2]) for item in dropped)
+                # Preserve original probability mass. The retained branch masses
+                # intentionally sum to <=1 when unresolved tail exists.
+                branches = retained
+            else:
+                branches = candidates[:beam_width]
+                retained_mass = sum(item[2] for item in branches)
+                if retained_mass > 0.0:
+                    branches = [
+                        (current, reliability, mass / retained_mass)
+                        for current, reliability, mass in branches
+                    ]
+                else:
+                    uniform = 1.0 / len(branches)
+                    branches = [
+                        (current, reliability, uniform)
+                        for current, reliability, _ in branches
+                    ]
+
+        rows = [
             RelationalPrediction(
                 self.library.augment_state(current),
                 max(0.0, min(1.0, reliability)),
@@ -146,6 +171,46 @@ class RelationalStochasticSkillProphecy(CurrentSkillProphecy):
                 outcome_probability=max(0.0, min(1.0, mass)),
             )
             for index, (current, reliability, mass) in enumerate(branches)
+        ]
+        if complete_base:
+            resolved_mass = sum(item.outcome_probability for item in rows)
+            # Numerical drift should not invent or delete probability mass.
+            residual = max(0.0, 1.0 - resolved_mass)
+            unresolved_mass = max(unresolved_mass, residual)
+            if unresolved_mass > 1e-12:
+                rows.append(
+                    RelationalPrediction(
+                        self.library.augment_state(state),
+                        0.0,
+                        source=f"{self.name}:{_UNRESOLVED_TAIL_SOURCE}",
+                        outcome_probability=min(1.0, unresolved_mass),
+                    )
+                )
+                total = sum(item.outcome_probability for item in rows)
+                if abs(total - 1.0) > 1e-8:
+                    # Only numerical correction is allowed; never condition on the
+                    # retained branches by dropping the explicit unresolved tail.
+                    correction = max(0.0, 1.0 - (total - rows[-1].outcome_probability))
+                    tail = rows[-1]
+                    rows[-1] = RelationalPrediction(
+                        tail.next_state,
+                        0.0,
+                        source=tail.source,
+                        outcome_probability=min(1.0, correction),
+                    )
+                self.skill_unresolved_rollouts += 1
+                self.skill_unresolved_mass_total += float(
+                    rows[-1].outcome_probability
+                )
+            else:
+                self.skill_complete_rollouts += 1
+        return tuple(rows)
+
+    @staticmethod
+    def _has_unresolved_tail(predictions: tuple[Prediction, ...]) -> bool:
+        return any(
+            str(prediction.source).endswith(_UNRESOLVED_TAIL_SOURCE)
+            for prediction in predictions
         )
 
     def confidence(self, state: StateSnapshot, action: Action) -> float:
@@ -157,7 +222,7 @@ class RelationalStochasticSkillProphecy(CurrentSkillProphecy):
             knowledge=self.knowledge,
             samples=3,
         )
-        if not predictions:
+        if not predictions or self._has_unresolved_tail(predictions):
             return 0.0
         weighted = []
         for prediction in predictions:
@@ -179,7 +244,12 @@ class RelationalStochasticSkillProphecy(CurrentSkillProphecy):
         return {
             **output,
             "stochastic_skill_outcomes": 1,
-            "skill_outcome_beam": "planner_samples",
+            "skill_outcome_beam": "complete-up-to-bounded-tail-safe-limit",
+            "skill_complete_outcome_limit": SKILL_COMPLETE_OUTCOME_LIMIT,
+            "skill_complete_rollouts": self.skill_complete_rollouts,
+            "skill_unresolved_rollouts": self.skill_unresolved_rollouts,
+            "skill_unresolved_mass_total": self.skill_unresolved_mass_total,
+            "skill_unresolved_tail_fail_closed": 1,
             "skill_reliability_outcome_mass_separate": 1,
             "skill_confidence_stochastic": 1,
             "skill_context_path_defined": 1,

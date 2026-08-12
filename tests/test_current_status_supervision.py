@@ -72,6 +72,28 @@ def test_base_world_model_uses_balanced_categorical_status_loss() -> None:
     assert 0.0 <= diagnostics["last_status_training_accuracy"] <= 1.0
 
 
+def test_base_world_model_preserves_complete_learned_ensemble_mass() -> None:
+    before, action, ok, _ = _transition_states()
+    model = StatusAwareRelationalStochasticProphecy(
+        seed=8,
+        device="cpu",
+        config=RelationalProphecyConfig(
+            hidden_units=8,
+            ensemble_size=3,
+            replay_capacity=8,
+            batch_size=1,
+            warmup_steps=1,
+            gradient_steps_per_observation=1,
+        ),
+    )
+    model.learn(before, action, ok)
+    rows = model.predict(before, action, samples=1)
+    assert len(rows) == 3
+    assert sum(float(row.outcome_probability) for row in rows) == pytest.approx(1.0)
+    assert all(float(row.outcome_probability) == pytest.approx(1.0 / 3.0) for row in rows)
+    assert model.diagnostics()["complete_learned_ensemble_mass"] == 1
+
+
 def test_mixture_world_model_uses_balanced_categorical_status_loss() -> None:
     before, action, ok, missing = _transition_states()
     model = StatusAwareConditionalMixtureRelationalProphecy(

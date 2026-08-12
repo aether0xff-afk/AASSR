@@ -14,7 +14,11 @@ from aassr_v2.current_relational_model import (
     RelationalProphecyConfig,
     RelationalStochasticProphecy,
 )
-from aassr_v2.current_relational_skill_prophecy import RelationalStochasticSkillProphecy
+from aassr_v2.current_relational_skill_prophecy import (
+    SKILL_COMPLETE_OUTCOME_LIMIT,
+    RelationalStochasticSkillProphecy,
+)
+from aassr_v2.current_relational_state_v3 import relational_state_key_v3
 from aassr_v2.current_semantic_calibration import (
     SemanticCalibratedProphecy,
     probability_weighted_semantic_score,
@@ -131,6 +135,7 @@ def test_semantic_calibration_preserves_outcome_mass() -> None:
     raw = base.predict(before, action, samples=3)
     calibrated._cache[(
         relational_action_key(before, action),
+        relational_state_key_v3(before),
         0,
         int(base.gradient_updates) // calibrated.refresh_stride,
     )] = 0.5
@@ -222,3 +227,71 @@ def test_stochastic_skill_uses_defined_context_path_and_preserves_mass() -> None
         (row.outcome_probability for row in rows),
         reverse=True,
     ) == pytest.approx((0.7, 0.3))
+
+
+def test_stochastic_skill_exposes_dropped_tail_and_fails_closed() -> None:
+    before, primitive = _state()
+    mode_count = SKILL_COMPLETE_OUTCOME_LIMIT + 6
+    per_mode = 1.0 / mode_count
+
+    class CompleteBase:
+        complete_outcome_distribution = True
+        training_stats = object()
+
+        def predict_with_context(self, state, action, *, knowledge, samples):
+            del action, knowledge, samples
+            return tuple(
+                RelationalPrediction(
+                    state,
+                    0.9,
+                    source=f"mode-{index}",
+                    outcome_probability=per_mode,
+                )
+                for index in range(mode_count)
+            )
+
+        def predict(self, state, action, *, samples):
+            return self.predict_with_context(
+                state,
+                action,
+                knowledge=KnowledgeStore(),
+                samples=samples,
+            )
+
+        def confidence(self, state, action):
+            del state, action
+            return 0.9
+
+        def diagnostics(self):
+            return {}
+
+    class Library:
+        def template_length(self, skill_id):
+            assert skill_id == "skill-tail"
+            return 1
+
+        def resolve_primitive(self, skill_id, index, state):
+            del state
+            assert skill_id == "skill-tail"
+            assert index == 0
+            return primitive
+
+        @staticmethod
+        def augment_state(state):
+            return state
+
+    skill_prophecy = RelationalStochasticSkillProphecy(
+        CompleteBase(),
+        Library(),
+        KnowledgeStore(),
+    )
+    skill_action = Action(SKILL_VERB, target="skill-tail")
+    rows = skill_prophecy.predict(before, skill_action, samples=1)
+
+    assert len(rows) == SKILL_COMPLETE_OUTCOME_LIMIT + 1
+    assert sum(row.outcome_probability for row in rows) == pytest.approx(1.0)
+    tail = rows[-1]
+    assert tail.source.endswith("unresolved-tail")
+    assert tail.outcome_probability == pytest.approx(6.0 / mode_count)
+    assert tail.probability == pytest.approx(0.0)
+    assert skill_prophecy.confidence(before, skill_action) == pytest.approx(0.0)

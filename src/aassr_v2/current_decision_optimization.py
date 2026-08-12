@@ -20,26 +20,31 @@ def _memoized_relational_coverage(
     state: StateSnapshot,
     actions: Iterable[Action],
 ) -> float:
-    """Exact coverage average with repeated relational confidence memoized.
+    """Average confidence once per unique relational action identity.
 
-    Current Neural Delta, calibration, and confidence all use the same relational
-    state/action identity. Concrete seed-renamed actions with the same relational
-    key therefore have exactly the same confidence in one state. We still add one
-    value per original action in original order, preserving the arithmetic shape
-    of the previous average while avoiding repeated holdout scans/model calls.
+    Concrete aliases with the same public relational action are deliberately one
+    model question everywhere else (Prophecy, root dedup, Critic support). Their
+    multiplicity must therefore not become an accidental confidence weight. This
+    makes Imagination eligibility invariant to identifier renaming and to how many
+    equivalent object/route aliases happen to be present on the concrete surface.
     """
 
     materialized = tuple(actions)
     if not materialized:
         return 1.0
     cache: dict[tuple[Any, ...], float] = {}
-    total = 0.0
     for action in materialized:
         key = _coverage_cache_key(state, action)
         if key not in cache:
             cache[key] = float(self.confidence(state, action))
-        total += cache[key]
-    return total / len(materialized)
+    return sum(cache.values()) / len(cache)
+
+
+def _critic_is_reliably_ready(agent: object) -> bool:
+    ready = getattr(agent, "critic_reliably_ready", None)
+    if callable(ready):
+        return bool(ready())
+    return bool(agent.critic_ready)
 
 
 def _fast_core_select_action(
@@ -55,11 +60,12 @@ def _fast_core_select_action(
       disabled -> training_suppressed -> critic_not_ready -> coverage -> eligible.
     Coverage cannot affect the selected real action in the first three cases, so
     evaluating it there is dead work. The eligible path delegates to the original
-    implementation unchanged, where the memoized exact coverage above is used.
+    implementation unchanged, where unique-structural coverage above is used.
     """
 
     opportunity = bool(self.requested_imagination)
-    if opportunity and not (explore and not self.training_imagination) and self.critic_ready:
+    critic_ready = _critic_is_reliably_ready(self)
+    if opportunity and not (explore and not self.training_imagination) and critic_ready:
         return self._current_original_core_select_action(
             state,
             episode=episode,
@@ -91,8 +97,6 @@ def _fast_core_select_action(
             imagination_opportunity=opportunity,
             imagination_eligible=False,
             imagination_gate_reason=reason,
-            # Coverage was provably irrelevant to this decision. Keep a bounded
-            # numeric diagnostic value without paying to compute the unused metric.
             model_coverage=0.0,
         )
     )
@@ -110,4 +114,5 @@ def install_current_decision_optimizations(agent: object) -> object:
     )
     agent._core_select_action = MethodType(_fast_core_select_action, agent)
     agent.current_decision_optimization = True
+    agent.current_structural_coverage = True
     return agent

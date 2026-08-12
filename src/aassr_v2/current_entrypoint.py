@@ -23,6 +23,11 @@ from .current_status_models import (
 from .current_validation import install_current_fast_validation
 
 
+# The repaired 2k diagnostic established this gate threshold. Scaling the training
+# budget must not silently change the intervention criterion at the same time.
+CURRENT_INTERVENTION_MARGIN = 0.05
+
+
 def _enable_current_full_batching(agent: CurrentStandalonePentestAASSRAgent) -> None:
     old = agent.planner
     planner = CurrentFullyBatchedImaginationTree(
@@ -76,6 +81,10 @@ def build_current_pentest_aassr_core(
         train_transitions=int(train_transitions),
         use_imagination=bool(use_imagination),
         device=device,
+    )
+    agent.config = replace(
+        agent.config,
+        imagination_intervention_margin=CURRENT_INTERVENTION_MARGIN,
     )
     _enable_current_full_batching(agent)
     hardware = install_hardware_dqn(
