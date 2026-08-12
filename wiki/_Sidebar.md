@@ -13,6 +13,7 @@
 ### Core Mechanisms
 
 - [Core Architecture](Core-Architecture)
+- [State Representation](State-Representation)
 - [ASEQ](ASEQ)
 - [Policy](Policy)
 - [Knowledge](Knowledge)
