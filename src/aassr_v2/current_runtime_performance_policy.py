@@ -6,33 +6,44 @@ from .current_runtime_performance import (
     _install_indexed_calibration,
     _install_status_mixture_fast_path,
 )
+from .current_runtime_performance_v2 import install_current_runtime_performance_v2
 
 
 def install_current_runtime_performance_device_aware(agent: object) -> object:
     """Install only schedule- and semantics-preserving runtime fast paths.
 
-    O(1) replay indexing and the calibration holdout index remove Python work on
-    both CPU and CUDA. Tensor packing and deferred device synchronization target
-    accelerator transfer latency; on CPU they only add tensor packing/copy
-    overhead, so those changes are enabled on CUDA only.
+    V1 removes replay/calibration Python work and avoidable CUDA synchronizations.
+    V2 keeps independent ensemble parameters/optimizers but fuses CUDA *inference*
+    across the ensemble dimension, and pre-packs Critic sequence tensors once per
+    update instead of rebuilding them at every recurrent step.
     """
 
-    if getattr(agent, "current_runtime_performance", False):
-        return agent
+    if not getattr(agent, "current_runtime_performance", False):
+        install_indexable_current_replays(agent)
+        _install_indexed_calibration(agent.calibrated_prophecy)
+        base = agent.base_neural_prophecy
+        device = getattr(base, "device", None)
+        device_type = str(getattr(device, "type", device or "cpu"))
+        cuda_fast_path = device_type == "cuda"
+        if cuda_fast_path:
+            _install_status_mixture_fast_path(base)
 
-    install_indexable_current_replays(agent)
-    _install_indexed_calibration(agent.calibrated_prophecy)
-    base = agent.base_neural_prophecy
-    device = getattr(base, "device", None)
-    device_type = str(getattr(device, "type", device or "cpu"))
-    cuda_fast_path = device_type == "cuda"
-    if cuda_fast_path:
-        _install_status_mixture_fast_path(base)
+        agent.current_runtime_performance = True
+        agent.current_runtime_performance_contract = PERFORMANCE_CONTRACT
+        agent.current_runtime_performance_device = device_type
+        agent.current_runtime_cuda_fast_path = cuda_fast_path
+        agent.current_runtime_calibration_index = True
+        agent.current_runtime_indexable_replays = True
+    else:
+        device_type = str(
+            getattr(agent, "current_runtime_performance_device", "cpu")
+        )
+        cuda_fast_path = bool(
+            getattr(agent, "current_runtime_cuda_fast_path", device_type == "cuda")
+        )
 
-    agent.current_runtime_performance = True
-    agent.current_runtime_performance_contract = PERFORMANCE_CONTRACT
-    agent.current_runtime_performance_device = device_type
-    agent.current_runtime_cuda_fast_path = cuda_fast_path
-    agent.current_runtime_calibration_index = True
-    agent.current_runtime_indexable_replays = True
+    install_current_runtime_performance_v2(
+        agent,
+        enable_cuda_fusion=cuda_fast_path,
+    )
     return agent
