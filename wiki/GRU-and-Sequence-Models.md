@@ -1,0 +1,459 @@
+# GRU and Sequence Models
+
+AASSR의 current Critic은 **GRU(Gated Recurrent Unit)** 기반 sequence model을 사용한다.
+
+이 페이지는 RNN, hidden state, GRU gate, sequence encoding, zero-memory inference, suffix training을 설명한다.
+
+---
+
+# 1. 왜 sequence model이 필요한가?
+
+현재 state 하나만으로 과거 transition 흐름을 충분히 요약할 수 없는 경우가 있다.
+
+```text
+S0 → S1 → S2 → S3
+```
+
+현재 `S3`의 의미가 그 전에 어떤 경로를 거쳤는지에 따라 달라질 수 있다.
+
+특히 [POMDP](MDP-and-POMDP)에서는 history가 hidden state를 추론하는 데 도움이 된다.
+
+Sequence model은 여러 timestep 정보를 하나의 internal representation으로 압축한다.
+
+---
+
+# 2. Feed-forward network와 Recurrent network
+
+## Feed-forward
+
+```text
+x_t → network → y_t
+```
+
+각 input을 독립적으로 처리한다.
+
+## Recurrent
+
+```text
+x_t + h_{t-1}
+      ↓
+ recurrent network
+      ↓
+ h_t, y_t
+```
+
+이전 hidden state `h_{t-1}`가 현재 계산에 들어간다.
+
+---
+
+# 3. Hidden state
+
+RNN의 hidden state는 과거 sequence 정보를 압축한 내부 벡터다.
+
+```math
+h_t=f(x_t,h_{t-1})
+```
+
+이상적으로는 현재 prediction에 필요한 과거 정보를 `h_t`에 보존한다.
+
+하지만 실제로 어떤 정보를 유지할지는 학습으로 결정된다.
+
+---
+
+# 4. Vanilla RNN의 문제
+
+긴 sequence를 학습할 때 gradient가 너무 작아지거나 커지는 문제가 있다.
+
+- vanishing gradient
+- exploding gradient
+
+이 때문에 오래 전 정보를 학습하기 어려울 수 있다.
+
+LSTM과 GRU는 gating mechanism을 사용해 이 문제를 완화하려는 recurrent architecture다.
+
+---
+
+# 5. GRU
+
+GRU는 대표적으로:
+
+- update gate
+- reset gate
+
+를 사용한다.
+
+일반적인 형태의 한 예:
+
+```math
+z_t=\sigma(W_zx_t+U_zh_{t-1})
+```
+
+```math
+r_t=\sigma(W_rx_t+U_rh_{t-1})
+```
+
+```math
+\tilde h_t=\tanh(W_hx_t+U_h(r_t\odot h_{t-1}))
+```
+
+```math
+h_t=(1-z_t)\odot h_{t-1}+z_t\odot\tilde h_t
+```
+
+구현 convention에 따라 식의 계수 방향은 다를 수 있지만 핵심은 gate가 **과거 정보를 얼마나 유지/갱신할지** 조절한다는 것이다.
+
+---
+
+# 6. Update gate
+
+Update gate는 기존 hidden state와 새 candidate state를 얼마나 섞을지 조절한다.
+
+직관적으로:
+
+```text
+z 작음 → 과거 memory 더 유지
+z 큼   → 새 정보로 더 많이 갱신
+```
+
+정확한 해석은 구현 수식 convention에 따라 달라질 수 있다.
+
+---
+
+# 7. Reset gate
+
+Reset gate는 새 candidate를 계산할 때 과거 hidden state의 어느 부분을 얼마나 사용할지 조절한다.
+
+과거 정보 중 현재 input 처리에 불필요한 부분을 줄일 수 있다.
+
+---
+
+# 8. Sequence encoding
+
+AASSR Critic은 trajectory의 relational transition 정보를 sequence로 받아 hidden representation을 만들고 sparse return을 예측한다.
+
+개념적으로:
+
+```text
+Transition 0
+    ↓
+Transition 1
+    ↓
+Transition 2
+    ↓
+GRU hidden state
+    ↓
+Return prediction
+```
+
+관련 페이지:
+
+- [Critic](Critic)
+
+---
+
+# 9. Sequence length
+
+더 긴 sequence를 주면 더 많은 history를 볼 수 있다.
+
+하지만:
+
+- compute 증가
+- padding/batching 복잡성
+- irrelevant history 가능
+
+이 생긴다.
+
+AASSR에서는 planning root가 episode 중간 어디에서든 나타날 수 있다는 점이 더 중요한 문제다.
+
+---
+
+# 10. Hidden state mismatch
+
+Training에서는 항상 episode 시작부터 GRU를 돌렸다고 하자.
+
+```text
+S0 → S1 → S2 → S3
+h0   h1   h2   h3
+```
+
+그런데 실제 Imagination은 `S2`에서 갑자기 시작한다.
+
+Planner가 과거 recurrent memory `h2`를 가지고 있지 않다면:
+
+```text
+S2 + zero hidden state
+```
+
+로 Critic을 평가하게 된다.
+
+Training과 inference 조건이 다르다.
+
+이를 recurrent-state mismatch라고 볼 수 있다.
+
+---
+
+# 11. Zero-memory inference
+
+Current decision point에서 과거 Critic hidden state를 명시적으로 전달하지 않고:
+
+```text
+h_0 = zeros
+```
+
+에서 current suffix evaluation을 시작할 수 있다.
+
+그렇다면 training도 이 조건을 포함해야 한다.
+
+---
+
+# 12. Decision suffix training
+
+Episode:
+
+```text
+S0 → S1 → S2 → S3 → terminal
+```
+
+에서 다음 training sequences를 만든다.
+
+```text
+[S0,S1,S2,S3]
+[S1,S2,S3]
+[S2,S3]
+[S3]
+```
+
+각 sequence를 **zero hidden state에서 시작**하게 학습한다.
+
+따라서 어느 decision state에서 planning이 시작되더라도 training contract와 더 잘 맞는다.
+
+AASSR current Critic의 중요한 설계다.
+
+---
+
+# 13. Suffix target
+
+각 suffix의 시작점에서 terminal sparse return까지의 discounted return을 target으로 둘 수 있다.
+
+예:
+
+```text
+S2 → S3 → success +1
+```
+
+이면 root `S2`의 target은 discount factor에 따라 `γ` 계열이 된다.
+
+관련 페이지:
+
+- [Value Functions and Bellman Equation](Value-Functions-and-Bellman-Equation)
+- [Critic](Critic)
+
+---
+
+# 14. Prefix training within suffix
+
+한 suffix 안에서도 여러 prefix를 training example로 사용할 수 있다.
+
+```text
+[S1]
+[S1,S2]
+[S1,S2,S3]
+```
+
+Current AASSR Critic은 planning root 관점의 sparse-return target을 sequence prefixes에 학습하도록 설계되어 있다.
+
+이 부분은 일반적인 sequence-to-one regression보다 AASSR planning contract에 맞춘 특수한 학습 구조다.
+
+---
+
+# 15. Padding과 batching
+
+Batch 안의 sequence 길이가 다르면 shorter sequence에 padding을 넣을 수 있다.
+
+```text
+seq A: x1 x2 x3 x4
+seq B: y1 y2 PAD PAD
+```
+
+실제 model은 sequence length/mask를 이용해 padding이 hidden update에 의미 있는 data처럼 들어가지 않도록 해야 한다.
+
+AASSR current hardware path는 Critic의 많은 branch evaluation을 batch 처리해 GPU 효율을 높인다.
+
+---
+
+# 16. Batched inference
+
+Imagination tree에서는 여러 branch Critic score가 한꺼번에 필요하다.
+
+Scalar 호출:
+
+```text
+branch 1 → GPU
+branch 2 → GPU
+branch 3 → GPU
+...
+```
+
+보다:
+
+```text
+[branch1, branch2, branch3, ...]
+            ↓ one batch
+           GPU
+```
+
+가 효율적이다.
+
+이 최적화는 Critic value semantics를 바꾸지 않고 execution overhead를 줄이는 목적이다.
+
+---
+
+# 17. GRU와 Partial Observability
+
+Recurrent network는 past observation history를 hidden state에 압축하여 POMDP에서 도움이 될 수 있다.
+
+하지만:
+
+```text
+GRU 사용
+!=
+POMDP 완전 해결
+```
+
+이다.
+
+필요한 hidden information이 observation history에 전혀 나타나지 않거나 training이 충분하지 않으면 복원할 수 없다.
+
+---
+
+# 18. GRU와 relational representation
+
+AASSR Critic의 input은 concrete identifiers보다 relational transition features를 사용한다.
+
+따라서 recurrent memory도:
+
+```text
+route-12라는 이름
+```
+
+보다는:
+
+```text
+어떤 관계 구조의 transition sequence였는가
+```
+
+를 학습하도록 유도된다.
+
+관련 페이지:
+
+- [Relational Representation and Generalization](Relational-Representation-and-Generalization)
+
+---
+
+# 19. GRU와 Prophecy의 차이
+
+과거 AASSR에는 GRU 기반 Prophecy 계열도 있었지만 current-generation의 active Prophecy는 relational stochastic mixture 구조로 발전했다.
+
+현재 GRU를 보면 무조건 Prophecy라고 생각하면 안 된다.
+
+```text
+Current Prophecy
+→ stochastic relational world model
+
+Current Critic
+→ relational GRU sparse-return model
+```
+
+source of truth는 `current_manifest.py`다.
+
+---
+
+# 20. Gradient clipping
+
+Recurrent model은 exploding gradient 위험이 있을 수 있어 gradient norm clipping을 사용할 수 있다.
+
+개념:
+
+```text
+gradient norm이 threshold 초과
+→ 크기 제한
+```
+
+AASSR Critic training에서도 안정성을 위해 clipping을 사용할 수 있다.
+
+---
+
+# 21. Hidden state는 Knowledge인가?
+
+아니다.
+
+```text
+GRU hidden state
+= neural latent sequence memory
+
+KnowledgeStore
+= explicit real-response fact + provenance
+```
+
+둘은 역할과 해석 가능성이 다르다.
+
+Knowledge는 어떤 사실을 언제 알았는지 명시적으로 추적할 수 있다.
+
+GRU hidden state는 학습된 latent vector라 직접 의미를 해석하기 어렵다.
+
+관련 페이지:
+
+- [Knowledge](Knowledge)
+
+---
+
+# 22. Failure modes
+
+## Training/inference hidden-state mismatch
+
+Episode-start hidden state로만 학습했는데 mid-episode zero-memory에서 평가.
+
+## Sequence truncation
+
+중요한 오래 전 history가 sequence에서 잘림.
+
+## Overfitting
+
+특정 training trajectory pattern을 암기.
+
+## OOD sequence
+
+새 relational transition combination에서 잘못된 return 예측.
+
+관련 페이지:
+
+- [Critic, Support and OOD](Critic-Support-and-OOD)
+
+---
+
+# 23. AASSR 연결 요약
+
+```text
+Real episode transitions
+       ↓
+모든 decision suffix 생성
+       ↓
+각 suffix를 zero hidden state에서 시작
+       ↓
+Relational GRU Critic training
+       ↓
+Imagination branch sequence 평가
+       ↓
+Local support gate
+```
+
+---
+
+# 24. 다음으로 읽기
+
+- [Critic](Critic)
+- [Critic, Support and OOD](Critic-Support-and-OOD)
+- [MDP and POMDP](MDP-and-POMDP)
+- [Value Functions and Bellman Equation](Value-Functions-and-Bellman-Equation)
+
+관련 색인: **[Concept Index](Concept-Index)**
