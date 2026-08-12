@@ -163,6 +163,44 @@ def install_critic_support_gate(
     previous_select = agent._core_select_action
     threshold = max(0.0, min(1.0, float(threshold)))
 
+    def reconcile_recorded_block(
+        self_agent: object,
+        decision: object,
+        reason: str,
+    ) -> None:
+        """Rewrite pre-support diagnostics to describe the final executed action.
+
+        The confidence gate records its decision before this outer support gate is
+        applied. If Critic support subsequently cancels an override, leaving the
+        earlier counters untouched makes a suppressed candidate look like a real
+        intervention. Reconcile only the already-recorded current-agent counters;
+        switch-candidate/run/opportunity counts remain valid.
+        """
+        diagnostics = getattr(self_agent, "_imagination_diagnostics", None)
+        if diagnostics is None:
+            return
+
+        old_gate = f"gate:{getattr(decision, 'imagination_gate_reason', '')}"
+        if int(diagnostics.get(old_gate, 0)) <= 0:
+            return
+
+        if bool(getattr(decision, "imagination_intervention_allowed", False)):
+            diagnostics["interventions"] = max(
+                0,
+                int(diagnostics.get("interventions", 0)) - 1,
+            )
+        if bool(getattr(decision, "imagination_changed_action", False)):
+            diagnostics["changed_actions"] = max(
+                0,
+                int(diagnostics.get("changed_actions", 0)) - 1,
+            )
+        if bool(getattr(decision, "imagination_switch_candidate", False)):
+            diagnostics["suppressed_switches"] += 1
+
+        diagnostics[old_gate] -= 1
+        diagnostics[f"gate:{reason}"] += 1
+        counters["reconciled_pre_support_interventions"] += 1
+
     def support_gated_select(
         self_agent: object,
         state: StateSnapshot,
@@ -203,6 +241,7 @@ def install_critic_support_gate(
             counters["supported_interventions"] += 1
             return decision
 
+        reconcile_recorded_block(self_agent, decision, reason)
         return replace(
             decision,
             action=policy_action,
@@ -239,6 +278,7 @@ def install_critic_support_gate(
                 "status_aware_semantic_calibration": True,
                 "critic_local_support_gate": True,
                 "critic_support_is_gate_not_value": True,
+                "intervention_counters_are_post_support": True,
             }
         )
         output["current_repairs"] = repairs
