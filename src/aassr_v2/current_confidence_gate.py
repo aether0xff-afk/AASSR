@@ -14,10 +14,10 @@ from .types import Action, StateSnapshot
 class ConfidenceIndependentCriticEncoder:
     """Keep the current Critic input shape while removing confidence as a value feature.
 
-    Historical/current checkpoints expect the final scalar slot to exist.  The
+    Historical/current checkpoints expect the final scalar slot to exist. The
     current relational Critic used that slot for Prophecy confidence, which lets
     confidence influence branch value in addition to the planner's uncertainty
-    penalty.  Replace only that input with a constant so the network shape and
+    penalty. Replace only that input with a constant so the network shape and
     batched hardware path stay compatible while confidence can no longer rank
     branches through the Critic.
     """
@@ -82,6 +82,13 @@ def _choose_best(agent: object, state: StateSnapshot, evaluations: Iterable[Any]
     )
 
 
+def _critic_is_reliably_ready(agent: object) -> bool:
+    ready = getattr(agent, "critic_reliably_ready", None)
+    if callable(ready):
+        return bool(ready())
+    return bool(agent.critic_ready)
+
+
 def _confidence_gated_core_select_action(
     self: object,
     state: StateSnapshot,
@@ -115,7 +122,7 @@ def _confidence_gated_core_select_action(
         reason = "disabled"
     elif explore and not self.training_imagination:
         reason = "training_suppressed"
-    elif not self.critic_ready:
+    elif not _critic_is_reliably_ready(self):
         reason = "critic_not_ready"
     elif coverage < self.config.imagination_minimum_coverage:
         reason = "coverage"
@@ -270,7 +277,7 @@ def _confidence_gated_core_select_action(
         and confidences.get(raw_preferred.action.signature, 0.0) < minimum_confidence
     ):
         # A low-confidence raw winner was explicitly removed before Critic-only
-        # comparison.  Keep this visible in diagnostics without executing it.
+        # comparison. Keep this visible in diagnostics without executing it.
         intervention_reason = "candidate_prediction_low_confidence"
     else:
         intervention_reason = "policy_agreement"
@@ -316,7 +323,7 @@ def install_current_confidence_gate(agent: object) -> object:
     )
     agent.core.planner = agent.planner
 
-    # The old coverage-dependent extra margin is intentionally retired.  Keep the
+    # The old coverage-dependent extra margin is intentionally retired. Keep the
     # config field for artifact compatibility but freeze its active value at zero.
     agent.config = replace(
         agent.config,
