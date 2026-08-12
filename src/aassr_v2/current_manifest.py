@@ -2,11 +2,15 @@ from __future__ import annotations
 
 from typing import Mapping
 
+from .current_core_manifest import CURRENT_CORE_COMPONENTS, CURRENT_CORE_VERSION
+
 
 CURRENT_GENERATION_VERSION = "aassr-current-generation-v3-pre10k-audited"
 
-# Sole source of truth for the active post-v0.4 runtime. Historical modules stay
-# importable for reproduction, but current builders/runners must use this stack.
+# Sole compatibility source of truth for the active post-v0.4 assembled runtime.
+# This mixed mapping is retained for existing checkpoints/tests. New architecture
+# code should use CURRENT_CORE_COMPONENTS plus the active runtime plugin manifest
+# instead of treating environment-specific bindings as universal AASSR features.
 CURRENT_COMPONENTS: Mapping[str, str] = {
     "builder": "build_current_pentest_aassr_core",
     "observation": "response-causal-relational-public-state-v3+latest-http-status",
@@ -78,4 +82,25 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
     "exploration_scaling_contract": "budget-normalized-explicitly-reported",
 }
 
+# New source of truth for the architectural boundary. The plugin module owns its
+# own detailed component mapping to avoid pulling environment-specific imports
+# into the lightweight core manifest and creating a circular dependency.
+CURRENT_RUNTIME_ASSEMBLY: Mapping[str, str] = {
+    "core_version": CURRENT_CORE_VERSION,
+    "core_manifest": "aassr_v2.current_core_manifest.CURRENT_CORE_COMPONENTS",
+    "plugin_id": "pentest-http-current-v1",
+    "plugin_version": "pentest-http-plugin-v1",
+    "plugin_manifest": "aassr_v2.plugins.current_pentest.PENTEST_PLUGIN_COMPONENTS",
+    "assembler": "aassr_v2.current_entrypoint.build_current_pentest_aassr_core",
+}
+
 LEGACY_COMPONENTS_ACTIVE: tuple[str, ...] = ()
+
+__all__ = (
+    "CURRENT_COMPONENTS",
+    "CURRENT_CORE_COMPONENTS",
+    "CURRENT_CORE_VERSION",
+    "CURRENT_GENERATION_VERSION",
+    "CURRENT_RUNTIME_ASSEMBLY",
+    "LEGACY_COMPONENTS_ACTIVE",
+)
