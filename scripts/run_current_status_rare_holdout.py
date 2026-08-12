@@ -29,7 +29,7 @@ from aassr_v2.pentest_transfer_stages import (
 from aassr_v2.types import Action, StateSnapshot
 
 
-DIAGNOSTIC_VERSION = "generic-rare-public-status-holdout-v1"
+DIAGNOSTIC_VERSION = "generic-rare-public-status-holdout-v2-broad-coverage"
 
 
 @dataclass(frozen=True, slots=True)
@@ -206,10 +206,10 @@ def _aggregate_group(
 def run_diagnostic(
     *,
     research_seed: int = 7,
-    train_seed_count: int = 8,
-    holdout_seed_count: int = 4,
-    stage_indices: Sequence[int] = (0, 1, 2, 3),
-    steps_per_episode: int = 24,
+    train_seed_count: int = len(TRANSFER_TRAIN_SEEDS),
+    holdout_seed_count: int = len(TRANSFER_DIAGNOSTIC_SEEDS),
+    stage_indices: Sequence[int] = tuple(range(8)),
+    steps_per_episode: int = 48,
     samples: int = 3,
     device: str = "cpu",
 ) -> dict[str, Any]:
@@ -249,7 +249,7 @@ def run_diagnostic(
             hidden_units=48,
             ensemble_size=2,
             mixture_components=3,
-            replay_capacity=max(2048, len(train_rows) + 1),
+            replay_capacity=max(8192, len(train_rows) + 1),
             batch_size=32,
             warmup_steps=64,
             gradient_steps_per_observation=1,
@@ -310,9 +310,9 @@ def main() -> None:
     )
     parser.add_argument("--output", default="runs/current_status_rare_holdout.json")
     parser.add_argument("--research-seed", type=int, default=7)
-    parser.add_argument("--train-seed-count", type=int, default=8)
-    parser.add_argument("--holdout-seed-count", type=int, default=4)
-    parser.add_argument("--steps-per-episode", type=int, default=24)
+    parser.add_argument("--train-seed-count", type=int, default=len(TRANSFER_TRAIN_SEEDS))
+    parser.add_argument("--holdout-seed-count", type=int, default=len(TRANSFER_DIAGNOSTIC_SEEDS))
+    parser.add_argument("--steps-per-episode", type=int, default=48)
     parser.add_argument("--samples", type=int, default=3)
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args()
