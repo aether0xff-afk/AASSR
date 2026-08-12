@@ -8,13 +8,19 @@
 - [Sparse Reward Problem](Sparse-Reward-Problem)
 - [Research Questions](Research-Questions)
 - [Research Architecture](Research-Architecture)
+- [Design Rationale](Design-Rationale)
 
 ### Core Mechanisms
 
 - [Core Architecture](Core-Architecture)
 - [ASEQ](ASEQ)
+- [Policy](Policy)
+- [Knowledge](Knowledge)
 - [Prophecy](Prophecy)
+- [Calibration](Calibration)
+- [Critic](Critic)
 - [Imagination](Imagination)
+- [Skills](Skills)
 
 ### Evaluation
 
