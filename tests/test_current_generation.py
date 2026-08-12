@@ -21,7 +21,6 @@ from aassr_v2.current_manifest import (
     LEGACY_COMPONENTS_ACTIVE,
 )
 from aassr_v2.current_planner import CurrentFullyBatchedImaginationTree
-from aassr_v2.current_relational_model import RelationalStochasticProphecy
 from aassr_v2.current_relational_skill_prophecy import RelationalStochasticSkillProphecy
 from aassr_v2.current_return_critic import (
     ReturnAwareHardwareRelationalGRUBranchCritic,
@@ -29,6 +28,9 @@ from aassr_v2.current_return_critic import (
 from aassr_v2.current_semantic_calibration import (
     RelationalDepthBatchedProphecyView,
     SemanticCalibratedProphecy,
+)
+from aassr_v2.current_status_models import (
+    StatusAwareConditionalMixtureRelationalProphecy,
 )
 from aassr_v2.goals import GoalStateScorer
 from aassr_v2.gru_prophecy import OnlineGRUProphecy
@@ -88,8 +90,11 @@ def test_current_manifest_has_no_active_legacy_components() -> None:
     assert CURRENT_GENERATION_VERSION == "aassr-current-generation-v2"
     assert LEGACY_COMPONENTS_ACTIVE == ()
     assert CURRENT_COMPONENTS["policy"].startswith("relational-invariant-dqn")
-    assert CURRENT_COMPONENTS["prophecy"].startswith("relational-stochastic-world-model")
+    assert CURRENT_COMPONENTS["prophecy"].startswith(
+        "relational-conditional-mixture-ensemble"
+    )
     assert "relational-descriptor" in CURRENT_COMPONENTS["prophecy_output"]
+    assert "mixture" in CURRENT_COMPONENTS["prophecy_output"]
     assert CURRENT_COMPONENTS["critic"].startswith(
         "relational-gru-discounted-sparse-return"
     )
@@ -134,7 +139,10 @@ def test_public_current_builder_constructs_repaired_current_runtime() -> None:
 
     assert isinstance(agent.policy, CurrentRelationalPolicy)
     assert isinstance(agent.dqn, RelationalInvariantDQN)
-    assert isinstance(agent.base_neural_prophecy, RelationalStochasticProphecy)
+    assert isinstance(
+        agent.base_neural_prophecy,
+        StatusAwareConditionalMixtureRelationalProphecy,
+    )
     assert isinstance(agent.calibrated_prophecy, SemanticCalibratedProphecy)
     assert isinstance(agent.skill_prophecy, RelationalStochasticSkillProphecy)
     assert isinstance(agent.critic, ReturnAwareHardwareRelationalGRUBranchCritic)
@@ -161,6 +169,8 @@ def test_public_current_builder_constructs_repaired_current_runtime() -> None:
     assert diagnostics["prophecy_action_input_relational"] is True
     assert diagnostics["legacy_components_active"] == []
     assert diagnostics["current_components"] == dict(CURRENT_COMPONENTS)
+    assert diagnostics["prophecy_current"]["conditional_mixture_components"] == 3
+    assert diagnostics["prophecy_current"]["status_supervision"] == 1
     repairs = diagnostics["current_repairs"]
     assert repairs["relational_input_output_contract"] is True
     assert repairs["relational_imagination_state_key"] is True
