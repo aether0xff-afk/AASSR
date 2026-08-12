@@ -1,313 +1,373 @@
-# AASSR v2 — 0.4.0
+# AASSR
 
-AASSR is a research architecture for sparse-reward autonomous agents that separates **Policy**, **Prophecy**, and **Imagination**, while keeping explicit transition knowledge and intervention traces.
+AASSR은 **희소 보상(sparse reward)** 환경에서 자율적으로 문제를 해결하는 에이전트를 연구하기 위한 강화학습 아키텍처입니다.
 
-Package/research milestone: **0.4.0**  
-Architecture generation: **AASSR v2**
+현재 `main` 브랜치는 과거 v0.4 통합본이 아니라, 최근 CUDA 실험과 검증에 사용된 **current-generation AASSR**를 기준으로 합니다.
 
-> 0.4.0 restores one canonical full-agent closed loop and incorporates the audited semantic ASEQ / response-causal observation work. It does **not** claim that high-level transfer is solved or that the newly integrated full AASSR already outperforms DQN.
+> 이 저장소에는 과거 실험과 이전 세대 구현도 재현성을 위해 남아 있습니다.  
+> **현행 모델은 README의 버전 문자열이나 옛 실험 파일명이 아니라 `current_manifest.py`와 `current_entrypoint.py`를 기준으로 판단합니다.**
 
-## Canonical 0.4 architecture
+## 현재 연구 질문
+
+AASSR이 풀고자 하는 핵심 질문은 다음과 같습니다.
+
+> **정답 행동이나 중간 보상을 직접 주기 어려운 환경에서, 에이전트가 실제 경험으로 환경을 이해하고 미래를 예측하여 더 복잡한 문제로 일반화할 수 있는가?**
+
+현재 연구에서는 특히 다음을 봅니다.
+
+- 희소한 최종 보상만으로 자율 학습이 가능한가?
+- 낮은 난도에서 배운 전략이 더 높은 난도로 전이되는가?
+- Prophecy가 실제 환경의 다음 상태와 위험을 충분히 일반화하는가?
+- Imagination이 Policy보다 더 좋은 행동을 **안전하게** 선택할 수 있는가?
+- 성능 향상이 task-specific 인간 규칙이 아니라 일반적인 학습 메커니즘에서 나오는가?
+
+## 현행 구조
+
+현재 pentest 연구 경로의 canonical builder는 하나입니다.
+
+```python
+from aassr_v2.current_entrypoint import build_current_pentest_aassr_core
+
+agent = build_current_pentest_aassr_core(
+    seed=7,
+    train_transitions=10_000,
+    use_imagination=True,
+    device="cuda",
+)
+```
+
+전체 흐름은 대략 다음과 같습니다.
 
 ```text
-observable StateSnapshot
-        |
-        v
-shared semantic-state contract
-        |
-        +----> empirical ASEQ (S,A,S') memory
-        |
-        v
-Policy + learned Skill candidates
-        |
-        v
-Prophecy + transition-effect composition + Imagination
-        |
-        v
-real primitive transition(s)
-        |
-        +----> Knowledge Store with trace provenance
-        +----> Prophecy/effect learning
-        +----> feature memory
-        +----> information-value learning
-        +----> GOAL completion
-        +----> repeated successful ASeq -> Skill promotion
-        |
-        v
-terminal external return
-        |
-        v
-delayed semantic-Policy credit
-        |
-        v
-next real state / next episode
+실제 공개 관측
+    │
+    ▼
+Relational State v3
+    │
+    ├──────────────► Policy (DQN)
+    │                    │
+    │                    ▼
+    │                기본 행동 후보
+    │
+    └──────────────► Prophecy
+                         │
+                         ▼
+                  가능한 미래 예측
+                         │
+                         ▼
+                    Imagination
+                         │
+                    Critic 평가
+                         │
+              Confidence / OOD gate
+                         │
+              ┌──────────┴──────────┐
+              │                     │
+       충분히 신뢰 가능        불확실 / OOD
+              │                     │
+              ▼                     ▼
+       행동 변경 가능          Policy 행동 유지
+              │                     │
+              └──────────┬──────────┘
+                         ▼
+                    실제 환경 실행
+                         │
+                         ▼
+                  실제 transition 학습
 ```
-
-The integration is implemented by `IntegratedAASSRAgent`.
-
-```python
-from aassr_v2 import build_full_aassr_core
-
-agent = build_full_aassr_core(prophecy, seed=7)
-```
-
-For the audited in-process pentest environment:
-
-```python
-from aassr_v2 import build_pentest_aassr_core
-
-agent = build_pentest_aassr_core(prophecy, seed=7)
-```
-
-`build_pentest_aassr_core()` requires the current `response_causal_observation_v3` contract and rejects older privileged snapshots.
-
-Detailed design: [`docs/aassr_v040_architecture.md`](docs/aassr_v040_architecture.md).
-
-## What is integrated in 0.4.0
-
-### Shared semantic state
-
-Policy lookup, ASEQ self-loop memory, and Imagination repeated-state detection can use the **same state-equivalence function**.
-
-For generic environments the default remains a backward-compatible vector + observable-facts key. The audited pentest factory instead uses the observation-derived `semantic_fingerprint()` so administrative request/audit/session noise does not create fake problem-solving states.
-
-### ASEQ
-
-ASEQ is the empirical transition tuple `(S, A, S')`.
-
-The 0.4 guard is intentionally narrow:
-
-- observe real transitions first,
-- guard an action only after the same semantic `S -> A -> S` self-loop has occurred at least twice,
-- never suppress a repeated state-changing `S -> A -> S'` merely because it repeats,
-- if the same `(S,A)` has produced multiple semantic outcomes, do not classify it as an exact self-loop,
-- if every available action would be guarded, restore the raw action set.
-
-ASEQ therefore prevents the measured no-progress loop without turning repetition in general into a forbidden behavior.
 
 ### Policy
 
-`SemanticContextualPolicy` learns state-conditioned action values using the shared semantic state contract. The integrated runtime owns delayed Policy credit so a real transition is not learned independently through multiple historical loops.
+현재 Policy는 **relational-invariant DQN**을 사용합니다. 구체적인 route/profile/object ID 자체보다 구조적 역할과 공개된 상태 정보를 사용하도록 설계되어 있습니다.
 
 ### Prophecy
 
-The integrated agent accepts existing Prophecy implementations. It preserves:
+현재 Prophecy는 **status-balanced conditional-mixture relational world model**입니다.
 
-- real-transition learning,
-- optional recurrent prediction,
-- transition-effect composition,
-- holdout evaluation,
-- optional Knowledge-aware `predict_with_context()` behavior.
+주요 특징:
 
-The planner-facing Prophecy is bound to the live `KnowledgeStore`, so explicit learned knowledge is available during Imagination instead of being merely logged after execution.
+- relational public state v3 사용
+- 최신 공개 HTTP status 보존
+- 여러 가능한 미래를 하나의 평균 상태로 뭉개지 않는 mixture 구조
+- 희귀 public status가 데이터 불균형 때문에 사라지지 않도록 frequency-balanced categorical objective 사용
+- 특정 `403`, `404`, `429`에 대한 수동 규칙은 없음
 
 ### Imagination
 
-AASSR retains counterfactual multi-step planning. Branches use Prophecy predictions, branch-local memory, confidence pruning, beam pruning, and configurable aggregation.
+Prophecy가 예측한 미래를 여러 단계 탐색하여 Policy 행동보다 나은 후보가 있는지 비교합니다.
 
-In 0.4 the planner's repeated-state identity is aligned with the same semantic contract used by real ASEQ and Policy lookup.
+하지만 Imagination이 항상 Policy를 덮어쓰는 것은 아닙니다. 현재는 다음 두 안전장치를 모두 통과해야 실제 행동이 바뀝니다.
 
-The default integrated scorer contains only the terminal external GOAL. A learned critic can be supplied explicitly; audited pentest does not reintroduce hidden progress or privileged resource-distance hints.
+- 예측 신뢰도(confidence) gate
+- 실제 training support 기반 Critic OOD gate
 
-### Knowledge Store
+따라서 학습하지 않은 영역에서는 **fail-closed**, 즉 기존 Policy 행동을 유지합니다.
 
-Real added/removed facts are stored with trace provenance and unlocked-action signatures.
+### Critic
 
-Generic AASSR can preserve this knowledge across episodes. The pentest constructor makes Knowledge episode-local because opaque route/profile/object identifiers are regenerated across scenario seeds; model parameters and learned general mechanisms still persist normally.
+Critic은 실제 희소 반환 `{-1, 0, +1}`을 기준으로 미래 행동의 값을 평가합니다.
 
-### Feature memory
+Critic support는 추가 보상이나 정답 힌트가 아니라, **현재 판단이 실제 학습 데이터 범위 안에 있는지 확인하는 신뢰성 gate**로만 사용합니다.
 
-`OnlineFeatureMemory` records observed information and identifier components and learns action-slot usefulness from delayed real outcome credit. It does not inject a correct value or delete candidates through a hand-written solution rule.
+### ASEQ
 
-### GOAL
+ASEQ는 실제 transition `(S, A, S')`을 이용합니다.
 
-The default integrated GOAL is terminal success (`goal_progress == 1`). Callers may provide additional state-gap or knowledge goals without supplying an action demonstration.
-
-GOAL score is an internal planning value, not an environment reward.
-
-### Skill
-
-When a real trajectory newly completes a GOAL, the existing `SkillLibrary` observes the real ASeq fragment. Repeated successful sequences may be promoted to a Skill.
-
-A Skill appears as one candidate to Policy/Imagination, but reality still executes its primitive actions one by one. A failed primitive lowers Skill reliability and returns control to primitive behavior.
-
-### Information value and delayed credit
-
-`AdvancedTransitionEvaluator` separates:
-
-- Knowledge-context effects,
-- Prophecy parameter learning,
-- holdout prediction gain,
-- unlocked-action value,
-- repetition/error signals,
-- final delayed outcome credit.
-
-The integrated runtime uses learned information value only as an **internal Policy-credit signal**. It never rewrites the environment's external reward.
-
-## Learning ownership
-
-A naive integration could train the same transition twice: once through the historical autonomous loop and once through `AdvancedTransitionEvaluator`.
-
-0.4.0 explicitly prevents that.
+현재 반복 억제는 매우 좁게 적용됩니다.
 
 ```text
-real primitive transition
-        |
-        v
-AdvancedTransitionEvaluator
-        |
-        +--> Knowledge update
-        +--> Prophecy/effect update
-        +--> information-value features
-        |
-        v
-episode terminal return
-        |
-        v
-delayed credit
-        |
-        v
-SemanticContextualPolicy
+S → A → S
 ```
 
-Inside `IntegratedAASSRAgent`, the older autonomous Policy/Prophecy update path is disabled. Regression tests verify that one real transition produces one base-Prophecy learning call.
+처럼 **실제로 상태가 변하지 않는 동일 semantic self-loop가 반복되는 경우만** 억제합니다.
 
-## Audited pentest environment
+`S → A → S'`, `S' != S`처럼 상태가 실제로 바뀌는 반복 행동은 막지 않습니다.
 
-AASSR includes a **safe in-process HTTP-shaped assessment environment**. It does not open real network sockets or execute shell commands.
+## 관측과 인간 개입 원칙
 
-The audited observation contract is `response_causal_observation_v3`.
+현재 실험에서는 다음과 같은 hidden 정보가 learner에게 들어가지 않도록 유지합니다.
 
-It removes or masks:
+- hidden curriculum level
+- hidden workflow depth
+- exact hidden session countdown
+- hidden audit / lockout distance
+- hidden rate-limit distance
+- 정답 route/profile/object
 
-- hidden curriculum level,
-- hidden workflow depth,
-- exact session countdown,
-- hidden audit/lockout distance,
-- hidden rate-limit distance,
-- transient novelty hints,
-- duplicate own/target role randomization,
-- out-of-band next-step candidate unlocks.
+또한 다음과 같은 task-specific 개입은 사용하지 않습니다.
 
-Candidate routes/profiles/objects are exposed through simulated response evidence rather than through hidden world truth.
+- `403이면 이 행동을 피하라` 같은 규칙
+- 성공 trajectory 주입
+- 정답 action 주입
+- 특정 실패 status에 대한 shaping reward
+- evaluation 정답을 이용한 action filtering
 
-The transfer curriculum and the separately accepted HTTP benchmark are intentionally distinct:
+학습 보상은 기본적으로 다음 외부 sparse return을 사용합니다.
 
 ```text
-Transfer curriculum
-= training / mechanism diagnosis / factor boundary study
-
-Accepted HTTP benchmark
-= evaluation environment
+성공          +1
+실제 실패     -1
+stall/truncation/rate-limit  0
 ```
 
-The historical transfer-stage name `full_benchmark` is retained for compatibility but is **not** byte-for-byte equivalence to the accepted HTTP benchmark.
+## 현재 실험 프로토콜
 
-## 0.4.0 ASEQ development evidence
+AASSR의 **Policy-only(no-Imagination)**와 **Full Imagination** 비교는 동일한 학습 checkpoint를 사용합니다.
 
-The frozen predeclared 2x2 used three research seeds (`7`, `42`, `100`) and `10,000` real training transitions per cell.
+```text
+한 번 학습
+   │
+   ▼
+frozen checkpoint
+   ├────────► no-Imagination 평가
+   └────────► Full Imagination 평가
+```
 
-| condition | success | stalled |
-|---|---:|---:|
-| `original` | 16/216 | 162/216 |
-| `original_plus_aseq` | 45/216 | 9/216 |
-| `learning_fix` | 7/216 | 166/216 |
-| `learning_fix_plus_aseq` | 31/216 | 12/216 |
+평가 중에는 학습 파라미터를 변경하지 않습니다.
 
-Across both learning backgrounds:
+또한 training 중 Imagination은 이 same-checkpoint 비교의 공정성을 위해 비활성화되어 있습니다.
 
-- without ASEQ: `23/432 = 5.3%` success, `328/432 = 75.9%` stalled,
-- with ASEQ: `76/432 = 17.6%` success, `21/432 = 4.9%` stalled.
+## 최근 축소 진단 결과
 
-This supports the narrow semantic self-loop mechanism. It does **not** establish full-AASSR performance, and it does not justify suppressing arbitrary repeated transitions.
+최근 2,048 real-transition CUDA 실험은 **최종 성능 실험이 아니라 병목 진단용 reduced run**입니다.
 
-The development diagnostic remained at zero success from L4 upward, so high-level transfer is still an open research problem.
+관측된 핵심 결과:
 
-Release evidence and interpretation: [`docs/releases/v0.4.0.md`](docs/releases/v0.4.0.md).
+- training success: `32`
+- L0뿐 아니라 L1에서도 training success 발생
+- frozen evaluation:
+  - no-Imagination: `8 / 20`
+  - Full: `8 / 20`
+- L0: `4 / 4` 성공
+- L1: `4 / 4` 성공
+- L2: `4 / 4` true failure
+- 최종 실제 Imagination intervention: `0`
 
-## Environment limitations that remain explicit
+중요한 점은 2k training 동안 에이전트가 **L2 training transition을 경험하지 못했다는 것**입니다.
 
-The current transfer curriculum is useful for factor diagnosis, but not every level should be interpreted as a realistic dependency graph.
+따라서 현재 병목은 단순히 “Prophecy가 특정 HTTP status를 표현하지 못한다”라기보다,
 
-In particular, the current workflow-depth level repeats one workflow action while progress changes. It is a repetition/depth stressor, not yet a chain of distinct prerequisites such as `A -> B -> C -> D`.
+> **작은 transition budget에서 다음 frontier의 경험 자체가 충분하지 않아 Policy, Prophecy, Critic이 동시에 OOD가 되는 문제**
 
-That distinction is intentionally documented rather than hidden behind the word “complexity”.
+에 더 가깝습니다.
 
-## Research direction after 0.4.0
+별도의 넓은 real-transition holdout에서는 희귀 status도 충분한 실제 training support가 있을 때 학습 가능한 것을 확인했습니다.
 
-The next full-system work is **not another ASEQ tuning pass**. The main targets are:
+따라서 다음 큰 실험에서는 curriculum 규칙을 먼저 바꾸지 않고, **현재 알고리즘을 그대로 고정한 채 transition budget만 증가**시켜 frontier가 자연스럽게 이동하는지 확인합니다.
 
-1. retrain the integrated full AASSR against the audited observation contract,
-2. revalidate Prophecy one-step and multi-step structural accuracy,
-3. use learned/calibrated branch value rather than hidden handcrafted progress,
-4. test whether Knowledge/effect reuse improves transfer across opaque scenarios,
-5. add a true multi-prerequisite dependency environment,
-6. compare integrated Policy-only vs Prophecy+Imagination from the same learned checkpoint,
-7. only after methodology freeze, consume the separately blinded final evaluation seeds.
+## 현재 실험 실행
 
-Environment Familiarization / Solve separation remains a research direction, not a 0.4 performance claim.
+### 설치
 
-## Other environments and adapters
-
-The repository also retains:
-
-- `SandboxEnv` for generic observe/break/place/combine behavior,
-- Grid/Escape research environments,
-- dry-run Minecraft control interfaces,
-- allowlisted authorized-assessment interfaces,
-- counterexample worlds for randomness, irrelevant information, opaque names, and long dependencies.
-
-Historical runners remain available for reproducing prior experiments. They are not all canonical 0.4 full-agent entry points.
-
-## Reproducibility and paper runners
-
-Paper-oriented P0–P5 reproduction remains documented separately:
-
-- [`docs/paper_experiment_quickstart.md`](docs/paper_experiment_quickstart.md)
-- [`docs/paper_protocol_implementation_status.md`](docs/paper_protocol_implementation_status.md)
-
-The 0.4 integration does not rewrite frozen historical experiment evidence.
-
-## Development
-
-Install development dependencies:
+개발 환경:
 
 ```bash
 python -m pip install -e ".[dev]"
 ```
 
-Compile and test:
+CUDA 경로까지 사용할 경우:
+
+```bash
+python -m pip install -e ".[dev,gpu]"
+```
+
+CUDA 확인:
+
+```bash
+python -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
+```
+
+### Canonical current-generation 실험
+
+```bash
+python scripts/run_pentest_current_generation_main.py \
+  --output-dir runs/current_generation/seed-7 \
+  --research-seed 7 \
+  --transition-budget 10000 \
+  --block-target 512 \
+  --device cuda
+```
+
+이 runner는 다음 조건을 실행합니다.
+
+1. Raw DQN
+2. Relational DQN
+3. Current AASSR 학습
+4. 동일 frozen AASSR checkpoint의 no-Imagination 평가
+5. 동일 frozen AASSR checkpoint의 Full Imagination 평가
+
+최종 요약은 다음 위치에 기록됩니다.
+
+```text
+<output-dir>/summary.json
+```
+
+### 상세 Imagination 진단
+
+```text
+scripts/run_repaired_imagination_final.py
+```
+
+파일명은 과거 repair 과정에서 만들어진 이름이지만, 현재는 canonical current builder를 사용합니다. 상세 decision/prediction/intervention trace가 필요할 때 사용합니다.
+
+## 테스트
+
+기본 테스트:
 
 ```bash
 python -m compileall -q src tests scripts
 pytest -q
 ```
 
-Focused 0.4 integration regressions:
+현행 runtime은 GitHub Actions에서 다음을 별도로 검증합니다.
 
-```bash
-pytest -q \
-  tests/test_v040_integration.py \
-  tests/test_roadmap_completion.py \
-  tests/test_pentest_curriculum_causal.py \
-  tests/test_pentest_training_mechanism_main.py
-```
+- relational state/status contract
+- multimodal Prophecy
+- builder/batching/cache
+- Critic/planner/confidence/OOD gate
+- root dedup
+- DreamerV3 fairness
+- real-environment learning smoke
+- same-checkpoint/frozen evaluation
+- 최종 실행 행동 기준 intervention accounting
 
-The dedicated workflow is:
+## 저장소 구조
 
 ```text
-.github/workflows/aassr-v040-integration.yml
+AASSR/
+├─ src/aassr_v2/
+│  ├─ current_manifest.py       # 현행 component 계약
+│  ├─ current_entrypoint.py     # 유일한 current builder
+│  ├─ current_*                 # 현행 runtime 구성요소
+│  └─ ...                       # 역사/공용 연구 코드
+│
+├─ scripts/
+│  ├─ run_pentest_current_generation_main.py
+│  ├─ run_repaired_imagination_final.py
+│  └─ ...
+│
+├─ docs/
+│  ├─ CURRENT_RUNTIME.md        # 현행 runtime 안내
+│  └─ ...                       # 과거 실험 및 연구 문서
+│
+└─ tests/
 ```
 
-## Versioning
+## 현행과 과거 코드 구분
 
-AASSR keeps architecture generation and package/research milestones separate.
+### 현행
 
-- architecture generation: **AASSR v2**
-- package/research milestone: **0.4.0**
-- observation contract: **response_causal_observation_v3**
-- ASEQ development experiment: **training-mechanism-2x2-causal-v1**
+다음 파일을 우선 source of truth로 봅니다.
 
-See [`docs/VERSIONING.md`](docs/VERSIONING.md).
+1. `src/aassr_v2/current_manifest.py`
+2. `src/aassr_v2/current_entrypoint.py`
+3. `src/aassr_v2/pentest_current_generation_main.py`
+4. `scripts/run_pentest_current_generation_main.py`
+5. current-generation CI / tests
 
-The `v0.4.0` tag belongs on the final frozen merge commit, not on the earlier experiment-launch commit. Final blinded evaluation remains unconsumed until the predeclared methodology-freeze procedure is satisfied.
+### 진단용
+
+예:
+
+- repaired Imagination trace
+- rare-status holdout
+- profiling
+- targeted ablation
+
+현행 runtime을 검사하지만 모델 정의 자체는 아닙니다.
+
+### 역사 / 재현용
+
+예:
+
+- v0.4
+- Imagination v2
+- GridPush
+- ToolGrid
+- 이전 Prophecy 실험
+- 과거 pentest mechanism 실험
+- paper reproduction runner
+
+이 파일들은 과거 결과 재현을 위해 남아 있으며, **현재 모델의 구성요소라는 뜻은 아닙니다.**
+
+병합 전 옛 `main` 상태는 다음 archive 브랜치에 보존되어 있습니다.
+
+```text
+archive/pre-current-main-2026-08-12
+```
+
+## 문서 우선순위
+
+문서와 코드가 충돌할 경우 다음 순서를 따릅니다.
+
+```text
+current_manifest.py
+        ↓
+current_entrypoint.py
+        ↓
+pentest_current_generation_main.py
+        ↓
+canonical CLI
+        ↓
+current-generation tests / CI
+        ↓
+문서
+```
+
+즉 **코드가 문서보다 우선**합니다.
+
+## 현재 다음 단계
+
+현재 가장 중요한 실험 질문은 이것입니다.
+
+> **2k에서 보였던 L1 frontier가 단순히 작은 학습량 때문인지, 아니면 curriculum/transfer 구조 자체의 병목인지?**
+
+이를 위해 다음 큰 실험에서는 알고리즘과 curriculum 규칙을 그대로 두고 transition budget만 늘립니다.
+
+만약 큰 budget에서 frontier가 자연스럽게 L2/L3 이상으로 이동한다면 현재 문제는 주로 **sample efficiency**입니다.
+
+반대로 충분히 큰 budget에서도 L1 근처에 머문다면 그때 curriculum/frontier sampling 자체를 구조적으로 재검토합니다.
+
+---
+
+현행 runtime에 대한 더 자세한 설명은 [`docs/CURRENT_RUNTIME.md`](docs/CURRENT_RUNTIME.md)를 참고하세요.
