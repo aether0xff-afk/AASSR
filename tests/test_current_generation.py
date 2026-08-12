@@ -9,9 +9,7 @@ from aassr_v2 import build_current_pentest_aassr_core
 from aassr_v2.autonomous_agent_core import AutonomousLearningAgent
 from aassr_v2.current_agent import CurrentStandalonePentestAASSRAgent
 from aassr_v2.current_generation import (
-    CurrentNeuralDeltaProphecy,
     CurrentRelationalPolicy,
-    RelationalGRUBranchCritic,
     RelationalInvariantDQN,
     RelationalSkillLibrary,
     relational_action_key,
@@ -22,15 +20,21 @@ from aassr_v2.current_manifest import (
     CURRENT_GENERATION_VERSION,
     LEGACY_COMPONENTS_ACTIVE,
 )
-from aassr_v2.current_performance import CurrentDepthBatchedProphecyView
-from aassr_v2.current_runtime import (
-    FrozenReplayRelationalCalibratedProphecy,
-    FullyRelationalNeuralDeltaProphecy,
+from aassr_v2.current_planner import CurrentFullyBatchedImaginationTree
+from aassr_v2.current_relational_skill_prophecy import RelationalStochasticSkillProphecy
+from aassr_v2.current_return_critic import (
+    ReturnAwareHardwareRelationalGRUBranchCritic,
+)
+from aassr_v2.current_semantic_calibration import (
+    RelationalDepthBatchedProphecyView,
+    SemanticCalibratedProphecy,
+)
+from aassr_v2.current_status_models import (
+    StatusAwareConditionalMixtureRelationalProphecy,
 )
 from aassr_v2.goals import GoalStateScorer
 from aassr_v2.gru_prophecy import OnlineGRUProphecy
 from aassr_v2.integrated_agent import IntegratedAASSRAgent
-from aassr_v2.native_batching import DepthBatchedImaginationTree
 from aassr_v2.pentest_agent_main_test import AGENT_STATE_SIZE
 from aassr_v2.pentest_curriculum_causal import OBSERVATION_CONTRACT
 from aassr_v2.pentest_curriculum_schedule import semantic_fingerprint
@@ -83,11 +87,17 @@ def _renamed_state(
 
 
 def test_current_manifest_has_no_active_legacy_components() -> None:
-    assert CURRENT_GENERATION_VERSION == "aassr-current-generation-v1"
+    assert CURRENT_GENERATION_VERSION == "aassr-current-generation-v2"
     assert LEGACY_COMPONENTS_ACTIVE == ()
     assert CURRENT_COMPONENTS["policy"].startswith("relational-invariant-dqn")
-    assert "relational-state-action" in CURRENT_COMPONENTS["prophecy"]
-    assert CURRENT_COMPONENTS["critic"].startswith("relational-gru-branch-critic")
+    assert CURRENT_COMPONENTS["prophecy"].startswith(
+        "relational-conditional-mixture-ensemble"
+    )
+    assert "relational-descriptor" in CURRENT_COMPONENTS["prophecy_output"]
+    assert "mixture" in CURRENT_COMPONENTS["prophecy_output"]
+    assert CURRENT_COMPONENTS["critic"].startswith(
+        "relational-gru-discounted-sparse-return"
+    )
     assert CURRENT_COMPONENTS["effect_composition"].endswith("disabled")
     assert CURRENT_COMPONENTS["training_imagination"] == "disabled-same-checkpoint"
 
@@ -114,7 +124,7 @@ def test_transfer_identity_is_rename_invariant_but_aseq_identity_is_concrete() -
     assert semantic_fingerprint(left) != semantic_fingerprint(right)
 
 
-def test_public_current_builder_constructs_no_v040_runtime_or_old_core() -> None:
+def test_public_current_builder_constructs_repaired_current_runtime() -> None:
     agent = build_current_pentest_aassr_core(
         seed=7,
         train_transitions=256,
@@ -129,15 +139,21 @@ def test_public_current_builder_constructs_no_v040_runtime_or_old_core() -> None
 
     assert isinstance(agent.policy, CurrentRelationalPolicy)
     assert isinstance(agent.dqn, RelationalInvariantDQN)
-    assert isinstance(agent.base_neural_prophecy, FullyRelationalNeuralDeltaProphecy)
-    assert isinstance(agent.base_neural_prophecy, CurrentNeuralDeltaProphecy)
-    assert isinstance(agent.calibrated_prophecy, FrozenReplayRelationalCalibratedProphecy)
-    assert isinstance(agent.critic, RelationalGRUBranchCritic)
+    assert isinstance(
+        agent.base_neural_prophecy,
+        StatusAwareConditionalMixtureRelationalProphecy,
+    )
+    assert isinstance(agent.calibrated_prophecy, SemanticCalibratedProphecy)
+    assert isinstance(agent.skill_prophecy, RelationalStochasticSkillProphecy)
+    assert isinstance(agent.critic, ReturnAwareHardwareRelationalGRUBranchCritic)
     assert isinstance(agent.skills, RelationalSkillLibrary)
-    assert isinstance(agent.planner, DepthBatchedImaginationTree)
+    assert isinstance(agent.planner, CurrentFullyBatchedImaginationTree)
     assert agent.core.planner is agent.planner
-    assert isinstance(agent.current_batched_prophecy, CurrentDepthBatchedProphecyView)
+    assert isinstance(agent.current_batched_prophecy, RelationalDepthBatchedProphecyView)
     assert agent.current_depth_batching is True
+    assert agent.current_critic_batching is True
+    assert agent.current_semantic_validation is True
+    assert agent.current_semantic_evaluator is True
 
     assert not isinstance(agent.policy, SemanticContextualPolicy)
     assert not isinstance(agent.base_neural_prophecy, OnlineGRUProphecy)
@@ -153,6 +169,18 @@ def test_public_current_builder_constructs_no_v040_runtime_or_old_core() -> None
     assert diagnostics["prophecy_action_input_relational"] is True
     assert diagnostics["legacy_components_active"] == []
     assert diagnostics["current_components"] == dict(CURRENT_COMPONENTS)
+    assert diagnostics["prophecy_current"]["conditional_mixture_components"] == 3
+    assert diagnostics["prophecy_current"]["status_supervision"] == 1
+    repairs = diagnostics["current_repairs"]
+    assert repairs["relational_input_output_contract"] is True
+    assert repairs["relational_imagination_state_key"] is True
+    assert repairs["multi_outcome_ensemble"] is True
+    assert repairs["reliability_outcome_probability_separated"] is True
+    assert repairs["stochastic_skill_rollout"] is True
+    assert repairs["semantic_information_evaluator"] is True
+    assert repairs["critic_sparse_return_aligned"] is True
+    assert repairs["critic_root_scale_values"] is True
+    assert repairs["deeper_structural_branching"] is True
     assert diagnostics["identity_contracts"]["aseq_cycle_detection"].startswith(
         "concrete"
     )
@@ -181,7 +209,7 @@ def test_current_prophecy_input_is_rename_invariant_even_when_raw_slots_move() -
         raw_slot=29,
     )
 
-    assert agent.base_neural_prophecy.codec.encode(left) != agent.base_neural_prophecy.codec.encode(right)
+    assert left.vector != right.vector
     assert agent.base_neural_prophecy._input(left, left_action) == agent.base_neural_prophecy._input(
         right,
         right_action,

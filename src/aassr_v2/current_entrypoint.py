@@ -1,13 +1,25 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 from .current_agent import (
     CurrentStandalonePentestAASSRAgent,
     build_current_standalone_pentest_aassr_core,
 )
+from .current_confidence_gate import install_current_confidence_gate
+from .current_critic_support import install_critic_support_gate
 from .current_decision_optimization import install_current_decision_optimizations
 from .current_hardware import install_hardware_dqn
 from .current_hot_path_profile import install_current_hot_path_profiler
+from .current_manifest import CURRENT_COMPONENTS
 from .current_planner import CurrentFullyBatchedImaginationTree
+from .current_relational_state_v3 import install_status_aware_relational_contract
+from .current_repair import install_current_repairs
+from .current_root_dedup import install_structural_root_dedup
+from .current_status_models import (
+    StatusAwareConditionalMixtureRelationalProphecy,
+    install_status_supervised_world_model,
+)
 from .current_validation import install_current_fast_validation
 
 
@@ -38,13 +50,16 @@ def build_current_pentest_aassr_core(
 ) -> CurrentStandalonePentestAASSRAgent:
     """Build the sole active current-generation pentest AASSR runtime.
 
-    The current runtime is standalone and uses mandatory depth batching for both
-    Neural Delta prediction and learned GRU branch scoring. DQN, Neural Delta and
-    the GRU Critic share the requested torch device. Holdout validation keeps the
-    same samples/frequency/signal while skipping symbolic StateSnapshot/action
-    reconstruction that the cosine validator never consumes. Decision gating also
-    skips Prophecy coverage when an earlier gate already makes it irrelevant, and
-    memoizes repeated relational confidence values when coverage is required.
+    This is the same status-balanced conditional-mixture runtime exercised by the
+    latest repaired CUDA validation. Historical builders remain importable only
+    for reproduction; current runners should resolve through this function.
+
+    Public relational state v3 preserves the latest observed HTTP status while
+    exact audit pressure, hidden session-TTL remaining, hidden stage depth, and
+    concrete route/profile/object identity remain unavailable to learners.
+    Prophecy confidence and local Critic support are fail-closed reliability gates,
+    never value bonuses. Structural aliases share expensive model/Critic compute
+    while final execution remains a concrete real action.
     """
 
     if not enable_batching:
@@ -53,6 +68,9 @@ def build_current_pentest_aassr_core(
             "Prophecy/Critic depth batching; use an explicit legacy/research "
             "entrypoint for historical scalar reproduction"
         )
+
+    install_status_aware_relational_contract()
+
     agent = build_current_standalone_pentest_aassr_core(
         seed=int(seed),
         train_transitions=int(train_transitions),
@@ -60,14 +78,32 @@ def build_current_pentest_aassr_core(
         device=device,
     )
     _enable_current_full_batching(agent)
-    install_hardware_dqn(
+    hardware = install_hardware_dqn(
         agent,
         seed=int(seed),
         train_transitions=int(train_transitions),
         device=device,
         allow_tf32=bool(allow_tf32),
     )
+
     install_current_fast_validation(agent)
+    install_current_repairs(
+        agent,
+        seed=int(seed),
+        device=hardware.resolved_device,
+    )
+    install_status_supervised_world_model(
+        agent,
+        seed=int(seed),
+        device=hardware.resolved_device,
+        model_class=StatusAwareConditionalMixtureRelationalProphecy,
+    )
+    agent.planner.config = replace(agent.planner.config, aggregation="mean")
+    agent.core.planner = agent.planner
+    agent.current_components = dict(CURRENT_COMPONENTS)
+    install_current_confidence_gate(agent)
+    install_critic_support_gate(agent)
+    install_structural_root_dedup(agent)
     install_current_decision_optimizations(agent)
     if profile_hot_path:
         install_current_hot_path_profiler(agent)

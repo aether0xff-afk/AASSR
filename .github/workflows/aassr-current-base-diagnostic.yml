@@ -1,0 +1,56 @@
+name: AASSR current base diagnostic
+
+on:
+  push:
+    branches: [agent/imagination-gate-ablation]
+  workflow_dispatch:
+
+concurrency:
+  group: aassr-current-base-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip "setuptools<82"
+          python -m pip install -e ".[dev,gpu]"
+
+      - name: test_current_generation
+        continue-on-error: true
+        run: pytest -q tests/test_current_generation.py
+      - name: test_current_default_entrypoint
+        continue-on-error: true
+        run: pytest -q tests/test_current_default_entrypoint.py
+      - name: test_current_generation_batching
+        continue-on-error: true
+        run: pytest -q tests/test_current_generation_batching.py
+      - name: test_current_calibration_index
+        continue-on-error: true
+        run: pytest -q tests/test_current_calibration_index.py
+      - name: test_current_encoding_cache
+        continue-on-error: true
+        run: pytest -q tests/test_current_encoding_cache.py
+      - name: test_current_neural_delta_loss_sync
+        continue-on-error: true
+        run: pytest -q tests/test_current_neural_delta_loss_sync.py
+      - name: test_current_decision_optimization
+        continue-on-error: true
+        run: pytest -q tests/test_current_decision_optimization.py
+      - name: test_current_validation_fastpath
+        continue-on-error: true
+        run: pytest -q tests/test_current_validation_fastpath.py
+      - name: test_current_hardware_and_dqn
+        continue-on-error: true
+        run: pytest -q tests/test_current_hardware_and_dqn.py
+      - name: test_current_hot_path_profile
+        continue-on-error: true
+        run: pytest -q tests/test_current_hot_path_profile.py

@@ -1,0 +1,54 @@
+name: Imagination gate margin calibration
+
+# Expensive methodology diagnostic. Keep manual so implementation pushes do not
+# repeatedly consume 2k-transition CPU experiments before contracts are frozen.
+on:
+  workflow_dispatch:
+
+jobs:
+  reduced-margin-calibration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package and Torch
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          pip install torch
+
+      - name: Compile calibration runner
+        run: |
+          python -m py_compile scripts/run_imagination_gate_margin_calibration.py
+
+      - name: Run reduced fixed-margin calibration
+        run: |
+          python scripts/run_imagination_gate_margin_calibration.py \
+            --output-dir runs/gate_margin_calibration_reduced_seed7 \
+            --seed 7 \
+            --transitions 2048 \
+            --block-target 512 \
+            --calibration-max-level 4 \
+            --calibration-seed-count 4 \
+            --margins 0.10,0.075,0.05,0.025,0.0 \
+            --device cpu
+
+      - name: Print summary
+        if: always()
+        run: |
+          if [ -f runs/gate_margin_calibration_reduced_seed7/summary.json ]; then
+            cat runs/gate_margin_calibration_reduced_seed7/summary.json
+          fi
+
+      - name: Upload calibration artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: imagination-gate-margin-calibration-reduced-seed7
+          path: runs/gate_margin_calibration_reduced_seed7
+          if-no-files-found: warn

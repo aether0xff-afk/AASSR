@@ -117,7 +117,8 @@ def test_hot_path_profiler_is_observationally_equivalent_to_reference() -> None:
     validator = profile["validator_runtime_diagnostics"]
     assert "cache_hits" in validator
     assert "cache_misses" in validator
-    assert "current_vector_fast_rows" in validator
+    assert "batch_calls" in validator
+    assert validator["expected_vector_calls"] == 0
 
 
 def test_main_summary_exposes_phase_scoped_hot_path_profile(tmp_path) -> None:

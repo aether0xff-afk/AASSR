@@ -10,27 +10,15 @@ from .pentest_curriculum_env import (
     ROUTE_RELATIONS,
     relational_action_features,
 )
-from .current_generation import relational_state_vector
+from .current_relational_state_v3 import relational_state_vector_v3
 from .types import Action, StateSnapshot
 
 
 DREAMERV3_CONDITION = "dreamerv3_relational"
 DREAMERV3_UPSTREAM_REPOSITORY = "danijar/dreamerv3"
-# Pin the exact upstream code used by this adapter contract. The experiment
-# runner records the actual checkout SHA and refuses a mismatch by default.
 DREAMERV3_UPSTREAM_COMMIT = "e3f02248693a79dc8b0ebd62c93683888ddaccfe"
-DREAMERV3_BASELINE_VERSION = "official-dreamerv3-relational-categorical-v2"
+DREAMERV3_BASELINE_VERSION = "official-dreamerv3-relational-categorical-v4"
 
-# DreamerV3 expects a fixed action space, whereas the pentest benchmark exposes
-# a state-dependent set of legal HTTP actions. Use DreamerV3's *native discrete*
-# categorical policy over the complete relational action vocabulary. The current
-# legal subset is also supplied as observation metadata. If the actor samples a
-# structurally unavailable slot, the environment deterministically projects it to
-# the nearest currently legal relational slot. The upstream Dreamer actor, RSSM,
-# losses, and imagined actor-critic remain unmodified.
-#
-# The slot vocabulary contains no concrete route/profile/object identifiers and
-# therefore stays invariant when a benchmark seed renames those identifiers.
 _DREAMER_OBJECT_RELATIONS = tuple(
     item for item in OBJECT_RELATIONS if item != "none"
 )
@@ -152,9 +140,6 @@ def dreamer_action_surface_mask(state: StateSnapshot) -> tuple[float, ...]:
     values = [0.0] * DREAMERV3_ACTION_SLOT_COUNT
     for action in state.available_actions:
         if action.verb_name not in _VERBS:
-            # Current pentest Dreamer baseline intentionally operates only on
-            # real primitive HTTP actions. AASSR Skill macros are not an
-            # environment action and are therefore never exposed to baselines.
             continue
         values[
             DREAMERV3_ACTION_SLOT_INDEX[dreamer_action_slot_key(state, action)]
@@ -163,9 +148,8 @@ def dreamer_action_surface_mask(state: StateSnapshot) -> tuple[float, ...]:
 
 
 def dreamer_observation_vector(state: StateSnapshot) -> tuple[float, ...]:
-    """Use exactly the current relational Policy state representation."""
-
-    return tuple(float(value) for value in relational_state_vector(state))
+    """Use exactly the active public relational v3 Policy representation."""
+    return tuple(float(value) for value in relational_state_vector_v3(state))
 
 
 def dreamer_relational_action_features(
@@ -183,8 +167,6 @@ def dreamer_relational_action_features(
 def dreamer_action_slot_vector(
     slot: tuple[str, str, str, str],
 ) -> tuple[float, ...]:
-    """One-hot structural embedding used only for illegal-slot projection."""
-
     verb, route_role, profile_role, object_role = slot
     values: list[float] = []
     values.extend(float(verb == item) for item in _VERBS)
@@ -213,14 +195,10 @@ def project_dreamer_action(
 ) -> DreamerActionProjection:
     """Project one categorical Dreamer slot onto the current legal surface.
 
-    The projection uses only the public current state and its available action
-    surface. It never reads the hidden benchmark scenario, reward, future state,
-    or success trajectory. An already legal slot has zero distance. Structurally
-    identical concrete candidates have identical distances; concrete signature is
-    used only as a deterministic final tie-break, matching the relational DQN's
-    inability to distinguish identifier-renamed actions with identical features.
+    Projection uses only the public current state and available action surface. It
+    never reads hidden benchmark scenario, reward, future state, or success path.
+    Structurally identical concrete candidates remain deterministic signature ties.
     """
-
     try:
         requested_slot = int(proposal)
     except (TypeError, ValueError) as exc:
@@ -277,7 +255,7 @@ def dreamer_adapter_manifest() -> dict[str, object]:
         "adapter_version": DREAMERV3_BASELINE_VERSION,
         "upstream_repository": DREAMERV3_UPSTREAM_REPOSITORY,
         "upstream_commit": DREAMERV3_UPSTREAM_COMMIT,
-        "state_representation": "current-relational-state-vector",
+        "state_representation": "current-relational-public-state-v3+latest-http-status",
         "available_action_observation": "240-slot-relational-mask",
         "actor_action_space": "categorical-relational-slot-240",
         "legal_action_adapter": "nearest-current-relational-slot",

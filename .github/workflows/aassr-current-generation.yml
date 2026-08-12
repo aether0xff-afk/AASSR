@@ -5,31 +5,16 @@ on:
     branches: [agent/aassr-current-generation]
   pull_request:
     paths:
-      - "src/aassr_v2/current_generation.py"
-      - "src/aassr_v2/current_manifest.py"
-      - "src/aassr_v2/current_runtime.py"
-      - "src/aassr_v2/current_agent.py"
-      - "src/aassr_v2/current_hardware.py"
-      - "src/aassr_v2/current_hot_path_profile.py"
-      - "src/aassr_v2/current_dqn_baseline.py"
-      - "src/aassr_v2/current_decision_optimization.py"
-      - "src/aassr_v2/current_performance.py"
-      - "src/aassr_v2/current_planner.py"
-      - "src/aassr_v2/current_entrypoint.py"
-      - "src/aassr_v2/current_protocol.py"
-      - "src/aassr_v2/current_validation.py"
-      - "src/aassr_v2/current_experiment_suite.py"
-      - "src/aassr_v2/dreamerv3_baseline.py"
-      - "src/aassr_v2/dreamerv3_external.py"
-      - "src/aassr_v2/dreamerv3_hardware.py"
-      - "src/aassr_v2/pentest_current_generation_smoke.py"
-      - "src/aassr_v2/pentest_current_generation_main.py"
+      - "src/aassr_v2/current_*.py"
+      - "src/aassr_v2/dreamerv3_*.py"
+      - "src/aassr_v2/pentest_current_generation_*.py"
       - "src/aassr_v2/__init__.py"
       - "scripts/check_current_generation_hardware.py"
       - "scripts/run_dreamerv3_current_baseline.py"
       - "scripts/assemble_pentest_current_generation_suite.py"
       - "scripts/run_pentest_current_generation_smoke.py"
-      - "scripts/run_pentest_current_generation_main.py"
+      - "scripts/run_repaired_imagination_*.py"
+      - "scripts/analyze_repaired_imagination_trace.py"
       - "tests/test_current_*.py"
       - "tests/test_dreamerv3*.py"
       - ".github/workflows/aassr-current-generation.yml"
@@ -53,45 +38,52 @@ jobs:
         run: |
           python -m pip install --upgrade pip "setuptools<82"
           python -m pip install -e ".[dev,gpu]"
-      - name: Compile current-generation runtime
+
+      - name: Compile current-generation and repaired Imagination runtime
         run: |
-          python -m py_compile src/aassr_v2/current_generation.py
-          python -m py_compile src/aassr_v2/current_manifest.py
-          python -m py_compile src/aassr_v2/current_runtime.py
-          python -m py_compile src/aassr_v2/current_agent.py
-          python -m py_compile src/aassr_v2/current_hardware.py
-          python -m py_compile src/aassr_v2/current_hot_path_profile.py
-          python -m py_compile src/aassr_v2/current_dqn_baseline.py
-          python -m py_compile src/aassr_v2/current_decision_optimization.py
-          python -m py_compile src/aassr_v2/current_performance.py
-          python -m py_compile src/aassr_v2/current_planner.py
-          python -m py_compile src/aassr_v2/current_entrypoint.py
-          python -m py_compile src/aassr_v2/current_protocol.py
-          python -m py_compile src/aassr_v2/current_validation.py
-          python -m py_compile src/aassr_v2/current_experiment_suite.py
-          python -m py_compile src/aassr_v2/dreamerv3_baseline.py
-          python -m py_compile src/aassr_v2/dreamerv3_external.py
-          python -m py_compile src/aassr_v2/dreamerv3_hardware.py
-          python -m py_compile src/aassr_v2/pentest_current_generation_smoke.py
-          python -m py_compile src/aassr_v2/pentest_current_generation_main.py
-          python -m py_compile src/aassr_v2/__init__.py
-          python -m py_compile scripts/check_current_generation_hardware.py
-          python -m py_compile scripts/run_dreamerv3_current_baseline.py
-          python -m py_compile scripts/assemble_pentest_current_generation_suite.py
-          python -m py_compile scripts/run_pentest_current_generation_smoke.py
-          python -m py_compile scripts/run_pentest_current_generation_main.py
-          python -m py_compile tests/test_current_generation.py
-          python -m py_compile tests/test_current_generation_batching.py
-          python -m py_compile tests/test_current_calibration_index.py
-          python -m py_compile tests/test_current_encoding_cache.py
-          python -m py_compile tests/test_current_hot_path_profile.py
-          python -m py_compile tests/test_current_neural_delta_loss_sync.py
-          python -m py_compile tests/test_current_decision_optimization.py
-          python -m py_compile tests/test_current_validation_fastpath.py
-          python -m py_compile tests/test_current_hardware_and_dqn.py
-          python -m py_compile tests/test_current_default_entrypoint.py
-          python -m py_compile tests/test_dreamerv3_adapter.py
-          python -m py_compile tests/test_dreamerv3_external_contract.py
+          python -m py_compile \
+            src/aassr_v2/current_generation.py \
+            src/aassr_v2/current_manifest.py \
+            src/aassr_v2/current_runtime.py \
+            src/aassr_v2/current_agent.py \
+            src/aassr_v2/current_hardware.py \
+            src/aassr_v2/current_hot_path_profile.py \
+            src/aassr_v2/current_dqn_baseline.py \
+            src/aassr_v2/current_decision_optimization.py \
+            src/aassr_v2/current_performance.py \
+            src/aassr_v2/current_planner.py \
+            src/aassr_v2/current_entrypoint.py \
+            src/aassr_v2/current_protocol.py \
+            src/aassr_v2/current_validation.py \
+            src/aassr_v2/current_experiment_suite.py \
+            src/aassr_v2/current_relational_state.py \
+            src/aassr_v2/current_relational_state_v3.py \
+            src/aassr_v2/current_relational_codec.py \
+            src/aassr_v2/current_relational_model.py \
+            src/aassr_v2/current_relational_mixture_model.py \
+            src/aassr_v2/current_relational_skill_prophecy.py \
+            src/aassr_v2/current_semantic_calibration.py \
+            src/aassr_v2/current_semantic_evaluator.py \
+            src/aassr_v2/current_return_critic.py \
+            src/aassr_v2/current_critic_support.py \
+            src/aassr_v2/current_root_dedup.py \
+            src/aassr_v2/current_status_models.py \
+            src/aassr_v2/current_repair.py \
+            src/aassr_v2/current_mixture_entrypoint.py \
+            src/aassr_v2/dreamerv3_baseline.py \
+            src/aassr_v2/dreamerv3_external.py \
+            src/aassr_v2/dreamerv3_hardware.py \
+            src/aassr_v2/pentest_current_generation_smoke.py \
+            src/aassr_v2/pentest_current_generation_main.py \
+            src/aassr_v2/__init__.py \
+            scripts/check_current_generation_hardware.py \
+            scripts/run_dreamerv3_current_baseline.py \
+            scripts/assemble_pentest_current_generation_suite.py \
+            scripts/run_pentest_current_generation_smoke.py \
+            scripts/run_repaired_imagination_validation_v2.py \
+            scripts/run_repaired_imagination_final.py \
+            scripts/analyze_repaired_imagination_trace.py
+
       - name: Assert current runners do not import historical experiment runners
         run: |
           python - <<'PY'
@@ -109,27 +101,67 @@ jobs:
               for token in forbidden:
                   assert token not in text, (name, token)
           PY
-      - name: Assert active architecture hardware DQN standalone runtime and Dreamer contracts
+
+      - name: Public status v3 and supervision contract
         run: |
           pytest -q \
-            tests/test_current_generation.py \
-            tests/test_current_generation_batching.py \
-            tests/test_current_calibration_index.py \
-            tests/test_current_encoding_cache.py \
-            tests/test_current_hot_path_profile.py \
-            tests/test_current_neural_delta_loss_sync.py \
-            tests/test_current_decision_optimization.py \
-            tests/test_current_validation_fastpath.py \
-            tests/test_current_hardware_and_dqn.py \
-            tests/test_current_default_entrypoint.py \
+            tests/test_current_relational_state_v3.py \
+            tests/test_current_status_supervision.py
+
+      - name: Multimodal contract 1 - target distinction
+        run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_targets_share_input_but_keep_distinct_outputs
+      - name: Multimodal contract 2 - empirical storage
+        run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_empirical_store_keeps_two_outcomes
+      - name: Multimodal contract 3 - empirical emission
+        run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_empirical_store_emits_two_predictions
+      - name: Multimodal contract 4 - semantic decode
+        run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_empirical_decode_keeps_two_semantic_modes
+
+      - name: Base core generation regressions
+        run: pytest -q tests/test_current_generation.py tests/test_current_default_entrypoint.py
+      - name: Base batching and cache regressions
+        run: pytest -q tests/test_current_generation_batching.py tests/test_current_calibration_index.py tests/test_current_encoding_cache.py tests/test_current_neural_delta_loss_sync.py
+      - name: Base decision and validation regressions
+        run: pytest -q tests/test_current_decision_optimization.py tests/test_current_validation_fastpath.py
+      - name: Base hardware and profiling regressions
+        run: pytest -q tests/test_current_hardware_and_dqn.py tests/test_current_hot_path_profile.py
+
+      - name: Repaired state and semantic evaluator regressions
+        run: |
+          pytest -q \
+            tests/test_current_repair_action_surface.py \
+            tests/test_current_outcome_probability.py \
+            tests/test_current_semantic_evaluator.py \
+            tests/test_current_relational_state_v2.py \
+            tests/test_current_imagination_state_identity.py
+
+      - name: Repaired Critic planner and gate regressions
+        run: |
+          pytest -q \
+            tests/test_current_repair.py \
+            tests/test_current_planner_structural_branching.py \
+            tests/test_current_planner_probability_backup.py \
+            tests/test_current_confidence_gate.py \
+            tests/test_current_critic_support.py \
+            tests/test_current_root_dedup.py
+
+      - name: Conditional mixture builder regressions
+        run: pytest -q tests/test_current_mixture_generation.py
+
+      - name: Dreamer current-state fairness regressions
+        run: |
+          pytest -q \
             tests/test_dreamerv3_adapter.py \
-            tests/test_dreamerv3_external_contract.py
+            tests/test_dreamerv3_external_contract.py \
+            tests/test_dreamerv3_current_state_v2.py
+
       - name: Run same-checkpoint real-environment learning smoke
         run: |
           python scripts/run_pentest_current_generation_smoke.py \
             --output runs/current_generation_smoke.json \
             --transition-budget 192 \
             --device cpu
+
       - name: Assert real learners updated and evaluation stayed frozen
         run: |
           python - <<'PY'
@@ -138,7 +170,11 @@ jobs:
           result = json.loads(Path("runs/current_generation_smoke.json").read_text())
           assert result["same_checkpoint_verified"] is True
           assert result["legacy_components_active"] == []
-          assert "relational-state-action" in result["current_components"]["prophecy"]
+          components = result["current_components"]
+          assert "relational" in components["prophecy"]
+          assert "latest-http-status" in components["policy_state_input"]
+          assert components["public_response_contract"] == "latest-http-status-preserved"
+          assert components["prophecy_status_objective"] == "class-balanced-categorical-public-http-status-v2"
           diagnostics = result["diagnostics"]
           assert diagnostics["canonical_runtime"] == "current_standalone"
           assert diagnostics["policy"]["dqn:gradient_updates"] > 0
@@ -146,38 +182,53 @@ jobs:
           assert diagnostics["policy"]["dqn:per_row_target_item_syncs"] == 0
           assert diagnostics["policy"]["dqn:fused_next_action_reduce"] == 1
           assert diagnostics["prophecy_current"]["gradient_updates"] > 0
+          assert diagnostics["prophecy_current"]["status_supervision"] == 1
+          assert diagnostics["prophecy_current"]["status_output_channels"] == 8
+          assert diagnostics["prophecy_current"]["status_loss_weight"] == 0.5
+          assert diagnostics["prophecy_current"]["status_training_objective"] == "class-balanced-categorical-public-http-status-v2"
+          assert diagnostics["prophecy_current"]["status_class_weighting"] == "inverse-sqrt-frequency-capped-normalized"
           assert diagnostics["prophecy_state_input_relational"] is True
           assert diagnostics["prophecy_action_input_relational"] is True
-          assert diagnostics["calibration_same_transition_frozen"] is True
+          repairs = diagnostics["current_repairs"]
+          assert repairs["relational_input_output_contract"] is True
+          assert repairs["hidden_audit_session_pressure_masked"] is True
+          assert repairs["relational_public_state_v3"] is True
+          assert repairs["public_http_status_preserved"] is True
+          assert repairs["status_aware_semantic_calibration"] is True
+          assert repairs["probability_weighted_chance_backup"] is True
+          assert repairs["max_agent_decision_backup"] is True
+          assert repairs["critic_sparse_return_aligned"] is True
+          assert repairs["critic_zero_memory_suffix_training"] is True
+          assert repairs["critic_local_support_gate"] is True
+          assert repairs["critic_support_is_gate_not_value"] is True
+          assert repairs["structural_root_compute_dedup"] is True
+          assert repairs["concrete_root_execution_preserved"] is True
+          assert repairs["planner_discount_matches_gamma"] is True
+          assert diagnostics["critic_support"]["stored_support_rows"] > 0
           print(
               "train_successes=", result["training_successes"],
               "dqn_updates=", diagnostics["policy"]["dqn:gradient_updates"],
               "prophecy_updates=", diagnostics["prophecy_current"]["gradient_updates"],
+              "status_loss=", diagnostics["prophecy_current"]["last_status_training_loss"],
+              "status_accuracy=", diagnostics["prophecy_current"]["last_status_training_accuracy"],
+              "critic_support_rows=", diagnostics["critic_support"]["stored_support_rows"],
               "critic_ready=", result["critic_ready"],
               "no_img=", result["no_imagination_successes"],
               "full=", result["full_successes"],
           )
           PY
+
       - name: Print active component manifest
         run: |
           python - <<'PY'
           import aassr_v2
-          from aassr_v2 import (
-              CURRENT_COMPONENTS,
-              CURRENT_GENERATION_VERSION,
-              LEGACY_COMPONENTS_ACTIVE,
-              build_current_pentest_aassr_core,
-          )
+          from aassr_v2 import CURRENT_COMPONENTS, CURRENT_GENERATION_VERSION, LEGACY_COMPONENTS_ACTIVE, build_current_pentest_aassr_core
           from aassr_v2.autonomous_agent_core import AutonomousLearningAgent
           from aassr_v2.current_experiment_suite import CURRENT_FINAL_EXPERIMENT_CONDITIONS
-          from aassr_v2.current_hardware import (
-              HardwareRelationalGRUBranchCritic,
-              HardwareRelationalInvariantDQN,
-          )
+          from aassr_v2.current_hardware import HardwareRelationalGRUBranchCritic, HardwareRelationalInvariantDQN
           from aassr_v2.current_planner import CurrentFullyBatchedImaginationTree
           from aassr_v2.dreamerv3_baseline import dreamer_adapter_manifest
           from aassr_v2.integrated_agent import IntegratedAASSRAgent
-
           print(CURRENT_GENERATION_VERSION)
           for key, value in CURRENT_COMPONENTS.items():
               print(f"{key}: {value}")
@@ -186,15 +237,14 @@ jobs:
           assert len(CURRENT_FINAL_EXPERIMENT_CONDITIONS) == 5
           assert "dreamerv3_relational" in CURRENT_FINAL_EXPERIMENT_CONDITIONS
           assert LEGACY_COMPONENTS_ACTIVE == ()
-          assert "relational-state-action" in CURRENT_COMPONENTS["prophecy"]
+          assert "relational" in CURRENT_COMPONENTS["prophecy"]
+          assert CURRENT_COMPONENTS["prophecy_status_objective"] == "class-balanced-categorical-public-http-status-v2"
+          assert CURRENT_COMPONENTS["chance_objective"] == "expected-external-sparse-return"
+          assert CURRENT_COMPONENTS["hidden_pressure_contract"] == "audit-and-session-countdown-masked"
+          assert CURRENT_COMPONENTS["public_response_contract"] == "latest-http-status-preserved"
           assert "same-device" in CURRENT_COMPONENTS["hardware"]
           assert aassr_v2.build_pentest_aassr_core is build_current_pentest_aassr_core
-          agent = build_current_pentest_aassr_core(
-              seed=7,
-              train_transitions=64,
-              use_imagination=True,
-              device="cpu",
-          )
+          agent = build_current_pentest_aassr_core(seed=7, train_transitions=64, use_imagination=True, device="cpu")
           assert IntegratedAASSRAgent not in type(agent).mro()
           assert AutonomousLearningAgent not in type(agent).mro()
           assert isinstance(agent.dqn, HardwareRelationalInvariantDQN)
@@ -203,9 +253,17 @@ jobs:
           diagnostics = agent.diagnostics()
           assert diagnostics["canonical_runtime"] == "current_standalone"
           assert diagnostics["current_components"] == dict(CURRENT_COMPONENTS)
+          assert diagnostics["prophecy_current"]["status_supervision"] == 1
+          assert diagnostics["prophecy_current"]["status_training_objective"] == "class-balanced-categorical-public-http-status-v2"
+          assert agent.current_status_supervised_world_model is True
           assert agent.current_depth_batching is True
           assert agent.current_critic_batching is True
+          assert agent.current_critic_support_gate is True
+          assert agent.current_structural_root_dedup is True
+          assert agent.planner.config.aggregation == "mean"
+          assert agent.planner.config.discount == agent.config.gamma
           PY
+
       - name: Archive current-generation smoke
         if: always()
         uses: actions/upload-artifact@v4
