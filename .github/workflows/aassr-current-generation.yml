@@ -34,10 +34,11 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - name: Install current-generation dependencies
+      - name: Install current-generation CPU test dependencies
         run: |
           python -m pip install --upgrade pip "setuptools<82"
-          python -m pip install -e ".[dev,gpu]"
+          python -m pip install -e ".[dev]"
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.2"
 
       - name: Compile current-generation and repaired Imagination runtime
         run: |
@@ -51,6 +52,9 @@ jobs:
             src/aassr_v2/current_dqn_baseline.py \
             src/aassr_v2/current_decision_optimization.py \
             src/aassr_v2/current_performance.py \
+            src/aassr_v2/current_runtime_performance.py \
+            src/aassr_v2/current_runtime_performance_policy.py \
+            src/aassr_v2/current_replay_performance.py \
             src/aassr_v2/current_planner.py \
             src/aassr_v2/current_entrypoint.py \
             src/aassr_v2/current_protocol.py \
@@ -113,6 +117,13 @@ jobs:
             tests/test_current_probability_contract.py \
             tests/test_current_latent_contracts.py \
             tests/test_current_checkpoint.py
+
+      - name: Performance-only equivalence and replay contracts
+        run: |
+          pytest -q \
+            tests/test_current_runtime_performance.py \
+            tests/test_current_runtime_performance_policy.py \
+            tests/test_current_replay_performance.py
 
       - name: Multimodal contract 1 - target distinction
         run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_targets_share_input_but_keep_distinct_outputs
@@ -279,6 +290,10 @@ jobs:
           assert agent.current_critic_support_gate is True
           assert agent.current_structural_root_dedup is True
           assert agent.current_structural_coverage is True
+          assert agent.current_runtime_performance is True
+          assert agent.current_runtime_indexable_replays is True
+          assert agent.current_runtime_calibration_index is True
+          assert agent.current_runtime_cuda_fast_path is False
           assert agent.config.imagination_intervention_margin == 0.05
           assert agent.planner.config.aggregation == "mean"
           assert agent.planner.config.discount == agent.config.gamma
