@@ -44,9 +44,6 @@ def _plain(value: Any) -> Any:
         return frozenset(_plain(item) for item in value)
     if isinstance(value, set):
         return set(_plain(item) for item in value)
-    # Public benchmark metadata/parameters should already be primitive. Refuse to
-    # silently stringify an unexpected research object because restore semantics
-    # would then differ from the trained checkpoint.
     raise TypeError(f"unsupported portable checkpoint value: {type(value)!r}")
 
 
@@ -155,12 +152,7 @@ def _skill_from_data(data: Mapping[str, Any]) -> Skill:
 
 
 def _skills_to_data(library: object) -> dict[str, Any]:
-    """Store only state used by frozen selection/Skill rollout.
-
-    Candidate promotion buffers are training-only and intentionally omitted from
-    this *frozen-evaluation* checkpoint. Promoted Skills and their relational
-    templates are sufficient to reproduce the action surface and Skill rollout.
-    """
+    """Store only state used by frozen selection/Skill rollout."""
     return {
         "promotion_successes": int(library.promotion_successes),
         "maximum_length": int(library.maximum_length),
@@ -197,8 +189,6 @@ def _restore_skills(library: object, data: Mapping[str, Any]) -> None:
         }
     )
     library._next_id = int(data.get("next_id", 1))
-    # These buffers only matter if training resumes; a frozen checkpoint promises
-    # evaluation, not continuation of Skill-promotion statistics.
     library._candidates.clear()
     library._rel_candidates.clear()
 
@@ -213,7 +203,7 @@ def current_frozen_checkpoint_payload(
     """Materialize learned state required for fresh-process frozen evaluation.
 
     Live agents contain MappingProxyType fields and runtime-bound methods, so this
-    format never pickles the agent or object-rich replay directly. Public replay
+    format never pickles the agent or object-rich replay directly. Public holdout
     observations and promoted Skills are encoded into explicit plain structures.
     Training-only optimizer/replay state is deliberately omitted: this artifact's
     contract is exact frozen OFF/ON re-evaluation without retraining.
@@ -265,8 +255,6 @@ def current_frozen_checkpoint_payload(
             "models": _model_state_dicts(base.models),
             "observations": int(base.observations),
             "gradient_updates": int(base.gradient_updates),
-            # Exact empirical multi-outcome buckets are part of prediction-time
-            # behavior and therefore must survive frozen restore.
             "outcomes": dict(base._outcomes),
             "status_observation_counts": list(
                 getattr(base, "_status_observation_counts", ())
@@ -282,9 +270,10 @@ def current_frozen_checkpoint_payload(
             ),
         },
         "calibration_replay": {
-            "train": [
-                _replay_transition_to_data(item) for item in replay._train
-            ],
+            # SemanticCalibratedProphecy consults only holdout() during frozen
+            # confidence evaluation. Keep the observed train count for provenance
+            # but do not duplicate the much larger object-rich training partition.
+            "train_count": len(replay._train),
             "holdout": [
                 _replay_transition_to_data(item) for item in replay._holdout
             ],
@@ -431,10 +420,7 @@ def restore_current_frozen_checkpoint(
 
     calibration = payload["calibration_replay"]
     replay = agent.evaluator.replay
-    replay._train[:] = [
-        _replay_transition_from_data(item)
-        for item in calibration.get("train", ())
-    ]
+    replay._train.clear()
     replay._holdout[:] = [
         _replay_transition_from_data(item)
         for item in calibration.get("holdout", ())
@@ -492,7 +478,8 @@ def checkpoint_manifest(payload: Mapping[str, Any]) -> dict[str, Any]:
         "dqn_environment_steps": payload["dqn"]["environment_steps"],
         "prophecy_observations": payload["prophecy"]["observations"],
         "critic_episodes": payload["critic"]["episodes"],
-        "calibration_train_rows": len(payload["calibration_replay"]["train"]),
+        "calibration_train_rows_observed": payload["calibration_replay"]["train_count"],
+        "calibration_train_rows_stored": 0,
         "calibration_holdout_rows": len(payload["calibration_replay"]["holdout"]),
         "promoted_skills": len(payload["skills"]["skills"]),
     }
