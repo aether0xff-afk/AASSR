@@ -40,6 +40,13 @@ def _memoized_relational_coverage(
     return sum(cache.values()) / len(cache)
 
 
+def _critic_is_reliably_ready(agent: object) -> bool:
+    ready = getattr(agent, "critic_reliably_ready", None)
+    if callable(ready):
+        return bool(ready())
+    return bool(agent.critic_ready)
+
+
 def _fast_core_select_action(
     self: object,
     state: StateSnapshot,
@@ -57,7 +64,8 @@ def _fast_core_select_action(
     """
 
     opportunity = bool(self.requested_imagination)
-    if opportunity and not (explore and not self.training_imagination) and self.critic_ready:
+    critic_ready = _critic_is_reliably_ready(self)
+    if opportunity and not (explore and not self.training_imagination) and critic_ready:
         return self._current_original_core_select_action(
             state,
             episode=episode,
