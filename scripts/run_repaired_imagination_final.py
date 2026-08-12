@@ -8,6 +8,10 @@ import run_repaired_imagination_validation_v2 as validation
 
 PREFLIGHT_TESTS = (
     "tests/test_current_generation.py",
+    "tests/test_current_fresh_process_contract.py",
+    "tests/test_current_probability_contract.py",
+    "tests/test_current_latent_contracts.py",
+    "tests/test_current_checkpoint.py",
     "tests/test_current_repair.py",
     "tests/test_current_repair_action_surface.py",
     "tests/test_current_repair_multimodal.py",
@@ -42,21 +46,24 @@ def _run_preflight() -> None:
         "src/aassr_v2/current_return_critic.py",
         "src/aassr_v2/current_critic_support.py",
         "src/aassr_v2/current_root_dedup.py",
+        "src/aassr_v2/current_decision_optimization.py",
+        "src/aassr_v2/current_checkpoint.py",
+        "src/aassr_v2/current_run_artifacts.py",
         "src/aassr_v2/current_planner.py",
         "src/aassr_v2/current_repair.py",
     )
-    print("[PREFLIGHT] compile repaired current-generation stack")
+    print("[PREFLIGHT] compile audited current-generation stack")
     subprocess.run(
         [sys.executable, "-m", "py_compile", *compile_targets],
         check=True,
     )
 
-    print("[PREFLIGHT] run repaired contract tests")
+    print("[PREFLIGHT] run audited current-generation contract tests")
     subprocess.run(
         [sys.executable, "-m", "pytest", "-q", *PREFLIGHT_TESTS],
         check=True,
     )
-    print("[PREFLIGHT] PASS — starting the single 2k validation")
+    print("[PREFLIGHT] PASS — starting the explicitly requested validation run")
 
 
 def main() -> None:
