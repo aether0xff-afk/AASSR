@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-pytest.importorskip("torch")
+torch = pytest.importorskip("torch")
 
 from aassr_v2.current_mixture_entrypoint import (
     MIXTURE_CURRENT_COMPONENTS,
@@ -64,7 +64,9 @@ def test_mixture_builder_installs_conditional_world_model() -> None:
     assert diagnostics["conditional_mixture_components"] == 3
     assert diagnostics["terminal_classes"] == 4
     assert diagnostics["mixture_training_objective"] == "soft-mixture-likelihood"
-    assert diagnostics["epistemic_confidence"] == "ensemble-mode-set-disagreement"
+    assert diagnostics["epistemic_confidence"] == "ensemble-mode-set-sparse-max-disagreement"
+    assert diagnostics["mode_merge_distance"] == pytest.approx(0.0)
+    assert diagnostics["lossy_mode_merge_disabled"] == 1
     assert diagnostics["status_supervision"] == 1
     assert diagnostics["status_output_channels"] == 8
     assert diagnostics["status_loss_weight"] == pytest.approx(0.5)
@@ -72,6 +74,35 @@ def test_mixture_builder_installs_conditional_world_model() -> None:
     assert agent.planner.config.aggregation == "mean"
     assert agent.planner.config.discount == pytest.approx(agent.config.gamma)
     assert agent.diagnostics()["current_repairs"]["planner_discount_matches_gamma"] is True
+
+
+def test_sparse_single_slot_disagreement_is_not_diluted_by_dimension_count() -> None:
+    model = ConditionalMixtureRelationalProphecy(
+        seed=19,
+        device="cpu",
+        config=RelationalMixtureProphecyConfig(
+            hidden_units=8,
+            ensemble_size=2,
+            mixture_components=1,
+            replay_capacity=8,
+            batch_size=1,
+            warmup_steps=1,
+            gradient_steps_per_observation=1,
+        ),
+    )
+    descriptor_dim = 35
+    mask_dim = 240
+    terminal_dim = 4
+    descriptors = torch.zeros((2, 1, 1, descriptor_dim), dtype=torch.float32)
+    masks = torch.zeros((2, 1, 1, mask_dim), dtype=torch.float32)
+    terminals = torch.zeros((2, 1, 1, terminal_dim), dtype=torch.float32)
+    terminals[:, :, :, 0] = 1.0
+    mixtures = torch.ones((2, 1, 1), dtype=torch.float32)
+    # One action-surface bit differs. A mean over 240 slots would nearly erase it;
+    # sparse-max disagreement must retain the full 0.30 mask contribution.
+    masks[1, 0, 0, 17] = 1.0
+    disagreement = model._set_disagreement(descriptors, masks, terminals, mixtures)
+    assert float(disagreement[0]) == pytest.approx(0.30, abs=1e-6)
 
 
 def test_mixture_builder_executes_and_learns_one_real_transition() -> None:
