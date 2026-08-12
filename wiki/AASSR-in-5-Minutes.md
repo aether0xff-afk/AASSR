@@ -1,305 +1,501 @@
 # AASSR in 5 Minutes
 
-이 페이지의 목표는 코드를 보지 않고도 **AASSR이 왜 필요하고, 무엇을 추가했으며, 각각이 어떤 역할을 하는지** 이해하는 것이다.
+이 페이지의 목표는 코드를 읽지 않고도 **AASSR이 어떤 문제를 풀려고 하고, 왜 여러 모듈이 필요하며, 현재 구조가 어떻게 한 번의 행동을 선택하는지** 이해하는 것이다.
 
-## 1. 문제: 보상이 너무 늦게 온다
-
-강화학습에서 에이전트는 행동을 하고 보상을 받는다.
-
-간단한 환경에서는 다음처럼 행동 하나의 결과가 바로 보일 수 있다.
-
-```text
-벽에 충돌 -> -1
-목표 지점 도착 -> +1
-```
-
-하지만 AASSR이 다루는 환경은 더 가깝게 보면 다음과 같다.
-
-```text
-정보 확인 -> 0
-경로 선택 -> 0
-인증 시도 -> 0
-대상 확인 -> 0
-작업 시작 -> 0
-작업 완료 -> 0
-proof 획득 -> +1
-```
-
-실패도 마찬가지다.
-
-```text
-위험한 행동 -> 0
-또 다른 위험한 행동 -> 0
-lockout -> -1
-```
-
-즉 대부분의 transition에서 reward가 `0`이다. 이런 문제를 **sparse reward**라고 한다.
-
-핵심 어려움은 단순히 보상이 적다는 데 있지 않다. 에이전트는 다음 질문에 답해야 한다.
-
-- 몇 단계 전에 얻은 정보가 지금 왜 중요한가?
-- 방금 한 행동은 실제로 상태를 바꿨는가?
-- 현재 가장 좋아 보이는 행동이 장기적으로도 좋은가?
-- 지금 처음 보는 이름과 ID를 가진 환경이 과거 경험과 구조적으로 같은가?
-
-AASSR은 이 질문을 각각 하나의 모듈로 분해한다.
+> [!IMPORTANT]
+> 이 페이지는 `main`의 **current-generation**을 설명한다. 과거 2026-08-11 실패 diagnostic의 숫자는 현재 성능처럼 사용하지 않는다. 과거 실패가 궁금하면 [Historical Imagination Diagnostic — 2026-08-11](Historical-Imagination-Diagnostic-2026-08-11)을 본다.
 
 ---
 
-## 2. ASEQ: 실제로 무엇이 일어났는가?
+# 1. 문제: 정답은 마지막에만 알려준다
 
-AASSR의 가장 기본적인 경험 단위는 다음과 같다.
+[강화학습](Reinforcement-Learning)에서 agent는 행동하고 reward를 받는다.
+
+Dense reward 문제라면:
 
 ```text
-현재 상태 S
-   |
-   | 행동 A
-   v
-다음 상태 S'
+좋은 방향으로 이동   +0.1
+목표에 가까워짐      +0.2
+목표 도달            +1
 ```
 
-이를 간단히
+처럼 중간 힌트가 많다.
+
+AASSR이 겨냥하는 [sparse reward](Sparse-Reward-and-Credit-Assignment)는 훨씬 불친절하다.
+
+```text
+정보 확인      0
+경로 발견      0
+로그인         0
+대상 확인      0
+workflow 진행  0
+proof 획득     +1
+```
+
+실제 task failure라면 `-1`, 단순 rate-limit/truncation 등은 `0`으로 구분한다.
+
+즉 agent는 **“방금 reward가 0이었으니 이 행동은 쓸모없다”**라고 단순 판단할 수 없다.
+
+몇 단계 전의 정보 획득이 마지막 성공을 가능하게 했을 수도 있기 때문이다.
+
+---
+
+# 2. 더 어려운 점: 환경을 전부 볼 수도 없다
+
+AASSR benchmark는 [부분 관측(POMDP)](MDP-and-POMDP)에 가깝다.
+
+```text
+Environment hidden state
+         ↓ 일부만 공개
+Public response
+         ↓
+Agent observation
+```
+
+Agent는 simulator가 내부적으로 알고 있는 정답 target, exact hidden audit pressure, future outcome을 직접 볼 수 없다.
+
+대신 실제 response로 관측한 정보만 사용한다.
+
+```text
+공개된 403 status        O
+response에서 얻은 token  O
+hidden target identity    X
+future success 여부       X
+```
+
+이 원칙을 [response-causal boundary](Causality-Leakage-and-Evaluation)라고 생각하면 된다.
+
+---
+
+# 3. State Representation: 이름보다 구조를 본다
+
+Training scenario:
+
+```text
+route-12
+profile-4
+object-7
+```
+
+Unseen scenario:
+
+```text
+route-31
+profile-9
+object-2
+```
+
+이름만 보면 전부 다르다.
+
+하지만 역할이 같을 수 있다.
+
+```text
+catalog-like route
+→ authenticated profile
+→ candidate object
+```
+
+그래서 current AASSR은 transfer가 필요한 [Policy](Policy), [Prophecy](Prophecy), [Critic](Critic), [Skill](Skills)에서 [relational representation](Relational-Representation-and-Generalization)을 사용한다.
+
+현재 [Relational State v3](State-Representation)는 구조뿐 아니라 최근 public HTTP-like status도 보존한다.
+
+```text
+base relational descriptor  35D
+latest status categorical    8D
+-------------------------------
+current v3                   43D
+```
+
+하지만 실제 실행에서는 서로 다른 concrete object를 구분해야 한다.
+
+그래서:
+
+```text
+transfer / learning identity  = relational
+execution / exact repetition  = concrete
+```
+
+두 identity를 분리한다.
+
+---
+
+# 4. ASEQ: “아무 일도 안 일어난 반복”을 기억한다
+
+[AASSR의 ASEQ](ASEQ)는 실제 transition:
 
 ```text
 (S, A, S')
 ```
 
-라고 쓰며 이 위키에서는 **ASEQ**라고 부른다.
+이다.
 
-예를 들어 어떤 `browse` 행동을 했는데 정보도, 가능한 행동도, 진행 상황도 전혀 바뀌지 않았다면:
+특히 같은 semantic state에서 같은 행동을 했는데 다시 같은 상태라면:
 
 ```text
-S -> browse -> S
+S → A → S
+```
+
+실제로 진전이 없는 self-loop일 수 있다.
+
+이 패턴이 experience로 확인되면 같은 self-loop를 계속 반복하지 않도록 후보를 억제할 수 있다.
+
+하지만:
+
+```text
+S1 → browse → S2
+S2 → browse → S3
+```
+
+처럼 상태가 진행하면 같은 action type의 반복을 막지 않는다.
+
+즉 ASEQ는 **“반복 행동 금지”가 아니라 “관측된 무진전 반복 억제”**다.
+
+---
+
+# 5. Policy: 지금 상태만 보고 기본 행동을 고른다
+
+현재 [Policy](Policy)의 중심은 relational DQN이다.
+
+```text
+Relational State
++
+Relational Action
+      ↓
+Q_task(S,A)
+```
+
+[Q-value](Value-Functions-and-Bellman-Equation)는 현재 행동 이후의 장기 external return을 근사한다.
+
+AASSR은 별도의 information residual도 관리한다.
+
+```text
+Q_task
++
+I_information
+```
+
+중요한 점:
+
+```text
+Information residual
+!= external task reward
 ```
 
 이다.
 
-이것이 실제로 반복해서 관측되면 AASSR은 같은 self-loop를 계속 고집하지 않도록 해당 후보를 억제할 수 있다.
+Task reward 자체를 정보 bonus로 바꾸지 않고, 행동 ranking에서 정보를 얻는 가치와 task value를 구분하려는 설계다.
 
-중요한 점은 **같은 행동 자체를 금지하지 않는다는 것**이다.
-
-```text
-S1 -> browse -> S2
-S2 -> browse -> S3
-```
-
-처럼 상태가 실제로 변한다면 같은 `browse`를 여러 번 하는 것은 허용된다.
-
-따라서 ASEQ는 “반복 금지 장치”라기보다 **경험한 상태 변화의 구조를 기억하는 장치**에 가깝다.
-
-자세한 내용: **[ASEQ](ASEQ)**
+Policy만 사용한다면 여기서 기본 행동이 정해진다.
 
 ---
 
-## 3. Relational Representation: 이름 대신 관계를 본다
+# 6. Knowledge: “그때 이미 알고 있었나?”를 보존한다
 
-AASSR의 실험 환경에서는 seed가 바뀌면 route, profile, object 같은 구체 ID가 바뀐다.
+부분 관측에서는 과거 response에서 얻은 정보가 현재 화면에는 다시 나오지 않을 수 있다.
 
-예를 들어 두 환경이 다음처럼 생겼다고 하자.
-
-```text
-Scenario A
-route-17 -> profile-03 -> object-28
-
-Scenario B
-route-04 -> profile-19 -> object-06
-```
-
-ID만 보면 완전히 다르다. 하지만 역할이
+예:
 
 ```text
-catalog route -> authenticated profile -> target-like object
+t-2: token 발견
+t-1: 다른 response
+t:   현재 response에는 token 없음
 ```
 
-으로 같다면 문제 구조는 같다.
+[Knowledge](Knowledge)는 **현재 episode에서 real response로 이미 획득한 사실**을 저장한다.
 
-현재 AASSR은 transfer가 필요한 Policy, Prophecy, Critic, Skill에서 **rename-invariant relational representation**을 사용한다.
+시간 순서가 중요하다.
 
-반대로 ASEQ는 한 episode 안에서 실제 concrete entity를 구분해야 하기 때문에 더 구체적인 semantic identity를 사용한다.
+```text
+K_t
+ ↓
+predict / decide
+ ↓
+action 실행
+ ↓
+new response
+ ↓
+K_{t+1}
+```
 
-즉 AASSR에는 의도적으로 두 종류의 동일성 개념이 존재한다.
-
-| 용도 | 동일성 |
-|---|---|
-| 같은 episode에서 정확히 무엇을 반복했는가? | concrete semantic identity |
-| 새로운 seed로 일반화할 때 구조가 같은가? | relational identity |
+미래 response에서 얻은 `K_{t+1}`을 과거 prediction에 넣으면 [hindsight leakage](Causality-Leakage-and-Evaluation)다.
 
 ---
 
-## 4. Policy: 지금 당장 무엇을 할 것인가?
+# 7. Prophecy: “이 행동 뒤에는 어떤 결과들이 가능한가?”
 
-Policy는 현재 가능한 행동 각각에 점수를 준다.
+현재 [Prophecy](Prophecy)는 AASSR의 stochastic [world model](Model-Based-RL-and-World-Models)이다.
 
-현재 generation에서는 핵심 Policy가 **relational DQN**이다.
+Current contract:
 
 ```text
-Relational State + Relational Action
-                |
-                v
-              Q-value
+relational-conditional-mixture-ensemble-v5-status-balanced
 ```
 
-AASSR은 여기에 별도의 **information-value residual**을 더한다. 어떤 행동이 즉시 성공을 만들지 않더라도 이후 의사결정에 필요한 정보를 열어 줄 가능성을 따로 학습하기 위한 구조다.
+같은 public `(state, action)`에서도 여러 결과가 가능할 수 있다.
 
-Policy만 사용하면 현재 Q값이 가장 큰 행동을 실행한다.
+```text
+action A
+  |-- 0.70 → next state 1 / 200
+  |-- 0.20 → next state 2 / 403
+  `-- 0.10 → truncation / 429
+```
 
-하지만 AASSR Full에서는 여기서 한 단계 더 간다.
+그래서 하나의 평균 future로 뭉개지 않고 [mixture](Mixture-Ensemble-and-Calibration) outcome을 표현한다.
+
+Prophecy가 다루는 중요한 출력:
+
+- next relational descriptor
+- latest public HTTP status
+- legal action mask
+- active / success / failure / truncation
+- outcome probability mass
+
+여기서:
+
+```text
+Outcome probability
+!=
+Prediction reliability
+```
+
+이다.
+
+`403`이 10% 확률이라는 말과, “그 10%라는 예측을 모델이 얼마나 믿을 수 있나”는 다른 질문이다.
 
 ---
 
-## 5. Prophecy: 이 행동을 하면 다음에 어떻게 될까?
+# 8. Calibration: “그 예측을 믿어도 되는가?”
 
-Prophecy는 AASSR의 learned world model이다.
+[Calibration](Calibration)은 holdout real transition을 사용해 Prophecy prediction의 reliability를 평가한다.
 
-현재 모델은 하나의 확정된 미래만 예측하지 않는다. 같은 공개 상태와 행동에서도 숨겨진 조건 때문에 여러 결과가 가능할 수 있기 때문이다.
-
-그래서 개념적으로 다음처럼 동작한다.
+Current contract:
 
 ```text
-State + Action
-      |
-      v
-+-----------------------------+
-| 60% -> next state A         |
-| 25% -> next state B         |
-| 15% -> truncation/failure   |
-+-----------------------------+
+semantic-probability-holdout-calibration-v3-status-aware
 ```
 
-현재 Prophecy가 다루는 출력에는 다음이 포함된다.
+왜 status-aware인가?
 
-- 다음 relational state descriptor
-- 다음 legal-action mask
-- public latest HTTP status
-- terminal class
-  - active
-  - success
-  - true failure
-  - truncation
+과거에는 전체 relational state가 비슷하게 맞아도 `403/404/429` 같은 **decision-critical public status를 틀리는 문제**가 있었다.
 
-그리고 두 종류의 확률을 구분한다.
-
-- **outcome probability**: 환경적으로 그 결과가 나올 확률
-- **reliability / confidence**: 이 예측을 world model이 얼마나 믿을 수 있는가
-
-이 둘을 섞지 않는 것이 중요하다. 드문 결과라고 해서 모델이 틀린 것은 아니고, 모델이 자신 있다고 해서 그 결과 자체가 자주 일어나는 것도 아니다.
+따라서 단순 global similarity만으로 “world model이 믿을 만하다”고 판단하지 않는다.
 
 ---
 
-## 6. Imagination: 실제로 하기 전에 여러 미래를 펼친다
+# 9. Imagination: 실제로 하기 전에 미래를 펼친다
 
-Prophecy를 한 번만 쓰면 one-step prediction이다.
+[Imagination](Imagination)은 Prophecy를 여러 단계 이어 붙이는 [counterfactual planner](Counterfactual-Planning-and-Search)다.
 
-AASSR의 Imagination은 이를 여러 단계 이어 붙인다.
+```text
+현재 state
+  ├─ action A
+  │    ├─ outcome A1
+  │    └─ outcome A2
+  ├─ action B
+  │    ├─ outcome B1
+  │    └─ outcome B2
+  └─ action C
+       └─ ...
+```
+
+하지만 tree 안에는 서로 다른 두 종류의 선택이 있다.
+
+## Chance node
+
+환경이 어떤 결과를 만들지는 agent가 고를 수 없다.
+
+```math
+V_{chance}=\sum_i p_iV_i
+```
+
+확률로 평균해야 한다.
+
+## Decision node
+
+다음 state에서 어떤 행동을 할지는 agent가 고를 수 있다.
+
+```math
+V_{decision}=\max_aV(S',a)
+```
+
+가장 좋은 action continuation을 선택할 수 있다.
+
+이 둘을 섞으면 “10% jackpot outcome을 agent가 마음대로 선택할 수 있다”는 잘못된 planning이 된다.
+
+관련: [Chance Nodes & Decision Nodes](Chance-and-Decision-Nodes)
+
+---
+
+# 10. Critic: 상상한 미래가 실제 목표에 좋은가?
+
+[Critic](Critic)은 imagined state가 external sparse-return 관점에서 얼마나 좋은지 추정한다.
+
+현재는 relational GRU 기반 discounted sparse-return estimator다.
+
+```text
+Prophecy
+→ 어떤 future인가?
+
+Critic
+→ 그 future의 task return은 얼마나 좋은가?
+```
+
+하지만 큰 문제가 하나 있다.
+
+Neural network는 본 적 없는 상태에서도 숫자를 낸다.
+
+```text
+Critic output = 0.92
+```
+
+라고 해서 그 값이 real data로 뒷받침된다는 뜻은 아니다.
+
+---
+
+# 11. Local Critic Support: “그 값을 여기서 믿을 근거가 있나?”
+
+현재 AASSR은 [local Critic support](Critic-Support-and-OOD)를 별도로 본다.
+
+```text
+Critic ready globally
+!=
+this state/action locally supported
+```
+
+Current contract:
+
+```text
+local-real-training-support-fail-closed-v1
+```
+
+현재 imagined state/action 주변에 실제 Critic training evidence가 부족하면:
+
+```text
+높은 predicted value가 나와도
+        ↓
+override 금지
+        ↓
+Policy로 fallback
+```
+
+한다.
+
+Support는 reward도 아니고 value bonus도 아니다.
+
+---
+
+# 12. 실제 행동은 어떻게 결정되는가?
+
+전체 흐름:
 
 ```mermaid
 flowchart TD
-    S[Current State] --> A1[Action A]
-    S --> A2[Action B]
-    A1 --> O11[Outcome A1]
-    A1 --> O12[Outcome A2]
-    A2 --> O21[Outcome B1]
-    A2 --> O22[Outcome B2]
-    O11 --> N11[Next decision]
-    O12 --> N12[Next decision]
-    O21 --> N21[Next decision]
-    O22 --> N22[Next decision]
-```
-
-여기에는 서로 다른 두 종류의 노드가 있다.
-
-### Chance node
-
-환경이 여러 결과 중 무엇을 만들지 에이전트가 선택할 수 없다.
-
-따라서 가능한 결과의 가치는 **outcome probability로 평균**한다.
-
-```text
-Expected value = sum(probability * future value)
-```
-
-### Decision node
-
-다음 상태에서 어떤 행동을 할지는 에이전트가 고를 수 있다.
-
-따라서 가능한 행동 중 **가장 좋은 것(max)**을 선택한다.
-
-이 구분이 없으면 “환경의 랜덤 결과”와 “에이전트가 선택할 수 있는 행동”을 같은 평균으로 섞는 문제가 생긴다.
-
----
-
-## 7. Critic: 상상한 미래가 실제 목표에 좋은가?
-
-Imagination이 미래를 만들어도 무엇이 좋은 미래인지 평가할 모델이 필요하다.
-
-현재 Critic은 실제 task reward와 맞춘 return을 학습한다.
-
-```text
-success       -> +1
-truncation    ->  0
-true failure  -> -1
-```
-
-중요한 것은 true failure와 단순 truncation을 같은 `0`으로 취급하지 않는 것이다.
-
-Critic은 실제 trajectory의 여러 suffix에서 학습해, 현재 decision state에서 zero recurrent memory로 시작하는 planning과 학습 조건을 맞추도록 설계되어 있다.
-
-하지만 Critic이 전체적으로 학습됐다는 것만으로 어떤 새로운 상태에서도 신뢰할 수 있는 것은 아니다.
-
-그래서 현재 generation에는 **local Critic support gate**가 있다.
-
-```text
-Critic has been trained globally
-          !=
-This state/action is supported by training data
-```
-
-현재 상태/행동이 실제 Critic training distribution에서 충분히 지원되지 않으면 Imagination이 Policy를 강제로 override하지 못하도록 fail-closed한다.
-
----
-
-## 8. 실제 행동 선택
-
-전체 흐름을 다시 연결하면 다음과 같다.
-
-```mermaid
-flowchart TD
-    O[1. Observe] --> R[2. Build relational state]
-    R --> P[3. Policy scores legal actions]
-    P --> G{4. Imagination gate usable?}
-    G -- No --> PA[Policy best action]
-    G -- Yes --> W[5. Prophecy predicts futures]
-    W --> I[6. Imagination expands tree]
-    I --> C[7. Critic evaluates sparse return]
-    C --> S{8. Better than Policy by margin?}
-    S -- No --> PA
-    S -- Yes --> IA[Imagined best root action]
-    PA --> E[9. Execute one real action]
+    O[Observe public response] --> R[Relational State v3]
+    R --> P[Policy scores legal actions]
+    O --> K[Episode-local Knowledge]
+    P --> G{Planner usable?}
+    G -- No --> PA[Policy root]
+    G -- Yes --> W[Prophecy stochastic futures]
+    K --> W
+    W --> CAL[Calibration]
+    CAL --> I[Imagination]
+    I --> C[Critic]
+    C --> S[Local Support]
+    S --> M{Better than Policy by fixed margin?}
+    M -- No --> PA
+    M -- Yes --> IA[Imagined root]
+    PA --> E[Execute one concrete action]
     IA --> E
-    E --> L[10. Learn from real transition]
+    E --> L[Learn from real transition]
     L --> O
 ```
 
-AASSR은 상상 속에서 여러 행동을 실행하지만 **현실에서는 첫 행동 하나만 실행**한다. 이후에는 실제 관측을 받아 다시 계획한다.
+AASSR이 상상 속에서 100개의 future를 계산해도 **현실에서 실행하는 것은 첫 concrete action 하나**다.
+
+그리고 real response를 받은 뒤 다시 처음부터 관측하고 계획한다.
+
+이 점은 [Model Predictive Control / receding horizon](Counterfactual-Planning-and-Search) 직관과 닮아 있다.
 
 ---
 
-## 9. 현재 결과를 어떻게 읽어야 하나?
+# 13. Skill: 성공한 구조를 다음 문제에서 재사용한다
 
-현재 연구는 다음 세 문장을 구분한다.
+[Skill](Skills)은 반복 성공한 real ASeq 구조를 relational template로 승격하는 메커니즘이다.
 
-### ① AASSR의 각 구성요소가 코드에서 작동하는가?
+```text
+real successful sequence
+        ↓
+relational pattern
+        ↓
+Skill template
+        ↓
+new scenario concrete action에 rebind
+```
 
-대부분 **예**다. Current-generation runtime, relational representation, ASEQ, Policy, learned world model, Critic, Imagination tree가 연결되어 있다.
+사람이 정답 macro를 미리 넣는 기능은 아니다.
 
-### ② Imagination이 실제 Policy 행동을 바꿀 수 있는가?
+Skill은 이미 발견한 성공 구조의 재사용에 가깝고, **새로운 해결 경로를 만드는 creativity 자체와는 별개**다.
 
-2026-08-11 2k validation에서 **예**였다. 86회 실제 action override가 발생했다.
+---
 
-### ③ 그 Imagination이 현재 성능을 높이는가?
+# 14. AASSR에서 가장 헷갈리기 쉬운 값
 
-아직 **아니다 / 미확정**이다. 같은 2k validation에서 no-Imagination과 Full은 둘 다 `4/20` 성공이었고, Full의 개입 상당수가 잘못된 HTTP action으로 이어졌다.
+다음은 전부 다른 값이다.
 
-따라서 현재 연구의 중심은 단순히 “Imagination을 켜기”가 아니라 **언제 상상을 믿어도 되는가**를 검증하는 것이다.
+```text
+External reward
+Return
+Q-value
+Information residual
+Outcome probability
+Prediction reliability
+Critic value
+Local Critic support
+Planner advantage
+```
 
-다음 페이지: **[Core Architecture](Core-Architecture)**
+이들을 하나의 “좋음 점수”로 섞지 않는 것이 current-generation 설계의 중요한 특징 중 하나다.
+
+짧은 정의: [Glossary](Glossary)  
+깊은 설명: [Concept Index](Concept-Index)
+
+---
+
+# 15. 그래서 현재 성능은?
+
+현재 위키는 성능을 한 줄 숫자로 고정하지 않는다.
+
+왜냐하면:
+
+- historical mechanism evidence
+- 과거 failure diagnostic
+- current architecture contract
+- reduced validation
+- multi-seed benchmark
+- final blind
+
+가 서로 다른 수준의 evidence이기 때문이다.
+
+현재 무엇까지 검증되었는지는 **[Current Status](Current-Status)** 를 보고, 각 연구 질문별 증거는 **[Evidence Matrix](Evidence-Matrix)** 를 본다.
+
+> [!CAUTION]
+> 2026-08-11의 `4/20 vs 4/20`, `86 interventions`, `58/86 bad-status`는 현재 성능 수치가 아니라 repair를 유도한 historical diagnostic이다.
+
+---
+
+# 16. 한 문장 요약
+
+> **AASSR은 sparse reward 환경에서 실제 경험을 relational/semantic 구조로 기억하고, stochastic world model로 여러 future를 예측하며, calibration과 local value support가 충분할 때만 counterfactual planning으로 Policy의 첫 행동을 바꾸려는 강화학습 시스템이다.**
+
+---
+
+## 다음으로 읽기
+
+### 연구가 궁금하면
+[Research Questions](Research-Questions) → [Evidence Matrix](Evidence-Matrix) → [Experiments](Experiments)
+
+### 구조가 궁금하면
+[Research Architecture](Research-Architecture) → [State Representation](State-Representation) → [Policy](Policy) → [Prophecy](Prophecy) → [Imagination](Imagination)
+
+### 현재 검증 상태가 궁금하면
+[Current Status](Current-Status)
