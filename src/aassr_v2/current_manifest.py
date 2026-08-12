@@ -42,6 +42,17 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
         "dqn+relational-world-model+return-gru-critic-same-device+"
         "full-depth-batching-v6"
     ),
+    "runtime_performance": (
+        "semantics-preserving-indexed-replay+indexed-calibration+"
+        "cuda-packed-transfer-deferred-sync-v1"
+    ),
+    "runtime_performance_contract": (
+        "same-seeds+same-replay-rows+same-update-cadence+same-batch-size+"
+        "same-loss+same-exploration+same-action-semantics"
+    ),
+    "runtime_performance_device_policy": (
+        "cpu-indexing-only+cuda-indexing-and-accelerator-sync-fast-path"
+    ),
     "critic": (
         "relational-gru-discounted-sparse-return+zero-memory-decision-suffixes+"
         "active-fifo-distinct-episode-signed-support+batched-train-v5"
