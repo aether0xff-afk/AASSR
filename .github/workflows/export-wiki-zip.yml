@@ -1,0 +1,29 @@
+name: Export Wiki ZIP
+
+on:
+  push:
+    branches:
+      - export/wiki-zip
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create wiki archive
+        run: |
+          set -euo pipefail
+          zip -r AASSR-wiki.zip wiki
+
+      - name: Upload wiki archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: AASSR-wiki
+          path: AASSR-wiki.zip
+          if-no-files-found: error
+          retention-days: 1
