@@ -30,9 +30,17 @@
 - [MDP and POMDP](MDP-and-POMDP)
 - [Sparse Reward & Credit Assignment](Sparse-Reward-and-Credit-Assignment)
 - [Exploration & Exploitation](Exploration-and-Exploitation)
+- [Information Theory & Intrinsic Motivation](Information-Theory-and-Intrinsic-Motivation)
+- [Curriculum Learning](Curriculum-Learning)
 - [Value Functions & Bellman Equation](Value-Functions-and-Bellman-Equation)
 - [Q-Learning, DQN & TD](Q-Learning-DQN-and-TD)
 - [Replay Buffer & Episode Boundaries](Replay-Buffer-and-Episode-Boundaries)
+
+### Foundations · Neural Models
+
+- [Neural Networks & Optimization](Neural-Networks-and-Optimization)
+- [Loss Functions & Class Imbalance](Loss-Functions-and-Class-Imbalance)
+- [GRU & Sequence Models](GRU-and-Sequence-Models)
 
 ### Foundations · Models & Planning
 
@@ -42,11 +50,10 @@
 - [Counterfactual Planning & Search](Counterfactual-Planning-and-Search)
 - [Chance Nodes & Decision Nodes](Chance-and-Decision-Nodes)
 
-### Foundations · Generalization & Memory
+### Foundations · Generalization & Skills
 
 - [Relational Representation & Generalization](Relational-Representation-and-Generalization)
 - [Critic, Support & OOD](Critic-Support-and-OOD)
-- [GRU & Sequence Models](GRU-and-Sequence-Models)
 - [Hierarchical RL & Skills](Hierarchical-RL-and-Skills)
 
 ### Research Methodology
