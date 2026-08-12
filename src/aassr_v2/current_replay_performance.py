@@ -1,44 +1,42 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator, Sequence
+from collections import deque
 from types import MethodType
-from typing import Any, Generic, TypeVar, overload
+from typing import Any, Generic, Iterable, TypeVar, overload
 
 
 T = TypeVar("T")
 
 
-class IndexableReplayRing(Sequence[T], Generic[T]):
-    """Fixed-capacity FIFO replay with O(1) random indexing.
+class IndexableReplayRing(deque[T], Generic[T]):
+    """Deque-compatible FIFO with a fast logical-index mirror before capacity.
 
-    Logical iteration order is exactly deque(maxlen=N): oldest to newest. The
-    active learners use Python's existing ``random.sample`` / ``randrange`` with
-    this sequence, so RNG calls and selected logical rows stay unchanged while
-    eliminating repeated deque traversal and full ``list(replay)`` copies.
+    Current pre-10k DQN/Prophecy replay capacity is 50k, so the active scaling
+    run never evicts a row. While below capacity, integer indexing and sampling
+    use a normal CPython list, avoiding deque middle traversal. If a future run
+    exceeds capacity, the list mirror is disabled and the object falls back to
+    native deque semantics instead of paying O(capacity) list-front deletion on
+    every append.
     """
-
-    __slots__ = ("_storage", "_start", "_size", "maxlen")
 
     def __init__(self, maxlen: int, values: Iterable[T] = ()) -> None:
         capacity = int(maxlen)
         if capacity <= 0:
             raise ValueError("replay maxlen must be positive")
-        self.maxlen = capacity
-        self._storage: list[T | None] = [None] * capacity
-        self._start = 0
-        self._size = 0
+        super().__init__(maxlen=capacity)
+        self._performance_index: list[T] | None = []
         self.extend(values)
 
-    def __len__(self) -> int:
-        return self._size
+    @property
+    def performance_index_active(self) -> bool:
+        return self._performance_index is not None
 
-    def _physical(self, logical: int) -> int:
-        index = int(logical)
-        if index < 0:
-            index += self._size
-        if not 0 <= index < self._size:
-            raise IndexError("replay index out of range")
-        return (self._start + index) % self.maxlen
+    @property
+    def sampling_population(self) -> list[T]:
+        index = self._performance_index
+        if index is not None:
+            return index
+        return list(super().__iter__())
 
     @overload
     def __getitem__(self, index: int) -> T: ...
@@ -47,38 +45,37 @@ class IndexableReplayRing(Sequence[T], Generic[T]):
     def __getitem__(self, index: slice) -> tuple[T, ...]: ...
 
     def __getitem__(self, index: int | slice) -> T | tuple[T, ...]:
+        mirror = self._performance_index
         if isinstance(index, slice):
-            start, stop, step = index.indices(self._size)
-            return tuple(self[item] for item in range(start, stop, step))
-        value = self._storage[self._physical(index)]
-        if value is None:  # pragma: no cover - internal invariant
-            raise RuntimeError("replay ring contains an empty live slot")
-        return value
-
-    def __iter__(self) -> Iterator[T]:
-        for index in range(self._size):
-            yield self[index]
+            if mirror is not None:
+                return tuple(mirror[index])
+            return tuple(super().__iter__())[index]
+        if mirror is not None:
+            return mirror[index]
+        return super().__getitem__(index)
 
     def append(self, value: T) -> None:
-        if self._size < self.maxlen:
-            position = (self._start + self._size) % self.maxlen
-            self._storage[position] = value
-            self._size += 1
-            return
-        self._storage[self._start] = value
-        self._start = (self._start + 1) % self.maxlen
+        mirror = self._performance_index
+        # Crossing maxlen would require deleting mirror[0] every transition.
+        # Disable the pre-capacity optimization instead and preserve deque's O(1)
+        # eviction behavior for future >50k experiments.
+        if mirror is not None and len(self) >= int(self.maxlen or 0):
+            self._performance_index = None
+            mirror = None
+        super().append(value)
+        if mirror is not None:
+            mirror.append(value)
 
     def extend(self, values: Iterable[T]) -> None:
         for value in values:
             self.append(value)
 
     def clear(self) -> None:
-        self._storage = [None] * self.maxlen
-        self._start = 0
-        self._size = 0
+        super().clear()
+        self._performance_index = []
 
 
-def _as_indexable_replay(replay: object, *, fallback_capacity: int) -> IndexableReplayRing[Any]:
+def _as_fast_replay(replay: object, *, fallback_capacity: int) -> IndexableReplayRing[Any]:
     capacity = getattr(replay, "maxlen", None)
     if capacity is None:
         capacity = int(fallback_capacity)
@@ -86,15 +83,16 @@ def _as_indexable_replay(replay: object, *, fallback_capacity: int) -> Indexable
 
 
 def _install_dqn_indexed_sampling(dqn: object) -> None:
-    dqn.replay = _as_indexable_replay(dqn.replay, fallback_capacity=50_000)
+    dqn.replay = _as_fast_replay(dqn.replay, fallback_capacity=50_000)
     dqn.performance_indexed_replay = True
     dqn.performance_full_replay_copies = 0
 
     def train_step(self: object) -> None:
-        # random.sample sees the same logical sequence and therefore consumes the
-        # same RNG draws as random.sample(list(old_deque), batch_size), without
-        # materializing all replay rows on every gradient update.
-        batch = self.randomizer.sample(self.replay, self.batch_size)
+        # random.sample receives the exact same ordered row population as the old
+        # list(deque), with identical RNG consumption. Below capacity that list is
+        # maintained incrementally rather than rebuilt for every gradient update.
+        population = self.replay.sampling_population
+        batch = self.randomizer.sample(population, self.batch_size)
         inputs = self._tensor([item[0] + item[1] for item in batch])
         predicted = self.online(inputs).squeeze(1)
 
@@ -147,22 +145,34 @@ def _install_dqn_indexed_sampling(dqn: object) -> None:
 
 
 def _install_prophecy_indexed_sampling(prophecy: object) -> None:
-    prophecy.replay = _as_indexable_replay(
+    prophecy.replay = _as_fast_replay(
         prophecy.replay,
         fallback_capacity=int(prophecy.config.replay_capacity),
     )
-    # Prophecy already samples by integer index. Replacing deque with the ring is
-    # sufficient to change each lookup from O(N) traversal to O(1).
+    # Prophecy already samples by integer index. IndexableReplayRing redirects
+    # those exact logical indices to its C-level list mirror while below maxlen.
     prophecy.performance_indexed_replay = True
 
 
-def _install_critic_indexed_sampling(critic: object) -> None:
-    critic.replay = _as_indexable_replay(critic.replay, fallback_capacity=4_000)
+def _install_critic_snapshot_sampling(critic: object) -> None:
+    # Critic capacity is only 4k and naturally rolls over. Keep its native deque
+    # FIFO but build the random-access population once per changed suffix set,
+    # instead of once for each gradient step (two by default).
     critic.performance_indexed_replay = True
     critic.performance_full_replay_copies = 0
+    critic._performance_replay_snapshot_revision = -1
+    critic._performance_replay_snapshot = ()
 
     def train_step(self: object) -> None:
-        batch = self.randomizer.sample(self.replay, self.batch_size)
+        revision = int(self.suffix_sequences)
+        if self._performance_replay_snapshot_revision != revision:
+            self._performance_replay_snapshot = tuple(self.replay)
+            self._performance_replay_snapshot_revision = revision
+            self.performance_full_replay_copies += 1
+        batch = self.randomizer.sample(
+            self._performance_replay_snapshot,
+            self.batch_size,
+        )
         lengths = [len(encoded) for encoded, _ in batch]
         max_length = max(lengths)
         hidden = self.torch.zeros(
@@ -218,12 +228,12 @@ def _install_critic_indexed_sampling(critic: object) -> None:
 
 
 def install_indexable_current_replays(agent: object) -> object:
-    """Remove replay-size-dependent Python sampling overhead from active learners."""
+    """Remove replay-size-dependent Python sampling work without changing rows."""
 
     if getattr(agent, "current_indexable_replays", False):
         return agent
     _install_dqn_indexed_sampling(agent.dqn)
     _install_prophecy_indexed_sampling(agent.base_neural_prophecy)
-    _install_critic_indexed_sampling(agent.critic)
+    _install_critic_snapshot_sampling(agent.critic)
     agent.current_indexable_replays = True
     return agent
