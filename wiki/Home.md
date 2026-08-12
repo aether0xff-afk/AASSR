@@ -11,7 +11,7 @@
 
 이 위키는 단순한 코드 설명서가 아니다.
 
-각 주제를 가능하면 다음 깊이로 연결한다.
+각 주제를 다음 깊이로 연결한다.
 
 ```text
 왜 이 문제가 필요한가?
@@ -29,13 +29,11 @@
 무엇이 실패했고 무엇이 아직 미검증인가?
 ```
 
-즉 처음 보는 사람은 위쪽만 읽고, 연구를 검증하거나 재현하려는 사람은 아래 기술 계층까지 내려갈 수 있도록 구성한다.
+처음 보는 사람은 위쪽 연구 흐름만 읽고, 구현을 검증하거나 재현하려는 사람은 각 메커니즘의 기술 계층까지 내려갈 수 있다.
 
 ---
 
 # 30초 요약
-
-AASSR의 현재 계산 흐름은 다음과 같다.
 
 ```mermaid
 flowchart LR
@@ -60,18 +58,20 @@ flowchart LR
     E --> O
 ```
 
-핵심 아이디어를 아주 짧게 쓰면:
+핵심 흐름:
 
 1. **관측** 가능한 정보만 본다.
 2. **Relational state**로 이름이 바뀐 환경에서도 구조를 알아보려 한다.
 3. **ASEQ**로 실제 `(S,A,S')` 경험과 self-loop를 다룬다.
-4. **Policy**가 기본 행동을 선택한다.
-5. **Prophecy**가 행동 후 가능한 미래 분포를 예측한다.
-6. **Calibration**이 그 예측을 믿어도 되는지 확인한다.
-7. **Imagination**이 여러 단계의 미래를 계산한다.
-8. **Critic**이 sparse return 관점에서 미래 가치를 평가한다.
-9. **Local support gate**가 OOD value extrapolation을 막는다.
-10. 조건이 충분할 때만 Policy 행동을 실제로 바꾼다.
+4. **Policy**가 sparse-return 기반 기본 행동을 선택한다.
+5. **Knowledge**가 현재 episode에서 실제 response로 알아낸 사실의 causal context를 보존한다.
+6. **Prophecy**가 행동 후 가능한 미래의 확률 분포를 예측한다.
+7. **Calibration**이 그 예측을 믿어도 되는지 real holdout으로 확인한다.
+8. **Imagination**이 chance와 decision을 구분해 여러 단계의 미래를 계산한다.
+9. **Critic**이 sparse return 관점에서 미래 가치를 평가한다.
+10. **Local support gate**가 OOD Critic extrapolation을 막는다.
+11. 반복 성공한 구조는 **Skill**의 relational template로 재사용될 수 있다.
+12. 모든 조건이 충분할 때만 Policy 행동을 실제로 override한다.
 
 ---
 
@@ -88,24 +88,34 @@ AASSR을 연구 프로젝트로 이해하려면 다음 순서를 권장한다.
 3. **[Research Architecture](Research-Architecture)**  
    각 연구 질문이 실제 current-generation 설계로 어떻게 연결되는가?
 
-4. **[Experiments](Experiments)**  
+4. **[Design Rationale](Design-Rationale)**  
+   왜 relational, mixture, calibration, chance expectation, local support 같은 선택을 했는가?
+
+5. **[Experiments](Experiments)**  
    어떤 control과 ablation으로 각 효과를 분리하는가?
 
-5. **[Current Status](Current-Status)**  
+6. **[Current Status](Current-Status)**  
    지금까지 무엇이 확인됐고 무엇이 아직 주장 불가능한가?
 
 ---
 
 # 기술적으로 깊게 읽기
 
-핵심 메커니즘은 다음 페이지에서 더 깊게 다룬다.
+각 메커니즘은 별도 deep-dive로 연결한다.
 
-- **[ASEQ](ASEQ)** — 실제 transition `(S,A,S')`, semantic self-loop
-- **[Prophecy](Prophecy)** — relational conditional-mixture world model
-- **[Imagination](Imagination)** — chance/decision counterfactual planning
-- **[Core Architecture](Core-Architecture)** — current runtime 전체 코드 구조
-- **[Reproduction](Reproduction)** — 실행 및 재현 경로
-- **[Glossary](Glossary)** — 용어 정리
+| 주제 | 핵심 질문 |
+|---|---|
+| **[ASEQ](ASEQ)** | 실제 `(S,A,S')` 중 어떤 반복만 막아야 하는가? |
+| **[Policy](Policy)** | sparse reward와 information value를 섞지 않고 행동을 어떻게 평가하는가? |
+| **[Knowledge](Knowledge)** | 무엇을 언제 알았으며 hindsight leak을 어떻게 막는가? |
+| **[Prophecy](Prophecy)** | stochastic multimodal future를 어떻게 예측하는가? |
+| **[Calibration](Calibration)** | outcome probability와 model reliability를 어떻게 분리하는가? |
+| **[Critic](Critic)** | imagined future의 sparse return과 local support를 어떻게 평가하는가? |
+| **[Imagination](Imagination)** | chance expectation과 agent decision max를 어떻게 연결하는가? |
+| **[Skills](Skills)** | 성공 ASeq를 concrete ID 암기 없이 어떻게 재사용하는가? |
+| **[Core Architecture](Core-Architecture)** | 이 모든 것이 실제 current runtime에서 어떻게 연결되는가? |
+
+실행과 재현은 **[Reproduction](Reproduction)**, 용어는 **[Glossary](Glossary)** 에서 본다.
 
 ---
 
@@ -128,7 +138,11 @@ Prophecy가 usable future distribution을 학습하는가?
         ↓
 Calibration이 잘못된 예측을 걸러내는가?
         ↓
+Critic이 실제 sparse return으로 미래 가치를 구분하는가?
+        ↓
 Imagination이 같은 Policy보다 더 좋은 행동을 만들 수 있는가?
+        ↓
+성공 구조를 Skill로 transfer할 수 있는가?
         ↓
 AASSR 전체가 강한 baseline보다 나은가?
 ```
@@ -215,9 +229,9 @@ reduced diagnostic
 final performance benchmark
 ```
 
-예를 들어 과거 실험에서 ASEQ가 self-loop를 크게 줄였다는 evidence가 있어도 그것이 곧 current Full AASSR의 최종 성공률은 아니다.
+과거 실험에서 ASEQ가 self-loop를 줄였다는 evidence가 있어도 그것이 곧 current Full AASSR의 최종 성공률은 아니다.
 
-마찬가지로 current code에 repair가 들어갔다고 해서 성능 향상이 검증된 것도 아니다.
+마찬가지로 current code에 repair가 들어갔다고 해서 새 장기 실험에서 성능 향상이 검증된 것도 아니다.
 
 이 경계는 **[Experiments](Experiments)** 와 **[Current Status](Current-Status)** 에서 명시한다.
 
@@ -238,14 +252,17 @@ AASSR은 여러 실패와 구조 변경을 거쳐 현재 세대로 왔다.
 **처음 보는 사람**  
 [AASSR in 5 Minutes](AASSR-in-5-Minutes) → [Research Questions](Research-Questions) → [Research Architecture](Research-Architecture)
 
+**왜 이렇게 설계했는지 보고 싶은 사람**  
+[Sparse Reward Problem](Sparse-Reward-Problem) → [Design Rationale](Design-Rationale)
+
 **연구 결과를 보고 싶은 사람**  
 [Experiments](Experiments) → [Current Status](Current-Status)
 
 **구현을 검증하고 싶은 사람**  
-[Core Architecture](Core-Architecture) → [Prophecy](Prophecy) → [Imagination](Imagination) → [Reproduction](Reproduction)
+[Core Architecture](Core-Architecture) → [Policy](Policy) → [Prophecy](Prophecy) → [Calibration](Calibration) → [Critic](Critic) → [Imagination](Imagination)
 
-**왜 이런 설계를 했는지 보고 싶은 사람**  
-[Sparse Reward Problem](Sparse-Reward-Problem) → [Research Questions](Research-Questions) → 각 기술 페이지의 연구 질문/실패 모드 섹션
+**기억/재사용 계층을 보고 싶은 사람**  
+[ASEQ](ASEQ) → [Knowledge](Knowledge) → [Skills](Skills)
 
 ---
 
