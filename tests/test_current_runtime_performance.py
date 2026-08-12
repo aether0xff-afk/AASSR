@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 import pytest
 
 pytest.importorskip("torch")
 
 from aassr_v2.current_relational_codec import ACTION_SLOT_COUNT, TERMINAL_CLASSES
+from aassr_v2.current_relational_state_v3 import install_status_aware_relational_contract
 from aassr_v2.current_runtime_performance import (
     _install_indexed_calibration,
     _install_status_mixture_fast_path,
@@ -20,6 +19,14 @@ from aassr_v2.current_status_models import (
 )
 from aassr_v2.pentest_transfer_stages import TRANSFER_STAGES, TransferDiagnosticWorld
 from aassr_v2.replay import ReplayBuffer, ReplayTransition
+
+
+def _status_model(seed: int) -> StatusAwareConditionalMixtureRelationalProphecy:
+    # Direct model construction must reproduce the canonical builder's explicit
+    # public-v3 installation instead of relying on another pytest module having
+    # patched process-global representation functions first.
+    install_status_aware_relational_contract()
+    return StatusAwareConditionalMixtureRelationalProphecy(seed=seed, device="cpu")
 
 
 def _populate_model(model: StatusAwareConditionalMixtureRelationalProphecy) -> None:
@@ -44,8 +51,8 @@ def _populate_model(model: StatusAwareConditionalMixtureRelationalProphecy) -> N
 def test_status_mixture_training_fast_path_preserves_parameter_update() -> None:
     import torch
 
-    baseline = StatusAwareConditionalMixtureRelationalProphecy(seed=1234, device="cpu")
-    optimized = StatusAwareConditionalMixtureRelationalProphecy(seed=1234, device="cpu")
+    baseline = _status_model(1234)
+    optimized = _status_model(1234)
     _populate_model(baseline)
     _populate_model(optimized)
     _install_status_mixture_fast_path(optimized)
@@ -72,8 +79,8 @@ def test_status_mixture_training_fast_path_preserves_parameter_update() -> None:
 def test_vectorized_status_mixture_decode_matches_reference() -> None:
     import torch
 
-    baseline = StatusAwareConditionalMixtureRelationalProphecy(seed=44, device="cpu")
-    optimized = StatusAwareConditionalMixtureRelationalProphecy(seed=44, device="cpu")
+    baseline = _status_model(44)
+    optimized = _status_model(44)
     _install_status_mixture_fast_path(optimized)
 
     generator = torch.Generator().manual_seed(77)
@@ -90,7 +97,7 @@ def test_vectorized_status_mixture_decode_matches_reference() -> None:
 
 
 def test_calibration_holdout_index_preserves_value_and_reuses_scan() -> None:
-    base = StatusAwareConditionalMixtureRelationalProphecy(seed=91, device="cpu")
+    base = _status_model(91)
     replay = ReplayBuffer(capacity=64, holdout_stride=5)
     calibrated = SemanticCalibratedProphecy(base, replay)
     _install_indexed_calibration(calibrated)
