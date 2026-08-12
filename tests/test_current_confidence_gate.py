@@ -132,7 +132,10 @@ def test_current_builder_separates_confidence_from_planner_and_critic_value() ->
     state, action, _ = _state()
 
     assert agent.current_confidence_gate is True
-    assert agent.current_imagination_value_contract == "critic_only_after_confidence_gate"
+    assert agent.current_imagination_value_contract == (
+        "critic_only_after_root_and_continuation_confidence_gates"
+    )
+    assert agent.planner.current_reliable_continuation_backup is True
     assert agent.planner.config.uncertainty_penalty == 0.0
     assert agent.config.imagination_uncertainty_margin == 0.0
     assert agent.current_confidence_gate_threshold == agent.config.imagination_minimum_coverage
