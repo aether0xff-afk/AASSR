@@ -1,9 +1,6 @@
 name: Repaired Imagination 2k one-shot
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/repaired-imagination-2k-once.yml"
   workflow_dispatch:
 
 jobs:
