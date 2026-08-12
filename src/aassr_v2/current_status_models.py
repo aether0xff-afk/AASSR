@@ -232,8 +232,8 @@ class StatusAwareRelationalStochasticProphecy(
                 "status-aware Prophecy requires relational public state v3"
             )
 
-    def _confidence(self, outputs: Any) -> Any:
-        """Use the same categorical geometry for training and reliability."""
+    def _decoded_outputs(self, outputs: Any) -> tuple[Any, Any, Any]:
+        """Decode every status-aware base-model path with categorical geometry."""
         descriptor_size = self.output_size - ACTION_SLOT_COUNT - TERMINAL_CLASSES
         mask_start = descriptor_size
         mask_end = mask_start + ACTION_SLOT_COUNT
@@ -257,12 +257,15 @@ class StatusAwareRelationalStochasticProphecy(
                     ]
                 )
             )
-        descriptor = self.torch.cat(descriptor_parts, dim=-1)
-        parts = (
-            descriptor,
-            self.torch.sigmoid(outputs[:, :, mask_start:mask_end]),
-            self.torch.softmax(outputs[:, :, mask_end:], dim=-1),
-        )
+        descriptors = self.torch.cat(descriptor_parts, dim=-1)
+        masks = self.torch.sigmoid(outputs[:, :, mask_start:mask_end])
+        terminals = self.torch.softmax(outputs[:, :, mask_end:], dim=-1)
+        return descriptors, masks, terminals
+
+    def _confidence(self, outputs: Any) -> Any:
+        """Use the same categorical geometry for training and reliability."""
+        descriptors, masks, terminals = self._decoded_outputs(outputs)
+        parts = (descriptors, masks, terminals)
         variance = sum(
             part.var(dim=0, unbiased=False).mean(dim=1) for part in parts
         )
@@ -346,10 +349,84 @@ class StatusAwareRelationalStochasticProphecy(
         )
         self.gradient_updates += 1
 
+    def predict_batch(
+        self,
+        states: tuple[StateSnapshot, ...] | list[StateSnapshot] | Any,
+        actions: tuple[Action, ...] | list[Action] | Any,
+        *,
+        samples: int,
+    ) -> tuple[tuple[Prediction, ...], ...]:
+        """Mirror the base predictor without its descriptor-wide sigmoid."""
+        if len(states) != len(actions):
+            raise ValueError("states/actions batch length mismatch")
+        if samples <= 0:
+            raise ValueError("samples must be positive")
+        if not states:
+            return ()
+        self.batch_prediction_calls += 1
+        self.batch_prediction_rows += len(states)
+        if self.observations < self.config.warmup_steps:
+            return tuple(
+                (
+                    RelationalPrediction(
+                        state,
+                        0.0,
+                        source=f"{self.name}:unseen",
+                        outcome_probability=1.0,
+                    ),
+                )
+                for state in states
+            )
+
+        outputs = self._forward(states, actions)
+        confidence = self._confidence(outputs).detach().cpu().tolist()
+        descriptors_t, masks_t, terminals_t = self._decoded_outputs(outputs)
+        descriptors = descriptors_t.detach().cpu().tolist()
+        masks = masks_t.detach().cpu().tolist()
+        terminals = terminals_t.detach().cpu().tolist()
+
+        member_count = min(int(samples), self.config.ensemble_size)
+        rows: list[tuple[Prediction, ...]] = []
+        for row_index, (state, action) in enumerate(zip(states, actions, strict=True)):
+            empirical = self._empirical_predictions(
+                state,
+                action,
+                confidence=float(confidence[row_index]),
+                samples=samples,
+            )
+            if empirical:
+                rows.append(empirical)
+                continue
+
+            predictions = []
+            for member in range(member_count):
+                predicted_terminal = max(
+                    range(TERMINAL_CLASSES),
+                    key=lambda index: terminals[member][row_index][index],
+                )
+                source = f"{self.name}:member-{member}"
+                predictions.append(
+                    RelationalPrediction(
+                        decode_relational_state_v3(
+                            descriptors[member][row_index],
+                            masks[member][row_index],
+                            scaffold=state,
+                            predicted_terminal=predicted_terminal,
+                            source=source,
+                        ),
+                        float(confidence[row_index]),
+                        source=source,
+                        outcome_probability=1.0 / max(1, member_count),
+                    )
+                )
+            rows.append(tuple(predictions))
+        return tuple(rows)
+
     def diagnostics(self) -> dict[str, int | float | str]:
         return {
             **super().diagnostics(),
             **self._status_diagnostics(),
+            "status_categorical_inference": 1,
         }
 
 
