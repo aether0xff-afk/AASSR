@@ -45,6 +45,7 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
     "critic_readiness": "positive-and-negative-signed-return-support-v2",
     "critic_support_gate": "local-real-training-support-fail-closed-v1",
     "skills": "relational-aseq-template-v1",
+    "skill_prophecy": "stochastic-complete-up-to-64+explicit-unresolved-tail-fail-closed-v3",
     "goals": "external-final-goal+relational-skill-promotion-v1",
     "effect_composition": "superseded-by-relational-world-model-disabled",
     "training_imagination": "disabled-same-checkpoint",
