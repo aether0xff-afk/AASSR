@@ -15,6 +15,7 @@ from aassr_v2.current_relational_model import (
     RelationalStochasticProphecy,
 )
 from aassr_v2.current_relational_skill_prophecy import RelationalStochasticSkillProphecy
+from aassr_v2.current_relational_state_v3 import relational_state_key_v3
 from aassr_v2.current_semantic_calibration import (
     SemanticCalibratedProphecy,
     probability_weighted_semantic_score,
@@ -131,6 +132,7 @@ def test_semantic_calibration_preserves_outcome_mass() -> None:
     raw = base.predict(before, action, samples=3)
     calibrated._cache[(
         relational_action_key(before, action),
+        relational_state_key_v3(before),
         0,
         int(base.gradient_updates) // calibrated.refresh_stride,
     )] = 0.5
