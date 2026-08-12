@@ -11,11 +11,15 @@ from .current_critic_support import install_critic_support_gate
 from .current_decision_optimization import install_current_decision_optimizations
 from .current_hardware import install_hardware_dqn
 from .current_hot_path_profile import install_current_hot_path_profiler
+from .current_manifest import CURRENT_COMPONENTS
 from .current_planner import CurrentFullyBatchedImaginationTree
 from .current_relational_state_v3 import install_status_aware_relational_contract
 from .current_repair import install_current_repairs
 from .current_root_dedup import install_structural_root_dedup
-from .current_status_models import install_status_supervised_world_model
+from .current_status_models import (
+    StatusAwareConditionalMixtureRelationalProphecy,
+    install_status_supervised_world_model,
+)
 from .current_validation import install_current_fast_validation
 
 
@@ -46,16 +50,16 @@ def build_current_pentest_aassr_core(
 ) -> CurrentStandalonePentestAASSRAgent:
     """Build the sole active current-generation pentest AASSR runtime.
 
-    The active public relational state is v3: it keeps the latest actually
-    observed HTTP status (200/302/400/401/403/404/409/429) while exact audit
-    pressure, hidden session-TTL remaining, hidden stage depth, and concrete
-    route/profile/object identity remain unavailable to learners.
+    This is the same status-balanced conditional-mixture runtime exercised by the
+    latest repaired CUDA validation. Historical builders remain importable only
+    for reproduction; current runners should resolve through this function.
 
-    The world model gives the public status slice an explicit supervised loss so
-    dangerous response errors cannot be diluted by the rest of the descriptor.
-    Prophecy reliability and local Critic training support are fail-closed gates,
-    never value bonuses. Expensive root prediction/Critic work is deduplicated by
-    structural relational action identity while final execution remains concrete.
+    Public relational state v3 preserves the latest observed HTTP status while
+    exact audit pressure, hidden session-TTL remaining, hidden stage depth, and
+    concrete route/profile/object identity remain unavailable to learners.
+    Prophecy confidence and local Critic support are fail-closed reliability gates,
+    never value bonuses. Structural aliases share expensive model/Critic compute
+    while final execution remains a concrete real action.
     """
 
     if not enable_batching:
@@ -92,9 +96,11 @@ def build_current_pentest_aassr_core(
         agent,
         seed=int(seed),
         device=hardware.resolved_device,
+        model_class=StatusAwareConditionalMixtureRelationalProphecy,
     )
     agent.planner.config = replace(agent.planner.config, aggregation="mean")
     agent.core.planner = agent.planner
+    agent.current_components = dict(CURRENT_COMPONENTS)
     install_current_confidence_gate(agent)
     install_critic_support_gate(agent)
     install_structural_root_dedup(agent)
