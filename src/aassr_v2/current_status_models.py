@@ -9,29 +9,168 @@ from .current_relational_codec import ACTION_SLOT_COUNT, TERMINAL_CLASSES
 from .current_relational_mixture_model import ConditionalMixtureRelationalProphecy
 from .current_relational_model import RelationalStochasticProphecy
 from .current_relational_skill_prophecy import RelationalStochasticSkillProphecy
-from .current_relational_state_v3 import STATUS_SIZE, STATUS_START_INDEX
+from .current_relational_state_v3 import (
+    STATUS_CODES_V3,
+    STATUS_SIZE,
+    STATUS_START_INDEX,
+    latest_status_vector,
+)
 from .current_semantic_calibration import (
     RelationalDepthBatchedProphecyView,
     SemanticCalibratedProphecy,
     SemanticPredictionValidator,
 )
 from .current_semantic_evaluator import RelationalAdvancedTransitionEvaluator
+from .skills import SKILL_VERB
+from .types import Action, StateSnapshot
 
 
+# Keep the overall status contribution unchanged from the first v3 repair so the
+# new experiment changes *which* status objective is learned, not how much status
+# dominates the total world-model loss.
 STATUS_LOSS_WEIGHT = 0.5
+STATUS_CLASS_WEIGHT_POWER = 0.5
+STATUS_CLASS_WEIGHT_CAP = 4.0
+STATUS_NO_OBSERVATION_BCE_WEIGHT = 0.25
+STATUS_OBJECTIVE = "class-balanced-categorical-public-http-status-v2"
 
 
-class StatusAwareRelationalStochasticProphecy(RelationalStochasticProphecy):
-    """Relational world model with explicit supervision for public HTTP status.
+class _BalancedPublicStatusMixin:
+    """General class balancing for mutually-exclusive public response outcomes.
 
-    Latest response status is decision-critical public information. Treating its
-    eight channels as only 8/43 of a mean descriptor loss recreates the dilution
-    that let 403/404 mistakes coexist with high aggregate semantic quality in the
-    first repaired 2k run. The status slice therefore receives a dedicated BCE
-    term in addition to the ordinary descriptor loss.
+    No HTTP code is assigned a hand-written meaning or penalty. We only use the
+    empirical frequency of each publicly observed status class. Rare classes get
+    a capped inverse-sqrt weight, normalized so the expected status-loss scale
+    stays approximately constant as the class distribution changes.
     """
 
-    name = "current-relational-stochastic-world-model-v3-status-aware"
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._status_observation_counts = [0 for _ in range(STATUS_SIZE)]
+        self._status_no_observation_count = 0
+        self._last_status_training_loss = 0.0
+        self._last_status_training_accuracy = 0.0
+
+    def _record_public_status(self, state: StateSnapshot) -> None:
+        values = latest_status_vector(state)
+        if values and max(values) >= 0.5:
+            index = max(range(STATUS_SIZE), key=lambda item: (values[item], -item))
+            self._status_observation_counts[index] += 1
+        else:
+            self._status_no_observation_count += 1
+
+    def learn(
+        self,
+        state: StateSnapshot,
+        action: Action,
+        actual_next_state: StateSnapshot,
+    ) -> None:
+        if action.verb_name != SKILL_VERB:
+            self._record_public_status(actual_next_state)
+        super().learn(state, action, actual_next_state)
+
+    def _status_class_weights(self) -> tuple[float, ...]:
+        counts = tuple(int(value) for value in self._status_observation_counts)
+        present = [value for value in counts if value > 0]
+        if not present:
+            return (1.0,) * STATUS_SIZE
+        maximum = max(present)
+        raw = [
+            min(
+                STATUS_CLASS_WEIGHT_CAP,
+                (maximum / max(1, count)) ** STATUS_CLASS_WEIGHT_POWER,
+            )
+            if count > 0
+            else 1.0
+            for count in counts
+        ]
+        total = sum(counts)
+        expected = (
+            sum(count * weight for count, weight in zip(counts, raw, strict=True))
+            / max(1, total)
+        )
+        expected = max(expected, 1e-12)
+        return tuple(weight / expected for weight in raw)
+
+    def _status_class_weight_tensor(self) -> Any:
+        return self._tensor(self._status_class_weights())
+
+    def _status_loss_rows(
+        self,
+        status_logits: Any,
+        status_target: Any,
+    ) -> tuple[Any, float]:
+        """Return per-row categorical loss and top-1 accuracy for observed status.
+
+        Rows with no public status use only a small all-zero BCE fallback. This
+        preserves the existing no-observation representation without inventing a
+        ninth task-specific class or changing the 43-D public-state contract.
+        """
+        torch = self.torch
+        nn = self.nn
+        leading_shape = status_logits.shape[:-1]
+        flat_logits = status_logits.reshape(-1, STATUS_SIZE)
+        flat_target = status_target.reshape(-1, STATUS_SIZE)
+        observed = flat_target.sum(dim=1) >= 0.5
+        losses = torch.zeros(
+            flat_logits.shape[0],
+            dtype=torch.float32,
+            device=self.device,
+        )
+        accuracy = 0.0
+
+        if bool(observed.any()):
+            logits = flat_logits[observed]
+            target = flat_target[observed]
+            classes = target.argmax(dim=1)
+            log_probabilities = torch.log_softmax(logits, dim=1)
+            class_weights = self._status_class_weight_tensor()
+            picked = -log_probabilities.gather(1, classes.unsqueeze(1)).squeeze(1)
+            losses[observed] = picked * class_weights[classes]
+            predicted = logits.argmax(dim=1)
+            accuracy = float(
+                (predicted == classes).float().mean().detach().cpu().item()
+            )
+
+        missing = ~observed
+        if bool(missing.any()):
+            missing_loss = nn.functional.binary_cross_entropy_with_logits(
+                flat_logits[missing],
+                torch.zeros_like(flat_logits[missing]),
+                reduction="none",
+            ).mean(dim=1)
+            losses[missing] = STATUS_NO_OBSERVATION_BCE_WEIGHT * missing_loss
+
+        return losses.reshape(leading_shape), accuracy
+
+    def _status_diagnostics(self) -> dict[str, int | float | str]:
+        weights = self._status_class_weights()
+        result: dict[str, int | float | str] = {
+            "status_supervision": 1,
+            "status_output_channels": STATUS_SIZE,
+            "status_loss_weight": STATUS_LOSS_WEIGHT,
+            "status_training_objective": STATUS_OBJECTIVE,
+            "status_class_weighting": "inverse-sqrt-frequency-capped-normalized",
+            "status_class_weight_power": STATUS_CLASS_WEIGHT_POWER,
+            "status_class_weight_cap": STATUS_CLASS_WEIGHT_CAP,
+            "status_no_observation_bce_weight": STATUS_NO_OBSERVATION_BCE_WEIGHT,
+            "status_no_observation_count": self._status_no_observation_count,
+            "last_status_training_loss": self._last_status_training_loss,
+            "last_status_training_accuracy": self._last_status_training_accuracy,
+        }
+        for index, code in enumerate(STATUS_CODES_V3):
+            result[f"status_count_{code}"] = self._status_observation_counts[index]
+            result[f"status_class_weight_{code}"] = weights[index]
+        return result
+
+
+class StatusAwareRelationalStochasticProphecy(
+    _BalancedPublicStatusMixin,
+    RelationalStochasticProphecy,
+):
+    """Relational world model with balanced categorical public-status supervision."""
+
+    name = "current-relational-stochastic-world-model-v4-status-balanced"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -40,10 +179,10 @@ class StatusAwareRelationalStochasticProphecy(RelationalStochasticProphecy):
             raise ValueError(
                 "status-aware Prophecy requires relational public state v3"
             )
-        self._last_status_training_loss = 0.0
 
     def _train_step(self) -> None:
         status_losses: list[float] = []
+        status_accuracies: list[float] = []
         descriptor_size = self.output_size - ACTION_SLOT_COUNT - TERMINAL_CLASSES
         for model_index, (model, optimizer) in enumerate(
             zip(self.models, self.optimizers, strict=True)
@@ -65,11 +204,14 @@ class StatusAwareRelationalStochasticProphecy(RelationalStochasticProphecy):
             terminal_logits = output[:, mask_end:]
 
             descriptor_target = self._tensor([row[1] for row in batch])
+            # Status has its own categorical objective below. Excluding it from the
+            # generic descriptor regression prevents the many negative channels of
+            # a one-hot status vector from overwhelming a rare positive class.
             descriptor_loss = self.nn.functional.smooth_l1_loss(
-                self.torch.sigmoid(descriptor_logits),
-                descriptor_target,
+                self.torch.sigmoid(descriptor_logits[:, :STATUS_START_INDEX]),
+                descriptor_target[:, :STATUS_START_INDEX],
             )
-            status_loss = self.nn.functional.binary_cross_entropy_with_logits(
+            status_rows, status_accuracy = self._status_loss_rows(
                 descriptor_logits[
                     :, STATUS_START_INDEX : STATUS_START_INDEX + STATUS_SIZE
                 ],
@@ -77,6 +219,7 @@ class StatusAwareRelationalStochasticProphecy(RelationalStochasticProphecy):
                     :, STATUS_START_INDEX : STATUS_START_INDEX + STATUS_SIZE
                 ],
             )
+            status_loss = status_rows.mean()
             mask_loss = self.nn.functional.binary_cross_entropy_with_logits(
                 mask_logits,
                 self._tensor([row[2] for row in batch]),
@@ -100,25 +243,27 @@ class StatusAwareRelationalStochasticProphecy(RelationalStochasticProphecy):
             optimizer.step()
             self._losses.append(float(loss.detach().cpu().item()))
             status_losses.append(float(status_loss.detach().cpu().item()))
+            status_accuracies.append(status_accuracy)
         self._last_status_training_loss = fmean(status_losses) if status_losses else 0.0
+        self._last_status_training_accuracy = (
+            fmean(status_accuracies) if status_accuracies else 0.0
+        )
         self.gradient_updates += 1
 
     def diagnostics(self) -> dict[str, int | float | str]:
         return {
             **super().diagnostics(),
-            "status_supervision": 1,
-            "status_output_channels": STATUS_SIZE,
-            "status_loss_weight": STATUS_LOSS_WEIGHT,
-            "last_status_training_loss": self._last_status_training_loss,
+            **self._status_diagnostics(),
         }
 
 
 class StatusAwareConditionalMixtureRelationalProphecy(
-    ConditionalMixtureRelationalProphecy
+    _BalancedPublicStatusMixin,
+    ConditionalMixtureRelationalProphecy,
 ):
-    """Conditional mixture model with an explicit status reconstruction term."""
+    """Conditional mixture model with balanced categorical status supervision."""
 
-    name = "current-relational-conditional-mixture-world-model-v4-status-aware"
+    name = "current-relational-conditional-mixture-world-model-v5-status-balanced"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -129,13 +274,13 @@ class StatusAwareConditionalMixtureRelationalProphecy(
             raise ValueError(
                 "status-aware mixture Prophecy requires relational public state v3"
             )
-        self._last_status_training_loss = 0.0
 
     def _train_step(self) -> None:
         torch = self.torch
         nn = self.nn
         k = self.config.mixture_components
         status_losses: list[float] = []
+        status_accuracies: list[float] = []
         for model_index, (model, optimizer) in enumerate(
             zip(self.models, self.optimizers, strict=True)
         ):
@@ -153,22 +298,21 @@ class StatusAwareConditionalMixtureRelationalProphecy(
                 self._split_output(output)
             )
 
-            descriptor_target = self._tensor([row[1] for row in batch]).unsqueeze(1)
-            descriptor_target = descriptor_target.expand(-1, k, -1)
+            descriptor_target_single = self._tensor([row[1] for row in batch])
+            descriptor_target = descriptor_target_single.unsqueeze(1).expand(-1, k, -1)
             descriptor_loss = nn.functional.smooth_l1_loss(
-                torch.sigmoid(descriptor_logits),
-                descriptor_target,
+                torch.sigmoid(descriptor_logits[:, :, :STATUS_START_INDEX]),
+                descriptor_target[:, :, :STATUS_START_INDEX],
                 reduction="none",
             ).mean(dim=2)
-            status_loss = nn.functional.binary_cross_entropy_with_logits(
+            status_rows, status_accuracy = self._status_loss_rows(
                 descriptor_logits[
                     :, :, STATUS_START_INDEX : STATUS_START_INDEX + STATUS_SIZE
                 ],
                 descriptor_target[
                     :, :, STATUS_START_INDEX : STATUS_START_INDEX + STATUS_SIZE
                 ],
-                reduction="none",
-            ).mean(dim=2)
+            )
 
             mask_target = self._tensor([row[2] for row in batch]).unsqueeze(1)
             mask_target = mask_target.expand(-1, k, -1)
@@ -190,7 +334,7 @@ class StatusAwareConditionalMixtureRelationalProphecy(
 
             reconstruction = (
                 descriptor_loss
-                + STATUS_LOSS_WEIGHT * status_loss
+                + STATUS_LOSS_WEIGHT * status_rows
                 + 0.35 * mask_loss
                 + 0.25 * terminal_loss
             )
@@ -205,17 +349,18 @@ class StatusAwareConditionalMixtureRelationalProphecy(
             nn.utils.clip_grad_norm_(model.parameters(), self.config.gradient_clip)
             optimizer.step()
             self._losses.append(float(loss.detach().cpu().item()))
-            status_losses.append(float(status_loss.mean().detach().cpu().item()))
+            status_losses.append(float(status_rows.mean().detach().cpu().item()))
+            status_accuracies.append(status_accuracy)
         self._last_status_training_loss = fmean(status_losses) if status_losses else 0.0
+        self._last_status_training_accuracy = (
+            fmean(status_accuracies) if status_accuracies else 0.0
+        )
         self.gradient_updates += 1
 
     def diagnostics(self) -> dict[str, int | float | str]:
         return {
             **super().diagnostics(),
-            "status_supervision": 1,
-            "status_output_channels": STATUS_SIZE,
-            "status_loss_weight": STATUS_LOSS_WEIGHT,
-            "last_status_training_loss": self._last_status_training_loss,
+            **self._status_diagnostics(),
         }
 
 
