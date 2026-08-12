@@ -17,6 +17,7 @@ from .current_relational_state_v3 import install_status_aware_relational_contrac
 from .current_repair import install_current_repairs
 from .current_root_dedup import install_structural_root_dedup
 from .current_status_models import (
+    STATUS_OBJECTIVE,
     StatusAwareConditionalMixtureRelationalProphecy,
     install_status_supervised_world_model,
 )
@@ -26,12 +27,12 @@ from .current_validation import install_current_fast_validation
 MIXTURE_CURRENT_COMPONENTS = {
     **dict(CURRENT_COMPONENTS),
     "observation": "response-causal-relational-public-state-v3+latest-http-status",
-    "prophecy": "relational-conditional-mixture-ensemble-v4-status-supervised",
+    "prophecy": "relational-conditional-mixture-ensemble-v5-status-balanced",
     "prophecy_output": (
         "relational-descriptor-v3+latest-http-status+legal-action-mask+"
-        "active-success-failure-truncation-mixture-v4"
+        "active-success-failure-truncation-mixture-v5"
     ),
-    "prophecy_status_objective": "dedicated-public-http-status-bce-v1",
+    "prophecy_status_objective": STATUS_OBJECTIVE,
     "imagination": (
         "root-concrete-execution+structural-compute-dedup+"
         "probability-chance-max-decision-depth-batched"
@@ -50,13 +51,14 @@ def build_current_mixture_pentest_aassr_core(
     allow_tf32: bool = True,
     profile_hot_path: bool = False,
 ) -> CurrentStandalonePentestAASSRAgent:
-    """Build the repaired status-aware candidate after the first 2k audit.
+    """Build the repaired status-balanced candidate after the CUDA 2k audit.
 
     The conditional relational mixture predicts public response status as part of
-    relational v3 and gives the status slice a dedicated supervised loss. Prophecy
-    confidence and local Critic training support are reliability gates only.
-    Structural concrete aliases share model/Critic computation while final
-    execution remains a real concrete environment action.
+    relational v3. The status slice is trained as a frequency-balanced categorical
+    public outcome, with no code-specific reward, avoidance rule, or hidden level
+    input. Prophecy confidence and local Critic training support remain reliability
+    gates only. Structural concrete aliases share model/Critic computation while
+    final execution remains a real concrete environment action.
     """
     if not enable_batching:
         raise ValueError("repaired mixture current generation requires batching")
