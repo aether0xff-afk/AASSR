@@ -53,7 +53,7 @@ jobs:
             echo "GitHub Wiki repository exists."
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=GitHub Wiki not initialized::Open the repository Wiki tab and create the first Home page once. The gollum event will trigger this workflow automatically, then every Markdown file under wiki/ will be synchronized."
+            echo "::notice title=GitHub Wiki not initialized::Open the repository Wiki tab and create the first Home page once. The gollum event will trigger this workflow automatically."
           fi
 
       - name: Clone Wiki repository
@@ -65,14 +65,28 @@ jobs:
           set -euo pipefail
           git clone "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" .wiki-repo
 
-      - name: Synchronize Markdown pages
+      - name: Synchronize published Markdown pages
         if: steps.wiki.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
+
+          # The main repository's wiki/ directory is the canonical source.
+          # README.md documents that source directory itself and is intentionally
+          # not published as a user-facing GitHub Wiki page.
           find .wiki-repo -mindepth 1 -maxdepth 1 -type f -name '*.md' -delete
-          cp wiki/*.md .wiki-repo/
-          echo "Copied $(find wiki -maxdepth 1 -type f -name '*.md' | wc -l) Wiki pages."
+
+          published=0
+          for page in wiki/*.md; do
+            base="$(basename "$page")"
+            if [[ "$base" == "README.md" ]]; then
+              continue
+            fi
+            cp "$page" .wiki-repo/
+            published=$((published + 1))
+          done
+
+          echo "Copied ${published} published Wiki pages (wiki/README.md excluded)."
 
       - name: Commit and push Wiki
         if: steps.wiki.outputs.ready == 'true'
