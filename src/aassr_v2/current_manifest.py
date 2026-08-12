@@ -40,10 +40,10 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
         "full-depth-batching-v6"
     ),
     "critic": (
-        "relational-gru-discounted-sparse-return+"
-        "zero-memory-decision-suffixes+batched-train-v3"
+        "relational-gru-discounted-sparse-return+zero-memory-decision-suffixes+"
+        "recent-signed-window128+batched-train-v4"
     ),
-    "critic_readiness": "positive-and-negative-signed-return-support-v2",
+    "critic_readiness": "cumulative+recent-positive-negative-signed-support-v3",
     "critic_support_gate": "local-real-training-support-fail-closed-v1",
     "skills": "relational-aseq-template-v1",
     "skill_prophecy": "stochastic-complete-up-to-64+explicit-unresolved-tail-fail-closed-v3",
