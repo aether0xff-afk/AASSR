@@ -24,12 +24,16 @@ jobs:
         run: |
           python -m py_compile \
             src/aassr_v2/current_core_manifest.py \
+            src/aassr_v2/current_architecture_layers.py \
             src/aassr_v2/current_plugin_api.py \
             src/aassr_v2/plugins/current_pentest.py \
             src/aassr_v2/current_runtime_performance_v2.py \
             src/aassr_v2/current_entrypoint.py
       - name: Run core-plugin boundary regressions
-        run: pytest -q tests/test_current_core_plugin_boundary.py
+        run: |
+          pytest -q \
+            tests/test_current_core_plugin_boundary.py \
+            tests/test_current_architecture_layers.py
       - name: Run performance v2 equivalence regressions
         run: pytest -q tests/test_current_runtime_performance_v2.py
       - name: Re-run existing performance-only contracts
