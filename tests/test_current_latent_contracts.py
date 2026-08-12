@@ -91,7 +91,7 @@ def test_coverage_is_invariant_to_concrete_alias_multiplicity() -> None:
     assert len(calls) == 2
 
 
-def test_calibration_locality_rejects_status_and_action_surface_regime_shift() -> None:
+def test_calibration_locality_rejects_status_action_surface_and_count_regime_shift() -> None:
     base_action = Action(
         "request",
         parameters={"route_id": "route-a", "profile_id": "profile-browse"},
@@ -101,24 +101,40 @@ def test_calibration_locality_rejects_status_and_action_surface_regime_shift() -
         parameters={"route_id": "route-b", "profile_id": "profile-browse"},
     )
     vector = [0.0] * AGENT_STATE_SIZE
+    base_facts = {"last_status:200", "known_object:object-a"}
     base = StateSnapshot(
         vector=tuple(vector),
-        facts=frozenset({"last_status:200"}),
+        facts=frozenset(base_facts),
         available_actions=(base_action,),
         metadata={},
     )
     status_shift = StateSnapshot(
         vector=tuple(vector),
-        facts=frozenset({"last_status:403"}),
+        facts=frozenset({"last_status:403", "known_object:object-a"}),
         available_actions=(base_action,),
         metadata={},
     )
     surface_shift = StateSnapshot(
         vector=tuple(vector),
-        facts=frozenset({"last_status:200"}),
+        facts=frozenset(base_facts),
         available_actions=(base_action, new_action),
+        metadata={},
+    )
+    count_shift = StateSnapshot(
+        vector=tuple(vector),
+        facts=frozenset(
+            {
+                "last_status:200",
+                "known_object:object-a",
+                "known_object:object-b",
+            }
+        ),
+        available_actions=(base_action,),
         metadata={},
     )
     assert _public_state_distance(base, base) == pytest.approx(0.0)
     assert _public_state_distance(base, status_shift) == pytest.approx(1.0)
     assert _public_state_distance(base, surface_shift) > 0.0
+    # 1 -> 2 observed objects is a 50% public regime change. It must not collapse
+    # to roughly 1/35 merely because only one descriptor channel changed.
+    assert _public_state_distance(base, count_shift) >= pytest.approx(0.5)
