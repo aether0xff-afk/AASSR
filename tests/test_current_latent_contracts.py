@@ -137,4 +137,4 @@ def test_calibration_locality_rejects_status_action_surface_and_count_regime_shi
     assert _public_state_distance(base, surface_shift) > 0.0
     # 1 -> 2 observed objects is a 50% public regime change. It must not collapse
     # to roughly 1/35 merely because only one descriptor channel changed.
-    assert _public_state_distance(base, count_shift) >= pytest.approx(0.5)
+    assert _public_state_distance(base, count_shift) >= 0.5 - 1e-12
