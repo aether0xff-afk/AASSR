@@ -1,16 +1,27 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from math import exp
 from statistics import fmean
 from typing import Any, Iterable, Sequence
 
 from .current_generation import relational_action_key
-from .current_relational_codec import semantic_prediction_score
+from .current_relational_codec import legal_action_mask, semantic_prediction_score
 from .current_relational_model import RelationalStochasticProphecy
+from .current_relational_state_v3 import (
+    STATUS_START_INDEX,
+    latest_status_code,
+    relational_state_descriptor_v3,
+    relational_state_key_v3,
+)
 from .prophecy import ProphecyStep
 from .replay import ReplayBuffer, ReplayTransition, ValidationScore
 from .skills import SKILL_VERB
 from .types import Action, Prediction, StateSnapshot
+
+
+CALIBRATION_LOCALITY_SCALE = 4.0
+CALIBRATION_CACHE_LIMIT = 20_000
 
 
 def probability_weighted_semantic_score(
@@ -34,6 +45,28 @@ def probability_weighted_semantic_score(
         weight * semantic_prediction_score((prediction,), actual)
         for weight, prediction in zip(weights, materialized, strict=True)
     )
+
+
+def _mask_jaccard_distance(left: StateSnapshot, right: StateSnapshot) -> float:
+    left_mask = legal_action_mask(left)
+    right_mask = legal_action_mask(right)
+    a = {index for index, value in enumerate(left_mask) if float(value) >= 0.5}
+    b = {index for index, value in enumerate(right_mask) if float(value) >= 0.5}
+    union = a | b
+    return 0.0 if not union else 1.0 - len(a & b) / len(union)
+
+
+def _public_state_distance(left: StateSnapshot, right: StateSnapshot) -> float:
+    """Task-agnostic locality metric using only public relational state."""
+    a = relational_state_descriptor_v3(left)
+    b = relational_state_descriptor_v3(right)
+    base_distance = (
+        fmean(abs(x - y) for x, y in zip(a[:STATUS_START_INDEX], b[:STATUS_START_INDEX], strict=True))
+        if STATUS_START_INDEX > 0
+        else 0.0
+    )
+    status_distance = float(latest_status_code(left) != latest_status_code(right))
+    return max(base_distance, status_distance, _mask_jaccard_distance(left, right))
 
 
 class SemanticPredictionValidator:
@@ -76,9 +109,9 @@ class SemanticPredictionValidator:
 
 
 class SemanticCalibratedProphecy:
-    """Frozen holdout reliability for the full stochastic semantic forecast."""
+    """Frozen holdout reliability localized to the current public state regime."""
 
-    name = "current-semantic-probability-holdout-calibrated-prophecy-v2"
+    name = "current-semantic-state-local-holdout-calibrated-prophecy-v3"
 
     def __init__(
         self,
@@ -95,7 +128,7 @@ class SemanticCalibratedProphecy:
         self.evaluation_limit = int(evaluation_limit)
         self.refresh_stride = int(refresh_stride)
         self._frozen_holdout: tuple[ReplayTransition, ...] | None = None
-        self._cache: dict[tuple[Any, int, int], float] = {}
+        self._cache: dict[tuple[Any, ...], float] = {}
         self.refreshes = 0
         self.freeze_count = 0
         self.batch_refreshes = 0
@@ -123,8 +156,13 @@ class SemanticCalibratedProphecy:
     ) -> None:
         self.base.learn(state, action, actual_next_state)
 
+    def _cache_store(self, key: tuple[Any, ...], value: float) -> None:
+        if len(self._cache) >= CALIBRATION_CACHE_LIMIT and key not in self._cache:
+            self._cache.pop(next(iter(self._cache)))
+        self._cache[key] = value
+
     def _calibration(self, state: StateSnapshot, action: Action) -> float:
-        key = relational_action_key(state, action)
+        action_key = relational_action_key(state, action)
         source = (
             self._frozen_holdout
             if self._frozen_holdout is not None
@@ -133,11 +171,12 @@ class SemanticCalibratedProphecy:
         items = tuple(
             item
             for item in source
-            if relational_action_key(item.state, item.action) == key
+            if relational_action_key(item.state, item.action) == action_key
         )
         revision = int(self.base.gradient_updates)
         cache_key = (
-            key,
+            action_key,
+            relational_state_key_v3(state),
             len(items) // max(1, self.refresh_stride),
             revision // max(1, self.refresh_stride),
         )
@@ -147,7 +186,15 @@ class SemanticCalibratedProphecy:
         if len(items) < self.minimum_count:
             value = 0.0
         else:
-            selected = items[-self.evaluation_limit :]
+            nearest = sorted(
+                ((_public_state_distance(state, item.state), item) for item in items),
+                key=lambda row: row[0],
+            )[: self.evaluation_limit]
+            selected = tuple(item for _, item in nearest)
+            locality = tuple(
+                exp(-CALIBRATION_LOCALITY_SCALE * max(0.0, distance))
+                for distance, _ in nearest
+            )
             rows = self.base.predict_batch(
                 tuple(item.state for item in selected),
                 tuple(item.action for item in selected),
@@ -155,12 +202,23 @@ class SemanticCalibratedProphecy:
             )
             self.batch_refreshes += 1
             self.batch_rows += len(selected)
-            value = fmean(
+            scores = tuple(
                 probability_weighted_semantic_score(predictions, item.next_state)
                 for item, predictions in zip(selected, rows, strict=True)
             )
+            total = sum(locality)
+            if total <= 1e-12:
+                value = 0.0
+            else:
+                local_score = sum(
+                    weight * score
+                    for weight, score in zip(locality, scores, strict=True)
+                ) / total
+                # Even a perfectly accurate far-away holdout cannot claim local
+                # reliability. Exact/nearby support approaches a multiplier of 1.
+                value = local_score * max(locality)
             value = max(0.0, min(1.0, value))
-        self._cache[cache_key] = value
+        self._cache_store(cache_key, value)
         return value
 
     def _calibrated(
@@ -243,11 +301,14 @@ class SemanticCalibratedProphecy:
             "calibration": self.name,
             "calibration_refreshes": self.refreshes,
             "calibration_cache_entries": len(self._cache),
+            "calibration_cache_limit": CALIBRATION_CACHE_LIMIT,
             "calibration_batch_refreshes": self.batch_refreshes,
             "calibration_batch_rows": self.batch_rows,
             "calibration_refresh_batching": 1,
             "holdout_freezes": self.freeze_count,
             "semantic_calibration": 1,
+            "state_local_calibration": 1,
+            "calibration_locality_scale": CALIBRATION_LOCALITY_SCALE,
             "probability_weighted_calibration": 1,
             "calibrated_reliability_product": 1,
             "outcome_probability_preserved": 1,
