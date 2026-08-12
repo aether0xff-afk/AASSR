@@ -1,15 +1,23 @@
 # AASSR Wiki
 
-- [Home](Home)
-- [AASSR in 5 Minutes](AASSR-in-5-Minutes)
+- **[Home](Home)**
+- **[AASSR in 5 Minutes](AASSR-in-5-Minutes)**
 - **[Concept Index / 개념 지도](Concept-Index)**
+- **[Glossary / 용어 사전](Glossary)**
 
-### Research
+### Research · 무엇을 증명하나?
 
 - [Sparse Reward Problem](Sparse-Reward-Problem)
 - [Research Questions](Research-Questions)
+- **[Evidence Matrix](Evidence-Matrix)**
 - [Research Architecture](Research-Architecture)
 - [Design Rationale](Design-Rationale)
+
+### Current · 지금 무엇이 맞나?
+
+- **[Current Status](Current-Status)**
+- [Experiments](Experiments)
+- [Reproduction](Reproduction)
 
 ### Core Mechanisms
 
@@ -42,7 +50,7 @@
 - [Loss Functions & Class Imbalance](Loss-Functions-and-Class-Imbalance)
 - [GRU & Sequence Models](GRU-and-Sequence-Models)
 
-### Foundations · Models & Planning
+### Foundations · World Models & Planning
 
 - [Model-Based RL & World Models](Model-Based-RL-and-World-Models)
 - [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability)
@@ -60,24 +68,22 @@
 
 - [Causality, Leakage & Fair Evaluation](Causality-Leakage-and-Evaluation)
 - [Ablation, Benchmarking & Reproducibility](Ablation-Benchmarking-and-Reproducibility)
-- [Experiments](Experiments)
-- [Current Status](Current-Status)
-- [Reproduction](Reproduction)
 
-### Reference
+### Historical Evidence
 
-- [Glossary](Glossary)
+- **[Imagination Diagnostic — 2026-08-11](Historical-Imagination-Diagnostic-2026-08-11)**
 - [Development History](Development-History)
 
 ---
 
-### Status
+### Status legend
 
-- 🟢 Active
-- 🟡 Experimental
-- ⚪ Historical / Pending
+- 🟢 **Active** — current runtime contract
+- 🟡 **Experimental** — 구현되었으나 performance claim 검증 중
+- 🔵 **Evidence** — 특정 mechanism/diagnostic에서 확인
+- ⚪ **Pending** — 아직 current final evidence 없음
+- 🕰️ **Historical** — 과거 architecture/checkpoint의 evidence
 
-### Source of truth
+### Executable source of truth
 
-- `src/aassr_v2/current_manifest.py`
-- `docs/aassr_current_generation.md`
+`src/aassr_v2/current_manifest.py`
