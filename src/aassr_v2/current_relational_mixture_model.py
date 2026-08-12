@@ -28,7 +28,12 @@ from .types import Action, Prediction, StateSnapshot
 class RelationalMixtureProphecyConfig(RelationalProphecyConfig):
     mixture_components: int = 3
     mixture_entropy_weight: float = 0.01
-    mode_merge_distance: float = 0.035
+    # Audited current runtime has only ensemble_size * mixture_components learned
+    # hypotheses (3 * 3 by default). Preserve all semantically distinct modes and
+    # merge only exact duplicates; approximate averaging can erase sparse but
+    # decision-critical public differences such as one unlocked action or one
+    # workflow/control channel.
+    mode_merge_distance: float = 0.0
 
 
 class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
@@ -206,6 +211,9 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
 
         Diversity *within* one member is aleatoric and should not lower model
         reliability. Only disagreement between ensemble members' mode sets does.
+        Sparse public differences must not disappear in a high-dimensional mean,
+        so each field uses its largest coordinate disagreement before the existing
+        descriptor/mask/terminal weighting.
         """
         pair_scores = []
         ensemble = descriptors.shape[0]
@@ -214,15 +222,15 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
                 descriptor_distance = (
                     descriptors[left].unsqueeze(2)
                     - descriptors[right].unsqueeze(1)
-                ).abs().mean(dim=3)
+                ).abs().amax(dim=3)
                 mask_distance = (
                     masks[left].unsqueeze(2)
                     - masks[right].unsqueeze(1)
-                ).abs().mean(dim=3)
+                ).abs().amax(dim=3)
                 terminal_distance = (
                     terminals[left].unsqueeze(2)
                     - terminals[right].unsqueeze(1)
-                ).abs().mean(dim=3)
+                ).abs().amax(dim=3)
                 distance = (
                     0.55 * descriptor_distance
                     + 0.30 * mask_distance
@@ -493,7 +501,9 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
             "conditional_mixture_components": self.config.mixture_components,
             "terminal_classes": TERMINAL_CLASSES,
             "mixture_training_objective": "soft-mixture-likelihood",
-            "epistemic_confidence": "ensemble-mode-set-disagreement",
+            "epistemic_confidence": "ensemble-mode-set-sparse-max-disagreement",
+            "mode_merge_distance": self.config.mode_merge_distance,
+            "lossy_mode_merge_disabled": int(self.config.mode_merge_distance == 0.0),
             "reliability_outcome_probability_separated": 1,
             "empirical_multimodal_input_keys": multimodal_inputs,
             "empirical_distinct_outcomes": distinct_outcomes,
