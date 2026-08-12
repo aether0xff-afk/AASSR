@@ -39,9 +39,9 @@ jobs:
           python scripts/run_current_status_rare_holdout.py \
             --output runs/current_status_rare_holdout.json \
             --research-seed 7 \
-            --train-seed-count 8 \
-            --holdout-seed-count 4 \
-            --steps-per-episode 24 \
+            --train-seed-count 16 \
+            --holdout-seed-count 8 \
+            --steps-per-episode 48 \
             --samples 3 \
             --device cpu
 
@@ -62,8 +62,11 @@ jobs:
           print("rare group:", result["rare_group"])
           print("common group:", result["common_group"])
           print("zero-topk supported statuses:", result["eligible_zero_topk_statuses"])
-          assert gate["eligible_status_count"] >= 2, gate
-          assert gate["rare_status_count"] >= 1, gate
+          # A passing result must cover a broad set of naturally occurring public
+          # outcomes. This prevents a false green from evaluating only 200/404 and
+          # a couple of easy minority classes. No particular HTTP code is named.
+          assert gate["eligible_status_count"] >= 5, gate
+          assert gate["rare_status_count"] >= 2, gate
           assert gate["all_supported_statuses_have_nonzero_topk"] is True, result["eligible_zero_topk_statuses"]
           assert gate["rare_group_has_nonzero_topk"] is True, result["rare_group"]
           PY
