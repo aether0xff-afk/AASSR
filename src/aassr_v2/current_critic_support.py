@@ -147,34 +147,43 @@ def install_critic_support_gate(
 
     critic.observe_episode = MethodType(observe_episode_with_support, critic)
 
-    original_finish_episode = agent.finish_episode
+    # The production CurrentAgent owns finish_episode(), but this installer is also
+    # intentionally reusable with minimal agents in regression/diagnostic harnesses.
+    # Signed-return accounting is therefore attached only when that lifecycle hook
+    # exists; Critic local-support gating itself does not depend on it.
+    original_finish_episode = getattr(agent, "finish_episode", None)
+    if callable(original_finish_episode):
 
-    def finish_episode_with_signed_support(
-        self_agent: object,
-        *,
-        final_return: float,
-        training: bool = True,
-    ) -> None:
-        contributed = training and bool(getattr(self_agent, "_critic_trajectory", ()))
-        value = float(final_return)
-        result = original_finish_episode(final_return=value, training=training)
-        if not contributed:
+        def finish_episode_with_signed_support(
+            self_agent: object,
+            *,
+            final_return: float,
+            training: bool = True,
+        ) -> None:
+            contributed = training and bool(
+                getattr(self_agent, "_critic_trajectory", ())
+            )
+            value = float(final_return)
+            result = original_finish_episode(final_return=value, training=training)
+            if not contributed:
+                return result
+
+            if value > 0.0:
+                counters["critic_positive_return_episodes"] += 1
+                self_agent._critic_counts["positive_returns"] += 1
+            elif value < 0.0:
+                counters["critic_negative_return_episodes"] += 1
+                self_agent._critic_counts["negative_returns"] += 1
+            else:
+                counters["critic_zero_return_episodes"] += 1
+                self_agent._critic_counts["zero_returns"] += 1
+                if int(self_agent._critic_counts.get("non_successes", 0)) > 0:
+                    self_agent._critic_counts["non_successes"] -= 1
             return result
 
-        if value > 0.0:
-            counters["critic_positive_return_episodes"] += 1
-            self_agent._critic_counts["positive_returns"] += 1
-        elif value < 0.0:
-            counters["critic_negative_return_episodes"] += 1
-            self_agent._critic_counts["negative_returns"] += 1
-        else:
-            counters["critic_zero_return_episodes"] += 1
-            self_agent._critic_counts["zero_returns"] += 1
-            if int(self_agent._critic_counts.get("non_successes", 0)) > 0:
-                self_agent._critic_counts["non_successes"] -= 1
-        return result
-
-    agent.finish_episode = MethodType(finish_episode_with_signed_support, agent)
+        agent.finish_episode = MethodType(finish_episode_with_signed_support, agent)
+    else:
+        counters["signed_episode_accounting_hook_unavailable"] += 1
 
     def critic_reliably_ready(self_agent: object) -> bool:
         return bool(self_agent.critic_ready)
