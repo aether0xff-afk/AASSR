@@ -13,7 +13,9 @@ from aassr_v2.current_relational_state_v3 import (
     install_status_aware_relational_contract,
 )
 from aassr_v2.current_status_models import (
+    STATUS_CLASS_WEIGHT_CAP,
     STATUS_LOSS_WEIGHT,
+    STATUS_OBJECTIVE,
     StatusAwareConditionalMixtureRelationalProphecy,
     StatusAwareRelationalStochasticProphecy,
 )
@@ -44,7 +46,7 @@ def _transition_states():
     return before, action, _with_status(before, 200), _with_status(before, 404)
 
 
-def test_base_world_model_uses_dedicated_status_loss() -> None:
+def test_base_world_model_uses_balanced_categorical_status_loss() -> None:
     before, action, ok, missing = _transition_states()
     model = StatusAwareRelationalStochasticProphecy(
         seed=7,
@@ -65,10 +67,12 @@ def test_base_world_model_uses_dedicated_status_loss() -> None:
     assert diagnostics["status_supervision"] == 1
     assert diagnostics["status_output_channels"] == 8
     assert diagnostics["status_loss_weight"] == pytest.approx(STATUS_LOSS_WEIGHT)
+    assert diagnostics["status_training_objective"] == STATUS_OBJECTIVE
     assert diagnostics["last_status_training_loss"] > 0.0
+    assert 0.0 <= diagnostics["last_status_training_accuracy"] <= 1.0
 
 
-def test_mixture_world_model_uses_dedicated_status_loss() -> None:
+def test_mixture_world_model_uses_balanced_categorical_status_loss() -> None:
     before, action, ok, missing = _transition_states()
     model = StatusAwareConditionalMixtureRelationalProphecy(
         seed=11,
@@ -90,4 +94,40 @@ def test_mixture_world_model_uses_dedicated_status_loss() -> None:
     assert diagnostics["status_supervision"] == 1
     assert diagnostics["status_output_channels"] == 8
     assert diagnostics["status_loss_weight"] == pytest.approx(STATUS_LOSS_WEIGHT)
+    assert diagnostics["status_training_objective"] == STATUS_OBJECTIVE
     assert diagnostics["last_status_training_loss"] > 0.0
+    assert 0.0 <= diagnostics["last_status_training_accuracy"] <= 1.0
+
+
+def test_status_balancing_uses_frequency_not_status_identity() -> None:
+    before, action, ok, missing = _transition_states()
+    forbidden = _with_status(before, 403)
+    model = StatusAwareRelationalStochasticProphecy(
+        seed=17,
+        device="cpu",
+        config=RelationalProphecyConfig(
+            hidden_units=8,
+            ensemble_size=1,
+            replay_capacity=32,
+            batch_size=16,
+            warmup_steps=32,
+            gradient_steps_per_observation=1,
+        ),
+    )
+    for _ in range(8):
+        model.learn(before, action, ok)
+    model.learn(before, action, forbidden)
+    model.learn(before, action, missing)
+
+    diagnostics = model.diagnostics()
+    assert diagnostics["status_count_200"] == 8
+    assert diagnostics["status_count_403"] == 1
+    assert diagnostics["status_count_404"] == 1
+    assert diagnostics["status_class_weight_403"] == pytest.approx(
+        diagnostics["status_class_weight_404"]
+    )
+    assert diagnostics["status_class_weight_403"] > diagnostics["status_class_weight_200"]
+    assert diagnostics["status_class_weight_403"] <= STATUS_CLASS_WEIGHT_CAP
+    assert diagnostics["status_class_weighting"] == (
+        "inverse-sqrt-frequency-capped-normalized"
+    )
