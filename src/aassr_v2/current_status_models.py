@@ -356,7 +356,13 @@ class StatusAwareRelationalStochasticProphecy(
         *,
         samples: int,
     ) -> tuple[tuple[Prediction, ...], ...]:
-        """Mirror the base predictor without its descriptor-wide sigmoid."""
+        """Mirror the base predictor without its descriptor-wide sigmoid.
+
+        The class advertises a complete learned outcome distribution, so the
+        caller's requested sample count may not truncate ensemble probability
+        mass. Empirical multi-outcome rows are already complete above; learned
+        rows therefore emit every ensemble member as an equal-mass hypothesis.
+        """
         if len(states) != len(actions):
             raise ValueError("states/actions batch length mismatch")
         if samples <= 0:
@@ -385,7 +391,7 @@ class StatusAwareRelationalStochasticProphecy(
         masks = masks_t.detach().cpu().tolist()
         terminals = terminals_t.detach().cpu().tolist()
 
-        member_count = min(int(samples), self.config.ensemble_size)
+        member_count = int(self.config.ensemble_size)
         rows: list[tuple[Prediction, ...]] = []
         for row_index, (state, action) in enumerate(zip(states, actions, strict=True)):
             empirical = self._empirical_predictions(
@@ -427,6 +433,7 @@ class StatusAwareRelationalStochasticProphecy(
             **super().diagnostics(),
             **self._status_diagnostics(),
             "status_categorical_inference": 1,
+            "complete_learned_ensemble_mass": 1,
         }
 
 
