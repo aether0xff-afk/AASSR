@@ -166,8 +166,8 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
             )
         return tuple(rows)
 
-    @staticmethod
     def _normalized_predictions(
+        self,
         predictions: Sequence[Prediction],
         *,
         limit: int,
@@ -182,7 +182,13 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
                 item.source,
             ),
             reverse=True,
-        )[:limit]
+        )
+        # A complete distribution must never be converted into a conditional
+        # top-k distribution.  The active status-mixture model explicitly marks
+        # its batched view complete, so every emitted chance mass is retained.
+        # Historical/incomplete predictors keep the configured limit.
+        if not bool(getattr(self.prophecy, "complete_outcome_distribution", False)):
+            selected = selected[:limit]
         if not selected:
             return ()
         raw = [
