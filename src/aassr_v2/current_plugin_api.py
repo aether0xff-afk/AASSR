@@ -24,18 +24,50 @@ class CurrentRuntimePlugin:
     install_world_model: Callable[..., object]
 
 
-@dataclass(frozen=True, slots=True)
 class CurrentAASSRCoreView:
-    """Explicit view of the algorithmic AASSR core inside an assembled runtime."""
+    """Live, domain-independent view of the algorithmic core.
 
-    policy: object
-    prophecy: object
-    planner: object
-    critic: object
-    knowledge: object
-    skills: object
-    aseq: object
-    goals: object
+    The assembled agent replaces some runtime objects (notably episode Knowledge)
+    during normal operation. Properties therefore resolve through the agent every
+    time instead of capturing stale construction-time references.
+    """
+
+    __slots__ = ("_agent",)
+
+    def __init__(self, agent: object) -> None:
+        self._agent = agent
+
+    @property
+    def policy(self) -> object:
+        return self._agent.policy
+
+    @property
+    def prophecy(self) -> object:
+        return self._agent.prophecy
+
+    @property
+    def planner(self) -> object:
+        return self._agent.planner
+
+    @property
+    def critic(self) -> object:
+        return self._agent.critic
+
+    @property
+    def knowledge(self) -> object:
+        return self._agent.knowledge
+
+    @property
+    def skills(self) -> object:
+        return self._agent.skills
+
+    @property
+    def aseq(self) -> object:
+        return self._agent.aseq
+
+    @property
+    def goals(self) -> object:
+        return self._agent.goals
 
 
 def bind_current_core_plugin_boundary(
@@ -47,16 +79,7 @@ def bind_current_core_plugin_boundary(
     if getattr(agent, "current_core_plugin_boundary", False):
         return agent
 
-    agent.aassr_core = CurrentAASSRCoreView(
-        policy=agent.policy,
-        prophecy=agent.prophecy,
-        planner=agent.planner,
-        critic=agent.critic,
-        knowledge=agent.knowledge,
-        skills=agent.skills,
-        aseq=agent.aseq,
-        goals=agent.goals,
-    )
+    agent.aassr_core = CurrentAASSRCoreView(agent)
     agent.runtime_plugin = SimpleNamespace(
         plugin_id=str(plugin.plugin_id),
         version=str(plugin.version),
