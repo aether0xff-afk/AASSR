@@ -13,7 +13,10 @@ from aassr_v2.current_return_critic import (
     ReturnAwareHardwareRelationalGRUBranchCritic,
 )
 from aassr_v2.current_runtime_performance_v2 import (
+    _parameter_revision,
+    _stack_ensemble_parameters,
     _stacked_linear_forward,
+    _stacked_linear_forward_prepacked,
     install_prepacked_critic_training,
 )
 
@@ -36,9 +39,22 @@ def test_stacked_ensemble_forward_matches_independent_modules() -> None:
     with torch.no_grad():
         reference = torch.stack([model(values) for model in models], dim=0)
         fused = _stacked_linear_forward(torch, models, values)
+        packed = _stack_ensemble_parameters(torch, models)
+        cached = _stacked_linear_forward_prepacked(torch, packed, values)
 
     assert fused.shape == reference.shape
     assert torch.allclose(fused, reference, rtol=1e-6, atol=1e-6)
+    assert torch.allclose(cached, reference, rtol=1e-6, atol=1e-6)
+
+
+def test_ensemble_parameter_revision_changes_after_parameter_update() -> None:
+    torch.manual_seed(1618)
+    models = [_mlp(7, 9, 5) for _ in range(3)]
+    before = _parameter_revision(models, 0)
+    with torch.no_grad():
+        models[0][0].weight.add_(0.01)
+    after = _parameter_revision(models, 0)
+    assert after != before
 
 
 def _synthetic_critic(seed: int) -> ReturnAwareHardwareRelationalGRUBranchCritic:
