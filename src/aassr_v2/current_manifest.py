@@ -35,6 +35,9 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
     ),
     "imagination_intervention_margin": "fixed-0.05-scaling-contract",
     "imagination_coverage": "unique-structural-action-mean",
+    "imagination_reliability": (
+        "root-confidence-gate+imagined-continuation-fail-closed-no-value-shaping"
+    ),
     "hardware": (
         "dqn+relational-world-model+return-gru-critic-same-device+"
         "full-depth-batching-v6"
