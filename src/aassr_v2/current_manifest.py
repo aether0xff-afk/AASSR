@@ -14,12 +14,14 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
     "policy_state_input": "relational-public-structural-v3+latest-http-status",
     "policy_action_input": "relational-role-features-v1",
     "policy_hardware": "frontier-batched-dqn+fused-sync-free-bellman-v2",
-    "prophecy": "relational-stochastic-world-model-v3-status-supervised",
+    "prophecy": "relational-stochastic-world-model-v4-status-balanced",
     "prophecy_output": (
         "relational-descriptor-v3+latest-http-status+legal-action-mask+"
         "active-success-failure-truncation-v3"
     ),
-    "prophecy_status_objective": "dedicated-public-http-status-bce-v1",
+    "prophecy_status_objective": (
+        "class-balanced-categorical-public-http-status-v2"
+    ),
     "calibration": "semantic-probability-holdout-calibration-v3-status-aware",
     "information_evaluator": "semantic-relational-probability-aware-v3-status-aware",
     "knowledge": "episode-local-response-knowledge-context-v1",
