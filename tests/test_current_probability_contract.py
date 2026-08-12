@@ -9,7 +9,7 @@ pytest.importorskip("torch")
 from aassr_v2.current_planner import CurrentFullyBatchedImaginationTree
 from aassr_v2.current_relational_codec import ACTION_SLOT_COUNT, TERMINAL_CLASSES
 from aassr_v2.current_relational_mixture_model import RelationalMixtureProphecyConfig
-from aassr_v2.current_relational_model import RelationalPrediction
+from aassr_v2.current_relational_model import RelationalPrediction, RelationalProphecyConfig
 from aassr_v2.current_relational_state_v3 import (
     REL_DESCRIPTOR_SIZE_V3,
     STATUS_CODES_V3,
@@ -19,7 +19,10 @@ from aassr_v2.current_relational_state_v3 import (
     latest_status_code,
     latest_status_vector,
 )
-from aassr_v2.current_status_models import StatusAwareConditionalMixtureRelationalProphecy
+from aassr_v2.current_status_models import (
+    StatusAwareConditionalMixtureRelationalProphecy,
+    StatusAwareRelationalStochasticProphecy,
+)
 from aassr_v2.pentest_agent_main_test import AGENT_STATE_SIZE
 from aassr_v2.types import Action, StateSnapshot
 
@@ -65,6 +68,35 @@ def test_v3_decode_realizes_argmax_status_even_below_half_probability() -> None:
     )
     assert decoded.metadata["relational_status_probabilities"] == tuple(
         float(code == 403) for code in STATUS_CODES_V3
+    )
+
+
+def test_base_status_decoder_uses_softmax_geometry() -> None:
+    model = StatusAwareRelationalStochasticProphecy(
+        seed=5,
+        device="cpu",
+        config=RelationalProphecyConfig(
+            hidden_units=8,
+            ensemble_size=2,
+            replay_capacity=8,
+            batch_size=2,
+            warmup_steps=2,
+        ),
+    )
+    outputs = model.torch.zeros((2, 1, model.output_size), dtype=model.torch.float32)
+    descriptors, _, _ = model._decoded_outputs(outputs)
+    status = descriptors[
+        :,
+        0,
+        STATUS_START_INDEX : STATUS_START_INDEX + STATUS_SIZE,
+    ]
+    assert model.torch.allclose(
+        status.sum(dim=1),
+        model.torch.ones(model.config.ensemble_size),
+    )
+    assert model.torch.allclose(
+        status,
+        model.torch.full_like(status, 1.0 / STATUS_SIZE),
     )
 
 
