@@ -55,6 +55,11 @@ def test_current_builder_exposes_core_and_plugin_as_separate_runtime_objects() -
     assert agent.aassr_core.aseq is agent.aseq
     assert agent.aassr_core.goals is agent.goals
 
+    old_knowledge = agent.knowledge
+    agent.begin_episode(clear_knowledge=True)
+    assert agent.knowledge is not old_knowledge
+    assert agent.aassr_core.knowledge is agent.knowledge
+
     diagnostics = agent.diagnostics()
     assert diagnostics["core_plugin_boundary"] is True
     assert diagnostics["aassr_core"]["version"] == CURRENT_CORE_VERSION
