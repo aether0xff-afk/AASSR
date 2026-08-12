@@ -1,292 +1,570 @@
 # Research Questions
 
-AASSR의 출발점은 특정 모듈을 만드는 것이 아니라 **희소 보상 환경에서 에이전트가 어떻게 스스로 장기 행동 구조를 만들어낼 수 있는가**라는 질문이다.
+AASSR은 특정 모듈을 먼저 만들고 이유를 붙인 프로젝트가 아니라, 다음 질문에서 출발한다.
 
-이 페이지는 AASSR의 연구 질문을 가장 상위 수준에서 정리하고, 각 질문이 어떤 설계와 실험으로 이어지는지를 연결한다.
+> **중간 보상이 거의 없고, 가능한 행동이 많으며, 환경을 완전히 관찰할 수 없는 상황에서 에이전트가 실제 경험의 구조를 학습하고 미래 결과를 예측하여, 사람이 정답 경로를 주입하지 않아도 최종 목표까지 가는 행동 과정을 스스로 만들 수 있는가?**
 
----
-
-## 1. 핵심 연구 질문
-
-> **중간 보상이 거의 없고, 가능한 행동이 많으며, 환경을 완전히 관찰할 수 없는 상황에서 에이전트가 경험의 구조를 학습하고 미래 결과를 예측하여 스스로 최종 목표에 도달하는 행동 과정을 만들 수 있는가?**
-
-초기 연구 노트에서는 이를 더 철학적으로 다음처럼 표현했다.
+초기 연구 철학은 더 짧게 표현할 수 있다.
 
 > **최종 목표만 존재하는 희소 보상 환경에서 에이전트가 인간이 미리 정해준 경로 없이 목표 수행 과정을 스스로 만들어낼 수 있는가?**
 
-두 문장은 같은 문제를 다른 수준에서 표현한다.
+이 페이지는 이 큰 질문을 **실제로 틀릴 수 있는(testable) 연구 질문**으로 쪼갠다.
 
-- 첫 번째는 실험 가능한 연구 질문이다.
-- 두 번째는 AASSR이 지향하는 장기적인 연구 철학이다.
-
----
-
-# 2. 왜 이 질문이 어려운가?
-
-일반적인 dense-reward 환경에서는 행동 직후 비교적 자주 학습 신호를 얻는다.
-
-```text
-행동 -> +0.1
-행동 -> +0.2
-행동 -> -0.1
-행동 -> +0.5
-```
-
-그러나 AASSR이 겨냥하는 환경은 다음에 더 가깝다.
-
-```text
-A0 -> A1 -> A2 -> A3 -> A4 -> A5 -> success
- 0     0     0     0     0       +1
-```
-
-또는 실제 실패가 있는 경우:
-
-```text
-success       +1
-true failure  -1
-otherwise      0
-```
-
-이때 에이전트는 단순히 직전 reward만 보고는 다음을 판단하기 어렵다.
-
-- 어떤 행동이 몇 단계 뒤 성공에 기여했는가?
-- 현재 행동이 진짜 진행인지 self-loop인지?
-- 지금 얻은 정보가 나중에 어떤 행동에 필요한가?
-- 같은 구조인데 이름만 바뀐 새로운 문제를 같은 문제로 알아볼 수 있는가?
-- 실제로 실패하기 전에 위험한 경로를 추정할 수 있는가?
-
-AASSR의 각 구성 요소는 이 하위 문제 중 하나 이상을 겨냥한다.
+> [!TIP]
+> 각 질문의 H1/H0, 독립변수, 종속변수, evidence 수준을 한눈에 보려면 **[Evidence Matrix](Evidence-Matrix)** 를 같이 본다.
 
 ---
 
-# 3. 연구 질문의 분해
+## 목차
 
-## RQ1. 희소 보상만으로 최초 성공 경험을 만들 수 있는가?
-
-> **guided trajectory, oracle action injection, intermediate shaping reward 없이도 에이전트가 스스로 최초 성공을 발견할 수 있는가?**
-
-이 질문은 AASSR 전체 연구의 출발점이다.
-
-관련 요소:
-
-- curriculum
-- exploration
-- Policy
-- ASEQ
-
-관련 실험:
-
-- autonomous first-proof pilot
-- curriculum promotion / demotion
-- exact ASEQ retraining
+1. [문제의 구조](#1-문제의-구조)
+2. [RQ1 — 최초 성공](#rq1--희소-보상만으로-최초-성공을-발견할-수-있는가)
+3. [RQ2 — 관계 표현](#rq2--relational-representation이-unseen-transfer를-개선하는가)
+4. [RQ3 — ASEQ](#rq3--aseq가-진전-없는-self-loop를-줄이는가)
+5. [RQ4 — Prophecy](#rq4--prophecy는-planning에-쓸-수-있는-stochastic-world-model인가)
+6. [RQ5 — Calibration](#rq5--prediction-reliability를-실제-decision-gate로-쓸-수-있는가)
+7. [RQ6 — Critic support](#rq6--critic-value를-local-support-없이-믿어도-되는가)
+8. [RQ7 — Imagination](#rq7--imagination은-같은-policy보다-더-좋은-첫-행동을-만드는가)
+9. [RQ8 — Full system](#rq8--aassr-전체가-strong-baseline보다-나은가)
+10. [RQ9 — Skill](#rq9--skill은-성공-구조를-unseen-scenario에-재사용하는가)
+11. [Long-term — Creativity](#long-term--creativity)
 
 ---
 
-## RQ2. 상태를 관계 구조로 표현하면 일반화가 좋아지는가?
+# 1. 문제의 구조
 
-> **concrete identifier를 직접 외우는 대신 역할과 관계를 표현하면 seed가 바뀐 unseen 환경으로 더 잘 transfer할 수 있는가?**
+AASSR이 겨냥하는 환경에서는 대부분의 transition reward가 `0`이다.
+
+```text
+정보 확인      0
+경로 발견      0
+인증 시도      0
+대상 확인      0
+workflow 진행  0
+proof 획득     +1
+true failure   -1
+```
+
+이때 여러 문제가 동시에 생긴다.
+
+```text
+[Sparse Reward / Credit Assignment]
+               ↓
+[성공 experience 자체가 희귀]
+               ↓
+[Exploration bottleneck]
+               ↓
+[같은 행동 self-loop]
+               ↓
+[Partial Observability / Memory]
+               ↓
+[ID memorization vs structural transfer]
+               ↓
+[World-model uncertainty]
+               ↓
+[Long-horizon planning]
+               ↓
+[OOD Critic extrapolation]
+               ↓
+[Fair evaluation / causal ablation]
+```
+
+관련 기초 개념:
+
+- [Sparse Reward & Credit Assignment](Sparse-Reward-and-Credit-Assignment)
+- [Exploration & Exploitation](Exploration-and-Exploitation)
+- [MDP and POMDP](MDP-and-POMDP)
+- [Relational Representation & Generalization](Relational-Representation-and-Generalization)
+- [Model-Based RL & World Models](Model-Based-RL-and-World-Models)
+- [Critic, Support & OOD](Critic-Support-and-OOD)
+- [Ablation, Benchmarking & Reproducibility](Ablation-Benchmarking-and-Reproducibility)
+
+---
+
+# RQ1 — 희소 보상만으로 최초 성공을 발견할 수 있는가?
+
+> **guided trajectory, oracle action injection, intermediate reward shaping 없이도 agent가 실제 성공 experience를 스스로 만들 수 있는가?**
+
+이 질문은 나머지 모든 질문보다 앞선다.
+
+성공 transition을 한 번도 보지 못하면 [DQN/TD](Q-Learning-DQN-and-TD), [Critic](Critic), [Prophecy](Prophecy), [Skill](Skills) 모두 충분한 positive evidence를 얻기 어렵다.
+
+AASSR은 정답 경로를 직접 주는 대신 다음을 사용한다.
+
+- [exploration](Exploration-and-Exploitation)
+- [Curriculum Learning](Curriculum-Learning)
+- [Policy](Policy)
+- [ASEQ](ASEQ)
+
+## H1
+
+> 제한된 real-transition budget 안에서 사람이 성공 action sequence를 입력하지 않아도 적어도 일부 curriculum frontier에서 proof가 발생한다.
+
+## 반증되는 경우
+
+- 성공이 oracle/guided action이 있을 때만 발생
+- hidden difficulty/target information이 learner input에 들어감
+- shaping reward를 제거하면 성공 experience가 완전히 사라짐
+
+## 핵심 측정
+
+- first proof transition
+- training proof count
+- curriculum level reached
+- stalled rate
+
+상세 실험 정의: [Evidence Matrix — RQ1](Evidence-Matrix#rq1-희소-보상만으로-최초-성공을-발견할-수-있는가)
+
+---
+
+# RQ2 — Relational representation이 unseen transfer를 개선하는가?
+
+> **구체적인 route/object/profile ID를 외우는 대신 역할과 관계를 표현하면 이름이 바뀐 unseen scenario에 더 잘 transfer하는가?**
 
 예:
 
 ```text
-Scenario A: route-12 = catalog-like route
-Scenario B: route-31 = catalog-like route
+Training
+route-12 → catalog-like role
+profile-4 → authenticated profile
+object-7 → candidate object
 
-concrete identity: route-12 != route-31
-relational role  : same structural role
+Unseen
+route-31 → catalog-like role
+profile-9 → authenticated profile
+object-2 → candidate object
 ```
 
-관련 요소:
+Concrete ID는 전부 다르지만 구조는 같을 수 있다.
 
-- relational public state v3
-- relational action features
-- relational DQN
-- relational Prophecy
-- relational Critic
-
-핵심 비교:
+그래서 [State Representation](State-Representation)은 두 identity를 분리한다.
 
 ```text
-dqn_raw -> dqn_relational
+Concrete semantic identity
+→ 실제 실행 / 정확한 반복 판정
+
+Relational identity
+→ Policy / Prophecy / Critic / Skill transfer
 ```
 
-이 차이는 representation 효과를 분리하기 위한 control이다.
+## 핵심 causal comparison
+
+```text
+dqn_raw
+   ↓ representation만 변경
+dqn_relational
+```
+
+## H1
+
+> 동일한 reward, budget, DQN 조건에서 relational representation이 unseen success 또는 milestone reach를 개선한다.
+
+## 중요한 반론
+
+Relational abstraction이 강할수록 무조건 좋은 것은 아니다.
+
+```text
+abstraction ↑
+→ rename invariance ↑
+→ 하지만 decision-critical distinction 소실 가능
+→ state aliasing ↑
+```
+
+2026-08-11의 public HTTP status 소실은 이 trade-off를 보여준 historical 사례다.
+
+관련: [Historical Imagination Diagnostic — 2026-08-11](Historical-Imagination-Diagnostic-2026-08-11)
 
 ---
 
-## RQ3. 실제 경험 `(S,A,S')`을 이용해 진전 없는 반복을 줄일 수 있는가?
+# RQ3 — ASEQ가 진전 없는 self-loop를 줄이는가?
 
-> **같은 semantic state에서 같은 행동을 반복해 다시 같은 상태로 돌아오는 self-loop만 억제하면 탐색 효율이 개선되는가?**
+> **실제로 관측한 `(S,A,S')`에서 `S → A → S`인 반복만 억제하면 탐색 정체를 줄이면서 필요한 반복 행동은 보존할 수 있는가?**
 
-ASEQ는 다음 실제 transition이다.
-
-```text
-(S, A, S')
-```
-
-AASSR은 좁게 다음 패턴만 억제한다.
+[AASSR의 ASEQ](ASEQ)는 다음 실제 transition이다.
 
 ```text
-S -> A -> S
+ASEQ = (S, A, S')
 ```
 
-반면 실제 상태 변화가 있으면 반복을 허용한다.
+억제 대상:
 
 ```text
-S -> A -> S'
-S' != S
+S → A → S
 ```
 
-관련 페이지: **[ASEQ](ASEQ)**
+억제하면 안 되는 것:
+
+```text
+S1 → A → S2
+S2 → A → S3
+```
+
+같은 action type이 반복되어도 state가 진행하면 허용한다.
+
+## H1
+
+> exact semantic self-loop guard가 stalled episode를 줄이고 false suppression은 낮게 유지한다.
+
+## 현재 mechanism evidence
+
+과거 diagnostic에서:
+
+```text
+raw greedy stalled       24 / 24
+exact ASEQ stalled        0 / 24
+```
+
+가 관측됐다.
+
+이 결과의 정확한 주장 범위는 [Evidence Matrix — RQ3](Evidence-Matrix#rq3-aseq가-진전-없는-self-loop를-줄이는가)에서 본다.
 
 ---
 
-## RQ4. 미래를 예측하는 world model이 행동 선택에 유용한가?
+# RQ4 — Prophecy는 planning에 쓸 수 있는 stochastic world model인가?
 
-> **현재 public state와 행동으로부터 가능한 다음 상태의 분포를 학습하면 장기 의사결정에 도움이 되는가?**
+> **현재 public state와 action으로부터 가능한 다음 public outcome의 분포를 학습하여 multi-step planning에 사용할 수 있는가?**
 
-현재 Prophecy는 단일 next-state를 예측하지 않는다.
+현재 [Prophecy](Prophecy)는 deterministic `(S,A) → S'` 회귀가 아니다.
+
+`main`의 current contract:
 
 ```text
-P(S' | S, A, K)
+relational-conditional-mixture-ensemble-v5-status-balanced
 ```
 
-여러 가능한 결과를 conditional mixture로 표현한다.
+개념적으로:
 
-예측 대상에는 다음이 포함된다.
+```math
+p(S_{t+1}|S_t,A_t,K_t)
+=
+\sum_m \pi_m(X_t)p_m(S_{t+1}|X_t)
+```
 
-- next relational descriptor
+예측 대상에는:
+
+- relational next descriptor
 - latest public HTTP status
-- legal action mask
-- active / success / failure / truncation
-- outcome probability
+- legal-action mask
+- terminal class
+- outcome probability mass
 
-관련 페이지: **[Prophecy](Prophecy)**
+가 포함된다.
+
+## H1
+
+> holdout real transition에서 Prophecy의 multimodal prediction이 decision-relevant future structure를 충분히 보존해 planner input으로 사용할 수 있다.
+
+## 단순 accuracy만 보면 안 되는 이유
+
+```text
+평균 semantic similarity 높음
+!=
+403/404/429 같은 중요한 channel이 정확함
+```
+
+따라서 status accuracy, legal-mask accuracy, terminal accuracy, mixture coverage를 별도로 본다.
+
+관련: [Mixture, Ensemble & Calibration](Mixture-Ensemble-and-Calibration), [Loss Functions & Class Imbalance](Loss-Functions-and-Class-Imbalance)
 
 ---
 
-## RQ5. 예측을 여러 단계 연결한 Imagination이 Policy보다 좋은 결정을 만들 수 있는가?
+# RQ5 — Prediction reliability를 실제 decision gate로 쓸 수 있는가?
 
-> **실제 행동 전에 여러 counterfactual future를 계산하면 같은 checkpoint의 Policy보다 더 좋은 첫 행동을 선택할 수 있는가?**
+> **Prophecy가 내놓은 outcome probability와 model reliability를 분리하고, holdout calibration으로 unreliable future를 실제 action override 전에 걸러낼 수 있는가?**
 
-이 질문은 반드시 같은 checkpoint로 비교한다.
+두 값은 다르다.
+
+```text
+Outcome probability
+= 환경에서 그 outcome이 일어날 probability mass
+
+Prediction reliability
+= 그 prediction을 얼마나 믿을 수 있는가
+```
+
+[Calibration](Calibration)의 목적은 rare outcome을 없애는 것이 아니다.
+
+예를 들어:
+
+```text
+403 probability = 0.05
+```
+
+라고 해서 그 branch가 “모델이 5%만 신뢰한다”는 뜻이 아니다.
+
+## H1
+
+> status-aware holdout calibration은 decision-critical prediction error가 큰 branch의 override 참여를 줄인다.
+
+## 실패 가능성
+
+너무 공격적인 gate:
+
+```text
+planner opportunity
+→ 거의 전부 reject
+→ intervention 0
+```
+
+너무 느슨한 gate:
+
+```text
+unreliable branch 통과
+→ model exploitation
+```
+
+따라서 **안전함과 planner activity를 같이 측정**해야 한다.
+
+---
+
+# RQ6 — Critic value를 local support 없이 믿어도 되는가?
+
+> **Critic이 전체적으로 학습됐더라도 지금 imagined state/action이 실제 training distribution 밖이라면 그 value를 믿어도 되는가?**
+
+2026-08-11 historical diagnostic에서 이 질문의 필요성이 드러났다.
+
+당시에는 낮은 curriculum level의 real success evidence가 주로 존재했는데 planner는 더 높은 unseen level에서 Critic value를 이용해 적극적으로 override했다.
+
+이것은 다음 구분을 만들었다.
+
+```text
+Critic readiness
+= model이 overall training을 받았는가?
+
+Local Critic support
+= 지금 이 state/action 주변에 real training evidence가 있는가?
+```
+
+## H1
+
+> [local real-training support gate](Critic-Support-and-OOD)는 unsupported high-value extrapolation을 fail-closed하면서 supported planning은 유지한다.
+
+## 중요한 경계
+
+```text
+support
+!= reward
+!= value
+!= confidence bonus
+```
+
+Support는 **값이 좋다는 뜻이 아니라 값 추정의 데이터 근거가 있다는 뜻**이다.
+
+---
+
+# RQ7 — Imagination은 같은 Policy보다 더 좋은 첫 행동을 만드는가?
+
+> **실제로 행동하기 전에 여러 counterfactual future를 전개하면, 동일하게 학습된 Policy-only보다 더 좋은 root action을 선택할 수 있는가?**
+
+[Imagination](Imagination)은 현재 protocol에서 persistent imagined learning이 아니라 planning 장치다.
+
+가장 중요한 실험 계약:
 
 ```text
 one AASSR training run
-        |
-        v
+        ↓
 frozen checkpoint
-      /    \
-     /      \
-OFF eval  ON eval
+     /             \
+OFF                   ON
+Policy-only      Imagination
 ```
 
-따라서
+## 왜 same checkpoint인가?
+
+OFF와 ON을 따로 학습하면:
 
 ```text
-AASSR no-Imagination -> AASSR Full
+training randomness
++ replay 차이
++ exploration 차이
++ checkpoint 차이
 ```
 
-의 차이가 Imagination의 marginal effect다.
+가 섞여 Imagination의 marginal effect를 분리하기 어렵다.
 
-관련 페이지: **[Imagination](Imagination)**
+## H1
+
+> planner ON이 OFF보다 success/failure trade-off를 개선한다.
+
+## planner가 지켜야 하는 수학
+
+환경의 stochastic outcome:
+
+```math
+V_{chance}=\sum_i p_iV_i
+```
+
+agent의 다음 행동 선택:
+
+```math
+V_{decision}=\max_aV(S',a)
+```
+
+관련: [Chance Nodes & Decision Nodes](Chance-and-Decision-Nodes)
+
+## Historical diagnostic과 current claim 분리
+
+2026-08-11 `4/20 vs 4/20`, `86 interventions`는 **현재 v5/status-aware/support-gated architecture의 최종 성능 결과가 아니다.**
+
+그 결과는 [Historical Imagination Diagnostic](Historical-Imagination-Diagnostic-2026-08-11)로 분리한다.
 
 ---
 
-## RQ6. world model의 confidence만으로 충분한가?
+# RQ8 — AASSR 전체가 strong baseline보다 나은가?
 
-> **예측이 신뢰 가능하더라도 Critic이 현재 state/action region을 실제로 학습한 적 없다면 그 값을 믿어도 되는가?**
+> **같은 reward, observation boundary, real sample budget, unseen protocol에서 current AASSR이 strong model-free / model-based baseline보다 더 안정적으로 장기 task를 해결하는가?**
 
-최근 실험에서 답은 **아니었다.**
-
-그래서 AASSR은 두 신뢰 개념을 분리한다.
+최종 비교 구조:
 
 ```text
-Prophecy reliability
-= world model prediction을 믿을 수 있는가?
-
-Critic local support
-= 현재 영역의 value estimate를 실제 training data가 지지하는가?
+dqn_raw
+  ↓ representation effect
+dqn_relational
+  ↓ AASSR stack beyond representation
+aassr_current_no_imagination
+  ↓ Imagination marginal effect
+aassr_current_full
 ```
 
-둘 중 하나라도 부족하면 Imagination override는 fail-closed 된다.
+그리고 외부 model-based family 비교:
+
+```text
+dreamerv3_relational
+↔
+aassr_current_full
+```
+
+## 이 질문은 마지막에 답한다
+
+각 component가 individually reasonable하다고 해서 전체 시스템이 baseline보다 좋은 것은 아니다.
+
+```text
+good representation
++ good world model
++ good critic
++ good planner
+
+≠ automatically better agent
+```
+
+최종적으로는 [Ablation](Ablation-Benchmarking-and-Reproducibility), multi-seed aggregate, final blind가 필요하다.
+
+현재 claim 상태: **Pending.**
 
 ---
 
-## RQ7. AASSR의 효과는 어떤 구성 요소에서 오는가?
+# RQ9 — Skill은 성공 구조를 unseen scenario에 재사용하는가?
 
-최종 current-generation 비교는 다음 구조를 사용한다.
+> **반복 성공한 real ASeq를 concrete ID가 아닌 relational template로 저장하면 새로운 scenario에서도 high-level action structure로 재사용할 수 있는가?**
 
-| Condition | 목적 |
-|---|---|
-| `dqn_raw` | 단순 model-free baseline |
-| `dqn_relational` | representation 효과 |
-| `dreamerv3_relational` | 표준 world-model RL baseline |
-| `aassr_current_no_imagination` | AASSR stack의 non-Imagination 효과 |
-| `aassr_current_full` | Imagination marginal effect |
+[Skill](Skills)은 사람이 정답 macro를 넣는 장치가 아니다.
 
-따라서 단순히 "AASSR이 DQN보다 높다"가 아니라 **어느 층에서 차이가 발생하는가**를 분리해서 본다.
+```text
+real successful ASeq
+      ↓
+repeated relational pattern
+      ↓
+promotion
+      ↓
+relational Skill template
+      ↓
+new scenario의 concrete action에 rebind
+```
 
----
+## H1
 
-# 4. 장기 연구 질문: 창의성
+> relational Skill이 raw concrete macro보다 unseen rebinding에 강하고 primitive-only search cost를 줄인다.
 
-초기 AASSR 노트의 두 번째 큰 질문은 다음이었다.
+## 별도로 봐야 할 것
 
-> **에이전트가 인간이 미리 정해준 정답 경로와 다른 유효한 목표 수행 경로를 만들어낼 수 있는가?**
+- premature promotion
+- unavailable primitive
+- stochastic rollout collapse
+- Skill domination
 
-이 질문은 흥미롭지만 현재 단계에서는 최종 성능 질문과 분리한다.
-
-먼저 확인해야 할 것은:
-
-1. 스스로 성공 가능한가?
-2. unseen 환경으로 transfer 가능한가?
-3. Imagination이 실제 행동 품질을 높이는가?
-4. 그 뒤에 인간이 제공하지 않은 새로운 해결 경로가 반복적으로 나타나는가?
-
-따라서 **창의성은 현재 primary benchmark claim이 아니라 후속 분석 질문**으로 둔다.
+관련: [Hierarchical RL & Skills](Hierarchical-RL-and-Skills)
 
 ---
 
-# 5. 연구 질문과 모듈의 대응
+# Long-term — Creativity
 
-| 연구 질문 | 핵심 모듈 / 설계 |
-|---|---|
-| 최초 성공을 스스로 찾는가? | Policy, curriculum, ASEQ |
-| unseen에서 일반화하는가? | relational representation |
-| self-loop를 줄일 수 있는가? | ASEQ |
-| 미래를 예측할 수 있는가? | Prophecy |
-| 예측을 믿어도 되는가? | Calibration |
-| 미래를 비교해 행동을 바꿀 수 있는가? | Imagination |
-| 미래 가치를 평가할 수 있는가? | Critic |
-| OOD value를 막을 수 있는가? | local Critic support |
-| 성공 구조를 재사용할 수 있는가? | Skill |
+초기 AASSR의 두 번째 큰 질문은 다음과 같다.
 
-이 대응 관계가 AASSR 문서 전체의 기본 구조다.
+> **에이전트가 인간이 미리 정해준 정답 경로 또는 이미 학습한 Skill을 그대로 복제하지 않고도 새로운 유효한 목표 수행 경로를 만들 수 있는가?**
+
+이 질문은 중요하지만 현재 primary performance claim과 분리한다.
+
+먼저 다음이 필요하다.
+
+```text
+1. autonomous success
+2. unseen transfer
+3. reliable planning
+4. stable baseline superiority 또는 최소한 충분한 competence
+5. 그 뒤 path novelty 분석
+```
+
+## Creativity를 단순 action diversity로 정의하면 안 되는 이유
+
+랜덤하게 여러 행동을 하는 것도 diversity는 높을 수 있다.
+
+하지만 연구적으로 원하는 것은:
+
+```text
+새로운 경로
++
+유효한 목표 달성
++
+training trajectory 단순 복제 아님
++
+우연한 한 번이 아니라 반복 가능
+```
+
+이다.
+
+따라서 future creativity study에는 path equivalence, structural novelty, success-conditioned diversity 같은 별도 metric이 필요하다.
 
 ---
 
-# 6. 현재 연구에서 중요한 원칙
+# 전체 RQ 연결도
 
-AASSR의 성능을 높이기 위해 연구 질문 자체를 흐리는 shortcut은 허용하지 않는다.
-
-현재 원칙:
-
-- intermediate shaping reward 없음
-- oracle action injection 없음
-- guided success trajectory 없음
-- hidden curriculum metadata를 observation으로 주지 않음
-- hidden lockout/session pressure를 직접 주지 않음
-- evaluation 중 checkpoint 재학습 없음
-- no-Imagination / Full은 같은 frozen checkpoint 사용
-
-즉 목표는 **정답을 더 많이 알려줘서 성공시키는 것**이 아니라, 공개 관측과 실제 경험만으로 문제 해결 구조를 학습하는 것이다.
+```mermaid
+flowchart TD
+    Q[Autonomous long-horizon solving] --> R1[RQ1 First success]
+    R1 --> R2[RQ2 Relational transfer]
+    R1 --> R3[RQ3 ASEQ self-loop]
+    R2 --> R4[RQ4 Prophecy]
+    R4 --> R5[RQ5 Calibration]
+    R4 --> R6[RQ6 Critic support]
+    R5 --> R7[RQ7 Imagination]
+    R6 --> R7
+    R7 --> R8[RQ8 Full baseline comparison]
+    R1 --> R9[RQ9 Skills]
+    R8 --> C[Long-term Creativity]
+    R9 --> C
+```
 
 ---
 
-다음으로 읽기:
+# 연구 원칙
 
-- **[Sparse Reward Problem](Sparse-Reward-Problem)**
-- **[Research Architecture](Research-Architecture)**
-- **[Core Architecture](Core-Architecture)**
-- **[Experiments](Experiments)**
+모든 RQ에서 공통으로 지킨다.
+
+- [external sparse reward](Sparse-Reward-and-Credit-Assignment)는 성공 `+1`, true failure `-1`, 그 외 `0`이라는 task contract를 유지한다.
+- intermediate shaping reward를 최종 목표의 대체물로 쓰지 않는다.
+- oracle action / guided success trajectory를 learner에게 주지 않는다.
+- hidden simulator truth를 [observation](MDP-and-POMDP)에 넣지 않는다.
+- [Knowledge](Knowledge)는 prediction 시점 이전에 real response로 획득한 사실만 사용한다.
+- imagined transition을 real factual evidence로 자동 승격하지 않는다.
+- evaluation 중 persistent learner state를 바꾸지 않는다.
+- Imagination OFF/ON은 same frozen checkpoint다.
+- 과거 세대 수치를 current-generation final claim에 섞지 않는다.
+
+---
+
+## 다음으로 읽기
+
+- **[Evidence Matrix](Evidence-Matrix)** — 각 RQ를 실제 변수·지표·claim으로 연결
+- **[Experiments](Experiments)** — 실험 protocol과 결과
+- **[Current Status](Current-Status)** — 지금 무엇이 current인지
+- **[Historical Imagination Diagnostic — 2026-08-11](Historical-Imagination-Diagnostic-2026-08-11)** — 대표 negative result
