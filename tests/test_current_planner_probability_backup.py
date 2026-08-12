@@ -80,6 +80,25 @@ def test_stochastic_outcomes_are_probability_weighted_not_equal_votes() -> None:
     assert value == pytest.approx(0.8)
 
 
+def test_complete_prophecy_mass_must_not_be_silently_renormalized() -> None:
+    planner = _planner("mean")
+    planner.prophecy = SimpleNamespace(complete_outcome_distribution=True)
+    incomplete = (
+        SimpleNamespace(outcome_probability=0.4, probability=0.9, source="a"),
+        SimpleNamespace(outcome_probability=0.4, probability=0.8, source="b"),
+    )
+    with pytest.raises(RuntimeError, match="must sum to 1.0"):
+        planner._normalized_predictions(incomplete, limit=1)
+
+    complete = (
+        SimpleNamespace(outcome_probability=0.6, probability=0.9, source="a"),
+        SimpleNamespace(outcome_probability=0.4, probability=0.8, source="b"),
+    )
+    rows = planner._normalized_predictions(complete, limit=1)
+    assert len(rows) == 2
+    assert [mass for _, mass in rows] == pytest.approx((0.6, 0.4))
+
+
 def test_risk_adjusted_chance_backup_uses_weighted_variance() -> None:
     planner = _planner("risk_adjusted")
     value = planner._aggregate_outcomes((1.0, -1.0), (0.9, 0.1))
