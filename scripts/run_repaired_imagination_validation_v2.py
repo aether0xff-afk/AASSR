@@ -13,9 +13,10 @@ from aassr_v2.current_mixture_entrypoint import (
     MIXTURE_CURRENT_COMPONENTS,
     build_current_mixture_pentest_aassr_core,
 )
+from aassr_v2.current_status_models import STATUS_OBJECTIVE
 
 
-RUN_VERSION = "repaired-imagination-one-shot-validation-v3-probability-backup"
+RUN_VERSION = "repaired-imagination-one-shot-validation-v4-status-balanced"
 
 
 def _arg_value(name: str, default: str) -> str:
@@ -31,7 +32,7 @@ def _arg_value(name: str, default: str) -> str:
 def _install_frozen_builder() -> None:
     # The detailed runner delegates all training/evaluation construction to the
     # gate module. Patch that single constructor before any checkpoint is built so
-    # no condition can silently fall back to the deterministic-v1 world model.
+    # no condition can silently fall back to a historical world model.
     gate.build_current_pentest_aassr_core = build_current_mixture_pentest_aassr_core
     detail.gate = gate
 
@@ -61,12 +62,15 @@ def _patch_summary(output: Path, diagnostics: dict[str, object], margin: float) 
     summary["current_components"] = dict(MIXTURE_CURRENT_COMPONENTS)
     summary["frozen_builder"] = "build_current_mixture_pentest_aassr_core"
     summary["prophecy_contract"] = {
-        "input": "relational-public-state-v2+relational-action",
+        "input": "relational-public-state-v3+latest-http-status+relational-action",
         "output": (
-            "conditional-mixture(relational-next-state-v2,legal-mask,"
-            "active-success-failure-truncation)"
+            "conditional-mixture(relational-next-state-v3+latest-http-status,"
+            "legal-mask,active-success-failure-truncation)"
         ),
         "mixture_components": 3,
+        "status_objective": STATUS_OBJECTIVE,
+        "status_balancing": "inverse-sqrt-frequency-capped-normalized",
+        "status_task_specific_rules": "none",
         "reliability": "ensemble-mode-set-disagreement*semantic-holdout-calibration",
         "outcome_probability": "separate-probability-weighted-chance-backup",
         "decision_backup": "max-over-agent-actions",
@@ -104,9 +108,9 @@ def main() -> None:
     verbose.main()
     diagnostics = analyzer.analyze(output)
     _patch_summary(output, diagnostics, margin)
-    print("\n[REPAIRED V3 ANALYSIS]")
+    print("\n[REPAIRED V4 ANALYSIS]")
     print(json.dumps(diagnostics, indent=2, sort_keys=True))
-    print(f"[REPAIRED V3 SUMMARY] {output / 'summary.json'}")
+    print(f"[REPAIRED V4 SUMMARY] {output / 'summary.json'}")
 
 
 if __name__ == "__main__":
