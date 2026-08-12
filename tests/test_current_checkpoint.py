@@ -10,11 +10,14 @@ from aassr_v2.current_checkpoint import (
 )
 from aassr_v2.current_critic_support import _action_key
 from aassr_v2.current_entrypoint import build_current_pentest_aassr_core
+from aassr_v2.current_generation import relational_action_key
 from aassr_v2.current_relational_state_v3 import (
     latest_status_code,
     relational_state_descriptor_v3,
 )
 from aassr_v2.pentest_transfer_stages import TRANSFER_STAGES, TransferDiagnosticWorld
+from aassr_v2.replay import ReplayTransition
+from aassr_v2.skills import Skill
 
 
 def test_current_frozen_checkpoint_restores_learned_and_gate_state(tmp_path) -> None:
@@ -57,6 +60,30 @@ def test_current_frozen_checkpoint_restores_learned_and_gate_state(tmp_path) -> 
         )
     )
 
+    # Reproduce the exact object-rich state from a real run. Action.parameters
+    # and StateSnapshot.metadata are MappingProxyType instances, so a raw pickle
+    # of ReplayTransition would fail even though an empty-checkpoint test passes.
+    for index in range(5):
+        agent.evaluator.replay.add(
+            ReplayTransition(state, action, state, f"portable-{index}")
+        )
+    assert agent.evaluator.replay.train()
+    assert agent.evaluator.replay.holdout()
+
+    skill = Skill(
+        skill_id="skill-0001",
+        primitive_actions=(action,),
+        achieved_goal_ids=("external:success",),
+        required_facts=frozenset(),
+        added_facts=frozenset(),
+        removed_facts=frozenset(),
+        successes=2,
+        failures=0,
+    )
+    agent.skills._skills[skill.skill_id] = skill
+    agent.skills._templates[skill.skill_id] = (relational_action_key(state, action),)
+    agent.skills._next_id = 2
+
     before_q = agent.dqn.score_actions(state, (action,))[0]
     before_prophecy = tuple(
         parameter.detach().clone()
@@ -93,4 +120,8 @@ def test_current_frozen_checkpoint_restores_learned_and_gate_state(tmp_path) -> 
     assert restored.base_neural_prophecy.gradient_updates == 5
     assert restored._critic_counts["non_successes"] == 4
     assert restored.critic.support_confidence(state, action) > 0.0
+    assert len(restored.evaluator.replay.train()) == 4
+    assert len(restored.evaluator.replay.holdout()) == 1
+    assert restored.skills.get("skill-0001").primitive_actions[0].signature == action.signature
+    assert restored.skills.template_length("skill-0001") == 1
     assert restored.config.imagination_intervention_margin == pytest.approx(0.05)
