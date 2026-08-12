@@ -2,7 +2,7 @@ name: AASSR current-generation gate
 
 on:
   push:
-    branches: [agent/aassr-current-generation]
+    branches: [main, agent/aassr-current-generation]
   pull_request:
     paths:
       - "src/aassr_v2/current_*.py"
@@ -68,6 +68,8 @@ jobs:
             src/aassr_v2/current_critic_support.py \
             src/aassr_v2/current_root_dedup.py \
             src/aassr_v2/current_status_models.py \
+            src/aassr_v2/current_checkpoint.py \
+            src/aassr_v2/current_run_artifacts.py \
             src/aassr_v2/current_repair.py \
             src/aassr_v2/current_mixture_entrypoint.py \
             src/aassr_v2/dreamerv3_baseline.py \
@@ -102,11 +104,15 @@ jobs:
                   assert token not in text, (name, token)
           PY
 
-      - name: Public status v3 and supervision contract
+      - name: Public v3 fresh-process and probability contracts
         run: |
           pytest -q \
             tests/test_current_relational_state_v3.py \
-            tests/test_current_status_supervision.py
+            tests/test_current_status_supervision.py \
+            tests/test_current_fresh_process_contract.py \
+            tests/test_current_probability_contract.py \
+            tests/test_current_latent_contracts.py \
+            tests/test_current_checkpoint.py
 
       - name: Multimodal contract 1 - target distinction
         run: pytest -q tests/test_current_repair_multimodal.py::test_multimodal_targets_share_input_but_keep_distinct_outputs
@@ -175,6 +181,9 @@ jobs:
           assert "latest-http-status" in components["policy_state_input"]
           assert components["public_response_contract"] == "latest-http-status-preserved"
           assert components["prophecy_status_objective"] == "class-balanced-categorical-public-http-status-v2"
+          assert components["prophecy_status_inference"] == "softmax-categorical-realized-one-hot"
+          assert components["prophecy_outcome_mass"] == "complete-before-expected-return-backup"
+          assert components["imagination_intervention_margin"] == "fixed-0.05-scaling-contract"
           diagnostics = result["diagnostics"]
           assert diagnostics["canonical_runtime"] == "current_standalone"
           assert diagnostics["policy"]["dqn:gradient_updates"] > 0
@@ -186,9 +195,14 @@ jobs:
           assert diagnostics["prophecy_current"]["status_output_channels"] == 8
           assert diagnostics["prophecy_current"]["status_loss_weight"] == 0.5
           assert diagnostics["prophecy_current"]["status_training_objective"] == "class-balanced-categorical-public-http-status-v2"
+          assert diagnostics["prophecy_current"]["status_inference_objective"] == "softmax-categorical-realized-one-hot"
           assert diagnostics["prophecy_current"]["status_class_weighting"] == "inverse-sqrt-frequency-capped-normalized"
+          assert diagnostics["prophecy_current"]["complete_empirical_outcome_mass"] == 1
+          assert diagnostics["prophecy_current"]["complete_learned_mixture_mass"] == 1
+          assert diagnostics["prophecy_calibration"]["state_local_calibration"] == 1
           assert diagnostics["prophecy_state_input_relational"] is True
           assert diagnostics["prophecy_action_input_relational"] is True
+          assert diagnostics["critic_support"]["minimum_negative_returns"] == 4
           repairs = diagnostics["current_repairs"]
           assert repairs["relational_input_output_contract"] is True
           assert repairs["hidden_audit_session_pressure_masked"] is True
@@ -201,10 +215,12 @@ jobs:
           assert repairs["critic_zero_memory_suffix_training"] is True
           assert repairs["critic_local_support_gate"] is True
           assert repairs["critic_support_is_gate_not_value"] is True
+          assert repairs["critic_signed_negative_return_readiness"] is True
           assert repairs["structural_root_compute_dedup"] is True
           assert repairs["concrete_root_execution_preserved"] is True
           assert repairs["planner_discount_matches_gamma"] is True
           assert diagnostics["critic_support"]["stored_support_rows"] > 0
+          assert getattr(__import__("aassr_v2").build_pentest_aassr_core(seed=1, train_transitions=64, device="cpu"), "current_structural_coverage") is True
           print(
               "train_successes=", result["training_successes"],
               "dqn_updates=", diagnostics["policy"]["dqn:gradient_updates"],
@@ -242,6 +258,7 @@ jobs:
           assert CURRENT_COMPONENTS["chance_objective"] == "expected-external-sparse-return"
           assert CURRENT_COMPONENTS["hidden_pressure_contract"] == "audit-and-session-countdown-masked"
           assert CURRENT_COMPONENTS["public_response_contract"] == "latest-http-status-preserved"
+          assert CURRENT_COMPONENTS["checkpoint_contract"] == "fresh-process-restorable-frozen-evaluation-v1"
           assert "same-device" in CURRENT_COMPONENTS["hardware"]
           assert aassr_v2.build_pentest_aassr_core is build_current_pentest_aassr_core
           agent = build_current_pentest_aassr_core(seed=7, train_transitions=64, use_imagination=True, device="cpu")
@@ -260,6 +277,8 @@ jobs:
           assert agent.current_critic_batching is True
           assert agent.current_critic_support_gate is True
           assert agent.current_structural_root_dedup is True
+          assert agent.current_structural_coverage is True
+          assert agent.config.imagination_intervention_margin == 0.05
           assert agent.planner.config.aggregation == "mean"
           assert agent.planner.config.discount == agent.config.gamma
           PY
