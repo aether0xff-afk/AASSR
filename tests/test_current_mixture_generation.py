@@ -83,7 +83,7 @@ def test_sparse_single_slot_disagreement_is_not_diluted_by_dimension_count() -> 
         config=RelationalMixtureProphecyConfig(
             hidden_units=8,
             ensemble_size=2,
-            mixture_components=1,
+            mixture_components=2,
             replay_capacity=8,
             batch_size=1,
             warmup_steps=1,
@@ -93,14 +93,15 @@ def test_sparse_single_slot_disagreement_is_not_diluted_by_dimension_count() -> 
     descriptor_dim = 35
     mask_dim = 240
     terminal_dim = 4
-    descriptors = torch.zeros((2, 1, 1, descriptor_dim), dtype=torch.float32)
-    masks = torch.zeros((2, 1, 1, mask_dim), dtype=torch.float32)
-    terminals = torch.zeros((2, 1, 1, terminal_dim), dtype=torch.float32)
+    descriptors = torch.zeros((2, 1, 2, descriptor_dim), dtype=torch.float32)
+    masks = torch.zeros((2, 1, 2, mask_dim), dtype=torch.float32)
+    terminals = torch.zeros((2, 1, 2, terminal_dim), dtype=torch.float32)
     terminals[:, :, :, 0] = 1.0
-    mixtures = torch.ones((2, 1, 1), dtype=torch.float32)
-    # One action-surface bit differs. A mean over 240 slots would nearly erase it;
-    # sparse-max disagreement must retain the full 0.30 mask contribution.
-    masks[1, 0, 0, 17] = 1.0
+    mixtures = torch.full((2, 1, 2), 0.5, dtype=torch.float32)
+    # One action-surface bit differs in every mode of member 1. A mean over 240
+    # slots would nearly erase it; sparse-max disagreement must retain the full
+    # 0.30 mask contribution regardless of dimensionality or mode matching.
+    masks[1, 0, :, 17] = 1.0
     disagreement = model._set_disagreement(descriptors, masks, terminals, mixtures)
     assert float(disagreement[0]) == pytest.approx(0.30, abs=1e-6)
 
