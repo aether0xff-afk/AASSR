@@ -11,6 +11,7 @@ from aassr_v2.current_semantic_evaluator import (
     semantic_prediction_uncertainty,
 )
 from aassr_v2.pentest_agent_main_test import AGENT_STATE_SIZE
+from aassr_v2.replay import PredictionValidator, ReplayTransition
 from aassr_v2.types import Action, Prediction, StateSnapshot
 
 
@@ -81,3 +82,24 @@ def test_semantic_uncertainty_ignores_raw_id_slot_movement() -> None:
     )
     # Same relational future, so only confidence uncertainty remains: 0.5 * 0.2.
     assert uncertainty == pytest.approx(0.1)
+
+
+def test_validator_full_holdout_equals_frozen_recent_limit_snapshot() -> None:
+    state, action = _renamed("route-05")
+    transitions = tuple(
+        ReplayTransition(state, action, state, trace_id=f"row-{index}")
+        for index in range(100)
+    )
+
+    class _PerfectProphecy:
+        def predict(self, observed, chosen, *, samples):
+            del chosen, samples
+            return (Prediction(observed, 1.0, source="perfect"),)
+
+    full_validator = PredictionValidator(samples=1, recent_limit=64)
+    recent_validator = PredictionValidator(samples=1, recent_limit=64)
+    full = full_validator.evaluate(_PerfectProphecy(), transitions)
+    recent = recent_validator.evaluate(_PerfectProphecy(), transitions[-64:])
+
+    assert full.count == recent.count == 64
+    assert full.mean_similarity == pytest.approx(recent.mean_similarity)
