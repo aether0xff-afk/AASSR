@@ -183,11 +183,14 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
             ),
             reverse=True,
         )
+        complete = bool(
+            getattr(self.prophecy, "complete_outcome_distribution", False)
+        )
         # A complete distribution must never be converted into a conditional
-        # top-k distribution.  The active status-mixture model explicitly marks
+        # top-k distribution. The active status-mixture model explicitly marks
         # its batched view complete, so every emitted chance mass is retained.
         # Historical/incomplete predictors keep the configured limit.
-        if not bool(getattr(self.prophecy, "complete_outcome_distribution", False)):
+        if not complete:
             selected = selected[:limit]
         if not selected:
             return ()
@@ -196,7 +199,17 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
             for item in selected
         ]
         total = sum(raw)
-        if total <= 1e-12:
+        if complete:
+            # Do not let the planner silently conceal a future regression where a
+            # predictor advertises a complete distribution but drops tail mass.
+            # Only tiny floating-point drift is corrected by normalization.
+            if total <= 1e-12 or abs(total - 1.0) > 1e-6:
+                raise RuntimeError(
+                    "complete Prophecy outcome mass must sum to 1.0 before "
+                    f"expected-return backup; observed {total:.12f}"
+                )
+            probabilities = [value / total for value in raw]
+        elif total <= 1e-12:
             probabilities = [1.0 / len(selected)] * len(selected)
         else:
             probabilities = [value / total for value in raw]
