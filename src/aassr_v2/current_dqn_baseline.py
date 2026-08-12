@@ -9,6 +9,7 @@ from .current_hardware import (
     HardwareRelationalInvariantDQN,
     configure_current_hardware,
 )
+from .current_relational_state_v3 import install_status_aware_relational_contract
 from .pentest_agent_main_test import DynamicActionDQN, action_features
 from .pentest_curriculum_causal import OBSERVATION_CONTRACT
 from .types import Action, StateSnapshot, TransitionTrace
@@ -346,6 +347,11 @@ def build_relational_dqn_agent(
     device: str = "cpu",
     allow_tf32: bool = True,
 ) -> BareRelationalDQNAgent:
+    # The relational baseline must be self-contained.  Do not rely on an AASSR
+    # builder or a pytest import side effect to install the active public v3
+    # representation first; a fresh experiment process trains this baseline
+    # before AASSR is constructed.
+    install_status_aware_relational_contract()
     hardware_info = configure_current_hardware(device, allow_tf32=allow_tf32)
     dqn = HardwareRelationalInvariantDQN(
         int(seed) ^ 0xD1A6,
@@ -355,7 +361,7 @@ def build_relational_dqn_agent(
     return BareRelationalDQNAgent(
         dqn,
         condition=RELATIONAL_DQN_CONDITION,
-        representation="same-relational-state-action-input-as-current-policy",
+        representation="current-relational-public-state-v3+latest-http-status",
         train_transitions=int(train_transitions),
         hardware_info=hardware_info,
     )
