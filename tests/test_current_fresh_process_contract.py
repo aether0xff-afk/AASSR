@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import importlib.util
 import os
 from pathlib import Path
 import subprocess
 import sys
 import textwrap
+
+import pytest
 
 
 def test_relational_dqn_uses_v3_without_aassr_import_side_effects() -> None:
@@ -12,8 +15,13 @@ def test_relational_dqn_uses_v3_without_aassr_import_side_effects() -> None:
 
     Run in a brand-new interpreter so another pytest module cannot make the test
     pass by installing the process-global relational v3 contract during
-    collection.
+    collection. The portable ``[dev]`` matrix intentionally omits Torch; the
+    dedicated current-generation gate installs the Torch path and therefore owns
+    this contract when Torch is unavailable here.
     """
+
+    if importlib.util.find_spec("torch") is None:
+        pytest.skip("fresh-process DQN contract requires the optional Torch path")
 
     root = Path(__file__).resolve().parents[1]
     env = dict(os.environ)
