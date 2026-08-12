@@ -67,8 +67,8 @@ def test_current_frozen_checkpoint_restores_learned_and_gate_state(tmp_path) -> 
         agent.evaluator.replay.add(
             ReplayTransition(state, action, state, f"portable-{index}")
         )
-    assert agent.evaluator.replay.train()
-    assert agent.evaluator.replay.holdout()
+    assert len(agent.evaluator.replay.train()) == 4
+    assert len(agent.evaluator.replay.holdout()) == 1
 
     skill = Skill(
         skill_id="skill-0001",
@@ -120,7 +120,9 @@ def test_current_frozen_checkpoint_restores_learned_and_gate_state(tmp_path) -> 
     assert restored.base_neural_prophecy.gradient_updates == 5
     assert restored._critic_counts["non_successes"] == 4
     assert restored.critic.support_confidence(state, action) > 0.0
-    assert len(restored.evaluator.replay.train()) == 4
+    # Frozen prediction/calibration uses holdout only. The training partition is
+    # recorded by count in the manifest, not duplicated into the checkpoint.
+    assert len(restored.evaluator.replay.train()) == 0
     assert len(restored.evaluator.replay.holdout()) == 1
     assert restored.skills.get("skill-0001").primitive_actions[0].signature == action.signature
     assert restored.skills.template_length("skill-0001") == 1
