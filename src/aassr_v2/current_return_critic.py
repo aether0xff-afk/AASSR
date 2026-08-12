@@ -8,7 +8,7 @@ from .current_hardware import HardwareRelationalGRUBranchCritic
 from .types import Action, StateSnapshot
 
 
-RECENT_CRITIC_RETURN_WINDOW = 128
+CRITIC_REPLAY_CAPACITY = 4_000
 
 
 class ReturnAwareHardwareRelationalGRUBranchCritic(
@@ -27,39 +27,59 @@ class ReturnAwareHardwareRelationalGRUBranchCritic(
     remain directly comparable, while the same zero-memory scorer is trained from
     every real decision state rather than only from episode start.
 
-    Readiness is also tied to a bounded recent episode-return window. Cumulative
-    historical success/failure counts are useful provenance, but cannot by
-    themselves prove that a long-run FIFO learner still has both positive and
-    negative sparse-return evidence in its current training regime.
+    Reliability is tied to the *active FIFO training replay itself*, not only to
+    cumulative history or an unrelated episode window. A parallel metadata deque
+    records which real episode each suffix came from and its signed final return.
+    Readiness counts distinct represented episodes, so one long failure episode
+    that produces hundreds of suffixes still counts as one negative episode.
     """
 
-    name = "hardware-relational-gru-root-discounted-sparse-return-v4-recent-support"
+    name = "hardware-relational-gru-root-discounted-sparse-return-v5-active-replay-support"
     value_center = 0.0
 
     def __init__(self, seed: int, *, device: str = "cpu") -> None:
         super().__init__(seed, device=device)
         self._next_final_return = 0.0
         self._next_gamma = 1.0
-        self.replay = deque(maxlen=4_000)
-        self.recent_episode_returns: deque[float] = deque(
-            maxlen=RECENT_CRITIC_RETURN_WINDOW
+        self.replay = deque(maxlen=CRITIC_REPLAY_CAPACITY)
+        self.replay_episode_support: deque[tuple[int, int]] = deque(
+            maxlen=CRITIC_REPLAY_CAPACITY
         )
+        self._support_episode_index = 0
         self.suffix_sequences = 0
 
     def set_episode_return(self, final_return: float, gamma: float) -> None:
         self._next_final_return = max(-1.0, min(1.0, float(final_return)))
         self._next_gamma = max(0.0, min(1.0, float(gamma)))
 
-    def recent_signed_support(self) -> dict[str, int]:
-        positive = sum(value > 0.0 for value in self.recent_episode_returns)
-        negative = sum(value < 0.0 for value in self.recent_episode_returns)
-        zero = len(self.recent_episode_returns) - positive - negative
+    def active_replay_signed_support(self) -> dict[str, int]:
+        """Count distinct real episodes currently represented in Critic replay."""
+        by_episode: dict[int, int] = {}
+        for episode_id, sign in self.replay_episode_support:
+            by_episode[int(episode_id)] = int(sign)
+        positive = sum(sign > 0 for sign in by_episode.values())
+        negative = sum(sign < 0 for sign in by_episode.values())
+        zero = len(by_episode) - positive - negative
         return {
-            "window_capacity": RECENT_CRITIC_RETURN_WINDOW,
-            "observed": len(self.recent_episode_returns),
+            "suffix_capacity": CRITIC_REPLAY_CAPACITY,
+            "suffix_rows": len(self.replay_episode_support),
+            "represented_episodes": len(by_episode),
             "positive": int(positive),
             "zero": int(zero),
             "negative": int(negative),
+        }
+
+    # Compatibility name used by the gate/checkpoint layer. The semantics are now
+    # stronger than a recent window: this is exactly the distinct episode support
+    # represented by the active FIFO Critic training replay.
+    def recent_signed_support(self) -> dict[str, int]:
+        support = self.active_replay_signed_support()
+        return {
+            "window_capacity": int(support["suffix_capacity"]),
+            "observed": int(support["represented_episodes"]),
+            "positive": int(support["positive"]),
+            "zero": int(support["zero"]),
+            "negative": int(support["negative"]),
         }
 
     def observe_episode(
@@ -70,9 +90,11 @@ class ReturnAwareHardwareRelationalGRUBranchCritic(
     ) -> None:
         del success
         encoded = tuple(self.encoder.encode(item) for item in trajectory)
+        episode_id = self._support_episode_index
+        self._support_episode_index += 1
         if encoded:
             final_return = float(self._next_final_return)
-            self.recent_episode_returns.append(final_return)
+            sign = 1 if final_return > 0.0 else (-1 if final_return < 0.0 else 0)
             for start in range(len(encoded)):
                 suffix = encoded[start:]
                 root_return = final_return * self._next_gamma ** (
@@ -80,6 +102,7 @@ class ReturnAwareHardwareRelationalGRUBranchCritic(
                 )
                 targets = (float(root_return),) * len(suffix)
                 self.replay.append((suffix, targets))
+                self.replay_episode_support.append((episode_id, sign))
                 self.suffix_sequences += 1
         self.episodes += 1
         self.transitions += len(encoded)
@@ -225,15 +248,16 @@ class ReturnAwareHardwareRelationalGRUBranchCritic(
         )
 
     def hardware_stats(self) -> dict[str, Any]:
+        support = self.active_replay_signed_support()
         return {
             **super().hardware_stats(),
             "value_center": self.value_center,
             "signed_sparse_return": 1,
             "zero_memory_suffix_training": 1,
             "suffix_sequences": self.suffix_sequences,
-            "recent_signed_return_support": 1,
+            "active_replay_signed_return_support": 1,
             **{
-                f"recent_return_{key}": value
-                for key, value in self.recent_signed_support().items()
+                f"active_replay_return_{key}": value
+                for key, value in support.items()
             },
         }
