@@ -122,6 +122,9 @@ def install_critic_support_gate(
         deque[tuple[tuple[float, ...], int | None]],
     ] = defaultdict(lambda: deque(maxlen=SUPPORT_REPLAY_PER_ACTION))
     counters: Counter[str] = Counter()
+    # Explicitly expose the mutable stores used by the closures below so a frozen
+    # research checkpoint can restore *exactly the state the gate consults*.
+    agent._critic_support_rows = support_rows
 
     original_observe_episode = critic.observe_episode
 
@@ -152,17 +155,12 @@ def install_critic_support_gate(
         final_return: float,
         training: bool = True,
     ) -> None:
-        # Snapshot this before the delegate clears episode-local trajectory state.
         contributed = training and bool(getattr(self_agent, "_critic_trajectory", ()))
         value = float(final_return)
         result = original_finish_episode(final_return=value, training=training)
         if not contributed:
             return result
 
-        # The historical agent counted every <=0 return as "non_successes" and
-        # critic_ready used that bucket.  Remove zero-return episodes from that
-        # bucket so the existing property now means positive-vs-negative support
-        # everywhere it is consumed (confidence gate, fast gate, diagnostics).
         if value > 0.0:
             counters["critic_positive_return_episodes"] += 1
             self_agent._critic_counts["positive_returns"] += 1
@@ -179,8 +177,6 @@ def install_critic_support_gate(
     agent.finish_episode = MethodType(finish_episode_with_signed_support, agent)
 
     def critic_reliably_ready(self_agent: object) -> bool:
-        # Canonical critic_ready now sees non_successes == negative returns because
-        # the wrapper above removes neutral episodes from that legacy counter.
         return bool(self_agent.critic_ready)
 
     agent.critic_reliably_ready = MethodType(critic_reliably_ready, agent)
