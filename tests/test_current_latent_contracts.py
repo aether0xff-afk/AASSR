@@ -52,7 +52,7 @@ def test_zero_return_no_longer_counts_as_negative_critic_readiness_support() -> 
     assert agent._critic_counts["non_successes"] == 1
 
 
-def test_critic_readiness_expires_when_recent_signed_evidence_disappears() -> None:
+def test_critic_readiness_tracks_distinct_episodes_in_active_fifo_replay() -> None:
     agent = build_current_pentest_aassr_core(
         seed=10,
         train_transitions=64,
@@ -70,23 +70,36 @@ def test_critic_readiness_expires_when_recent_signed_evidence_disappears() -> No
     )
     agent.critic.gradient_updates = 1
 
-    agent.critic.recent_episode_returns.clear()
-    agent.critic.recent_episode_returns.extend((1.0,) * 4 + (-1.0,) * 4)
+    support = agent.critic.replay_episode_support
+    support.clear()
+    support.extend([(index, 1) for index in range(4)])
+    support.extend([(index + 4, -1) for index in range(4)])
     assert agent.critic_ready is True
     assert agent.critic_reliably_ready() is True
 
-    # Historical counts remain sufficient, but the active/recent regime has lost
-    # all negative-return evidence. Imagination must fail closed again.
-    agent.critic.recent_episode_returns.clear()
-    agent.critic.recent_episode_returns.extend((1.0,) * 8 + (0.0,) * 8)
+    # Historical counts remain sufficient, but the active FIFO replay has lost
+    # every negative-return episode. Imagination must fail closed again.
+    support.clear()
+    support.extend([(index, 1) for index in range(8)])
+    support.extend([(index + 8, 0) for index in range(8)])
     assert agent.critic_ready is True
     assert agent.critic_reliably_ready() is False
 
-    # Frozen checkpoints restore compact recent counts rather than training replay.
-    agent.critic.recent_episode_returns.clear()
+    # Suffix multiplicity must not fake episode diversity: one failure episode
+    # represented by 100 suffixes is still one negative episode.
+    support.clear()
+    support.extend([(index, 1) for index in range(4)])
+    support.extend([(99, -1)] * 100)
+    active = agent.critic.active_replay_signed_support()
+    assert active["negative"] == 1
+    assert agent.critic_reliably_ready() is False
+
+    # Frozen checkpoints restore compact active-replay counts rather than the
+    # training replay itself; the same readiness decision must survive restore.
+    support.clear()
     agent._critic_counts.update(
         {
-            "recent_return_window": 128,
+            "recent_return_window": 4_000,
             "recent_positive_returns": 4,
             "recent_zero_returns": 0,
             "recent_negative_returns": 4,
