@@ -1,22 +1,78 @@
 # Reproduction
 
-이 페이지는 **current-generation AASSR을 확인하고 reduced validation을 실행하는 최소 경로**를 정리한다.
+이 페이지는 **현재 `main`의 AASSR current-generation을 재현하고, 결과를 연구 evidence로 사용할 수 있는지 확인하는 최소 절차**를 설명한다.
 
 > [!IMPORTANT]
-> 과거 v0.4 runner와 current-generation runner를 섞지 않는다. 현재 source of truth는 `src/aassr_v2/current_manifest.py`다.
+> Current architecture의 source of truth는 특정 연구 브랜치가 아니라 `main`의 `src/aassr_v2/current_manifest.py`다. 과거 실험을 재현할 때만 해당 historical commit/branch를 명시적으로 checkout한다.
+
+관련 페이지:
+- [Current Status](Current-Status)
+- [Experiments](Experiments)
+- [Evidence Matrix](Evidence-Matrix)
+- [Ablation, Benchmarking & Reproducibility](Ablation-Benchmarking-and-Reproducibility)
 
 ---
 
-# 1. 저장소 준비
+## 목차
 
-Windows PowerShell 예시:
+1. [Current source checkout](#1-current-source-checkout)
+2. [Python environment](#2-python-environment)
+3. [Manifest 확인](#3-manifest-확인)
+4. [Regression gate](#4-regression-gate)
+5. [CUDA path 확인](#5-cuda-path-확인)
+6. [Reduced same-checkpoint validation](#6-reduced-same-checkpoint-validation)
+7. [Current local comparison](#7-current-local-comparison)
+8. [DreamerV3 baseline](#8-dreamerv3-baseline)
+9. [Final suite assembly](#9-final-suite-assembly)
+10. [결과를 evidence로 쓰면 안 되는 경우](#10-결과를-evidence로-쓰면-안-되는-경우)
+11. [Historical reproduction](#11-historical-reproduction)
+
+---
+
+# 1. Current source checkout
+
+Windows PowerShell:
 
 ```powershell
 cd D:\AASSR
+
 git fetch origin
-git checkout agent/imagination-gate-ablation
-git pull --ff-only origin agent/imagination-gate-ablation
+git checkout main
+git pull --ff-only origin main
 ```
+
+실험 보고서에는 가능하면 실제 실행 commit을 기록한다.
+
+```powershell
+git rev-parse HEAD
+```
+
+예:
+
+```text
+AASSR commit: <40-char SHA>
+```
+
+왜 필요한가?
+
+```text
+“2026-08-12의 AASSR”
+```
+
+보다:
+
+```text
+“commit abcdef...의 AASSR”
+```
+
+가 훨씬 정확하게 재현 가능하기 때문이다.
+
+> [!TIP]
+> 새 실험을 시작한 뒤 `main`이 바뀌어도 같은 run을 재현하려면 시작 commit SHA를 보존한다.
+
+---
+
+# 2. Python environment
 
 가상환경이 없다면:
 
@@ -27,76 +83,129 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
-이미 `.venv`를 쓰고 있다면 activate 후 dependency만 확인한다.
+이미 `.venv`가 있다면:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+```
+
+GPU-specific optional dependency가 필요한 runner라면 저장소의 current dependency contract에 맞춰 설치한다.
+
+환경 기록 권장:
+
+```powershell
+python --version
+python -m pip freeze > runs\environment-freeze.txt
+```
+
+CUDA/PyTorch 확인:
+
+```powershell
+python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'cpu')"
+```
 
 ---
 
-# 2. Current runtime 확인
+# 3. Manifest 확인
 
-Python에서 public builder가 current-generation을 가리키는지 확인:
+Current runtime 이름과 legacy component 여부:
 
 ```powershell
-python -c "from aassr_v2 import build_pentest_aassr_core; from aassr_v2.current_manifest import CURRENT_GENERATION_VERSION, LEGACY_COMPONENTS_ACTIVE; print(CURRENT_GENERATION_VERSION); print(LEGACY_COMPONENTS_ACTIVE)"
+python -c "from aassr_v2.current_manifest import CURRENT_GENERATION_VERSION, CURRENT_COMPONENTS, LEGACY_COMPONENTS_ACTIVE; print(CURRENT_GENERATION_VERSION); print(LEGACY_COMPONENTS_ACTIVE); [print(f'{k}: {v}') for k,v in CURRENT_COMPONENTS.items()]"
 ```
 
-예상 핵심:
+현재 핵심 기대값:
 
 ```text
 aassr-current-generation-v2
-()
+LEGACY_COMPONENTS_ACTIVE = ()
 ```
 
-`LEGACY_COMPONENTS_ACTIVE`가 비어 있지 않으면 current run을 시작하지 않는다.
+그리고 current manifest에는 최소한 다음 계열이 보여야 한다.
+
+```text
+observation
+  response-causal-relational-public-state-v3+latest-http-status
+
+prophecy
+  relational-conditional-mixture-ensemble-v5-status-balanced
+
+calibration
+  semantic-probability-holdout-calibration-v3-status-aware
+
+critic_support_gate
+  local-real-training-support-fail-closed-v1
+
+training_imagination
+  disabled-same-checkpoint
+```
+
+`LEGACY_COMPONENTS_ACTIVE`가 비어 있지 않거나 manifest가 문서와 다르면 **먼저 [Current Status](Current-Status)를 갱신한 뒤 실험을 해석**한다.
 
 ---
 
-# 3. Compile + tests
+# 4. Regression gate
 
-기본 검증:
+가장 넓은 기본 검증:
 
 ```powershell
 python -m compileall -q src tests scripts
 pytest -q
 ```
 
-Repaired Imagination runner는 자체적으로 중요한 preflight test를 다시 실행한다.
+긴 전체 test가 부담되면 current-generation runner가 사용하는 preflight subset을 우선 사용할 수 있지만, 성능 evidence를 만들기 전에는 current contract에 직접 관련된 regression이 모두 통과해야 한다.
 
-현재 preflight에는 다음 영역이 포함된다.
+특히 확인할 영역:
 
-- current-generation contract
-- repaired relational state
-- action surface reconstruction
-- multimodal future
-- outcome probability
-- semantic evaluator
-- HTTP status supervision
-- probability chance backup
-- structural planning
-- confidence gate
-- local Critic support
+- [State Representation v3](State-Representation)
+- public HTTP status preservation
+- action-surface reconstruction
+- [Prophecy](Prophecy) multimodal outcome preservation
+- outcome probability normalization
+- status categorical supervision
+- [Calibration](Calibration)
+- [Chance vs Decision](Chance-and-Decision-Nodes) backup
+- [Critic](Critic) sparse-return contract
+- [Local Critic Support](Critic-Support-and-OOD)
 - structural root deduplication
+- same-checkpoint freeze
+
+Regression pass는 **성능 향상 evidence가 아니라 구현 contract evidence**다.
 
 ---
 
-# 4. CUDA hardware path 확인
+# 5. CUDA path 확인
 
-현재 Policy DQN, world model, Critic이 요청한 CUDA device에 배치되는지 확인:
+현재 hardware path 검사:
 
 ```powershell
 python scripts\check_current_generation_hardware.py --device cuda:0
 ```
 
-이 단계는 단순히 `torch.cuda.is_available()`만 보는 검사가 아니다. current-generation에서 accelerator 경로가 실제로 사용되는지 확인하기 위한 gate다.
+이 단계의 목적은 단순히:
+
+```text
+torch.cuda.is_available() == True
+```
+
+를 확인하는 것이 아니다.
+
+Policy DQN, relational world model, Critic과 current batching path가 **실제로 요청한 accelerator contract를 사용하고 있는지** 확인한다.
+
+성능 benchmark에서 CPU fallback이 일어났다면 runtime 비교를 그대로 사용하면 안 된다.
 
 ---
 
-# 5. Repaired Imagination reduced validation
+# 6. Reduced same-checkpoint validation
 
-현재 연구에서 사용하는 one-shot reduced runner 예시:
+현재 저장소에는 repaired Imagination validation entrypoint가 있다.
+
+예시:
 
 ```powershell
 python scripts\run_repaired_imagination_final.py `
-  --output-dir runs\repaired_imagination_2k_status_v3_seed7 `
+  --output-dir runs\repaired_imagination_current_seed7 `
   --seed 7 `
   --transitions 2048 `
   --block-target 512 `
@@ -106,64 +215,42 @@ python scripts\run_repaired_imagination_final.py `
   --device cuda
 ```
 
-이 runner의 의도는 다음과 같다.
+> [!NOTE]
+> 위 `2048`, `512`, `0.05`, `4`는 **reduced diagnostic 예시**다. 이것을 final benchmark budget과 혼동하지 않는다. 실제 논문/보고서 결과에는 실행 argument 전체와 commit SHA를 함께 기록한다.
+
+핵심 구조:
 
 ```text
-preflight tests
-      |
-      v
-one 2,048-real-transition AASSR training
-      |
-      v
-freeze checkpoint
-     / \
-    /   \
-OFF eval ON eval
-    \   /
-     \ /
-trace + diagnostics
+real training
+     ↓
+one AASSR checkpoint
+     ↓ freeze
+   /          \
+OFF            ON
+Policy       Imagination
+   \          /
+    same evaluation protocol
 ```
 
-## 중요한 조건
+## 반드시 확인할 것
 
-- OFF와 ON을 따로 재학습하지 않는다.
-- external reward를 바꾸지 않는다.
-- intervention margin은 run 전에 고정한다.
-- evaluation 중 persistent learning state를 바꾸지 않는다.
-- real-transition budget은 primitive environment action 기준이다.
+- OFF/ON을 따로 재학습하지 않았는가?
+- evaluation 중 persistent learner state가 변하지 않았는가?
+- external reward contract가 동일한가?
+- intervention margin을 결과 보기 전에 고정했는가?
+- transition budget이 real primitive action 기준인가?
 
 ---
 
-# 6. 출력에서 먼저 볼 파일
+# 7. Current local comparison
 
-run이 완료되면 우선 다음을 확인한다.
-
-```text
-<output-dir>/summary.json
-```
-
-그리고 trace / diagnostic 산출물에서 다음 항목을 본다.
+PyTorch current-generation local comparison entrypoint:
 
 ```text
-success / failure / stalled / truncation
-Imagination plans
-switch candidates
-interventions
-changed actions
-intervention errors
-HTTP status prediction quality
-local Critic support
-root coverage
-semantic calibration
+scripts/run_pentest_current_generation_main.py
 ```
 
-성공률만 보고 run을 판단하지 않는다.
-
----
-
-# 7. Current-generation local comparison
-
-PyTorch 쪽 current local suite는 다음 조건을 다룬다.
+핵심 condition:
 
 ```text
 dqn_raw
@@ -172,64 +259,69 @@ aassr_current_no_imagination
 aassr_current_full
 ```
 
-주 runner:
+각 비교의 의미:
 
 ```text
-scripts/run_pentest_current_generation_main.py
+dqn_raw
+→ dqn_relational
+= representation effect
+
+dqn_relational
+→ AASSR no-Imagination
+= non-Imagination AASSR stack effect
+
+AASSR no-Imagination
+→ AASSR Full
+= Imagination marginal effect
 ```
 
-이 실험에서 AASSR OFF/ON은 same checkpoint여야 한다.
+세부 설계: [Experiments](Experiments)
 
 ---
 
 # 8. DreamerV3 baseline
 
-Canonical DreamerV3는 **Linux/WSL + JAX/CUDA** 환경에서 별도 process로 실행한다.
-
-주 runner:
+External model-based baseline entrypoint:
 
 ```text
 scripts/run_dreamerv3_current_baseline.py
 ```
 
-최종 baseline contract:
+Canonical benchmark는 Linux/WSL + JAX/CUDA 환경의 pinned official upstream을 사용한다.
+
+최종 결과에 기록해야 할 것:
 
 ```text
-upstream      : pinned official danijar/dreamerv3
-preset        : dmc_proprio + size1m
-train ratio   : 1024
-dtype         : bfloat16
-JAX platform  : cuda
-action space  : 240-way relational categorical vocabulary
+upstream commit / pin
+preset
+train ratio
+dtype
+JAX platform
+action adapter contract
+real primitive transition budget
 ```
 
-CPU/debug smoke는 API와 Driver-step cadence 확인용이지 benchmark 성능 결과가 아니다.
+CPU/debug smoke는 API와 environment stepping contract 확인용이다.
+
+```text
+CPU smoke success
+!=
+canonical CUDA benchmark result
+```
+
+외부 baseline의 알고리즘 내부를 AASSR에 맞춰 임의로 수정하면 비교 의미가 달라지므로 변경이 있다면 반드시 별도 condition으로 이름을 바꾼다.
 
 ---
 
 # 9. Final suite assembly
 
-AASSR/PyTorch artifact와 DreamerV3 artifact가 준비되면:
+현재 suite assembly entrypoint:
 
 ```text
 scripts/assemble_pentest_current_generation_suite.py
 ```
 
-assembler는 다음 mismatch를 허용하지 않는다.
-
-- research seed
-- transition budget
-- seed pools
-- stage manifest
-- final-blind status
-- Dreamer upstream pin
-- Dreamer preset
-- train ratio
-- dtype
-- JAX platform
-- 240-way adapter contract
-
-최종 row:
+최종 목표 row:
 
 ```text
 1. dqn_raw
@@ -239,38 +331,122 @@ assembler는 다음 mismatch를 허용하지 않는다.
 5. aassr_current_full
 ```
 
----
+Assembler 또는 사람이 확인해야 하는 주요 mismatch:
 
-# 10. 실험을 시작하면 안 되는 경우
-
-다음 중 하나라도 해당하면 결과를 성능 evidence로 사용하지 않는다.
-
-- preflight regression failure
-- legacy component가 current runtime에 활성화됨
-- OFF/ON이 서로 다른 AASSR checkpoint
-- evaluation 중 learning state mutation
-- exact transition budget 불일치
-- hidden scenario/future/reward leakage
-- Dreamer upstream/config mismatch
-- final blind seed가 protocol freeze 전에 소비됨
+- source commit
+- research seed
+- transition budget
+- train/eval seed pools
+- stage/tier protocol
+- final-blind 사용 여부
+- AASSR same-checkpoint 여부
+- Dreamer upstream/config
+- observation representation version
+- reward contract
 
 ---
 
-# 11. 빠른 해석 체크리스트
+# 10. 결과를 evidence로 쓰면 안 되는 경우
 
-run이 끝났을 때:
+다음 중 하나라도 해당하면 숫자가 나와도 **current performance evidence로 승격하지 않는다.**
 
 ```text
-[ ] 정확한 transition budget인가?
-[ ] training-time Imagination intervention은 의도대로 꺼져 있었나?
-[ ] OFF/ON은 same frozen checkpoint인가?
-[ ] Critic ready인가?
-[ ] local Critic support가 실제로 작동했나?
-[ ] Imagination run/intervention이 0으로 붕괴하지 않았나?
-[ ] intervention이 성공률을 높였나, 아니면 error만 늘렸나?
-[ ] 403/404/429 이후 behavior가 합리적인가?
-[ ] root dedup으로 runtime이 개선됐나?
-[ ] evaluation persistent state가 동결됐나?
+[ ] regression failure
+[ ] legacy component active
+[ ] hidden simulator leakage
+[ ] OFF/ON different checkpoint
+[ ] evaluation learning-state mutation
+[ ] transition budget mismatch
+[ ] representation version mismatch
+[ ] reward contract mismatch
+[ ] CPU fallback while claiming CUDA runtime
+[ ] final blind set consumed before protocol freeze
+[ ] external baseline config mismatch
 ```
 
-다음: **[Current Status](Current-Status)**
+또한:
+
+```text
+한 seed의 diagnostic
+```
+
+을:
+
+```text
+일반적인 성능 우위
+```
+
+로 표현하지 않는다.
+
+관련: [Evidence Matrix](Evidence-Matrix), [Causality, Leakage & Fair Evaluation](Causality-Leakage-and-Evaluation)
+
+---
+
+# 11. Historical reproduction
+
+과거 결과를 재현할 때는 current `main`으로 억지로 재현하지 않는다.
+
+예:
+
+```text
+2026-08-11 historical Imagination diagnostic
+```
+
+을 재현하려면 해당 당시 commit/branch와 당시 representation/Prophecy contract를 사용해야 한다.
+
+그 결과를 current performance와 분리해 저장한다.
+
+대표 사례:
+
+- [Historical Imagination Diagnostic — 2026-08-11](Historical-Imagination-Diagnostic-2026-08-11)
+- [Development History](Development-History)
+
+---
+
+## Run report template
+
+실험 결과와 함께 최소한 다음 metadata를 남긴다.
+
+```text
+AASSR commit:
+current generation:
+research seed:
+scenario/eval seed pool:
+training transitions:
+device:
+reward contract:
+representation contract:
+Prophecy contract:
+Calibration contract:
+Critic support contract:
+Imagination margin:
+max level / horizon:
+OFF/ON same checkpoint verified:
+evaluation frozen verified:
+```
+
+Result:
+
+```text
+success:
+true failure:
+stalled:
+truncation:
+mean requests:
+planner plans:
+final interventions:
+bad-status interventions:
+local-support rejects:
+runtime:
+```
+
+이 metadata가 있으면 나중에 숫자의 출처와 의미를 훨씬 쉽게 복구할 수 있다.
+
+---
+
+## 다음으로 읽기
+
+- [Current Status](Current-Status)
+- [Experiments](Experiments)
+- [Evidence Matrix](Evidence-Matrix)
+- [Historical Imagination Diagnostic — 2026-08-11](Historical-Imagination-Diagnostic-2026-08-11)
