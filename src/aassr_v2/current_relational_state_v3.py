@@ -27,14 +27,11 @@ def _clamp01(value: object) -> float:
 def latest_status_vector(state: StateSnapshot) -> tuple[float, ...]:
     """Return only the latest *publicly observed* HTTP status channel.
 
-    The raw audited HTTP observation already contains these eight one-hot values.
-    This function never reads audit score, lockout countdown, session TTL, hidden
-    stage depth, or the hidden scenario.
+    A realized state has one public status, not a probability distribution.  Any
+    neural distribution belongs to the chance branch that produced the state and
+    is kept only as diagnostic metadata.  This keeps real training inputs and
+    imagined depth>1 inputs on the same one-hot contract.
     """
-    explicit = state.metadata.get("relational_status_probabilities")
-    if isinstance(explicit, (tuple, list)) and len(explicit) == STATUS_SIZE:
-        return tuple(_clamp01(value) for value in explicit)
-
     explicit_code = state.metadata.get("relational_last_status")
     try:
         code = int(explicit_code) if explicit_code is not None else None
@@ -55,14 +52,24 @@ def latest_status_vector(state: StateSnapshot) -> tuple[float, ...]:
 
     if len(state.vector) >= AGENT_STATE_SIZE:
         values = state.vector[RAW_STATUS_START_INDEX : RAW_STATUS_START_INDEX + STATUS_SIZE]
-        if len(values) == STATUS_SIZE:
-            return tuple(_clamp01(value) for value in values)
+        if len(values) == STATUS_SIZE and max(values, default=0.0) > 0.0:
+            index = max(range(STATUS_SIZE), key=lambda item: (float(values[item]), -item))
+            return tuple(float(item == index) for item in range(STATUS_SIZE))
+
+    # Compatibility fallback for artifacts produced by the first v3 repair.
+    # New decoded imagined states store a one-hot value here, never a soft vector.
+    explicit = state.metadata.get("relational_status_probabilities")
+    if isinstance(explicit, (tuple, list)) and len(explicit) == STATUS_SIZE:
+        values = tuple(_clamp01(value) for value in explicit)
+        if max(values, default=0.0) > 0.0:
+            index = max(range(STATUS_SIZE), key=lambda item: (values[item], -item))
+            return tuple(float(item == index) for item in range(STATUS_SIZE))
     return (0.0,) * STATUS_SIZE
 
 
 def latest_status_code(state: StateSnapshot) -> int | None:
     values = latest_status_vector(state)
-    if not values or max(values) < 0.5:
+    if not values or max(values) <= 0.0:
         return None
     index = max(range(len(values)), key=lambda item: (values[item], -item))
     return STATUS_CODES_V3[index]
@@ -99,7 +106,13 @@ def decode_relational_state_v3(
     predicted_terminal: int,
     source: str,
 ) -> StateSnapshot:
-    """Decode v2 relational semantics, then restore the predicted public status."""
+    """Decode a realized v3 branch with exactly one categorical public status.
+
+    The predictor may supply a soft categorical distribution, but once a chance
+    outcome is materialized the state itself is one-hot.  The original soft
+    distribution is retained under ``relational_status_distribution`` only for
+    diagnostics and is never consumed as the next rollout state.
+    """
     from .current_relational_decode_v2 import decode_relational_state_v2
 
     values = tuple(_clamp01(value) for value in predicted_descriptor)
@@ -114,22 +127,22 @@ def decode_relational_state_v3(
         predicted_terminal=predicted_terminal,
         source=source,
     )
-    status_probabilities = values[STATUS_START_INDEX:]
+    status_distribution = tuple(values[STATUS_START_INDEX:])
     status_code = None
-    if status_probabilities and max(status_probabilities) >= 0.5:
+    status_one_hot = (0.0,) * STATUS_SIZE
+    if status_distribution and max(status_distribution) > 0.0:
         status_index = max(
             range(STATUS_SIZE),
-            key=lambda item: (status_probabilities[item], -item),
+            key=lambda item: (status_distribution[item], -item),
         )
         status_code = STATUS_CODES_V3[status_index]
+        status_one_hot = tuple(float(index == status_index) for index in range(STATUS_SIZE))
 
     vector = list(float(value) for value in base.vector)
     if len(vector) < AGENT_STATE_SIZE:
         vector.extend([0.0] * (AGENT_STATE_SIZE - len(vector)))
     for index in range(STATUS_SIZE):
-        vector[RAW_STATUS_START_INDEX + index] = 0.0
-    if status_code is not None:
-        vector[RAW_STATUS_START_INDEX + STATUS_CODES_V3.index(status_code)] = 1.0
+        vector[RAW_STATUS_START_INDEX + index] = status_one_hot[index]
 
     facts = {fact for fact in base.facts if not fact.startswith("last_status:")}
     if status_code is not None:
@@ -138,9 +151,10 @@ def decode_relational_state_v3(
     metadata = dict(base.metadata)
     metadata.update(
         {
-            "relational_state_version": "v3-public-status",
+            "relational_state_version": "v3-public-status-categorical",
             "relational_last_status": status_code,
-            "relational_status_probabilities": tuple(status_probabilities),
+            "relational_status_probabilities": status_one_hot,
+            "relational_status_distribution": status_distribution,
         }
     )
     return replace(
