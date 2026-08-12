@@ -1,0 +1,530 @@
+# Stochasticity, Uncertainty and Probability
+
+AASSR에서 가장 자주 혼동하기 쉬운 네 단어는 다음이다.
+
+```text
+probability
+uncertainty
+reliability
+value
+```
+
+여기에 `support`까지 더하면 다섯 가지가 된다.
+
+이 페이지의 핵심 목표는 이들을 **절대로 같은 scalar 의미로 섞지 않는 것**이다.
+
+---
+
+# 1. Probability
+
+Probability는 어떤 사건이 일어날 가능성을 `0~1` 사이의 값으로 표현한다.
+
+```math
+0\le P(E)\le1
+```
+
+예:
+
+```text
+P(200) = 0.7
+P(403) = 0.2
+P(429) = 0.1
+```
+
+이 값들의 합이 1이면 환경 outcome distribution으로 볼 수 있다.
+
+AASSR Prophecy의 **outcome probability**가 이 의미다.
+
+---
+
+# 2. Random variable
+
+확률적으로 여러 값을 가질 수 있는 변수를 random variable이라고 한다.
+
+예:
+
+```text
+X = 다음 HTTP status
+```
+
+일 수 있다.
+
+```text
+X=200 with p=0.7
+X=403 with p=0.2
+X=429 with p=0.1
+```
+
+World model은 이런 next-outcome random variable의 distribution을 근사할 수 있다.
+
+---
+
+# 3. Expected value
+
+여러 outcome의 value가 다를 때 확률 가중 평균을 구한다.
+
+```math
+\mathbb{E}[V]
+=
+\sum_i p_iV_i
+```
+
+예:
+
+```text
+70% → value +1
+20% → value  0
+10% → value -1
+```
+
+이면:
+
+```math
+0.7(1)+0.2(0)+0.1(-1)=0.6
+```
+
+이다.
+
+AASSR의 [chance node](Chance-and-Decision-Nodes)는 환경 outcome을 이런 expectation으로 backup한다.
+
+---
+
+# 4. Variance
+
+기대값이 같아도 distribution의 퍼짐은 다를 수 있다.
+
+```math
+Var(X)=\mathbb{E}[(X-\mathbb{E}[X])^2]
+```
+
+예:
+
+```text
+A: 항상 0.5
+B: 50%로 0, 50%로 1
+```
+
+둘의 expectation은 0.5지만 B가 훨씬 stochastic하다.
+
+Risk-sensitive planning에서는 variance 같은 정보도 중요할 수 있다.
+
+AASSR current planner의 기본 chance semantics는 outcome probability의 expectation을 중심으로 하며, variance 자체를 reward로 추가하는 구조는 아니다.
+
+---
+
+# 5. Stochasticity
+
+**Stochasticity**는 환경 자체의 결과가 확률적으로 달라질 수 있다는 뜻이다.
+
+```text
+같은 true S, 같은 A
+  |-- p1 → S1'
+  |-- p2 → S2'
+  `-- p3 → S3'
+```
+
+이것은 모델이 멍청해서 생기는 것이 아니다.
+
+완벽한 model을 가지고 있어도 outcome을 하나로 확정할 수 없을 수 있다.
+
+---
+
+# 6. Partial observability로 인한 apparent stochasticity
+
+환경 자체는 deterministic하더라도 agent가 hidden state를 못 보면 public 관점에서는 여러 outcome이 가능해 보일 수 있다.
+
+```text
+hidden H1 + public O + action A → outcome X
+hidden H2 + public O + action A → outcome Y
+```
+
+agent는 `H1/H2`를 구분하지 못하므로:
+
+```text
+public (O,A)
+→ X or Y
+```
+
+처럼 보인다.
+
+관련 페이지:
+
+- [MDP and POMDP](MDP-and-POMDP)
+
+---
+
+# 7. Uncertainty
+
+Uncertainty는 "모른다" 또는 "결과가 정해져 있지 않다"는 더 넓은 개념이다.
+
+Machine learning에서는 크게 두 종류를 구분하는 경우가 많다.
+
+```text
+Aleatoric uncertainty
+Epistemic uncertainty
+```
+
+---
+
+# 8. Aleatoric uncertainty
+
+데이터/환경 자체의 randomness 또는 관측만으로 제거할 수 없는 uncertainty다.
+
+예:
+
+```text
+동일한 public 정보에서도 실제 outcome이 확률적으로 달라짐
+```
+
+데이터를 무한히 더 모아도 환경 자체가 stochastic하면 이 uncertainty는 사라지지 않는다.
+
+AASSR에서는 **mixture outcome distribution**이 이런 multimodal uncertainty를 표현하는 역할을 한다.
+
+---
+
+# 9. Epistemic uncertainty
+
+모델이 충분히 배우지 못해서 생기는 uncertainty다.
+
+예:
+
+```text
+이 state/action region을 거의 본 적 없음
+→ model이 무엇이 일어날지 잘 모름
+```
+
+더 많은 적절한 training data가 있으면 줄어들 수 있다.
+
+AASSR에서는:
+
+- ensemble
+- holdout calibration
+- local support
+
+등이 epistemic risk를 판단하는 데 관련된다.
+
+---
+
+# 10. Aleatoric과 Epistemic을 섞으면 생기는 문제
+
+World model의 여러 prediction이 다르다고 하자.
+
+그 이유가:
+
+```text
+A. 환경이 실제로 여러 outcome을 가짐
+B. 모델들이 서로 동의하지 못함
+```
+
+중 무엇인지 구분해야 한다.
+
+A는 stochastic environment structure이고 B는 model ignorance일 수 있다.
+
+그래서 AASSR은 개념적으로:
+
+```text
+Mixture components
+→ environment outcome modes
+
+Ensemble/calibration
+→ model reliability evidence
+```
+
+를 분리하려 한다.
+
+---
+
+# 11. Outcome probability
+
+AASSR에서 outcome probability는:
+
+> 이 prediction branch가 나타내는 public outcome이 환경에서 발생할 probability mass
+
+다.
+
+Chance node에서:
+
+```math
+V=\sum_i p_iV_i
+```
+
+의 `p_i`로 사용된다.
+
+이 값을 Critic value에 bonus처럼 더하지 않는다.
+
+---
+
+# 12. Reliability
+
+Reliability는:
+
+> world model이 이 state/action region에서 내놓는 prediction을 실제로 얼마나 믿을 수 있는가?
+
+라는 질문이다.
+
+예:
+
+```text
+outcome distribution:
+200 0.9
+403 0.1
+
+reliability:
+0.15
+```
+
+일 수 있다.
+
+즉 model은 90%라고 말하지만 **그 90% 자체를 잘 믿을 수 없는 상황**이다.
+
+AASSR Calibration이 이 의미를 담당한다.
+
+관련 페이지:
+
+- [Calibration](Calibration)
+- [Mixture, Ensemble and Calibration](Mixture-Ensemble-and-Calibration)
+
+---
+
+# 13. Confidence라는 단어의 위험
+
+`confidence`라는 단어는 여러 라이브러리/논문에서 서로 다른 의미로 쓰인다.
+
+예:
+
+- softmax probability
+- ensemble agreement
+- calibration score
+- posterior probability
+- heuristic certainty
+
+그래서 AASSR 위키에서는 가능하면 더 구체적으로:
+
+```text
+outcome probability
+prediction reliability
+local support
+Critic value
+```
+
+라고 부르는 편이 안전하다.
+
+---
+
+# 14. Value
+
+Value는 **미래 task return의 기대값**이다.
+
+```math
+V(s)=\mathbb{E}[G_t\mid S_t=s]
+```
+
+또는 action value:
+
+```math
+Q(s,a)=\mathbb{E}[G_t\mid S_t=s,A_t=a]
+```
+
+중요:
+
+```text
+reliability 높음
+!=
+value 높음
+```
+
+예측이 확실한 실패는 reliability가 높고 value는 낮을 수 있다.
+
+---
+
+# 15. Support
+
+AASSR의 local Critic support는:
+
+> 현재 state/action의 value estimate가 실제 Critic training data 근처에 있는가?
+
+를 나타낸다.
+
+```text
+support 높음
+!=
+좋은 action
+```
+
+단지 value estimate를 신뢰할 empirical basis가 더 있다는 뜻이다.
+
+관련 페이지:
+
+- [Critic, Support and OOD](Critic-Support-and-OOD)
+- [Critic](Critic)
+
+---
+
+# 16. 다섯 값을 한 예제로 비교
+
+어떤 action `A`에 대해:
+
+```text
+Predicted outcomes:
+70% → state X
+30% → state Y
+
+Prediction reliability = 0.8
+Critic values:
+V(X)=+0.5
+V(Y)=-0.5
+Local critic support = 0.9
+```
+
+라고 하자.
+
+Chance value:
+
+```math
+0.7(0.5)+0.3(-0.5)=0.2
+```
+
+여기서:
+
+```text
+0.7 / 0.3 → outcome probabilities
+0.8       → world-model reliability
++0.5/-0.5 → task-return values
+0.9       → Critic support
+0.2       → expected branch value
+```
+
+이다.
+
+전부 다른 의미다.
+
+---
+
+# 17. Calibration과 probability
+
+Probability model이 calibration되어 있다는 것은 대략:
+
+> 모델이 70%라고 말한 사건들이 장기적으로 실제로 약 70% 빈도로 일어나는가?
+
+라는 의미와 연결된다.
+
+하지만 AASSR current semantic calibration은 단순 binary confidence calibration만이 아니라 **semantic next-state correctness, status, legal mask, terminal 등 decision-critical correctness를 holdout으로 평가**하는 구조다.
+
+따라서 일반 확률 calibration 개념과 AASSR의 operational reliability gate를 구분해서 이해하는 것이 좋다.
+
+---
+
+# 18. Distribution shift
+
+Training distribution과 evaluation distribution이 달라지면 model uncertainty가 커질 수 있다.
+
+```text
+Training: Level 0/1 region
+Evaluation: higher-level unseen region
+```
+
+모델은 높은 softmax probability를 내더라도 실제로 OOD일 수 있다.
+
+이런 이유로 raw model confidence만으로 충분하지 않다.
+
+관련 페이지:
+
+- [Critic, Support and OOD](Critic-Support-and-OOD)
+- [Relational Representation and Generalization](Relational-Representation-and-Generalization)
+
+---
+
+# 19. Class imbalance
+
+Rare outcome이 중요한데 training data에서 매우 적으면 model이 다수 class만 잘 맞혀도 높은 accuracy를 얻을 수 있다.
+
+예:
+
+```text
+200: 95%
+429:  1%
+기타: 4%
+```
+
+항상 200만 예측해도 naive accuracy는 높다.
+
+하지만 429를 놓치면 decision quality에 치명적일 수 있다.
+
+AASSR status-supervised Prophecy가 class balance를 고려하는 이유다.
+
+관련 페이지:
+
+- [Mixture, Ensemble and Calibration](Mixture-Ensemble-and-Calibration)
+- [Prophecy](Prophecy)
+
+---
+
+# 20. Uncertainty penalty의 위험
+
+Planner value에 uncertainty penalty를 직접 넣는 방식:
+
+```math
+V'=V-\lambda U
+```
+
+도 가능하다.
+
+하지만 AASSR current design은 reliability를 **가치 자체와 분리된 gate**로 보는 방향을 택한다.
+
+왜냐하면 uncertainty가 높은 action이 반드시 나쁜 action은 아니며, reliability와 task objective를 섞으면 해석이 어려워질 수 있기 때문이다.
+
+```text
+reliability gate 통과
+→ Critic value 비교
+
+통과 실패
+→ fail closed
+```
+
+---
+
+# 21. Risk와 uncertainty도 다르다
+
+Risk는 일반적으로 outcome distribution에서 나쁜 결과가 발생할 가능성과 그 크기를 말한다.
+
+Uncertainty는 distribution 자체를 얼마나 알고 있는지까지 포함할 수 있다.
+
+예:
+
+```text
+Action A
+실패 확률 40%를 정확히 앎
+→ high risk, low epistemic uncertainty
+
+Action B
+실패 확률이 1%인지 80%인지 잘 모름
+→ uncertainty 큼
+```
+
+AASSR current planner의 기본 objective는 expected sparse return이지만, 위험과 uncertainty를 구분하는 것이 해석에 중요하다.
+
+---
+
+# 22. AASSR 연결 표
+
+| 개념 | AASSR에서의 대표 역할 |
+|---|---|
+| Outcome probability | Prophecy mixture branch mass |
+| Aleatoric uncertainty | 여러 stochastic outcome mode |
+| Epistemic uncertainty | model knowledge 부족 |
+| Reliability | Calibration gate |
+| Value | Policy DQN / Critic return estimate |
+| Support | Critic real-training neighborhood evidence |
+| Expected value | Imagination chance backup |
+
+---
+
+# 23. 다음으로 읽기
+
+- [Mixture, Ensemble and Calibration](Mixture-Ensemble-and-Calibration)
+- [Chance and Decision Nodes](Chance-and-Decision-Nodes)
+- [Calibration](Calibration)
+- [Critic, Support and OOD](Critic-Support-and-OOD)
+- [Prophecy](Prophecy)
+
+관련 색인: **[Concept Index](Concept-Index)**
