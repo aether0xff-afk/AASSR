@@ -11,7 +11,6 @@ from aassr_v2.current_relational_codec import ACTION_SLOT_COUNT, TERMINAL_CLASSE
 from aassr_v2.current_relational_mixture_model import RelationalMixtureProphecyConfig
 from aassr_v2.current_relational_model import RelationalPrediction
 from aassr_v2.current_relational_state_v3 import (
-    BASE_REL_DESCRIPTOR_SIZE,
     REL_DESCRIPTOR_SIZE_V3,
     STATUS_CODES_V3,
     STATUS_SIZE,
@@ -142,25 +141,22 @@ def test_active_mixture_keeps_all_learned_probability_mass_even_when_samples_is_
         ),
     )
     state = _state()
-    descriptors = [[[
-        _descriptor(200),
-        _descriptor(403),
-        _descriptor(404),
-    ]]]
+    descriptors = [[
+        [_descriptor(200), _descriptor(403), _descriptor(404)]
+    ]]
     mask = [1.0] + [0.0] * (ACTION_SLOT_COUNT - 1)
     masks = [[[list(mask), list(mask), list(mask)]]]
     terminal = [1.0] + [0.0] * (TERMINAL_CLASSES - 1)
     terminals = [[[list(terminal), list(terminal), list(terminal)]]]
-    mixtures = [[[[0.50, 0.30, 0.20]]]]
+    mixtures = [[[0.50, 0.30, 0.20]]]
 
-    # Remove the extra batch wrapper expected by _mixture_predictions' host lists.
     predictions = model._mixture_predictions(
         state=state,
         row_index=0,
-        descriptors=descriptors[0],
-        masks=masks[0],
-        terminals=terminals[0],
-        mixtures=mixtures[0],
+        descriptors=descriptors,
+        masks=masks,
+        terminals=terminals,
+        mixtures=mixtures,
         confidence=0.9,
         samples=1,
     )
