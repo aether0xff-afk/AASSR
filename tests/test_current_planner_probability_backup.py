@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from aassr_v2.current_confidence_gate import _reliability_gated_bellman_backups
 from aassr_v2.current_planner import CurrentFullyBatchedImaginationTree
 from aassr_v2.current_relational_codec import (
     ACTION_SLOT_COUNT,
@@ -35,6 +36,7 @@ def _node(
     action: Action | None,
     state: StateSnapshot,
     terminal_reason: str | None = None,
+    cumulative_confidence: float = 1.0,
 ) -> ImaginationNode:
     path = () if action is None else (action.signature,)
     return ImaginationNode(
@@ -47,8 +49,8 @@ def _node(
         state_path=tuple(str(index) for index in range(depth + 1)),
         action_path=path,
         cumulative_value=float(value),
-        step_confidence=1.0,
-        cumulative_confidence=1.0,
+        step_confidence=float(cumulative_confidence),
+        cumulative_confidence=float(cumulative_confidence),
         policy_memory=PolicyMemory.empty(),
         terminal_reason=terminal_reason,
     )
@@ -60,6 +62,7 @@ def _planner(aggregation: str = "mean") -> CurrentFullyBatchedImaginationTree:
         aggregation=aggregation,
         top_mean_count=2,
         discount=0.9,
+        minimum_path_confidence=0.55,
         # Repaired current Imagination uses confidence only as a gate; value
         # adjustment therefore has no uncertainty penalty. The minimal planner
         # fixture must still provide the inherited config field.
@@ -71,6 +74,7 @@ def _planner(aggregation: str = "mean") -> CurrentFullyBatchedImaginationTree:
     planner.task_truncation_leaves = 0
     planner.task_failure_leaves = 0
     planner.exact_terminal_value_leaves = 0
+    planner.unreliable_continuation_actions_skipped = 0
     return planner
 
 
@@ -139,6 +143,85 @@ def test_future_agent_actions_use_max_not_average() -> None:
         {1: 1.0, 2: 1.0, 3: 1.0},
     )
     assert backed[1] == pytest.approx(1.0)
+
+
+def test_unreliable_imagined_continuation_cannot_win_decision_max() -> None:
+    planner = _planner("mean")
+    root_action = Action(
+        "request",
+        parameters={"route_id": "root", "profile_id": "profile-browse"},
+    )
+    reliable = Action(
+        "request",
+        parameters={"route_id": "reliable", "profile_id": "profile-browse"},
+    )
+    hallucinated = Action(
+        "request",
+        parameters={"route_id": "hallucinated", "profile_id": "profile-browse"},
+    )
+    state = _state(actions=(reliable, hallucinated))
+    root = _node(0, parent_id=None, depth=0, value=0.0, action=None, state=state)
+    parent = _node(1, parent_id=0, depth=1, value=0.2, action=root_action, state=state)
+    reliable_child = _node(
+        2,
+        parent_id=1,
+        depth=2,
+        value=0.4,
+        action=reliable,
+        state=state,
+        cumulative_confidence=0.9,
+    )
+    # Even an imagined "goal" may not inject +1 through the decision max when
+    # the path that produced it is below the reliability threshold.
+    hallucinated_child = _node(
+        3,
+        parent_id=1,
+        depth=2,
+        value=1.0,
+        action=hallucinated,
+        state=state,
+        terminal_reason="goal",
+        cumulative_confidence=0.1,
+    )
+
+    backed, _, _, _ = _reliability_gated_bellman_backups(
+        planner,
+        (root, parent, reliable_child, hallucinated_child),
+        {1: 1.0, 2: 1.0, 3: 1.0},
+    )
+    assert backed[1] == pytest.approx(0.4)
+    assert planner.unreliable_continuation_actions_skipped == 1
+
+
+def test_all_unreliable_continuations_leave_parent_value_unchanged() -> None:
+    planner = _planner("mean")
+    root_action = Action(
+        "request",
+        parameters={"route_id": "root", "profile_id": "profile-browse"},
+    )
+    uncertain = Action(
+        "request",
+        parameters={"route_id": "uncertain", "profile_id": "profile-browse"},
+    )
+    state = _state(actions=(uncertain,))
+    root = _node(0, parent_id=None, depth=0, value=0.0, action=None, state=state)
+    parent = _node(1, parent_id=0, depth=1, value=0.25, action=root_action, state=state)
+    child = _node(
+        2,
+        parent_id=1,
+        depth=2,
+        value=0.95,
+        action=uncertain,
+        state=state,
+        cumulative_confidence=0.1,
+    )
+    backed, _, _, _ = _reliability_gated_bellman_backups(
+        planner,
+        (root, parent, child),
+        {1: 1.0, 2: 1.0},
+    )
+    assert backed[1] == pytest.approx(0.25)
+    assert planner.unreliable_continuation_actions_skipped == 1
 
 
 def test_chance_outcomes_for_one_action_are_expected_before_decision_max() -> None:
