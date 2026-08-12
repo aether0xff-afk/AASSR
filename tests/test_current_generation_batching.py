@@ -41,7 +41,12 @@ def test_current_depth_batcher_executes_relational_stochastic_batch_path() -> No
     assert neural["batch_prediction_rows"] >= len(actions)
     assert neural["state_input_relational"] == 1
     assert neural["action_input_relational"] == 1
-    assert neural["ensemble_outcomes_not_mean_collapsed"] == 1
+    # The canonical model no longer exposes the historical ensemble-mean flag.
+    # Its stronger multimodal contract is an explicit conditional mixture whose
+    # stochastic outcome mass is separate from epistemic reliability.
+    assert neural["conditional_mixture_components"] == 3
+    assert neural["mixture_training_objective"] == "soft-mixture-likelihood"
+    assert neural["reliability_outcome_probability_separated"] == 1
 
 
 def test_current_parallel_universe_batches_all_neural_stages() -> None:
