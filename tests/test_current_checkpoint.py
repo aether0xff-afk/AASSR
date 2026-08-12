@@ -47,6 +47,12 @@ def test_current_frozen_checkpoint_restores_learned_and_gate_state(tmp_path) -> 
             "positive_returns": 4,
             "negative_returns": 4,
             "zero_returns": 24,
+            # Frozen-evaluation checkpoints intentionally persist compact recent
+            # readiness counts instead of the full Critic training replay.
+            "recent_return_window": 128,
+            "recent_positive_returns": 4,
+            "recent_negative_returns": 4,
+            "recent_zero_returns": 0,
         }
     )
     agent.critic.episodes = 32
@@ -119,7 +125,10 @@ def test_current_frozen_checkpoint_restores_learned_and_gate_state(tmp_path) -> 
     assert restored.base_neural_prophecy.observations == 19
     assert restored.base_neural_prophecy.gradient_updates == 5
     assert restored._critic_counts["non_successes"] == 4
+    assert restored._critic_counts["recent_negative_returns"] == 4
     assert restored.critic.support_confidence(state, action) > 0.0
+    assert restored.critic_ready is True
+    assert restored.critic_reliably_ready() is True
     # Frozen prediction/calibration uses holdout only. The training partition is
     # recorded by count in the manifest, not duplicated into the checkpoint.
     assert len(restored.evaluator.replay.train()) == 0
