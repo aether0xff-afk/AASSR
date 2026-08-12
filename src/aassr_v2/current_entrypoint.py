@@ -13,17 +13,14 @@ from .current_hardware import install_hardware_dqn
 from .current_hot_path_profile import install_current_hot_path_profiler
 from .current_manifest import CURRENT_COMPONENTS
 from .current_planner import CurrentFullyBatchedImaginationTree
-from .current_relational_state_v3 import install_status_aware_relational_contract
+from .current_plugin_api import bind_current_core_plugin_boundary
 from .current_repair import install_current_repairs
 from .current_root_dedup import install_structural_root_dedup
 from .current_runtime_performance_policy import (
     install_current_runtime_performance_device_aware,
 )
-from .current_status_models import (
-    StatusAwareConditionalMixtureRelationalProphecy,
-    install_status_supervised_world_model,
-)
 from .current_validation import install_current_fast_validation
+from .plugins.current_pentest import CURRENT_PENTEST_PLUGIN
 
 
 # The repaired 2k diagnostic established this gate threshold. Scaling the training
@@ -57,25 +54,21 @@ def build_current_pentest_aassr_core(
     profile_hot_path: bool = False,
     enable_performance_optimizations: bool = True,
 ) -> CurrentStandalonePentestAASSRAgent:
-    """Build the sole active current-generation pentest AASSR runtime.
+    """Assemble the current AASSR core with the pentest runtime plugin.
 
-    This is the same status-balanced conditional-mixture runtime exercised by the
-    latest repaired CUDA validation. Historical builders remain importable only
-    for reproduction; current runners should resolve through this function.
+    The algorithmic AASSR core owns Policy, Prophecy/Imagination roles, Critic,
+    Knowledge, Skills, ASEQ and reliability gates. ``CURRENT_PENTEST_PLUGIN`` owns
+    the response-causal observation contract, relational HTTP/action binding,
+    categorical public-status supervision and pentest environment semantics.
 
-    Public relational state v3 preserves the latest observed HTTP status while
-    exact audit pressure, hidden session-TTL remaining, hidden stage depth, and
-    concrete route/profile/object identity remain unavailable to learners.
-    Prophecy confidence and local Critic support are fail-closed reliability gates,
-    never value bonuses. Structural aliases share expensive model/Critic compute
-    while final execution remains a concrete real action.
+    Historical builders remain importable only for reproduction; current pentest
+    runners should resolve through this function.
 
     ``enable_performance_optimizations`` changes only implementation mechanics:
     indexing, redundant state encoding, accelerator synchronization and tensor
     packing. It does not alter seeds, replay samples, update cadence, batch size,
-    losses, exploration or action/value semantics. CPU keeps only the Python
-    indexing fast path; accelerator-specific packing/synchronization changes are
-    enabled only when the resolved model device is CUDA.
+    losses, exploration or action/value semantics. CPU keeps only safe Python
+    fast paths; accelerator-specific fusion/packing is enabled only on CUDA.
     """
 
     if not enable_batching:
@@ -85,7 +78,8 @@ def build_current_pentest_aassr_core(
             "entrypoint for historical scalar reproduction"
         )
 
-    install_status_aware_relational_contract()
+    plugin = CURRENT_PENTEST_PLUGIN
+    plugin.install_contract()
 
     agent = build_current_standalone_pentest_aassr_core(
         seed=int(seed),
@@ -112,11 +106,10 @@ def build_current_pentest_aassr_core(
         seed=int(seed),
         device=hardware.resolved_device,
     )
-    install_status_supervised_world_model(
+    plugin.install_world_model(
         agent,
         seed=int(seed),
         device=hardware.resolved_device,
-        model_class=StatusAwareConditionalMixtureRelationalProphecy,
     )
     if enable_performance_optimizations:
         install_current_runtime_performance_device_aware(agent)
@@ -129,4 +122,5 @@ def build_current_pentest_aassr_core(
     install_current_decision_optimizations(agent)
     if profile_hot_path:
         install_current_hot_path_profiler(agent)
+    bind_current_core_plugin_boundary(agent, plugin)
     return agent
