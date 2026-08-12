@@ -52,6 +52,49 @@ def test_zero_return_no_longer_counts_as_negative_critic_readiness_support() -> 
     assert agent._critic_counts["non_successes"] == 1
 
 
+def test_critic_readiness_expires_when_recent_signed_evidence_disappears() -> None:
+    agent = build_current_pentest_aassr_core(
+        seed=10,
+        train_transitions=64,
+        device="cpu",
+        allow_tf32=False,
+    )
+    agent._critic_counts.update(
+        {
+            "episodes": 64,
+            "successes": 8,
+            "non_successes": 8,
+            "positive_returns": 8,
+            "negative_returns": 8,
+        }
+    )
+    agent.critic.gradient_updates = 1
+
+    agent.critic.recent_episode_returns.clear()
+    agent.critic.recent_episode_returns.extend((1.0,) * 4 + (-1.0,) * 4)
+    assert agent.critic_ready is True
+    assert agent.critic_reliably_ready() is True
+
+    # Historical counts remain sufficient, but the active/recent regime has lost
+    # all negative-return evidence. Imagination must fail closed again.
+    agent.critic.recent_episode_returns.clear()
+    agent.critic.recent_episode_returns.extend((1.0,) * 8 + (0.0,) * 8)
+    assert agent.critic_ready is True
+    assert agent.critic_reliably_ready() is False
+
+    # Frozen checkpoints restore compact recent counts rather than training replay.
+    agent.critic.recent_episode_returns.clear()
+    agent._critic_counts.update(
+        {
+            "recent_return_window": 128,
+            "recent_positive_returns": 4,
+            "recent_zero_returns": 0,
+            "recent_negative_returns": 4,
+        }
+    )
+    assert agent.critic_reliably_ready() is True
+
+
 def test_coverage_is_invariant_to_concrete_alias_multiplicity() -> None:
     alias_a = Action(
         "request",
