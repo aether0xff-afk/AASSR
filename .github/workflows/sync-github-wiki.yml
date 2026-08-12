@@ -1,0 +1,91 @@
+name: Sync GitHub Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "wiki/**"
+      - ".github/workflows/sync-github-wiki.yml"
+  gollum:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: github-wiki-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Prepare Wiki credentials
+        shell: bash
+        env:
+          FALLBACK_TOKEN: ${{ github.token }}
+          OPTIONAL_WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${OPTIONAL_WIKI_TOKEN:-}" ]]; then
+            echo "WIKI_PUSH_TOKEN=${OPTIONAL_WIKI_TOKEN}" >> "$GITHUB_ENV"
+            echo "Using WIKI_TOKEN secret for Wiki push."
+          else
+            echo "WIKI_PUSH_TOKEN=${FALLBACK_TOKEN}" >> "$GITHUB_ENV"
+            echo "Using repository GITHUB_TOKEN for Wiki push."
+          fi
+
+      - name: Check whether GitHub Wiki has been initialized
+        id: wiki
+        shell: bash
+        env:
+          TOKEN: ${{ env.WIKI_PUSH_TOKEN }}
+        run: |
+          set -euo pipefail
+          WIKI_URL="https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"
+          if git ls-remote "$WIKI_URL" HEAD >/dev/null 2>&1; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "GitHub Wiki repository exists."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=GitHub Wiki not initialized::Open the repository Wiki tab and create the first Home page once. The gollum event will trigger this workflow automatically, then every Markdown file under wiki/ will be synchronized."
+          fi
+
+      - name: Clone Wiki repository
+        if: steps.wiki.outputs.ready == 'true'
+        shell: bash
+        env:
+          TOKEN: ${{ env.WIKI_PUSH_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" .wiki-repo
+
+      - name: Synchronize Markdown pages
+        if: steps.wiki.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          find .wiki-repo -mindepth 1 -maxdepth 1 -type f -name '*.md' -delete
+          cp wiki/*.md .wiki-repo/
+          echo "Copied $(find wiki -maxdepth 1 -type f -name '*.md' | wc -l) Wiki pages."
+
+      - name: Commit and push Wiki
+        if: steps.wiki.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd .wiki-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki is already up to date."
+            exit 0
+          fi
+          git commit -m "Sync AASSR research wiki from ${GITHUB_SHA::12}"
+          git push origin HEAD

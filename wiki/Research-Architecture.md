@@ -1,0 +1,573 @@
+# Research Architecture
+
+이 페이지는 AASSR을 **연구 질문에서 실제 current-generation 구현까지 한 흐름으로 연결해서** 설명한다.
+
+단순한 소프트웨어 모듈 목록이 아니라,
+
+```text
+왜 필요한가?
+  ↓
+어떤 연구 가설인가?
+  ↓
+어떤 표현과 알고리즘을 쓰는가?
+  ↓
+실제 코드에서는 무엇이 동작하는가?
+  ↓
+어떤 실험으로 검증하는가?
+```
+
+순서로 내려간다.
+
+> [!IMPORTANT]
+> 현재 실행 경로의 source of truth는 `src/aassr_v2/current_manifest.py`다. 과거 v0.4, old effect-composition, 초기 Imagination/Prophecy 실험은 재현용으로 남아 있지만 current runtime 설명과 섞지 않는다.
+
+---
+
+# 1. 전체 연구 흐름
+
+```mermaid
+flowchart TD
+    Q[희소 보상에서 스스로 장기 행동 구조를 만들 수 있는가?]
+    Q --> O[Public Observation]
+    O --> RS[Relational Representation]
+    O --> CS[Concrete Semantic State]
+
+    RS --> P[Policy]
+    CS --> A[ASEQ]
+    O --> K[Episode-local Knowledge]
+
+    P --> CAND[Candidate Actions]
+    A --> CAND
+
+    CAND --> W[Prophecy]
+    RS --> W
+    K --> W
+
+    W --> CAL[Calibration]
+    W --> IMG[Imagination]
+    CAL --> IMG
+
+    IMG --> CR[Critic]
+    CR --> SUP[Local Critic Support]
+    SUP --> G[Override Gate]
+
+    G --> ACT[Concrete Action]
+    ACT --> ENV[Environment]
+    ENV --> O
+    ENV --> REAL[Real Transition]
+
+    REAL --> A
+    REAL --> P
+    REAL --> W
+    REAL --> CR
+```
+
+핵심 원칙은 다음 한 문장으로 요약된다.
+
+> **상상은 계획에 사용하지만, 학습의 사실 근거는 실제 transition이다.**
+
+---
+
+# 2. Observation: 무엇을 볼 수 있는가?
+
+## 연구 질문
+
+> **에이전트에게 정답을 숨긴 채 실제로 관측 가능한 정보만으로 장기 문제를 풀게 할 수 있는가?**
+
+현재 observation contract는 `response-causal relational public state v3 + latest HTTP status`다.
+
+에이전트가 사용할 수 있는 것은 public observation이다.
+
+예:
+
+- 실제 response에서 확인한 사실
+- 발견된 route/profile/object 관계
+- legal action surface
+- session / CSRF 존재 여부
+- self-counted usage
+- self-observed progress
+- latest public HTTP status
+
+반대로 hidden simulator state는 직접 주지 않는다.
+
+예:
+
+- hidden curriculum level
+- hidden workflow depth
+- exact hidden session countdown
+- hidden audit pressure
+- 정답 route/profile/object identity
+- future state
+
+이 경계가 중요한 이유는 world model이 예측해야 할 정보를 observation에 몰래 넣으면 연구 질문이 무너지기 때문이다.
+
+---
+
+# 3. 두 종류의 identity
+
+AASSR에서는 "같은 상태"라는 말이 한 가지 의미가 아니다.
+
+## 3.1 Concrete semantic identity
+
+사용처:
+
+- ASEQ
+- episode-local exact repetition
+- cycle detection
+
+예:
+
+```text
+route-12 != route-31
+```
+
+실제 episode에서는 서로 다른 대상이므로 구분해야 한다.
+
+## 3.2 Relational transfer identity
+
+사용처:
+
+- Policy
+- Prophecy
+- Critic
+- Skill
+- Relational DQN baseline
+- DreamerV3 adapter
+
+여기서는 concrete 이름보다 역할과 관계를 본다.
+
+```text
+route-12 = catalog-like role
+route-31 = catalog-like role
+
+=> same relational structure
+```
+
+## 왜 둘을 분리하는가?
+
+둘 중 하나만 쓰면 문제가 생긴다.
+
+Concrete만 쓰면:
+
+```text
+새 seed에서 이름 변경
+-> 전부 새로운 상태처럼 보임
+-> transfer 약화
+```
+
+Relational만 쓰면:
+
+```text
+같은 역할의 서로 다른 concrete object
+-> 같은 대상으로 잘못 취급
+-> self-loop / 실행 identity 오류
+```
+
+그래서 AASSR은 **실행과 반복 판정에는 concrete semantic identity**, **학습과 transfer에는 relational identity**를 쓴다.
+
+---
+
+# 4. ASEQ: 실제 경험의 최소 단위
+
+ASEQ는 다음 transition이다.
+
+```text
+(S, A, S')
+```
+
+초기 AASSR 문서에서는 ASEQ가 비교적 넓은 기억 구조로 해석되기도 했지만, current-generation에서는 역할이 더 명확하다.
+
+핵심 self-loop rule:
+
+```text
+S -> A -> S
+```
+
+이 패턴이 실제로 반복 관측되면 해당 행동을 보수적으로 억제한다.
+
+반면
+
+```text
+S -> A -> S'
+S' != S
+```
+
+처럼 상태가 실제로 변하면 같은 행동의 반복도 허용한다.
+
+즉 "반복 행동 자체가 나쁘다"가 아니라 **진전 없는 동일 transition 반복**만 막는다.
+
+자세한 내용: **[ASEQ](ASEQ)**
+
+---
+
+# 5. Policy: 지금 무엇을 할 것인가?
+
+## 연구 질문
+
+> **현재 public relational state에서 어떤 행동이 장기적으로 유리한지 model-free하게 학습할 수 있는가?**
+
+현재 Policy는 relational-invariant DQN + information residual이다.
+
+개념적으로:
+
+```text
+Q_total(S,A)
+  = Q_task(S,A)
+  + information_residual(S,A)
+```
+
+중요한 점은 information residual이 외부 reward shaping은 아니라는 것이다.
+
+외부 sparse reward contract는 그대로 유지한다.
+
+```text
+success       +1
+true failure  -1
+otherwise      0
+```
+
+Policy의 역할은 **Imagination이 없어도 행동을 선택할 수 있는 기본 actor**가 되는 것이다.
+
+그래서 `aassr_current_no_imagination` condition이 가능하다.
+
+---
+
+# 6. Knowledge: 지금까지 무엇을 알아냈는가?
+
+현재 Knowledge는 episode-local response context다.
+
+## 가장 중요한 시간 방향
+
+```text
+행동 전에 이미 알고 있던 Knowledge
+            ↓
+        prediction
+            ↓
+        real action
+            ↓
+        real response
+            ↓
+      new Knowledge
+```
+
+방금 행동의 결과에서 얻은 정보를 다시 그 행동 전 예측에 사용하면 hindsight leak이 된다.
+
+그래서 Knowledge는 **언제 알게 되었는가**가 중요하다.
+
+이 설계는 단순히 Python dictionary를 쓴다는 구현 세부보다 연구적으로 훨씬 중요하다.
+
+---
+
+# 7. Prophecy: 미래 상태 분포를 예측한다
+
+## 연구 질문
+
+> **현재 상태와 행동으로부터 가능한 다음 public outcome들을 학습할 수 있는가?**
+
+현재 Prophecy는 `relational conditional-mixture ensemble v5, status-balanced`다.
+
+입력 개념:
+
+```text
+relational public state
++
+relational action
++
+allowed pre-existing Knowledge
+```
+
+출력 개념:
+
+```text
+possible next relational states
++
+HTTP status
++
+legal action mask
++
+terminal class
++
+outcome probability
+```
+
+## 왜 하나의 평균 상태를 예측하지 않는가?
+
+Partial observability 때문에 같은 public `(S,A)`에서도 여러 결과가 가능하다.
+
+```text
+actual future A
+actual future B
+        ↓ mean regression
+nonexistent average C
+```
+
+이 문제를 피하기 위해 mixture distribution을 사용한다.
+
+자세한 내용: **[Prophecy](Prophecy)**
+
+---
+
+# 8. Calibration: 예측을 믿어도 되는가?
+
+Prophecy가 예측을 낸다고 해서 항상 planner에 사용하면 안 된다.
+
+Calibration은 다음 질문을 담당한다.
+
+> **이 world-model prediction은 현재 상태에서 얼마나 신뢰할 수 있는가?**
+
+현재 calibration은 semantic + probability + status aware holdout calibration이다.
+
+중요한 구분:
+
+```text
+outcome probability
+= 환경에서 그 outcome이 나올 확률
+
+prediction reliability
+= world model의 그 예측을 믿을 수 있는 정도
+```
+
+둘은 같은 값이 아니다.
+
+또 reliability는 미래 value bonus가 아니다.
+
+신뢰도가 높다고 좋은 미래라는 뜻은 아니며, 단지 **그 예측을 planner 계산에 사용할 자격이 있는가**를 판단한다.
+
+---
+
+# 9. Imagination: 행동하기 전에 여러 미래를 계산한다
+
+## 연구 질문
+
+> **world model에서 여러 단계의 counterfactual future를 평가하면 Policy보다 더 좋은 첫 행동을 고를 수 있는가?**
+
+현재 planner는 두 종류의 node를 분리한다.
+
+## Chance node
+
+환경 outcome은 agent가 선택할 수 없다.
+
+```text
+V_chance = sum_i p_i * V_i
+```
+
+## Decision node
+
+다음 행동은 agent가 선택한다.
+
+```text
+V_decision = max_a V(a)
+```
+
+이 차이를 섞으면 stochastic outcome 중 좋은 결과만 골라잡는 비현실적인 optimistic planner가 될 수 있다.
+
+자세한 내용: **[Imagination](Imagination)**
+
+---
+
+# 10. Critic: 이 미래의 장기 가치는 얼마인가?
+
+현재 Critic은 relational GRU discounted sparse-return Critic이다.
+
+학습 target의 기반은 실제 외부 return이다.
+
+```text
+success       +1
+true failure  -1
+truncation     0
+```
+
+Critic은 predicted branch의 끝이나 중간 상태를 평가해 planner가 horizon 밖의 장기 가치를 추정할 수 있게 한다.
+
+## Zero-memory decision suffix
+
+Imagination은 trajectory 중간의 실제 decision state에서도 시작될 수 있다.
+
+그래서 Critic도 episode 시작점만 학습하면 안 된다.
+
+```text
+S0 -> S1 -> S2 -> S3 -> terminal
+
+training roots:
+S0
+S1
+S2
+S3
+```
+
+각 suffix를 독립적인 decision root로 학습한다.
+
+---
+
+# 11. Local Critic Support: 지금 이 Critic을 믿어도 되는가?
+
+최근 AASSR에서 매우 중요한 수리 중 하나다.
+
+문제:
+
+```text
+Critic이 학습됨
+!=
+모든 unseen state/action에서 Critic이 정확함
+```
+
+그래서 현재는 별도의 support gate가 있다.
+
+```text
+현재 state/action region
+        ↓
+실제 Critic training data의 local support 충분?
+   /                \
+ yes                no
+  |                  |
+value 비교 허용      fail closed
+                     Policy 유지
+```
+
+이 support는 reward도 아니고 hidden simulator 정보도 아니다.
+
+실제 training data coverage를 검사하는 안전장치다.
+
+---
+
+# 12. Override Gate: 언제 Policy를 바꾸는가?
+
+Imagination이 다른 행동을 추천했다고 바로 바꾸지 않는다.
+
+개념적으로 다음 조건들이 필요하다.
+
+```text
+Prophecy prediction usable
++
+Calibration reliability sufficient
++
+Critic locally supported
++
+Imagined alternative value sufficiently better
+        ↓
+Policy action override
+```
+
+조건을 통과하지 못하면 기본 Policy 행동을 유지한다.
+
+현재 intervention count는 **실제로 실행된 행동이 Policy 원래 행동과 달라졌을 때만** 증가한다.
+
+---
+
+# 13. Structural compute deduplication
+
+현재 action surface에는 이름만 다른 concrete alias가 많을 수 있다.
+
+예:
+
+```text
+172 concrete root actions
+        ↓ relational grouping
+~17 structural roots
+```
+
+같은 relational structure라면 비싼 Prophecy / Critic 계산은 한 번만 수행한다.
+
+하지만 실행 identity는 유지한다.
+
+```text
+planning compute: structural alias 공유
+real execution  : concrete action 유지
+```
+
+이 구분이 없으면 Imagination cost가 action alias 수에 따라 폭발한다.
+
+---
+
+# 14. Training / Evaluation boundary
+
+AASSR current protocol에서 가장 중요한 공정성 규칙 중 하나다.
+
+```text
+Training:
+Imagination intervention OFF
+
+Evaluation A:
+same frozen checkpoint + Imagination OFF
+
+Evaluation B:
+same frozen checkpoint + Imagination ON
+```
+
+따라서 OFF/ON 차이는 planner의 marginal effect로 해석할 수 있다.
+
+평가 사이에 학습이 일어나면 비교가 깨진다.
+
+---
+
+# 15. 실제 current component map
+
+현재 manifest 기준 핵심 stack:
+
+| Layer | Current implementation |
+|---|---|
+| Observation | response-causal relational public state v3 + latest HTTP status |
+| ASEQ | semantic self-loop empirical v3 |
+| Policy | relational-invariant DQN + information residual |
+| Prophecy | relational conditional-mixture ensemble v5, status-balanced |
+| Calibration | semantic probability holdout calibration v3, status-aware |
+| Knowledge | episode-local response knowledge context |
+| Imagination | structural compute dedup + probability chance / decision tree |
+| Critic | relational GRU discounted sparse-return |
+| Critic support | local real-training support, fail-closed |
+| Skill | relational ASEQ template |
+| Training Imagination | disabled for same-checkpoint comparison |
+
+---
+
+# 16. 중요한 코드 위치
+
+```text
+src/aassr_v2/current_manifest.py
+src/aassr_v2/current_entrypoint.py
+src/aassr_v2/current_relational_state_v3.py
+src/aassr_v2/current_relational_mixture_model.py
+src/aassr_v2/current_return_critic.py
+src/aassr_v2/current_critic_support.py
+src/aassr_v2/current_planner.py
+src/aassr_v2/current_confidence_gate.py
+```
+
+Canonical experiment paths:
+
+```text
+scripts/run_pentest_current_generation_main.py
+scripts/run_repaired_imagination_final.py
+scripts/run_dreamerv3_current_baseline.py
+scripts/assemble_pentest_current_generation_suite.py
+```
+
+---
+
+# 17. 이 구조를 어떻게 검증하는가?
+
+AASSR은 전체 모델 하나만 비교하지 않고 단계별 control을 둔다.
+
+```text
+dqn_raw
+   ↓ representation effect
+dqn_relational
+   ↓ AASSR stack beyond representation
+aassr_current_no_imagination
+   ↓ Imagination marginal effect
+aassr_current_full
+```
+
+추가로 official DreamerV3 relational baseline을 둔다.
+
+자세한 실험 설계와 결과는 **[Experiments](Experiments)** 를 참고한다.
+
+---
+
+다음으로 읽기:
+
+- **[Research Questions](Research-Questions)**
+- **[Prophecy](Prophecy)**
+- **[Imagination](Imagination)**
+- **[Core Architecture](Core-Architecture)** — 코드 중심 요약
+- **[Experiments](Experiments)**
