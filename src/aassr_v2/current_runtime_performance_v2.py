@@ -8,6 +8,51 @@ from .current_relational_state import relational_state_vector_v2
 
 
 PERFORMANCE_V2_CONTRACT = "semantics-preserving-ensemble-inference+critic-prepack-v2"
+_LINEAR_POSITIONS = (0, 2, 4)
+
+
+def _validate_fused_models(models: Sequence[Any]) -> None:
+    if not models:
+        raise ValueError("fused ensemble requires at least one model")
+    for model in models:
+        if len(model) != 5:
+            raise RuntimeError("fused ensemble expects Linear/ReLU/Linear/ReLU/Linear")
+        if tuple(
+            index for index in _LINEAR_POSITIONS if hasattr(model[index], "weight")
+        ) != _LINEAR_POSITIONS:
+            raise RuntimeError("fused ensemble model layout drift")
+
+
+def _stack_ensemble_parameters(
+    torch: Any,
+    models: Sequence[Any],
+) -> tuple[tuple[Any, Any], ...]:
+    """Materialize one inference-only ensemble parameter pack."""
+
+    _validate_fused_models(models)
+    return tuple(
+        (
+            torch.stack([model[index].weight for model in models], dim=0).detach(),
+            torch.stack([model[index].bias for model in models], dim=0).detach(),
+        )
+        for index in _LINEAR_POSITIONS
+    )
+
+
+def _stacked_linear_forward_prepacked(
+    torch: Any,
+    parameters: Sequence[tuple[Any, Any]],
+    tensor: Any,
+) -> Any:
+    """Evaluate `[ensemble, batch, input]` using already stacked parameters."""
+
+    ensemble = int(parameters[0][0].shape[0])
+    value = tensor.unsqueeze(0).expand(ensemble, -1, -1)
+    for position, (weights, biases) in enumerate(parameters):
+        value = torch.bmm(value, weights.transpose(1, 2)) + biases.unsqueeze(1)
+        if position + 1 < len(parameters):
+            value = torch.relu(value)
+    return value
 
 
 def _stacked_linear_forward(
@@ -15,49 +60,59 @@ def _stacked_linear_forward(
     models: Sequence[Any],
     tensor: Any,
 ) -> Any:
-    """Evaluate equal-shape 3-layer MLP ensemble as three batched GEMMs.
+    """Reference helper for one fused forward with a freshly packed ensemble.
 
-    Parameters remain owned by the original independent modules/optimizers. This
-    path is inference-only, so training order and optimizer semantics are exactly
-    unchanged. The only numerical change permitted by the scaling gate is normal
-    floating-point kernel roundoff within the existing 1e-5 contract.
+    Runtime inference uses a revision-aware cached parameter pack so repeated
+    Imagination calls do not re-copy every ensemble weight. Parameters remain
+    owned by the original independent modules/optimizers.
     """
 
-    if not models:
-        raise ValueError("fused ensemble requires at least one model")
-    expected = (0, 2, 4)
-    for model in models:
-        if len(model) != 5:
-            raise RuntimeError("fused ensemble expects Linear/ReLU/Linear/ReLU/Linear")
-        if tuple(index for index in expected if hasattr(model[index], "weight")) != expected:
-            raise RuntimeError("fused ensemble model layout drift")
+    parameters = _stack_ensemble_parameters(torch, models)
+    return _stacked_linear_forward_prepacked(torch, parameters, tensor)
 
-    # [B, I] -> [E, B, I], then one batch matmul per linear layer.
-    value = tensor.unsqueeze(0).expand(len(models), -1, -1)
-    for position, layer_index in enumerate(expected):
-        weights = torch.stack(
-            [model[layer_index].weight for model in models],
-            dim=0,
-        )
-        biases = torch.stack(
-            [model[layer_index].bias for model in models],
-            dim=0,
-        )
-        value = torch.bmm(value, weights.transpose(1, 2)) + biases.unsqueeze(1)
-        if position + 1 < len(expected):
-            value = torch.relu(value)
-    return value
+
+def _parameter_revision(models: Sequence[Any], gradient_updates: int) -> tuple[Any, ...]:
+    """Detect optimizer steps and explicit state-dict/in-place parameter updates."""
+
+    versions = tuple(
+        int(getattr(parameter, "_version", 0))
+        for model in models
+        for parameter in model.parameters()
+    )
+    return (int(gradient_updates), *versions)
 
 
 def install_fused_prophecy_ensemble_inference(base: object) -> object:
-    """Replace sequential ensemble inference with ensemble-dimension GEMMs."""
+    """Replace sequential ensemble inference with cached ensemble-dimension GEMMs."""
 
     if getattr(base, "performance_fused_ensemble_inference", False):
         return base
 
+    _validate_fused_models(base.models)
     original_diagnostics = base.diagnostics
     base.performance_fused_ensemble_forward_calls = 0
     base.performance_fused_ensemble_forward_rows = 0
+    base.performance_fused_ensemble_pack_rebuilds = 0
+    base.performance_fused_ensemble_pack_hits = 0
+    base._performance_fused_ensemble_revision = None
+    base._performance_fused_ensemble_parameters = None
+
+    def fused_parameters(self: object) -> tuple[tuple[Any, Any], ...]:
+        revision = _parameter_revision(self.models, self.gradient_updates)
+        if (
+            self._performance_fused_ensemble_parameters is None
+            or revision != self._performance_fused_ensemble_revision
+        ):
+            with self.torch.no_grad():
+                self._performance_fused_ensemble_parameters = _stack_ensemble_parameters(
+                    self.torch,
+                    self.models,
+                )
+            self._performance_fused_ensemble_revision = revision
+            self.performance_fused_ensemble_pack_rebuilds += 1
+        else:
+            self.performance_fused_ensemble_pack_hits += 1
+        return self._performance_fused_ensemble_parameters
 
     def fused_forward(
         self: object,
@@ -84,7 +139,11 @@ def install_fused_prophecy_ensemble_inference(base: object) -> object:
 
         tensor = self._tensor(inputs)
         with self.torch.no_grad():
-            output = _stacked_linear_forward(self.torch, self.models, tensor)
+            output = _stacked_linear_forward_prepacked(
+                self.torch,
+                self._fused_ensemble_parameters(),
+                tensor,
+            )
         self.performance_fused_ensemble_forward_calls += 1
         self.performance_fused_ensemble_forward_rows += len(states)
         return output
@@ -97,10 +156,13 @@ def install_fused_prophecy_ensemble_inference(base: object) -> object:
                 "fused_ensemble_inference": 1,
                 "fused_ensemble_forward_calls": self.performance_fused_ensemble_forward_calls,
                 "fused_ensemble_forward_rows": self.performance_fused_ensemble_forward_rows,
+                "fused_ensemble_pack_rebuilds": self.performance_fused_ensemble_pack_rebuilds,
+                "fused_ensemble_pack_hits": self.performance_fused_ensemble_pack_hits,
             }
         )
         return result
 
+    base._fused_ensemble_parameters = MethodType(fused_parameters, base)
     base._forward = MethodType(fused_forward, base)
     base.diagnostics = MethodType(diagnostics, base)
     base.performance_fused_ensemble_inference = True
