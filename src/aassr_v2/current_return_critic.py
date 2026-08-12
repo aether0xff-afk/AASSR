@@ -8,6 +8,9 @@ from .current_hardware import HardwareRelationalGRUBranchCritic
 from .types import Action, StateSnapshot
 
 
+RECENT_CRITIC_RETURN_WINDOW = 128
+
+
 class ReturnAwareHardwareRelationalGRUBranchCritic(
     HardwareRelationalGRUBranchCritic
 ):
@@ -23,9 +26,14 @@ class ReturnAwareHardwareRelationalGRUBranchCritic(
     at every prefix inside that suffix. Thus depth-1 and deeper imagined branches
     remain directly comparable, while the same zero-memory scorer is trained from
     every real decision state rather than only from episode start.
+
+    Readiness is also tied to a bounded recent episode-return window. Cumulative
+    historical success/failure counts are useful provenance, but cannot by
+    themselves prove that a long-run FIFO learner still has both positive and
+    negative sparse-return evidence in its current training regime.
     """
 
-    name = "hardware-relational-gru-root-discounted-sparse-return-v3"
+    name = "hardware-relational-gru-root-discounted-sparse-return-v4-recent-support"
     value_center = 0.0
 
     def __init__(self, seed: int, *, device: str = "cpu") -> None:
@@ -33,11 +41,26 @@ class ReturnAwareHardwareRelationalGRUBranchCritic(
         self._next_final_return = 0.0
         self._next_gamma = 1.0
         self.replay = deque(maxlen=4_000)
+        self.recent_episode_returns: deque[float] = deque(
+            maxlen=RECENT_CRITIC_RETURN_WINDOW
+        )
         self.suffix_sequences = 0
 
     def set_episode_return(self, final_return: float, gamma: float) -> None:
         self._next_final_return = max(-1.0, min(1.0, float(final_return)))
         self._next_gamma = max(0.0, min(1.0, float(gamma)))
+
+    def recent_signed_support(self) -> dict[str, int]:
+        positive = sum(value > 0.0 for value in self.recent_episode_returns)
+        negative = sum(value < 0.0 for value in self.recent_episode_returns)
+        zero = len(self.recent_episode_returns) - positive - negative
+        return {
+            "window_capacity": RECENT_CRITIC_RETURN_WINDOW,
+            "observed": len(self.recent_episode_returns),
+            "positive": int(positive),
+            "zero": int(zero),
+            "negative": int(negative),
+        }
 
     def observe_episode(
         self,
@@ -48,9 +71,11 @@ class ReturnAwareHardwareRelationalGRUBranchCritic(
         del success
         encoded = tuple(self.encoder.encode(item) for item in trajectory)
         if encoded:
+            final_return = float(self._next_final_return)
+            self.recent_episode_returns.append(final_return)
             for start in range(len(encoded)):
                 suffix = encoded[start:]
-                root_return = self._next_final_return * self._next_gamma ** (
+                root_return = final_return * self._next_gamma ** (
                     len(suffix) - 1
                 )
                 targets = (float(root_return),) * len(suffix)
@@ -206,4 +231,9 @@ class ReturnAwareHardwareRelationalGRUBranchCritic(
             "signed_sparse_return": 1,
             "zero_memory_suffix_training": 1,
             "suffix_sequences": self.suffix_sequences,
+            "recent_signed_return_support": 1,
+            **{
+                f"recent_return_{key}": value
+                for key, value in self.recent_signed_support().items()
+            },
         }
