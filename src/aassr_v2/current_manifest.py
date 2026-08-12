@@ -3,14 +3,10 @@ from __future__ import annotations
 from typing import Mapping
 
 
-CURRENT_GENERATION_VERSION = "aassr-current-generation-v2"
+CURRENT_GENERATION_VERSION = "aassr-current-generation-v3-pre10k-audited"
 
 # Sole source of truth for the active post-v0.4 runtime. Historical modules stay
 # importable for reproduction, but current builders/runners must use this stack.
-#
-# IMPORTANT: this manifest describes the runtime exercised by the latest repaired
-# CUDA validation. Do not infer the active generation from README version text or
-# from historical runner names.
 CURRENT_COMPONENTS: Mapping[str, str] = {
     "builder": "build_current_pentest_aassr_core",
     "observation": "response-causal-relational-public-state-v3+latest-http-status",
@@ -19,21 +15,25 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
     "policy_state_input": "relational-public-structural-v3+latest-http-status",
     "policy_action_input": "relational-role-features-v1",
     "policy_hardware": "frontier-batched-dqn+fused-sync-free-bellman-v2",
-    "prophecy": "relational-conditional-mixture-ensemble-v5-status-balanced",
+    "relational_dqn_control": "fresh-process-public-state-v3+latest-http-status",
+    "prophecy": "relational-conditional-mixture-ensemble-v6-status-categorical",
     "prophecy_output": (
-        "relational-descriptor-v3+latest-http-status+legal-action-mask+"
-        "active-success-failure-truncation-mixture-v5"
+        "relational-descriptor-v3+categorical-latest-http-status+legal-action-mask+"
+        "active-success-failure-truncation-complete-mixture-v6"
     ),
-    "prophecy_status_objective": (
-        "class-balanced-categorical-public-http-status-v2"
-    ),
-    "calibration": "semantic-probability-holdout-calibration-v3-status-aware",
+    "prophecy_status_objective": "class-balanced-categorical-public-http-status-v2",
+    "prophecy_status_inference": "softmax-categorical-realized-one-hot",
+    "prophecy_outcome_mass": "complete-before-expected-return-backup",
+    "prophecy_mode_identity": "status+legal-surface+terminal-preserving",
+    "calibration": "semantic-state-local-probability-holdout-v3",
     "information_evaluator": "semantic-relational-probability-aware-v3-status-aware",
     "knowledge": "episode-local-response-knowledge-context-v1",
     "imagination": (
         "root-concrete-execution+structural-compute-dedup+"
-        "probability-chance-max-decision-depth-batched"
+        "complete-probability-chance-max-decision-depth-batched"
     ),
+    "imagination_intervention_margin": "fixed-0.05-scaling-contract",
+    "imagination_coverage": "unique-structural-action-mean",
     "hardware": (
         "dqn+relational-world-model+return-gru-critic-same-device+"
         "full-depth-batching-v6"
@@ -42,12 +42,13 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
         "relational-gru-discounted-sparse-return+"
         "zero-memory-decision-suffixes+batched-train-v3"
     ),
+    "critic_readiness": "positive-and-negative-signed-return-support-v2",
     "critic_support_gate": "local-real-training-support-fail-closed-v1",
     "skills": "relational-aseq-template-v1",
     "goals": "external-final-goal+relational-skill-promotion-v1",
     "effect_composition": "superseded-by-relational-world-model-disabled",
     "training_imagination": "disabled-same-checkpoint",
-    "current_protocol": "standalone-current-protocol-v2",
+    "current_protocol": "standalone-current-protocol-v3-durable-checkpoint",
     "hidden_pressure_contract": "audit-and-session-countdown-masked",
     "public_response_contract": "latest-http-status-preserved",
     "chance_objective": "expected-external-sparse-return",
@@ -55,6 +56,9 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
     "imagined_action_identity": "one-action-per-relational-legal-slot",
     "root_execution_identity": "concrete-execution-structural-compute-dedup",
     "unknown_role_contract": "known-unobserved-entities-explicitly-unknown",
+    "checkpoint_contract": "fresh-process-restorable-frozen-evaluation-v1",
+    "provenance_contract": "architecture-version+exact-git-commit",
+    "exploration_scaling_contract": "budget-normalized-explicitly-reported",
 }
 
 LEGACY_COMPONENTS_ACTIVE: tuple[str, ...] = ()
