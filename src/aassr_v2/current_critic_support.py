@@ -25,6 +25,9 @@ from .types import Action, StateSnapshot
 
 SUPPORT_REPLAY_PER_ACTION = 512
 DEFAULT_CRITIC_SUPPORT_THRESHOLD = 0.55
+MIN_CRITIC_READY_EPISODES = 32
+MIN_CRITIC_POSITIVE_RETURNS = 4
+MIN_CRITIC_NEGATIVE_RETURNS = 4
 
 
 def _action_key(state: StateSnapshot, action: Action) -> tuple[Any, ...]:
@@ -141,6 +144,46 @@ def install_critic_support_gate(
 
     critic.observe_episode = MethodType(observe_episode_with_support, critic)
 
+    original_finish_episode = agent.finish_episode
+
+    def finish_episode_with_signed_support(
+        self_agent: object,
+        *,
+        final_return: float,
+        training: bool = True,
+    ) -> None:
+        # Count only episodes that actually contribute a real Critic trajectory,
+        # matching the learner's own observe_episode condition.
+        if training and bool(getattr(self_agent, "_critic_trajectory", ())):
+            value = float(final_return)
+            if value > 0.0:
+                counters["critic_positive_return_episodes"] += 1
+            elif value < 0.0:
+                counters["critic_negative_return_episodes"] += 1
+            else:
+                counters["critic_zero_return_episodes"] += 1
+        return original_finish_episode(final_return=final_return, training=training)
+
+    agent.finish_episode = MethodType(finish_episode_with_signed_support, agent)
+
+    def critic_reliably_ready(self_agent: object) -> bool:
+        stats = self_agent.critic.stats()
+        return bool(
+            int(counters["critic_positive_return_episodes"])
+            >= MIN_CRITIC_POSITIVE_RETURNS
+            and int(counters["critic_negative_return_episodes"])
+            >= MIN_CRITIC_NEGATIVE_RETURNS
+            and int(
+                counters["critic_positive_return_episodes"]
+                + counters["critic_negative_return_episodes"]
+                + counters["critic_zero_return_episodes"]
+            )
+            >= MIN_CRITIC_READY_EPISODES
+            and int(stats.gradient_updates) > 0
+        )
+
+    agent.critic_reliably_ready = MethodType(critic_reliably_ready, agent)
+
     def support_confidence(
         self_critic: object,
         state: StateSnapshot,
@@ -168,14 +211,6 @@ def install_critic_support_gate(
         decision: object,
         reason: str,
     ) -> None:
-        """Rewrite pre-support diagnostics to describe the final executed action.
-
-        The confidence gate records its decision before this outer support gate is
-        applied. If Critic support subsequently cancels an override, leaving the
-        earlier counters untouched makes a suppressed candidate look like a real
-        intervention. Reconcile only the already-recorded current-agent counters;
-        switch-candidate/run/opportunity counts remain valid.
-        """
         diagnostics = getattr(self_agent, "_imagination_diagnostics", None)
         if diagnostics is None:
             return
@@ -256,6 +291,7 @@ def install_critic_support_gate(
     agent._critic_support_previous_core_select_action = previous_select
     agent._core_select_action = MethodType(support_gated_select, agent)
     agent.current_critic_support_gate = True
+    agent.current_signed_critic_readiness = True
     agent.current_critic_support_threshold = threshold
     agent._critic_support_diagnostics = counters
 
@@ -268,8 +304,13 @@ def install_critic_support_gate(
             "threshold": threshold,
             "structural_action_buckets": len(support_rows),
             "stored_support_rows": sum(len(rows) for rows in support_rows.values()),
+            "signed_readiness": bool(self_agent.critic_reliably_ready()),
+            "minimum_ready_episodes": MIN_CRITIC_READY_EPISODES,
+            "minimum_positive_returns": MIN_CRITIC_POSITIVE_RETURNS,
+            "minimum_negative_returns": MIN_CRITIC_NEGATIVE_RETURNS,
             **dict(counters),
         }
+        output["critic_ready"] = bool(self_agent.critic_reliably_ready())
         repairs = dict(output.get("current_repairs", {}))
         repairs.update(
             {
@@ -278,6 +319,7 @@ def install_critic_support_gate(
                 "status_aware_semantic_calibration": True,
                 "critic_local_support_gate": True,
                 "critic_support_is_gate_not_value": True,
+                "critic_signed_negative_return_readiness": True,
                 "intervention_counters_are_post_support": True,
             }
         )
