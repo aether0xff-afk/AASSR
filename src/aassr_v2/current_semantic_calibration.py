@@ -8,12 +8,24 @@ from typing import Any, Iterable, Sequence
 from .current_generation import relational_action_key
 from .current_relational_codec import legal_action_mask, semantic_prediction_score
 from .current_relational_model import RelationalStochasticProphecy
+from .current_relational_state import (
+    ACTION_COUNT_INDEX,
+    CONTROL_SIZE,
+    KNOWN_OBJECT_INDEX,
+    KNOWN_PROFILE_INDEX,
+    KNOWN_ROUTE_INDEX,
+    OBJECT_REQUEST_FRACTION_INDEX,
+    REQUEST_FRACTION_INDEX,
+    ROLE_START_INDEX,
+    UNIQUE_ACTION_COUNT_INDEX,
+    WORKFLOW_PROGRESS_INDEX,
+)
 from .current_relational_state_v3 import (
-    STATUS_START_INDEX,
     latest_status_code,
     relational_state_descriptor_v3,
     relational_state_key_v3,
 )
+from .pentest_curriculum_env import PROFILE_RELATIONS, ROUTE_RELATIONS
 from .prophecy import ProphecyStep
 from .replay import ReplayBuffer, ReplayTransition, ValidationScore
 from .skills import SKILL_VERB
@@ -56,17 +68,87 @@ def _mask_jaccard_distance(left: StateSnapshot, right: StateSnapshot) -> float:
     return 0.0 if not union else 1.0 - len(a & b) / len(union)
 
 
+def _relative_count_distance(left: float, right: float, *, scale: float) -> float:
+    left_count = int(round(max(0.0, float(left)) * scale))
+    right_count = int(round(max(0.0, float(right)) * scale))
+    denominator = max(1, left_count, right_count)
+    return abs(left_count - right_count) / denominator
+
+
 def _public_state_distance(left: StateSnapshot, right: StateSnapshot) -> float:
-    """Task-agnostic locality metric using only public relational state."""
+    """Public structural locality without averaging rare differences away.
+
+    Calibration is a reliability gate, not a value model. A holdout row should
+    therefore count as local only when it resembles the current state in every
+    decision-relevant public regime: controls, workflow progress, entity scale,
+    semantic role distributions, object evidence, action-surface scale/composition,
+    latest status, and legal structural slots. No curriculum level, hidden limit,
+    target identity, or success path is used.
+    """
     a = relational_state_descriptor_v3(left)
     b = relational_state_descriptor_v3(right)
-    base_distance = (
-        fmean(abs(x - y) for x, y in zip(a[:STATUS_START_INDEX], b[:STATUS_START_INDEX], strict=True))
-        if STATUS_START_INDEX > 0
-        else 0.0
+
+    control_distance = max(
+        (abs(a[index] - b[index]) for index in range(CONTROL_SIZE)),
+        default=0.0,
+    )
+    workflow_distance = abs(
+        a[WORKFLOW_PROGRESS_INDEX] - b[WORKFLOW_PROGRESS_INDEX]
+    )
+    entity_count_distance = max(
+        _relative_count_distance(a[index], b[index], scale=32.0)
+        for index in (KNOWN_ROUTE_INDEX, KNOWN_PROFILE_INDEX, KNOWN_OBJECT_INDEX)
+    )
+
+    route_end = ROLE_START_INDEX + len(ROUTE_RELATIONS)
+    profile_end = route_end + len(PROFILE_RELATIONS)
+    route_role_distance = 0.5 * sum(
+        abs(a[index] - b[index]) for index in range(ROLE_START_INDEX, route_end)
+    )
+    profile_role_distance = 0.5 * sum(
+        abs(a[index] - b[index]) for index in range(route_end, profile_end)
+    )
+
+    own_index = profile_end
+    target_index = own_index + 1
+    tried_index = target_index + 1
+    object_distance = max(
+        abs(a[own_index] - b[own_index]),
+        abs(a[target_index] - b[target_index]),
+        _relative_count_distance(a[tried_index], b[tried_index], scale=32.0),
+    )
+
+    action_scale_distance = max(
+        _relative_count_distance(
+            a[ACTION_COUNT_INDEX],
+            b[ACTION_COUNT_INDEX],
+            scale=128.0,
+        ),
+        _relative_count_distance(
+            a[UNIQUE_ACTION_COUNT_INDEX],
+            b[UNIQUE_ACTION_COUNT_INDEX],
+            scale=32.0,
+        ),
+        abs(a[REQUEST_FRACTION_INDEX] - b[REQUEST_FRACTION_INDEX]),
+        abs(
+            a[OBJECT_REQUEST_FRACTION_INDEX]
+            - b[OBJECT_REQUEST_FRACTION_INDEX]
+        ),
     )
     status_distance = float(latest_status_code(left) != latest_status_code(right))
-    return max(base_distance, status_distance, _mask_jaccard_distance(left, right))
+    legal_surface_distance = _mask_jaccard_distance(left, right)
+
+    return max(
+        control_distance,
+        workflow_distance,
+        entity_count_distance,
+        route_role_distance,
+        profile_role_distance,
+        object_distance,
+        action_scale_distance,
+        status_distance,
+        legal_surface_distance,
+    )
 
 
 class SemanticPredictionValidator:
@@ -308,6 +390,7 @@ class SemanticCalibratedProphecy:
             "holdout_freezes": self.freeze_count,
             "semantic_calibration": 1,
             "state_local_calibration": 1,
+            "calibration_locality_metric": "groupwise-public-structural-max-v2",
             "calibration_locality_scale": CALIBRATION_LOCALITY_SCALE,
             "probability_weighted_calibration": 1,
             "calibrated_reliability_product": 1,
