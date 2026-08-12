@@ -56,7 +56,7 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
     "imagined_action_identity": "one-action-per-relational-legal-slot",
     "root_execution_identity": "concrete-execution-structural-compute-dedup",
     "unknown_role_contract": "known-unobserved-entities-explicitly-unknown",
-    "checkpoint_contract": "fresh-process-restorable-frozen-evaluation-v1",
+    "checkpoint_contract": "fresh-process-portable-frozen-evaluation-v2",
     "provenance_contract": "architecture-version+exact-git-commit",
     "exploration_scaling_contract": "budget-normalized-explicitly-reported",
 }
