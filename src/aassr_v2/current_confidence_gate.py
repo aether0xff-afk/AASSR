@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from types import MethodType
-from typing import Any, Iterable
+from typing import Any, Iterable, Sequence
 
 from .autonomous_agent_core import ActionDecision
 from .branch_critic import CriticTransition
@@ -89,6 +89,114 @@ def _critic_is_reliably_ready(agent: object) -> bool:
     return bool(agent.critic_ready)
 
 
+def _reliability_gated_bellman_backups(
+    planner: object,
+    nodes: Sequence[Any],
+    outcome_probability: dict[int, float],
+):
+    """Back up only reliable *continuation* actions below the real root.
+
+    Root actions remain fully evaluated because the outer per-root confidence gate
+    needs their values and will fail closed before any real override. At imagined
+    decision nodes, however, a continuation whose chance set contains any path
+    below ``minimum_path_confidence`` cannot be allowed to win the decision max
+    using an unreliable Critic value. Such an action is omitted and the parent
+    simply keeps its already-computed current value when no reliable continuation
+    remains. No synthetic reward or pessimistic value is injected.
+    """
+
+    by_parent_action: dict[tuple[int, str], list[Any]] = {}
+    actions_by_parent: dict[int, set[str]] = {}
+    for child in nodes:
+        if child.depth <= 0 or child.parent_id is None or child.action_from_parent is None:
+            continue
+        signature = child.action_from_parent.signature
+        by_parent_action.setdefault((child.parent_id, signature), []).append(child)
+        actions_by_parent.setdefault(child.parent_id, set()).add(signature)
+
+    backed: dict[int, float] = {}
+    best_leaf: dict[int, int] = {}
+    best_path: dict[int, tuple[str, ...]] = {}
+    for node in nodes:
+        if node.depth <= 0:
+            continue
+        backed[node.node_id] = planner._adjusted_value(node)
+        best_leaf[node.node_id] = node.node_id
+        best_path[node.node_id] = node.action_path
+
+    minimum = float(planner.config.minimum_path_confidence)
+    skipped = 0
+    for depth in range(max((node.depth for node in nodes), default=0), 0, -1):
+        for node in nodes:
+            if node.depth != depth:
+                continue
+            signatures = actions_by_parent.get(node.node_id)
+            if not signatures or node.terminal_reason is not None:
+                continue
+
+            action_values: list[tuple[float, str, int, tuple[str, ...]]] = []
+            for signature in sorted(signatures):
+                outcomes = by_parent_action[(node.node_id, signature)]
+                # This is a continuation below the root (node.depth >= 1). One
+                # unresolved/low-confidence chance outcome makes the whole action
+                # an unreliable expected-value estimate, so do not choose it.
+                if any(
+                    float(child.cumulative_confidence) < minimum
+                    for child in outcomes
+                ):
+                    skipped += 1
+                    continue
+                values = [backed[child.node_id] for child in outcomes]
+                masses = [
+                    outcome_probability.get(child.node_id, 1.0)
+                    for child in outcomes
+                ]
+                value = planner._aggregate_outcomes(values, masses)
+                representative = max(
+                    outcomes,
+                    key=lambda child: (backed[child.node_id], -child.node_id),
+                )
+                action_values.append(
+                    (
+                        value,
+                        signature,
+                        best_leaf[representative.node_id],
+                        best_path[representative.node_id],
+                    )
+                )
+                planner.chance_backup_groups += 1
+
+            if not action_values:
+                continue
+            chosen = max(action_values, key=lambda item: (item[0], item[1]))
+            backed[node.node_id] = chosen[0]
+            best_leaf[node.node_id] = chosen[2]
+            best_path[node.node_id] = chosen[3]
+            planner.decision_backup_nodes += 1
+
+    planner.unreliable_continuation_actions_skipped += skipped
+    return backed, best_leaf, best_path, by_parent_action
+
+
+def _install_reliable_continuation_backup(agent: object) -> None:
+    planner = agent.planner
+    if getattr(planner, "current_reliable_continuation_backup", False):
+        return
+
+    planner._confidence_gate_previous_bellman_backups = planner._bellman_backups
+
+    def gated_backups(self_planner: object, nodes, outcome_probability):
+        return _reliability_gated_bellman_backups(
+            self_planner,
+            nodes,
+            outcome_probability,
+        )
+
+    planner._bellman_backups = MethodType(gated_backups, planner)
+    planner.unreliable_continuation_actions_skipped = 0
+    planner.current_reliable_continuation_backup = True
+
+
 def _confidence_gated_core_select_action(
     self: object,
     state: StateSnapshot,
@@ -100,9 +208,9 @@ def _confidence_gated_core_select_action(
 
     Confidence has exactly two roles here:
       1. the existing global model-coverage eligibility gate; and
-      2. a per-root prediction reliability gate.
+      2. per-root / imagined-continuation reliability gates.
 
-    Once a root is reliable, ranking and intervention advantage are Critic-only.
+    Once a branch is reliable, ranking and intervention advantage are Critic-only.
     Confidence does not alter planner value, Critic input, or the fixed
     intervention margin.
     """
@@ -314,14 +422,14 @@ def install_current_confidence_gate(agent: object) -> object:
     if getattr(agent, "current_confidence_gate", False):
         return agent
 
-    # Planner branch ranking becomes Critic-only. Confidence may still terminate
-    # an unreliable path through minimum_path_confidence, which is a gate rather
-    # than a value bonus/penalty.
+    # Planner branch ranking becomes Critic-only. Confidence is only a gate; it
+    # may terminate or reject unreliable continuation but never alter a value.
     agent.planner.config = replace(
         agent.planner.config,
         uncertainty_penalty=0.0,
     )
     agent.core.planner = agent.planner
+    _install_reliable_continuation_backup(agent)
 
     # The old coverage-dependent extra margin is intentionally retired. Keep the
     # config field for artifact compatibility but freeze its active value at zero.
@@ -341,5 +449,7 @@ def install_current_confidence_gate(agent: object) -> object:
     agent.current_confidence_gate_threshold = float(
         agent.config.imagination_minimum_coverage
     )
-    agent.current_imagination_value_contract = "critic_only_after_confidence_gate"
+    agent.current_imagination_value_contract = (
+        "critic_only_after_root_and_continuation_confidence_gates"
+    )
     return agent
