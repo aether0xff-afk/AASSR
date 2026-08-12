@@ -44,9 +44,9 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
     ),
     "critic": (
         "relational-gru-discounted-sparse-return+zero-memory-decision-suffixes+"
-        "recent-signed-window128+batched-train-v4"
+        "active-fifo-distinct-episode-signed-support+batched-train-v5"
     ),
-    "critic_readiness": "cumulative+recent-positive-negative-signed-support-v3",
+    "critic_readiness": "cumulative+active-replay-positive-negative-signed-support-v4",
     "critic_support_gate": "local-real-training-support-fail-closed-v1",
     "skills": "relational-aseq-template-v1",
     "skill_prophecy": "stochastic-complete-up-to-64+explicit-unresolved-tail-fail-closed-v3",
