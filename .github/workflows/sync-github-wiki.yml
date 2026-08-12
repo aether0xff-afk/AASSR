@@ -6,6 +6,7 @@ on:
     paths:
       - "wiki/**"
       - ".github/workflows/sync-github-wiki.yml"
+  gollum:
   workflow_dispatch:
 
 permissions:
@@ -52,7 +53,7 @@ jobs:
             echo "GitHub Wiki repository exists."
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=GitHub Wiki not initialized::Open the repository Wiki tab and create the first Home page once. After that, run this workflow again; all files under wiki/ will be synchronized automatically."
+            echo "::notice title=GitHub Wiki not initialized::Open the repository Wiki tab and create the first Home page once. The gollum event will trigger this workflow automatically, then every Markdown file under wiki/ will be synchronized."
           fi
 
       - name: Clone Wiki repository
