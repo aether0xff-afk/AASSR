@@ -12,8 +12,11 @@ PREFLIGHT_TESTS = (
     "tests/test_current_probability_contract.py",
     "tests/test_current_latent_contracts.py",
     "tests/test_current_checkpoint.py",
+    "tests/test_current_core_plugin_boundary.py",
+    "tests/test_current_architecture_layers.py",
     "tests/test_current_runtime_performance.py",
     "tests/test_current_runtime_performance_policy.py",
+    "tests/test_current_runtime_performance_v2.py",
     "tests/test_current_replay_performance.py",
     "tests/test_current_repair.py",
     "tests/test_current_repair_action_surface.py",
@@ -39,6 +42,11 @@ def _run_preflight() -> None:
         "scripts/run_repaired_imagination_validation_v2.py",
         "scripts/analyze_repaired_imagination_trace.py",
         "scripts/profile_current_runtime_performance.py",
+        "scripts/benchmark_current_performance_v2.py",
+        "src/aassr_v2/current_core_manifest.py",
+        "src/aassr_v2/current_architecture_layers.py",
+        "src/aassr_v2/current_plugin_api.py",
+        "src/aassr_v2/plugins/current_pentest.py",
         "src/aassr_v2/current_relational_state.py",
         "src/aassr_v2/current_relational_state_v3.py",
         "src/aassr_v2/current_relational_decode_v2.py",
@@ -53,19 +61,20 @@ def _run_preflight() -> None:
         "src/aassr_v2/current_decision_optimization.py",
         "src/aassr_v2/current_runtime_performance.py",
         "src/aassr_v2/current_runtime_performance_policy.py",
+        "src/aassr_v2/current_runtime_performance_v2.py",
         "src/aassr_v2/current_replay_performance.py",
         "src/aassr_v2/current_checkpoint.py",
         "src/aassr_v2/current_run_artifacts.py",
         "src/aassr_v2/current_planner.py",
         "src/aassr_v2/current_repair.py",
     )
-    print("[PREFLIGHT] compile audited current-generation stack")
+    print("[PREFLIGHT] compile audited core + plugin + performance stack")
     subprocess.run(
         [sys.executable, "-m", "py_compile", *compile_targets],
         check=True,
     )
 
-    print("[PREFLIGHT] run audited current-generation + performance contracts")
+    print("[PREFLIGHT] run audited current-generation + boundary + performance contracts")
     subprocess.run(
         [sys.executable, "-m", "pytest", "-q", *PREFLIGHT_TESTS],
         check=True,

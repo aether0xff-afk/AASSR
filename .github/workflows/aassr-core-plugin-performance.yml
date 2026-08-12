@@ -1,0 +1,44 @@
+name: AASSR core-plugin performance gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - agent/pre-10k-core-plugin-performance
+
+jobs:
+  boundary-and-performance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install CPU test dependencies
+        run: |
+          python -m pip install --upgrade pip "setuptools<82"
+          python -m pip install -e ".[dev]"
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.2"
+      - name: Compile boundary and performance modules
+        run: |
+          python -m py_compile \
+            src/aassr_v2/current_core_manifest.py \
+            src/aassr_v2/current_architecture_layers.py \
+            src/aassr_v2/current_plugin_api.py \
+            src/aassr_v2/plugins/current_pentest.py \
+            src/aassr_v2/current_runtime_performance_v2.py \
+            src/aassr_v2/current_entrypoint.py
+      - name: Run core-plugin boundary regressions
+        run: |
+          pytest -q \
+            tests/test_current_core_plugin_boundary.py \
+            tests/test_current_architecture_layers.py
+      - name: Run performance v2 equivalence regressions
+        run: pytest -q tests/test_current_runtime_performance_v2.py
+      - name: Re-run existing performance-only contracts
+        run: |
+          pytest -q \
+            tests/test_current_runtime_performance.py \
+            tests/test_current_runtime_performance_policy.py \
+            tests/test_current_replay_performance.py
