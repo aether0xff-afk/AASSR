@@ -37,7 +37,7 @@
 
 ```mermaid
 flowchart LR
-    O[Public Observation] --> R[Relational State]
+    O[Public Observation] --> R[Relational State v3]
     O --> S[Concrete Semantic State]
     R --> P[Policy]
     S --> A[ASEQ]
@@ -61,7 +61,7 @@ flowchart LR
 핵심 흐름:
 
 1. **관측** 가능한 정보만 본다.
-2. **Relational state**로 이름이 바뀐 환경에서도 구조를 알아보려 한다.
+2. **Relational State v3**로 이름이 바뀐 환경에서도 구조를 알아보면서 latest public HTTP status를 보존한다.
 3. **ASEQ**로 실제 `(S,A,S')` 경험과 self-loop를 다룬다.
 4. **Policy**가 sparse-return 기반 기본 행동을 선택한다.
 5. **Knowledge**가 현재 episode에서 실제 response로 알아낸 사실의 causal context를 보존한다.
@@ -105,6 +105,7 @@ AASSR을 연구 프로젝트로 이해하려면 다음 순서를 권장한다.
 
 | 주제 | 핵심 질문 |
 |---|---|
+| **[State Representation](State-Representation)** | public observation만으로 transfer 가능한 Relational State v3를 어떻게 구성하는가? |
 | **[ASEQ](ASEQ)** | 실제 `(S,A,S')` 중 어떤 반복만 막아야 하는가? |
 | **[Policy](Policy)** | sparse reward와 information value를 섞지 않고 행동을 어떻게 평가하는가? |
 | **[Knowledge](Knowledge)** | 무엇을 언제 알았으며 hindsight leak을 어떻게 막는가? |
@@ -259,7 +260,7 @@ AASSR은 여러 실패와 구조 변경을 거쳐 현재 세대로 왔다.
 [Experiments](Experiments) → [Current Status](Current-Status)
 
 **구현을 검증하고 싶은 사람**  
-[Core Architecture](Core-Architecture) → [Policy](Policy) → [Prophecy](Prophecy) → [Calibration](Calibration) → [Critic](Critic) → [Imagination](Imagination)
+[State Representation](State-Representation) → [Core Architecture](Core-Architecture) → [Policy](Policy) → [Prophecy](Prophecy) → [Calibration](Calibration) → [Critic](Critic) → [Imagination](Imagination)
 
 **기억/재사용 계층을 보고 싶은 사람**  
 [ASEQ](ASEQ) → [Knowledge](Knowledge) → [Skills](Skills)
