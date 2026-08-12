@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from collections import deque
 
-import torch
-from torch import nn
+import pytest
+
+
+torch = pytest.importorskip("torch")
+nn = torch.nn
 
 from aassr_v2.current_return_critic import (
     CRITIC_REPLAY_CAPACITY,
