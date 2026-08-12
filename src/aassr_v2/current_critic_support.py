@@ -107,6 +107,28 @@ def _semantic_support_distance(
     )
 
 
+def _recent_support_snapshot(agent: object) -> dict[str, int]:
+    recent_support = getattr(agent.critic, "recent_signed_support", None)
+    if callable(recent_support):
+        live = {key: int(value) for key, value in recent_support().items()}
+        if int(live.get("observed", 0)) > 0:
+            return live
+    # Frozen checkpoints restore the compact recent counts through _critic_counts;
+    # they intentionally do not restore the Critic training replay because the
+    # checkpoint scope is evaluation-only.
+    positive = int(agent._critic_counts.get("recent_positive_returns", 0))
+    negative = int(agent._critic_counts.get("recent_negative_returns", 0))
+    zero = int(agent._critic_counts.get("recent_zero_returns", 0))
+    observed = positive + negative + zero
+    return {
+        "window_capacity": int(agent._critic_counts.get("recent_return_window", 0)),
+        "observed": observed,
+        "positive": positive,
+        "zero": zero,
+        "negative": negative,
+    }
+
+
 def install_critic_support_gate(
     agent: object,
     *,
@@ -179,6 +201,22 @@ def install_critic_support_gate(
                 self_agent._critic_counts["zero_returns"] += 1
                 if int(self_agent._critic_counts.get("non_successes", 0)) > 0:
                     self_agent._critic_counts["non_successes"] -= 1
+
+            recent = getattr(self_agent.critic, "recent_signed_support", None)
+            if callable(recent):
+                support = recent()
+                self_agent._critic_counts["recent_return_window"] = int(
+                    support.get("window_capacity", 0)
+                )
+                self_agent._critic_counts["recent_positive_returns"] = int(
+                    support.get("positive", 0)
+                )
+                self_agent._critic_counts["recent_zero_returns"] = int(
+                    support.get("zero", 0)
+                )
+                self_agent._critic_counts["recent_negative_returns"] = int(
+                    support.get("negative", 0)
+                )
             return result
 
         agent.finish_episode = MethodType(finish_episode_with_signed_support, agent)
@@ -186,19 +224,10 @@ def install_critic_support_gate(
         counters["signed_episode_accounting_hook_unavailable"] += 1
 
     def critic_reliably_ready(self_agent: object) -> bool:
-        """Require cumulative *and recent* signed sparse-return evidence.
-
-        The base property keeps the historical episode/update threshold. The
-        ReturnAware current Critic additionally exposes a bounded recent return
-        window so a long run cannot remain permanently ready after all recent
-        negative (or positive) evidence has disappeared from the active regime.
-        """
+        """Require cumulative *and recent* signed sparse-return evidence."""
         if not bool(self_agent.critic_ready):
             return False
-        recent_support = getattr(self_agent.critic, "recent_signed_support", None)
-        if not callable(recent_support):
-            return True
-        support = recent_support()
+        support = _recent_support_snapshot(self_agent)
         return (
             int(support.get("positive", 0)) >= MIN_CRITIC_POSITIVE_RETURNS
             and int(support.get("negative", 0)) >= MIN_CRITIC_NEGATIVE_RETURNS
@@ -322,8 +351,7 @@ def install_critic_support_gate(
 
     def diagnostics_with_support(self_agent: object) -> dict[str, Any]:
         output = dict(original_diagnostics())
-        recent_support = getattr(self_agent.critic, "recent_signed_support", None)
-        recent = recent_support() if callable(recent_support) else {}
+        recent = _recent_support_snapshot(self_agent)
         output["critic_support"] = {
             "enabled": True,
             "threshold": threshold,
