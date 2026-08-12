@@ -87,7 +87,7 @@ def _renamed_state(
 
 
 def test_current_manifest_has_no_active_legacy_components() -> None:
-    assert CURRENT_GENERATION_VERSION == "aassr-current-generation-v2"
+    assert CURRENT_GENERATION_VERSION == "aassr-current-generation-v3-pre10k-audited"
     assert LEGACY_COMPONENTS_ACTIVE == ()
     assert CURRENT_COMPONENTS["policy"].startswith("relational-invariant-dqn")
     assert CURRENT_COMPONENTS["prophecy"].startswith(
