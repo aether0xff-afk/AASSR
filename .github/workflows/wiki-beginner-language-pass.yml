@@ -7,6 +7,7 @@ on:
     paths:
       - scripts/koreanize_wiki_prose.py
       - scripts/koreanize_wiki_common_jargon.py
+      - scripts/koreanize_wiki_remaining_jargon.py
       - scripts/fix_wiki_beginner_compounds.py
       - scripts/check_wiki_beginner_language.py
       - .github/workflows/wiki-beginner-language-pass.yml
@@ -30,6 +31,8 @@ jobs:
         run: python scripts/koreanize_wiki_prose.py
       - name: Apply common research-jargon Korean-first pass
         run: python scripts/koreanize_wiki_common_jargon.py
+      - name: Apply remaining deep-page jargon pass
+        run: python scripts/koreanize_wiki_remaining_jargon.py
       - name: Fix compound terminology and preserve research markers
         run: python scripts/fix_wiki_beginner_compounds.py
       - name: Validate wiki links and current contracts
