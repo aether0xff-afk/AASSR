@@ -435,6 +435,7 @@ class StatusAwareRelationalStochasticProphecy(
             **self._status_diagnostics(),
             "status_categorical_inference": 1,
             "complete_learned_ensemble_mass": 1,
+            "per_row_batch_host_sync": 0,
         }
 
 
@@ -627,6 +628,7 @@ class StatusAwareConditionalMixtureRelationalProphecy(
             "status_categorical_inference": 1,
             "decision_surface_preserving_mode_merge": 1,
             "complete_learned_mixture_mass": 1,
+            "per_row_batch_host_sync": 0,
         }
 
 

@@ -23,6 +23,7 @@ from aassr_v2.current_generation import (
 from aassr_v2.current_hardware import (
     HardwareRelationalGRUBranchCritic,
     HardwareRelationalInvariantDQN,
+    hardware_diagnostics,
 )
 from aassr_v2.current_protocol import run_current_episode
 from aassr_v2.pentest_agent_main_test import DynamicActionDQN
@@ -168,6 +169,7 @@ def test_current_aassr_and_dqn_controls_use_hardware_paths() -> None:
     assert str(aassr.base_neural_prophecy.device) == "cpu"
     assert aassr.planner.scorer is aassr.critic
     assert aassr.current_depth_batching is True
+    assert hardware_diagnostics(aassr)["prophecy"]["per_row_batch_host_sync"] == 0
 
 
 def test_current_calibration_refresh_batches_selected_holdout_rows() -> None:
