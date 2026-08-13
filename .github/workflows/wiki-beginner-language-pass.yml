@@ -1,0 +1,41 @@
+name: Wiki beginner language pass
+
+on:
+  push:
+    branches:
+      - docs/wiki-beginner-korean-pass
+    paths:
+      - scripts/koreanize_wiki_prose.py
+      - .github/workflows/wiki-beginner-language-pass.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rewrite:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/wiki-beginner-korean-pass
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply Korean-first terminology pass
+        run: python scripts/koreanize_wiki_prose.py
+      - name: Validate wiki links and current contracts
+        run: python scripts/check_wiki_integrity.py
+      - name: Commit generated wiki prose changes
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- wiki; then
+            echo 'No wiki prose changes.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add wiki
+          git commit -m 'Apply Korean-first terminology pass'
+          git push origin HEAD:docs/wiki-beginner-korean-pass
