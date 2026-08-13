@@ -13,7 +13,7 @@ AASSR은 **중간 힌트가 거의 없는 문제에서 인공지능이 스스로
 
 AASSR이라는 이름은 `An Agent for Solving Sparse Reward problem`에서 왔다.
 
-여기서 **희소 보상(sparse reward)**은 성공에 도달하기 전까지 점수가 거의 주어지지 않는 문제를 뜻한다.
+여기서 **희소 보상([희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment))**은 성공에 도달하기 전까지 점수가 거의 주어지지 않는 문제를 뜻한다.
 
 예를 들어:
 
@@ -90,7 +90,7 @@ AASSR이라는 이름은 `An Agent for Solving Sparse Reward problem`에서 왔�
 
 예를 들어 `OOD`만 던지는 대신:
 
-> **학습 분포 밖(OOD, Out-of-Distribution)** — 모델이 학습할 때 충분히 보지 못한 종류의 상태나 행동 영역
+> **학습 분포 밖([학습 분포 밖(OOD)](Critic-Support-and-OOD), Out-of-Distribution)** — 모델이 학습할 때 충분히 보지 못한 종류의 상태나 행동 영역
 
 처럼 읽을 수 있게 한다.
 
@@ -124,7 +124,7 @@ AASSR은 하나의 거대한 신경망이 아니다.
 | [Calibration](Calibration) | 미래 예측을 믿을 수 있는지 검사 | “내 예측이 이 상황에서도 정확한 편인가?” |
 | [Imagination](Imagination) | 여러 행동의 미래를 실제 실행 전에 가상으로 비교 | “A와 B 중 어느 쪽 미래가 더 나을까?” |
 | [Critic](Critic) | 상상한 미래가 최종 목표에 좋은지 평가 | “그 미래는 실제 성공에 얼마나 좋은가?” |
-| [Critic 데이터 근거](Critic-Support-and-OOD) | 그 가치 평가를 뒷받침할 실제 학습 경험이 있는지 확인 | “그 숫자를 믿을 근거가 있나?” |
+| [가치 평가 데이터 근거](Critic-Support-and-OOD) | 그 가치 평가를 뒷받침할 실제 학습 경험이 있는지 확인 | “그 숫자를 믿을 근거가 있나?” |
 | [Skills](Skills) | 반복 성공한 행동 구조를 새 문제에서 재사용 | “전에 통했던 절차를 비슷한 문제에 다시 쓸 수 있나?” |
 
 ---
@@ -204,7 +204,7 @@ flowchart TD
 ≠ 그 가치 판단을 뒷받침하는 실제 데이터 근거
 ```
 
-이 구분이 [Prophecy](Prophecy), [Calibration](Calibration), [Critic](Critic), [Critic 데이터 근거](Critic-Support-and-OOD)를 따로 두는 이유다.
+이 구분이 [Prophecy](Prophecy), [Calibration](Calibration), [Critic](Critic), [가치 평가 데이터 근거](Critic-Support-and-OOD)를 따로 두는 이유다.
 
 ---
 
@@ -212,11 +212,11 @@ flowchart TD
 
 ## 보상 ≠ 누적 보상 ≠ Q값
 
-**보상(reward)**은 환경이 지금 주는 점수다.
+**보상([보상(reward)](Sparse-Reward-and-Credit-Assignment))**은 환경이 지금 주는 점수다.
 
-**누적 보상(return)**은 앞으로 받을 보상을 합친 장기 점수다.
+**누적 보상([누적 보상(return)](Value-Functions-and-Bellman-Equation))**은 앞으로 받을 보상을 합친 장기 점수다.
 
-**Q값(Q-value)**은 현재 상태에서 특정 행동을 했을 때 기대되는 장기 가치를 학습 모델이 추정한 값이다.
+**Q값([Q값(Q-value)](Value-Functions-and-Bellman-Equation))**은 현재 상태에서 특정 행동을 했을 때 기대되는 장기 가치를 학습 모델이 추정한 값이다.
 
 자세히: [가치 함수와 Bellman 식](Value-Functions-and-Bellman-Equation)
 
@@ -224,9 +224,9 @@ flowchart TD
 
 **환경 상태(state)**는 실제 세계의 전체 상황이다.
 
-**관측(observation)**은 그중 에이전트가 실제로 볼 수 있는 정보다.
+**관측([관측(observation)](MDP-and-POMDP))**은 그중 에이전트가 실제로 볼 수 있는 정보다.
 
-**표현(representation)**은 관측을 신경망이 쓰기 좋은 숫자·구조로 바꾼 것이다.
+**표현([표현(representation)](Relational-Representation-and-Generalization))**은 관측을 신경망이 쓰기 좋은 숫자·구조로 바꾼 것이다.
 
 자세히: [상태 표현](State-Representation)
 
@@ -264,7 +264,7 @@ flowchart TD
 
 에피소드가 끝났다는 사실만으로 `-1` 실패라고 보면 안 된다.
 
-예를 들어 실험의 행동 수 제한 때문에 강제로 끊긴 경우는 **외부 제한 종료(truncation)**이지 문제 자체의 실패가 아닐 수 있다.
+예를 들어 실험의 행동 수 제한 때문에 강제로 끊긴 경우는 **외부 제한 종료([외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries))**이지 문제 자체의 실패가 아닐 수 있다.
 
 자세히: [경험 저장소와 에피소드 경계](Replay-Buffer-and-Episode-Boundaries)
 
@@ -304,7 +304,7 @@ AASSR 위키에서는 다음 두 문장을 절대 같은 뜻으로 사용하지 
 그 기능이 최종 성능을 실제로 높인다는 것이 증명됐다
 ```
 
-예를 들어 Imagination이 현재 코드에 존재하더라도, 이것만으로 “Imagination 덕분에 AASSR의 성공률이 증가했다”고 말할 수는 없다.
+예를 들어 [Imagination(가상 미래 탐색)](Imagination)이 현재 코드에 존재하더라도, 이것만으로 “[Imagination](Imagination) 덕분에 AASSR의 성공률이 증가했다”고 말할 수는 없다.
 
 증거 수준을 대략 다음처럼 구분한다.
 
@@ -323,7 +323,7 @@ AASSR 위키에서는 다음 두 문장을 절대 같은 뜻으로 사용하지 
 
 # 현재 결과를 읽을 때 주의할 점
 
-2026년 8월 11일에는 이전 Imagination 구조가 좋지 않은 행동을 자주 선택하는 문제가 발견됐다.
+2026년 8월 11일에는 이전 [Imagination](Imagination) 구조가 좋지 않은 행동을 자주 선택하는 문제가 발견됐다.
 
 그 실험은 매우 중요하지만 **현재 버전의 성능 결과가 아니라 과거 실패 원인을 찾은 진단 실험**이다.
 
