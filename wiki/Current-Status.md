@@ -119,7 +119,7 @@ flowchart TD
 | [Calibration](Calibration) | 미래 예측이 이 상황에서도 믿을 만한지 평가 | 현재 사용 중, 성능 기여 검증 진행 중 |
 | [Imagination](Imagination) | 실제 행동 전 여러 단계의 미래를 가상으로 비교 | 구조는 구현됨, 최종 성능 효과는 아직 미증명 |
 | [Critic](Critic) | 상상한 미래가 최종 성공에 얼마나 좋은지 평가 | 현재 사용 중, 더 넓은 학습 경험 필요 |
-| [가치 평가 데이터 근거](Critic-Support-and-OOD) | Critic의 높은 값이 실제 경험으로 뒷받침되는지 확인 | 현재 사용 중, OOD 과신 억제 확인 |
+| [가치 평가 데이터 근거](Critic-Support-and-OOD) | [Critic(미래 가치 평가기)](Critic)의 높은 값이 실제 경험으로 뒷받침되는지 확인 | 현재 사용 중, [학습 분포 밖(OOD)](Critic-Support-and-OOD) 과신 억제 확인 |
 | [Skills](Skills) | 성공한 관계 구조를 새 문제에서 재사용 | 구현됨, 충분한 성능 증거는 아직 부족 |
 
 ---
@@ -152,7 +152,7 @@ aseq = semantic-self-loop-empirical-v3
 
 쉬운 뜻:
 
-- ASEQ는 실제로 경험한 `(현재 상태 S, 행동 A, 다음 상태 S')`를 기록한다.
+- [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ)는 실제로 경험한 `(현재 상태 S, 행동 A, 다음 상태 S')`를 기록한다.
 - 같은 행동이라는 이유만으로 금지하지 않는다.
 - 의미상 같은 상태에서 행동했는데 다시 같은 상태로 돌아오는 **제자리 반복**이 실제 경험에서 반복 확인될 때만 억제한다.
 - 실제로 상태가 변한 반복 행동은 허용한다.
@@ -167,7 +167,7 @@ policy = relational-invariant-dqn+information-residual-v1
 
 쉬운 뜻:
 
-기본 Policy는 DQN 계열로 장기적인 행동 가치를 배우고, **정보를 얻는 행동이 미래 판단에 줄 수 있는 추가 가치**는 별도 내부 항목으로 분리한다.
+기본 [Policy(정책 모델)](Policy)는 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) 계열로 장기적인 행동 가치를 배우고, **정보를 얻는 행동이 미래 판단에 줄 수 있는 추가 가치**는 별도 내부 항목으로 분리한다.
 
 이 정보 관련 항목은 환경의 실제 목표 보상에 중간 점수를 몰래 추가하는 것과 다르다.
 
@@ -175,7 +175,7 @@ policy = relational-invariant-dqn+information-residual-v1
 
 ## 4.4 미래 예측 모델
 
-현재 Prophecy의 정확한 코드 식별자는 다음이다.
+현재 [Prophecy(미래 예측 모델)](Prophecy)의 정확한 코드 식별자는 다음이다.
 
 ```text
 relational-conditional-mixture-ensemble-v5-status-balanced
@@ -189,7 +189,7 @@ relational-descriptor-v3+latest-http-status+legal-action-mask+active-success-fai
 
 쉬운 뜻:
 
-Prophecy는 단순히 “다음 상태 숫자 하나”를 예측하지 않는다.
+[Prophecy](Prophecy)는 단순히 “다음 상태 숫자 하나”를 예측하지 않는다.
 
 행동 뒤에:
 
@@ -216,7 +216,7 @@ class-balanced-categorical-public-http-status-v2
 
 ## 4.5 예측 신뢰도 보정
 
-현재 Calibration의 정확한 코드 식별자는 다음이다.
+현재 [Calibration(예측 신뢰도 보정)](Calibration)의 정확한 코드 식별자는 다음이다.
 
 ```text
 semantic-probability-holdout-calibration-v3-status-aware
@@ -242,7 +242,7 @@ semantic-probability-holdout-calibration-v3-status-aware
 
 ## 4.6 Imagination
 
-현재 Imagination은 대략 다음 원칙을 따른다.
+현재 [Imagination(가상 미래 탐색)](Imagination)은 대략 다음 원칙을 따른다.
 
 ```text
 실제 실행할 객체는 구체적으로 구분
@@ -265,7 +265,7 @@ semantic-probability-holdout-calibration-v3-status-aware
 
 ## 4.7 Critic
 
-현재 Critic은 실제 희소 보상 경험으로 미래의 장기 가치를 학습한다.
+현재 [Critic](Critic)은 실제 희소 보상 경험으로 미래의 장기 가치를 학습한다.
 
 ```text
 성공 경험  +1
@@ -287,9 +287,9 @@ local-real-training-support-fail-closed-v1
 
 쉬운 뜻:
 
-Critic이 어떤 상상된 미래에 높은 점수를 냈더라도 **비슷한 실제 학습 경험이 거의 없다면 그 숫자를 그대로 믿지 않는다.**
+[Critic](Critic)이 어떤 상상된 미래에 높은 점수를 냈더라도 **비슷한 실제 학습 경험이 거의 없다면 그 숫자를 그대로 믿지 않는다.**
 
-근거가 부족할 때는 Imagination이 기본 Policy의 행동을 함부로 바꾸지 못하게 한다.
+근거가 부족할 때는 [Imagination](Imagination)이 기본 [Policy](Policy)의 행동을 함부로 바꾸지 못하게 한다.
 
 관련: [가치 평가 데이터 근거와 학습 분포 밖(OOD)](Critic-Support-and-OOD)
 
@@ -397,14 +397,14 @@ AASSR 위키에서는 증거를 다음처럼 단계별로 구분한다.
 |---|---|---|
 | 현재 실행 구조 통합 | 높음 | 실제 코드와 회귀 테스트에서 확인 |
 | 숨은 정보 차단·공정한 관측 | 높음 | 구조와 회귀 테스트로 확인 |
-| ASEQ 제자리 반복 억제 | 비교적 강함 | 별도 진단 실험에서 반복 억제 효과 관측 |
+| [ASEQ](ASEQ) 제자리 반복 억제 | 비교적 강함 | 별도 진단 실험에서 반복 억제 효과 관측 |
 | 관계 기반 표현의 새 문제 전이 효과 | 중간 | 유망한 증거가 있지만 현재 최종 다중 비교 필요 |
-| Prophecy의 여러 결과 예측 | 구조적으로 강함 | 현재 구조와 회귀 검증 완료, 더 넓은 실제 성능 검증 필요 |
-| Calibration | 구조적으로 확인 | 최종 의사결정 성능 기여는 추가 검증 필요 |
-| Critic 데이터 근거 확인 | 메커니즘 확인 | 작은 현재 실험에서 근거 없는 행동 변경을 실제로 막음 |
-| Imagination의 실제 성공률 향상 | **아직 부족** | 가장 중요한 미해결 질문 중 하나 |
-| Skills의 새 문제 재사용 효과 | 초기 | 구현과 일부 검증은 있으나 충분한 성능 증거 부족 |
-| 전체 AASSR의 DQN/DreamerV3 대비 우위 | **아직 미증명** | 최종 비교 실험 전 |
+| [Prophecy](Prophecy)의 여러 결과 예측 | 구조적으로 강함 | 현재 구조와 회귀 검증 완료, 더 넓은 실제 성능 검증 필요 |
+| [Calibration](Calibration) | 구조적으로 확인 | 최종 의사결정 성능 기여는 추가 검증 필요 |
+| [Critic](Critic) 데이터 근거 확인 | 메커니즘 확인 | 작은 현재 실험에서 근거 없는 행동 변경을 실제로 막음 |
+| [Imagination](Imagination)의 실제 성공률 향상 | **아직 부족** | 가장 중요한 미해결 질문 중 하나 |
+| [Skills(성공 절차 재사용)](Skills)의 새 문제 재사용 효과 | 초기 | 구현과 일부 검증은 있으나 충분한 성능 증거 부족 |
+| 전체 AASSR의 [DQN](Q-Learning-DQN-and-TD)/[DreamerV3(외부 세계 모델 강화학습 비교군)](Experiments) 대비 우위 | **아직 미증명** | 최종 비교 실험 전 |
 | 창의적인 새로운 해결 과정 | 장기 연구 | 아직 직접적인 핵심 성능 주장으로 사용하지 않음 |
 
 연구 질문별 정확한 가설과 증거는 [연구 질문-증거 연결표](Evidence-Matrix)에서 확인한다.
@@ -413,9 +413,9 @@ AASSR 위키에서는 증거를 다음처럼 단계별로 구분한다.
 
 # 7. ASEQ는 현재 무엇까지 확인됐나?
 
-ASEQ는 현재 AASSR에서 비교적 메커니즘 증거가 강한 부분이다.
+[ASEQ](ASEQ)는 현재 AASSR에서 비교적 메커니즘 증거가 강한 부분이다.
 
-과거의 focused 진단에서는 기본 탐욕 정책이 새 문제에서 제자리 반복에 빠지는 현상이 나타났다.
+과거의 [특정 범위에 집중한(focused)](Experiments) 진단에서는 기본 탐욕 정책이 새 문제에서 제자리 반복에 빠지는 현상이 나타났다.
 
 대표적인 진단 결과는:
 
@@ -434,7 +434,7 @@ ASEQ는 현재 AASSR에서 비교적 메커니즘 증거가 강한 부분이다.
 
 하지만 이것만으로:
 
-> “ASEQ가 전체 AASSR의 최종 성공률을 항상 높인다.”
+> “[ASEQ](ASEQ)가 전체 AASSR의 최종 성공률을 항상 높인다.”
 
 라고 말할 수는 없다.
 
@@ -484,7 +484,7 @@ L2 평가               4 / 4 실제 실패
 
 ## 8.2 Imagination은 행동 변경 후보를 찾기는 했다
 
-계획기는 일부 상황에서 기본 Policy와 다른 행동 후보를 만들었다.
+계획기는 일부 상황에서 기본 [Policy](Policy)와 다른 행동 후보를 만들었다.
 
 하지만 마지막 단계에서:
 
@@ -504,7 +504,7 @@ L2 평가               4 / 4 실제 실패
 
 따라서 현재 가장 타당한 해석은:
 
-> **Imagination이 최종 성능을 높였다는 증거는 아직 없지만, 학습 분포 밖에서 근거 없는 행동 변경을 막는 안전장치는 의도대로 작동했다.**
+> **[Imagination](Imagination)이 최종 성능을 높였다는 증거는 아직 없지만, 학습 분포 밖에서 근거 없는 행동 변경을 막는 안전장치는 의도대로 작동했다.**
 
 이다.
 
@@ -512,11 +512,11 @@ L2 평가               4 / 4 실제 실패
 
 # 9. 현재 가장 큰 병목: 더 어려운 영역의 실제 경험 부족
 
-현재 연구에서 가장 중요한 병목은 **frontier/sample coverage**, 즉 아직 충분히 배우지 못한 더 어려운 문제 영역까지 실제 경험이 도달하지 못하는 것이다.
+현재 연구에서 가장 중요한 병목은 **frontier/[표본(sample)](Ablation-Benchmarking-and-Reproducibility) [데이터가 어느 영역까지 포함하는지(coverage)](Critic-Support-and-OOD)**, 즉 아직 충분히 배우지 못한 더 어려운 문제 영역까지 실제 경험이 도달하지 못하는 것이다.
 
 한국어로 풀면:
 
-> **미래 예측기와 Critic이 더 어려운 문제를 제대로 평가하려면 그 주변의 실제 경험이 필요한데, 작은 학습 예산에서는 그 경험을 충분히 얻지 못했다.**
+> **미래 예측기와 [Critic](Critic)이 더 어려운 문제를 제대로 평가하려면 그 주변의 실제 경험이 필요한데, 작은 학습 예산에서는 그 경험을 충분히 얻지 못했다.**
 
 흐름을 그림으로 보면:
 
@@ -550,7 +550,7 @@ Imagination이 다른 행동을 제안해도 마지막 안전장치에서 거부
 
 이 구분은 매우 중요하다.
 
-2026년 8월 11일의 이전 Imagination 진단에서는 다음과 같은 문제가 있었다.
+2026년 8월 11일의 이전 [Imagination](Imagination) 진단에서는 다음과 같은 문제가 있었다.
 
 ```text
 Imagination 끔   4 / 20
@@ -561,14 +561,14 @@ Imagination 켬   4 / 20
 
 이 결과는 **현재 구조의 성능 숫자가 아니다.**
 
-이 실험은 이전 구조에서 왜 Imagination이 좋지 않은 행동을 자주 선택하는지 원인을 찾는 데 사용됐다.
+이 실험은 이전 구조에서 왜 [Imagination](Imagination)이 좋지 않은 행동을 자주 선택하는지 원인을 찾는 데 사용됐다.
 
 그 진단을 통해 다음과 같은 문제들이 드러났다.
 
 - 공개 상태 코드 정보가 표현에서 충분히 보존되지 않음
 - 여러 실제 가능한 미래를 평균 하나로 뭉개는 문제
 - 환경 결과와 다음 행동 선택을 같은 방식으로 처리하는 문제
-- Critic의 학습 분포 밖 과신
+- [Critic](Critic)의 학습 분포 밖 과신
 - 실제 행동이 바뀌기 전부터 행동 변경 횟수를 세던 진단 오류
 - 관계상 같은 구조를 구체적인 객체 이름별로 중복 계산하던 문제
 
@@ -627,11 +627,11 @@ Imagination 켬   4 / 20
 
 ## 12.2 “AASSR이 DQN보다 항상 우수하다”
 
-현재 세대의 최종 raw DQN / relational DQN / AASSR 비교가 아직 끝나지 않았다.
+현재 세대의 최종 [가공하지 않은 원본(raw)](State-Representation) [DQN](Q-Learning-DQN-and-TD) / [관계 기반(relational)](Relational-Representation-and-Generalization) [DQN](Q-Learning-DQN-and-TD) / AASSR 비교가 아직 끝나지 않았다.
 
 ## 12.3 “AASSR이 DreamerV3보다 우수하다”
 
-공정한 공식 DreamerV3 비교 경로는 준비하고 있지만 최종 다중 비교 결과가 아직 없다.
+공정한 공식 [DreamerV3](Experiments) 비교 경로는 준비하고 있지만 최종 다중 비교 결과가 아직 없다.
 
 ## 12.4 “Skill이 새 문제 일반화를 크게 높인다”
 
@@ -659,11 +659,11 @@ Imagination 켬   4 / 20
 
 | 조건 | 쉬운 뜻 | 무엇을 알아보기 위한가? |
 |---|---|---|
-| `dqn_raw` | 원본에 가까운 관측을 쓰는 DQN | 가장 기본적인 학습 기준 |
-| `dqn_relational` | 관계 기반 표현만 사용하는 DQN | 관계 표현 자체의 효과 |
-| `dreamerv3_relational` | 공식 DreamerV3에 관계 기반 환경 연결 | 외부의 강한 세계 모델 강화학습 비교군 |
-| `aassr_current_no_imagination` | 현재 AASSR에서 Imagination만 끔 | Imagination 이외 AASSR 구조의 효과 |
-| `aassr_current_full` | 같은 AASSR 체크포인트에서 Imagination을 켬 | Imagination 자체의 추가 효과 |
+| `dqn_raw` | 원본에 가까운 관측을 쓰는 [DQN](Q-Learning-DQN-and-TD) | 가장 기본적인 학습 기준 |
+| `dqn_relational` | 관계 기반 표현만 사용하는 [DQN](Q-Learning-DQN-and-TD) | 관계 표현 자체의 효과 |
+| `dreamerv3_relational` | 공식 [DreamerV3](Experiments)에 관계 기반 환경 연결 | 외부의 강한 세계 모델 강화학습 비교군 |
+| `aassr_current_no_imagination` | 현재 AASSR에서 [Imagination](Imagination)만 끔 | [Imagination](Imagination) 이외 AASSR 구조의 효과 |
+| `aassr_current_full` | 같은 AASSR 체크포인트에서 [Imagination](Imagination)을 켬 | [Imagination](Imagination) 자체의 추가 효과 |
 
 이 비교를 통해 질문을 분리한다.
 
@@ -691,9 +691,9 @@ AASSR Full
 
 중요한 공정성 규칙:
 
-> **AASSR의 Imagination 끔/켬 비교는 동일한 학습 체크포인트를 사용하고 평가할 때 Imagination만 바꾼다.**
+> **AASSR의 [Imagination](Imagination) 끔/켬 비교는 동일한 학습 체크포인트를 사용하고 평가할 때 [Imagination](Imagination)만 바꾼다.**
 
-그래야 성능 차이가 다른 학습 결과 때문이 아니라 Imagination 때문인지 볼 수 있다.
+그래야 성능 차이가 다른 학습 결과 때문이 아니라 [Imagination](Imagination) 때문인지 볼 수 있다.
 
 관련: [실험 설계와 결과](Experiments)
 
@@ -707,9 +707,9 @@ AASSR Full
 
 - 현재 실행 경로가 과거 구현을 몰래 사용하지 않는가?
 - 상태 표현이 숨은 정답을 포함하지 않는가?
-- Prophecy가 여러 결과와 확률을 올바르게 보존하는가?
-- Calibration이 결과 확률과 신뢰도를 섞지 않는가?
-- Critic이 실제 희소 보상 의미를 배우는가?
+- [Prophecy](Prophecy)가 여러 결과와 확률을 올바르게 보존하는가?
+- [Calibration](Calibration)이 결과 확률과 신뢰도를 섞지 않는가?
+- [Critic](Critic)이 실제 희소 보상 의미를 배우는가?
 - 외부 제한 종료와 실제 실패를 구분하는가?
 - 실제 경험과 가상 경험을 섞지 않는가?
 
@@ -717,7 +717,7 @@ AASSR Full
 
 - 비교군이 같은 실제 상태 전이 예산을 쓰는가?
 - 평가 중 모델이 더 학습하지 않는가?
-- Imagination 끔/켬이 동일 체크포인트를 사용하는가?
+- [Imagination](Imagination) 끔/켬이 동일 체크포인트를 사용하는가?
 - 최종 비공개 평가 문제를 미리 사용하지 않았는가?
 
 ## 실제 실행 성능
