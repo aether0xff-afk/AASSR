@@ -6,6 +6,8 @@ on:
       - docs/wiki-beginner-korean-pass
     paths:
       - scripts/koreanize_wiki_prose.py
+      - scripts/fix_wiki_beginner_compounds.py
+      - scripts/check_wiki_beginner_language.py
       - .github/workflows/wiki-beginner-language-pass.yml
   workflow_dispatch:
 
@@ -25,8 +27,12 @@ jobs:
           python-version: '3.11'
       - name: Apply Korean-first terminology pass
         run: python scripts/koreanize_wiki_prose.py
+      - name: Fix compound terminology and preserve research markers
+        run: python scripts/fix_wiki_beginner_compounds.py
       - name: Validate wiki links and current contracts
         run: python scripts/check_wiki_integrity.py
+      - name: Validate beginner-friendly Korean-first prose
+        run: python scripts/check_wiki_beginner_language.py
       - name: Commit generated wiki prose changes
         run: |
           set -euo pipefail
