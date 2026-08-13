@@ -500,7 +500,7 @@ def _install_status_mixture_fast_path(base: object) -> None:
                 "packed_host_transfer_batches": self.performance_host_transfer_batches,
                 "training_metric_sync_batches": self.performance_training_metric_syncs,
                 "deferred_ensemble_variance_sync": 1,
-                "vectorized_status_mixture_decode": 1,
+                "vectorized_status_mixture_decode": 0,
             }
         )
         return result
@@ -510,7 +510,9 @@ def _install_status_mixture_fast_path(base: object) -> None:
     from .current_relational_model import RelationalPrediction
     base.RelationalPrediction = RelationalPrediction
     base._forward = MethodType(forward, base)
-    base._decoded_outputs = MethodType(decoded_outputs, base)
+    # Keep member-by-member decoding. On CUDA, combining the ensemble dimension
+    # can select a different reduction shape and perturb calibration at the last
+    # few bits. Packed transfer and deferred diagnostic sync remain active.
     base._confidence_from_decoded = MethodType(confidence_from_decoded, base)
     base._train_step = MethodType(train_step, base)
     base.predict_batch = MethodType(predict_batch, base)

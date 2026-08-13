@@ -93,7 +93,7 @@ def test_vectorized_status_mixture_decode_matches_reference() -> None:
     reference = baseline._decoded_outputs(outputs)
     fast = optimized._decoded_outputs(outputs)
     for left, right in zip(reference, fast, strict=True):
-        torch.testing.assert_close(left, right, rtol=0.0, atol=1e-7)
+        assert torch.equal(left, right)
 
 
 def test_calibration_holdout_index_preserves_value_and_reuses_scan() -> None:

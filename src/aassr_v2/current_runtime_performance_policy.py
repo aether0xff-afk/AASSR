@@ -42,8 +42,7 @@ def install_current_runtime_performance_device_aware(agent: object) -> object:
             getattr(agent, "current_runtime_cuda_fast_path", device_type == "cuda")
         )
 
-    install_current_runtime_performance_v2(
-        agent,
-        enable_cuda_fusion=cuda_fast_path,
-    )
+    # Batched CUDA GEMMs change the accumulation order of the independent Linear
+    # modules and can violate the exact learning-counter contract.
+    install_current_runtime_performance_v2(agent, enable_cuda_fusion=False)
     return agent

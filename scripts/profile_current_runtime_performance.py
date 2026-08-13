@@ -16,6 +16,25 @@ from aassr_v2.pentest_transfer_stages import TRANSFER_STAGES, TRANSFER_TRAIN_SEE
 
 
 PROFILE_VERSION = "current-runtime-performance-profile-v1"
+LEARNING_COUNTER_NAMES = (
+    "dqn.environment_steps",
+    "dqn.gradient_updates",
+    "dqn.replay_size",
+    "prophecy.observations",
+    "prophecy.gradient_updates",
+    "prophecy.replay_size",
+    "critic.episodes",
+    "critic.gradient_updates",
+    "critic.replay_size",
+    "evaluator.train_size",
+    "evaluator.holdout_size",
+    "policy.information_size",
+    "policy.skill_values_size",
+    "feature_memory_size",
+    "skills_size",
+    "predictor.bias",
+    "predictor.weights",
+)
 
 
 def _sync(device: str) -> None:
@@ -70,7 +89,10 @@ def _run_training(
     train_seeds: Sequence[int],
     device: str,
     performance: bool,
+    label: str,
+    progress_every: int,
 ) -> tuple[object, dict[str, Any]]:
+    print(f"[{label}] starting {transition_budget} transitions on {device}", flush=True)
     agent = build_current_pentest_aassr_core(
         seed=int(research_seed),
         train_transitions=int(transition_budget),
@@ -86,6 +108,7 @@ def _run_training(
     rows = []
     _sync(device)
     started = time.perf_counter()
+    next_progress = max(1, int(progress_every))
     with current_hot_path_phase(agent, "training"):
         while transition_total < transition_budget:
             stage = TRANSFER_STAGES[0]
@@ -118,8 +141,18 @@ def _run_training(
             rows.append(row)
             transition_total += consumed
             episode += 1
+            if transition_total >= next_progress or transition_total >= transition_budget:
+                elapsed_so_far = time.perf_counter() - started
+                print(
+                    f"[{label}] {transition_total}/{transition_budget} transitions "
+                    f"({elapsed_so_far:.1f}s elapsed)",
+                    flush=True,
+                )
+                while next_progress <= transition_total:
+                    next_progress += max(1, int(progress_every))
     _sync(device)
     elapsed = time.perf_counter() - started
+    print(f"[{label}] complete in {elapsed:.1f}s", flush=True)
 
     diagnostics = agent.diagnostics()
     profile = current_hot_path_snapshot(
@@ -193,6 +226,7 @@ def main() -> None:
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--transitions", type=int, default=512)
     parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument("--progress-every", type=int, default=64)
     parser.add_argument(
         "--output",
         default="runs/current_runtime_performance_profile.json",
@@ -200,6 +234,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.transitions <= 0:
         raise SystemExit("--transitions must be positive")
+    if args.progress_every <= 0:
+        raise SystemExit("--progress-every must be positive")
 
     seeds = TRANSFER_TRAIN_SEEDS[:4]
     reference_agent, reference = _run_training(
@@ -208,6 +244,8 @@ def main() -> None:
         train_seeds=seeds,
         device=args.device,
         performance=False,
+        label="reference",
+        progress_every=args.progress_every,
     )
     optimized_agent, optimized = _run_training(
         research_seed=args.seed,
@@ -215,6 +253,8 @@ def main() -> None:
         train_seeds=seeds,
         device=args.device,
         performance=True,
+        label="optimized",
+        progress_every=args.progress_every,
     )
 
     differences = _parameter_difference(reference_agent, optimized_agent)
@@ -226,10 +266,21 @@ def main() -> None:
         ),
         "critic": _replay_equal(reference_agent.critic.replay, optimized_agent.critic.replay),
     }
-    exact_contract_match = (
-        reference["episode_rows"] == optimized["episode_rows"]
-        and reference["learning_counters"] == optimized["learning_counters"]
-        and all(replay_match.values())
+    episode_rows_match = reference["episode_rows"] == optimized["episode_rows"]
+    learning_counters_match = (
+        reference["learning_counters"] == optimized["learning_counters"]
+    )
+    learning_counter_differences = {
+        name: {
+            "reference": reference["learning_counters"][index],
+            "optimized": optimized["learning_counters"][index],
+        }
+        for index, name in enumerate(LEARNING_COUNTER_NAMES)
+        if reference["learning_counters"][index]
+        != optimized["learning_counters"][index]
+    }
+    exact_contract_match = bool(
+        episode_rows_match and learning_counters_match and all(replay_match.values())
     )
     max_parameter_difference = max(differences.values(), default=0.0)
     # CUDA kernel formulation can introduce tiny roundoff while preserving the
@@ -240,6 +291,9 @@ def main() -> None:
 
     comparison = {
         "exact_training_contract_match": exact_contract_match,
+        "episode_rows_match": episode_rows_match,
+        "learning_counters_match": learning_counters_match,
+        "learning_counter_differences": learning_counter_differences,
         "numerical_parameter_contract_match": numerical_contract_match,
         "safe_for_scaling": safe,
         "replay_match": replay_match,
