@@ -149,13 +149,13 @@ AASSR에는 기본 행동을 고르는 [Policy](Policy) 모듈이 있다.
 
 **쉬운 뜻:** 환경의 실제 목표 보상과 별개로, 새 정보나 새로운 상태를 찾도록 내부 신호를 주는 방법 계열.
 
-AASSR에서는 외부 task [보상(reward)](Sparse-Reward-and-Credit-Assignment)와 내부 정보 관련 신호를 구분한다.
+AASSR에서는 외부 [연구 과제(task)](Sparse-Reward-Problem) [보상(reward)](Sparse-Reward-and-Credit-Assignment)와 내부 정보 관련 신호를 구분한다.
 
 관련: [정보 이론과 내재 동기](Information-Theory-and-Intrinsic-Motivation)
 
 ## 새로운 정도 — novelty
 
-**영어:** novelty
+**영어:** [새로움(novelty)](Information-Theory-and-Intrinsic-Motivation)
 
 **쉬운 뜻:** 지금까지 덜 보았던 상태나 행동이 얼마나 새로운지.
 
@@ -293,7 +293,7 @@ S → A → S
 
 ## 행동 후보 억제 — suppression
 
-**영어:** suppression
+**영어:** [후보 억제(suppression)](ASEQ)
 
 **쉬운 뜻:** 어떤 행동을 영구 삭제하는 것이 아니라, 현재 선택 후보에서 우선적으로 제외하거나 약하게 만드는 것.
 
@@ -307,7 +307,7 @@ S → A → S
 
 **한국어:** 딥 Q-네트워크.
 
-**쉬운 뜻:** Q값을 표 대신 신경망으로 예측하는 Q-learning 계열 방법.
+**쉬운 뜻:** Q값을 표 대신 신경망으로 예측하는 [Q-러닝(Q-learning)](Q-Learning-DQN-and-TD) 계열 방법.
 
 관련: [Q-learning·DQN·TD](Q-Learning-DQN-and-TD)
 
@@ -335,7 +335,7 @@ S → A → S
 
 **쉬운 뜻:** 다음 상태가 실제 같은 에피소드의 연속이 아니므로 미래 값을 이어 붙이면 안 되는 지점.
 
-예를 들어 요청 제한으로 강제 reset된 뒤의 새 상태 가치를 이전 에피소드에 연결하면 잘못된 학습이 될 수 있다.
+예를 들어 요청 제한으로 강제 [환경 초기화(reset)](Replay-Buffer-and-Episode-Boundaries)된 뒤의 새 상태 가치를 이전 에피소드에 연결하면 잘못된 학습이 될 수 있다.
 
 관련: [Replay Buffer와 에피소드 경계](Replay-Buffer-and-Episode-Boundaries)
 
@@ -367,7 +367,7 @@ S → A → S
 
 ## 정보 가치 잔차 — information-value residual
 
-**쉬운 뜻:** 어떤 행동이 정보를 얻는 데 얼마나 도움이 되는지를 task Q값과 분리해 보는 내부 항목.
+**쉬운 뜻:** 어떤 행동이 정보를 얻는 데 얼마나 도움이 되는지를 연구 과제 Q값과 분리해 보는 내부 항목.
 
 외부 보상에 중간 점수를 직접 추가하는 것과 다르다.
 
@@ -441,7 +441,7 @@ S → A → S
 
 ## 여러 결과의 혼합 — mixture
 
-**영어:** mixture
+**영어:** [여러 결과의 혼합 분포(mixture)](Mixture-Ensemble-and-Calibration)
 
 **쉬운 뜻:** 같은 입력에서 여러 실제 결과 후보가 존재할 때 각각을 따로 유지하는 표현.
 
@@ -457,7 +457,7 @@ S → A → S
 
 ## 여러 모델 묶음 — ensemble
 
-**영어:** ensemble
+**영어:** [여러 모델을 함께 쓰는 앙상블(ensemble)](Mixture-Ensemble-and-Calibration)
 
 **쉬운 뜻:** 하나의 모델만 믿지 않고 여러 학습 모델의 예측을 함께 보는 구조.
 
@@ -537,7 +537,7 @@ S → A → S
 
 ## 탐색 깊이 — horizon
 
-**영어:** horizon
+**영어:** [미래를 내다보는 범위(horizon)](Counterfactual-Planning-and-Search)
 
 **쉬운 뜻:** 미래를 몇 단계까지 상상할지 나타내는 범위.
 
@@ -850,13 +850,13 @@ AASSR의 `current_manifest.py`가 이에 해당한다.
 
 ## 외부 제한 종료 — truncation
 
-**쉬운 뜻:** 목표상 성공/실패가 결정된 것이 아니라 시간 제한, 요청 제한, 상태 전이 budget 같은 외부 이유로 에피소드가 끊긴 경우.
+**쉬운 뜻:** 목표상 성공/실패가 결정된 것이 아니라 시간 제한, 요청 제한, 상태 전이 [실험에 허용된 전이 수 한도(budget)](Ablation-Benchmarking-and-Reproducibility) 같은 외부 이유로 에피소드가 끊긴 경우.
 
 ## 요청 제한 — rate limit
 
 **쉬운 뜻:** 너무 많은 요청 등으로 환경이 더 이상 요청을 허용하지 않는 상황.
 
-이런 종료를 task [실패(failure)](Replay-Buffer-and-Episode-Boundaries)와 같은 `-1`로 취급하면 학습 의미가 달라질 수 있다.
+이런 종료를 연구 과제 [실패(failure)](Replay-Buffer-and-Episode-Boundaries)와 같은 `-1`로 취급하면 학습 의미가 달라질 수 있다.
 
 관련: [Replay Buffer와 에피소드 경계](Replay-Buffer-and-Episode-Boundaries)
 

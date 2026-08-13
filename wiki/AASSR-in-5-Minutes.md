@@ -286,11 +286,11 @@ AASSR은 이 시간 순서를 지키려고 한다.
 
 그래서 현재 [Prophecy(미래 예측 모델)](Prophecy)는 **가능한 여러 결과를 따로 유지하고 각각의 확률을 표현**한다.
 
-이것을 **혼합 분포(mixture)**라고 한다.
+이것을 **혼합 분포([여러 결과의 혼합 분포(mixture)](Mixture-Ensemble-and-Calibration))**라고 한다.
 
 또 하나의 학습 모델만 사용하는 것이 아니라 여러 모델의 예측을 함께 보기도 한다.
 
-이것은 **앙상블(ensemble)**이라고 한다.
+이것은 **앙상블([여러 모델을 함께 쓰는 앙상블(ensemble)](Mixture-Ensemble-and-Calibration))**이라고 한다.
 
 둘은 전혀 다른 개념이다.
 

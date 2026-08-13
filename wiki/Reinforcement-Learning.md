@@ -52,7 +52,7 @@ AASSR은 후자에 더 가까운 문제를 다룬다.
 
 **[에이전트(Agent)](Reinforcement-Learning)**는 행동을 선택하는 주체다.
 
-AASSR에서는 하나의 신경망만 에이전트인 것이 아니다. 실제 decision은 여러 구성요소의 조합으로 만들어진다.
+AASSR에서는 하나의 신경망만 에이전트인 것이 아니다. 실제 [의사결정(decision)](Chance-and-Decision-Nodes)은 여러 구성요소의 조합으로 만들어진다.
 
 ```text
 Relational State
@@ -92,7 +92,7 @@ Environment가 내부적으로 알고 있는 것
 Agent가 observation으로 볼 수 있는 것
 ```
 
-환경 simulator가 [숨겨진(hidden)](MDP-and-POMDP) session TTL, 숨겨진 workflow stage, 정답 target [식별 방식(identity)](State-Representation)를 알고 있다고 해서 [학습 주체(learner)](Terminology-Guide)에게 그 정보를 주면 안 된다.
+환경 [환경 시뮬레이터(simulator)](MDP-and-POMDP)가 [숨겨진(hidden)](MDP-and-POMDP) [한 번의 접속 세션(session)](Terminology-Guide) TTL, 숨겨진 workflow stage, 정답 [대상 또는 학습 목표값(target)](Terminology-Guide) [식별 방식(identity)](State-Representation)를 알고 있다고 해서 [학습 주체(learner)](Terminology-Guide)에게 그 정보를 주면 안 된다.
 
 이 경계는 [Causality, Leakage and Evaluation](Causality-Leakage-and-Evaluation)에서 더 깊게 다룬다.
 
@@ -153,13 +153,13 @@ AASSR의 `response-causal public observation contract`는 학습 주체가 실�
 
 - 실제로 발견한 route 관계
 - 실제로 관측한 HTTP [상태 코드(status)](Terminology-Guide)
-- 실제 legal [행동(action)](Reinforcement-Learning) surface
+- 실제 [현재 허용된(legal)](Terminology-Guide) [행동(action)](Reinforcement-Learning) [현재 선택 가능한 영역(surface)](Terminology-Guide)
 
 반면 다음은 직접 관측으로 주지 않는다.
 
 - 정답 route
-- 숨겨진 countdown
-- 숨겨진 [난이도 조절 학습(curriculum)](Curriculum-Learning) level
+- 숨겨진 [남은 횟수 카운트다운(countdown)](Causality-Leakage-and-Evaluation)
+- 숨겨진 [난이도 조절 학습(curriculum)](Curriculum-Learning) [난이도 단계(level)](Curriculum-Learning)
 - 미래 결과
 
 ---
@@ -190,7 +190,7 @@ GET /route-12
 catalog-like route를 request
 ```
 
-는 같은 행동을 서로 다른 abstr행동 level에서 본 것이다.
+는 같은 행동을 서로 다른 abstr행동 난이도 단계에서 본 것이다.
 
 관련 페이지:
 
@@ -201,7 +201,7 @@ catalog-like route를 request
 
 # 7. Reward
 
-**[보상(Reward)](Sparse-Reward-and-Credit-Assignment)**는 환경이 한 [상태 전이(transition)](MDP-and-POMDP)에 대해 주는 즉각적인 scalar 학습 신호다.
+**[보상(Reward)](Sparse-Reward-and-Credit-Assignment)**는 환경이 한 [상태 전이(transition)](MDP-and-POMDP)에 대해 주는 즉각적인 [숫자 하나인 스칼라(scalar)](Neural-Networks-and-Optimization) 학습 신호다.
 
 ```math
 r_t \in \mathbb{R}
@@ -272,7 +272,7 @@ AASSR [Critic(미래 가치 평가기)](Critic)이 학습하려는 것은 바로
 
 가 된다.
 
-AASSR [Critic](Critic)의 discounted sparse-누적 보상 target을 이해하려면 이 개념이 필요하다.
+AASSR [Critic](Critic)의 [미래 보상을 시간에 따라 할인한(discounted)](Value-Functions-and-Bellman-Equation) sparse-누적 보상 대상/목표값을 이해하려면 이 개념이 필요하다.
 
 ---
 
@@ -280,13 +280,13 @@ AASSR [Critic](Critic)의 discounted sparse-누적 보상 target을 이해하려
 
 **[Policy(정책 모델)](Policy) `π`**는 주어진 정보에서 어떤 행동을 선택할지 정의하는 규칙이다.
 
-확률적 policy:
+확률적 [정책(policy)](Policy):
 
 ```math
 \pi(a\mid s)=P(A_t=a\mid S_t=s)
 ```
 
-결정론적 policy:
+결정론적 정책:
 
 ```math
 a=\pi(s)
@@ -304,7 +304,7 @@ AASSR의 [Policy](Policy)는 [관계 기반(relational)](Relational-Representati
 
 # 11. Value function
 
-Value function은 **미래의 누적 보상 기대값**을 나타낸다.
+Value [함수(function)](Terminology-Guide)은 **미래의 누적 보상 기대값**을 나타낸다.
 
 ## State value
 
@@ -357,7 +357,7 @@ AASSR의 [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ)는 실제 `(S,A
 
 # 13. Episode
 
-**Episode**는 하나의 시작부터 종료까지 이어지는 trajectory다.
+**Episode**는 하나의 시작부터 종료까지 이어지는 [경험 경로(trajectory)](Reinforcement-Learning)다.
 
 종료 이유는 모두 같은 의미가 아니다.
 
@@ -369,23 +369,23 @@ stalled reset
 transition cap
 ```
 
-특히 RL 구현에서는 **환경 의미의 실패**와 **학습상 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)을 끊어야 하는 boundary**를 구분할 필요가 있다.
+특히 RL 구현에서는 **환경 의미의 실패**와 **학습상 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)을 끊어야 하는 [경계(boundary)](Replay-Buffer-and-Episode-Boundaries)**를 구분할 필요가 있다.
 
-AASSR의 stalled/rate-limit/reset 관련 설계는 [Replay Buffer and Episode Boundaries](Replay-Buffer-and-Episode-Boundaries)에서 자세히 설명한다.
+AASSR의 [진전 없이 반복하다 멈춘(stalled)](ASEQ)/rate-limit/[환경 초기화(reset)](Replay-Buffer-and-Episode-Boundaries) 관련 설계는 [Replay Buffer and Episode Boundaries](Replay-Buffer-and-Episode-Boundaries)에서 자세히 설명한다.
 
 ---
 
 # 14. Model-Free RL
 
-**Model-free RL**은 환경 [환경의 상태 변화 규칙(dynamics)](Model-Based-RL-and-World-Models) `P(S'|S,A)`를 명시적으로 학습해 계획하지 않고, policy나 가치를 직접 학습하는 계열이다.
+**Model-free RL**은 환경 [환경의 상태 변화 규칙(dynamics)](Model-Based-RL-and-World-Models) `P(S'|S,A)`를 명시적으로 학습해 계획하지 않고, 정책나 가치를 직접 학습하는 계열이다.
 
 대표 예:
 
-- Q-learning
+- [Q-러닝(Q-learning)](Q-Learning-DQN-and-TD)
 - [DQN](Q-Learning-DQN-and-TD)
 - 많은 actor-critic 방법
 
-AASSR의 기본 [Policy](Policy) [DQN](Q-Learning-DQN-and-TD)은 model-free [구성요소(component)](Research-Architecture)다.
+AASSR의 기본 [Policy](Policy) [DQN](Q-Learning-DQN-and-TD)은 [환경 예측 모델 없이 직접 학습하는(model-free)](Reinforcement-Learning) [구성요소(component)](Research-Architecture)다.
 
 ```text
 State → Q-values → Action
@@ -439,17 +439,17 @@ Critic = long-horizon value estimator
 
 ## On-policy
 
-현재 행동을 만드는 policy에서 나온 경험으로 그 policy를 학습한다.
+현재 행동을 만드는 정책에서 나온 경험으로 그 정책를 학습한다.
 
 ## Off-policy
 
-다른 behavior policy에서 나온 과거 경험도 현재 학습 주체가 재사용할 수 있다.
+다른 [행동 양상(behavior)](Experiments) 정책에서 나온 과거 경험도 현재 학습 주체가 재사용할 수 있다.
 
-Q-learning/[DQN](Q-Learning-DQN-and-TD)은 대표적인 off-policy 계열이다.
+Q-러닝/[DQN](Q-Learning-DQN-and-TD)은 대표적인 off-policy 계열이다.
 
 그래서 [Replay Buffer](Replay-Buffer-and-Episode-Boundaries)가 자연스럽게 사용된다.
 
-AASSR에서도 실제 상태 전이을 replay해 [Policy](Policy), [Prophecy(미래 예측 모델)](Prophecy), [Critic](Critic)의 학습 근거로 사용한다.
+AASSR에서도 실제 상태 전이을 [저장된 경험의 재사용(replay)](Replay-Buffer-and-Episode-Boundaries)해 [Policy](Policy), [Prophecy(미래 예측 모델)](Prophecy), [Critic](Critic)의 학습 근거로 사용한다.
 
 ---
 

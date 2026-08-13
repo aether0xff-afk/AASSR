@@ -44,7 +44,7 @@ HTTP outcome
 
 이들을 단일 Gaussian/평균으로 표현하는 것은 부적절할 수 있다.
 
-AASSR의 conditional mixture는 이런 여러 환경 결과 결과 유형를 명시적으로 보존하려는 설계다.
+AASSR의 [조건부(conditional)](Stochasticity-Uncertainty-and-Probability) [여러 결과의 혼합 분포(mixture)](Mixture-Ensemble-and-Calibration)는 이런 여러 환경 결과 결과 유형를 명시적으로 보존하려는 설계다.
 
 ---
 
@@ -59,12 +59,12 @@ p(y\mid x)=\sum_{m=1}^{M}\pi_m(x)p_m(y\mid x)
 여기서:
 
 - `M`: 구성요소 수
-- `π_m(x)`: 구성요소 weight
+- `π_m(x)`: 구성요소 [가중치(weight)](Neural-Networks-and-Optimization)
 - `p_m`: 각 구성요소 분포
 
-조건 `x`에 따라 mixture weight가 달라지면 **conditional mixture**다.
+조건 `x`에 따라 혼합 분포 가중치가 달라지면 **조건부 혼합 분포**다.
 
-AASSR에서는 `x`가 [관계 기반(relational)](Relational-Representation-and-Generalization) 상태/행동 context에 해당한다.
+AASSR에서는 `x`가 [관계 기반(relational)](Relational-Representation-and-Generalization) 상태/행동 [문맥 정보(context)](GRU-and-Sequence-Models)에 해당한다.
 
 ---
 
@@ -78,7 +78,7 @@ AASSR에서는 `x`가 [관계 기반(relational)](Relational-Representation-and-
 \sum_m\pi_m=1
 ```
 
-AASSR [계획기(planner)](Counterfactual-Planning-and-Search)에서 이 mass는 chance [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability)와 연결된다.
+AASSR [계획기(planner)](Counterfactual-Planning-and-Search)에서 이 [확률 질량(mass)](Stochasticity-Uncertainty-and-Probability)는 [환경의 확률 분기(chance)](Chance-and-Decision-Nodes) [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability)와 연결된다.
 
 중요:
 
@@ -88,7 +88,7 @@ mixture weight
 model reliability
 ```
 
-어떤 결과 유형에 90% mass를 줬더라도 모델이 해당 region을 거의 학습하지 않았다면 그 [예측(prediction)](Terminology-Guide) 전체는 신뢰하기 어려울 수 있다.
+어떤 결과 유형에 90% 확률 질량를 줬더라도 모델이 해당 [상태 공간의 영역(region)](Critic-Support-and-OOD)을 거의 학습하지 않았다면 그 [예측(prediction)](Terminology-Guide) 전체는 신뢰하기 어려울 수 있다.
 
 ---
 
@@ -104,7 +104,7 @@ component 3 → A
 
 실제 [환경(environment)](Reinforcement-Learning)가 여러 결과 형태를 가진인데 학습 모델이 한 결과 유형만 남기면 위험 환경 결과이나 [드문(rare)](Loss-Functions-and-Class-Imbalance) 환경 결과을 잃을 수 있다.
 
-AASSR에서는 multimodality preservation 자체를 [회귀 테스트(regression test)](Ablation-Benchmarking-and-Reproducibility)/[진단 실험(diagnostic)](Evidence-Matrix) 대상으로 둘 가치가 있다.
+AASSR에서는 multimodality [의미 보존(preservation)](Ablation-Benchmarking-and-Reproducibility) 자체를 [회귀 테스트(regression test)](Ablation-Benchmarking-and-Reproducibility)/[진단 실험(diagnostic)](Evidence-Matrix) 대상으로 둘 가치가 있다.
 
 ---
 
@@ -121,23 +121,23 @@ B = failure-like
 C = neither
 ```
 
-Planner는 `C`에서 존재하지 않는 legal 행동을 상상하거나 잘못된 [Critic(미래 가치 평가기)](Critic) [가치(value)](Value-Functions-and-Bellman-Equation)를 받을 수 있다.
+[계획기(Planner)](Counterfactual-Planning-and-Search)는 `C`에서 존재하지 않는 [현재 허용된(legal)](Terminology-Guide) 행동을 상상하거나 잘못된 [Critic(미래 가치 평가기)](Critic) [가치(value)](Value-Functions-and-Bellman-Equation)를 받을 수 있다.
 
-Conditional mixture가 필요한 핵심 이유다.
+Conditional 혼합 분포가 필요한 핵심 이유다.
 
 ---
 
 # 7. Mixture와 categorical prediction
 
-모든 [학습에 사용하는 특징(feature)](Terminology-Guide)를 continuous mixture로 예측해야 하는 것은 아니다.
+모든 [학습에 사용하는 특징(feature)](Terminology-Guide)를 continuous 혼합 분포로 예측해야 하는 것은 아니다.
 
-HTTP [상태 코드(status)](Terminology-Guide)처럼 서로 배타적인 category는 [범주형(categorical)](Loss-Functions-and-Class-Imbalance) 분포이 자연스럽다.
+HTTP [상태 코드(status)](Terminology-Guide)처럼 서로 배타적인 [범주(category)](Loss-Functions-and-Class-Imbalance)는 [범주형(categorical)](Loss-Functions-and-Class-Imbalance) 분포이 자연스럽다.
 
 ```math
 p(c\mid x)=softmax(z)_c
 ```
 
-AASSR [현재(current)](Current-Status) 상태 코드 target은 대표 [공개된(public)](State-Representation) 상태 코드 classes를 범주형하게 다룬다.
+AASSR [현재(current)](Current-Status) 상태 코드 [대상 또는 학습 목표값(target)](Terminology-Guide)은 대표 [공개된(public)](State-Representation) 상태 코드 classes를 범주형하게 다룬다.
 
 관련 페이지:
 
@@ -148,7 +148,7 @@ AASSR [현재(current)](Current-Status) 상태 코드 target은 대표 [공개�
 
 # 8. Class imbalance
 
-Training data에 특정 class가 압도적으로 많으면 학습 모델이 드문 class를 무시할 수 있다.
+[학습(Training)](Reinforcement-Learning) [데이터(data)](Terminology-Guide)에 특정 [범주(class)](Loss-Functions-and-Class-Imbalance)가 압도적으로 많으면 학습 모델이 드문 범주를 무시할 수 있다.
 
 ```text
 200: 90%
@@ -158,15 +158,15 @@ Training data에 특정 class가 압도적으로 많으면 학습 모델이 드�
 ...
 ```
 
-전체 accuracy만 보면 200 예측이 매우 좋아 보일 수 있다.
+전체 [정확도(accuracy)](Ablation-Benchmarking-and-Reproducibility)만 보면 200 예측이 매우 좋아 보일 수 있다.
 
 하지만 [계획(planning)](Counterfactual-Planning-and-Search)에서는 드문 실패 상태 코드가 [의사결정에 중요한(decision-critical)](Calibration)할 수 있다.
 
-그래서 class weighting/balancing이 필요할 수 있다.
+그래서 범주 weighting/balancing이 필요할 수 있다.
 
 중요한 방법론 경계:
 
-> class frequency를 보정하는 것과 사람이 `403=-10점` 같은 task 가치를 주입하는 것은 다르다.
+> 범주 frequency를 보정하는 것과 사람이 `403=-10점` 같은 [연구 과제(task)](Sparse-Reward-Problem) 가치를 주입하는 것은 다르다.
 
 ---
 
@@ -182,7 +182,7 @@ Model 3
 combined prediction / disagreement
 ```
 
-각 학습 모델은 다른 initialization, [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries) sample, [학습(training)](Terminology-Guide) noise 등을 가질 수 있다.
+각 학습 모델은 다른 initialization, [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries) [표본(sample)](Ablation-Benchmarking-and-Reproducibility), [학습(training)](Terminology-Guide) [잡음(noise)](Stochasticity-Uncertainty-and-Probability) 등을 가질 수 있다.
 
 ---
 
@@ -190,7 +190,7 @@ combined prediction / disagreement
 
 여러 학습 모델이 같은 [입력(input)](Terminology-Guide)에 대해 비슷한 예측을 내면 안정적인 [증거(evidence)](Evidence-Matrix)가 될 수 있다.
 
-반대로 크게 disagree하면 학습 모델 uncertainty가 높을 수 있다.
+반대로 크게 disagree하면 학습 모델 [불확실성(uncertainty)](Stochasticity-Uncertainty-and-Probability)가 높을 수 있다.
 
 ```text
 M1 → A
@@ -204,9 +204,9 @@ M3 → C
 → disagreement 큼
 ```
 
-하지만 ensemble agreement만으로 완벽한 [신뢰도(reliability)](Calibration)를 보장하지는 않는다.
+하지만 [여러 모델을 함께 쓰는 앙상블(ensemble)](Mixture-Ensemble-and-Calibration) agreement만으로 완벽한 [신뢰도(reliability)](Calibration)를 보장하지는 않는다.
 
-모든 학습 모델이 같은 biased data를 학습하면 함께 틀릴 수 있다.
+모든 학습 모델이 같은 biased 데이터를 학습하면 함께 틀릴 수 있다.
 
 ---
 
@@ -220,7 +220,7 @@ M3 → C
 
 ## Ensemble
 
-여러 learned 학습 모델을 사용해 **학습 모델 uncertainty / robustness**에 대한 정보를 얻는다.
+여러 [학습된(learned)](Neural-Networks-and-Optimization) 학습 모델을 사용해 **학습 모델 불확실성 / robustness**에 대한 정보를 얻는다.
 
 단순하게:
 
@@ -255,21 +255,21 @@ Ensemble disagreement
 
 # 13. Calibration이란?
 
-[Calibration(예측 신뢰도 보정)](Calibration)은 학습 모델이 내는 [예측 신뢰 정도(confidence)](Calibration)/[확률(probability)](Stochasticity-Uncertainty-and-Probability)와 실제 correctness의 관계를 맞추는 개념이다.
+[Calibration(예측 신뢰도 보정)](Calibration)은 학습 모델이 내는 [예측 신뢰 정도(confidence)](Calibration)/[확률(probability)](Stochasticity-Uncertainty-and-Probability)와 실제 [의도한 대로 정확히 동작하는지(correctness)](Ablation-Benchmarking-and-Reproducibility)의 관계를 맞추는 개념이다.
 
 Binary classification에서 이상적으로:
 
-> 예측 신뢰 정도 0.8이라고 예측한 sample들의 약 80%가 실제로 맞는다.
+> 예측 신뢰 정도 0.8이라고 예측한 표본들의 약 80%가 실제로 맞는다.
 
 와 같은 성질을 생각할 수 있다.
 
-하지만 AASSR의 [세계 모델(world model)](Model-Based-RL-and-World-Models)은 단순 binary classifier가 아니므로 calibration도 더 복잡하다.
+하지만 AASSR의 [세계 모델(world model)](Model-Based-RL-and-World-Models)은 단순 binary classifier가 아니므로 [예측 신뢰도 보정(calibration)](Calibration)도 더 복잡하다.
 
 ---
 
 # 14. Holdout calibration
 
-Training에 직접 사용하지 않은 [실제 환경에서 관측된(real)](Research-Jargon-Guide) [상태 전이(transition)](MDP-and-POMDP)을 이용해 학습 모델 예측 quality를 평가한다.
+학습에 직접 사용하지 않은 [실제 환경에서 관측된(real)](Research-Jargon-Guide) [상태 전이(transition)](MDP-and-POMDP)을 이용해 학습 모델 예측 [품질(quality)](Ablation-Benchmarking-and-Reproducibility)를 평가한다.
 
 ```text
 Training set
@@ -279,7 +279,7 @@ Holdout set
 → reliability evaluation
 ```
 
-AASSR에서는 관계 기반 행동 region별로 충분한 [검증용 분리 데이터(holdout)](Calibration) sample이 있는지 확인하고 [의미 기준(semantic)](State-Representation) 예측 correctness를 계산한다.
+AASSR에서는 관계 기반 행동 영역별로 충분한 [검증용 분리 데이터(holdout)](Calibration) 표본이 있는지 확인하고 [의미 기준(semantic)](State-Representation) 예측 정확한 동작 여부를 계산한다.
 
 관련 페이지:
 
@@ -290,14 +290,14 @@ AASSR에서는 관계 기반 행동 region별로 충분한 [검증용 분리 데
 
 # 15. Semantic calibration
 
-World 학습 모델의 correctness를 단순 vector MSE 하나로만 측정하면 의사결정에 중요한 error를 놓칠 수 있다.
+[세계(World)](Model-Based-RL-and-World-Models) 학습 모델의 정확한 동작 여부를 단순 [수치 벡터(vector)](Neural-Networks-and-Optimization) MSE 하나로만 측정하면 의사결정에 중요한 [오차(error)](Loss-Functions-and-Class-Imbalance)를 놓칠 수 있다.
 
 AASSR 의미 기준 [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)은 개념적으로 다음을 함께 본다.
 
-- 관계 기반 상태 semantics
+- 관계 기반 상태 [의미 규칙(semantics)](State-Representation)
 - [가능 행동 마스크(legal action mask)](Prophecy)
 - 공개된 HTTP 상태 코드
-- [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) class
+- [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) 범주
 
 즉:
 
@@ -328,7 +328,7 @@ prediction 2: 크게 틀림, probability 0.99
 
 Top-1 matching [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)만 보면 좋아 보이지만 학습 모델 분포은 사실상 틀렸다.
 
-그래서 probability-weighted [평가 점수(score)](Terminology-Guide):
+그래서 [확률로 가중한(probability-weighted)](Chance-and-Decision-Nodes) [평가 점수(score)](Terminology-Guide):
 
 ```math
 C=\sum_i p_i\,score(\hat s_i',s')
@@ -340,9 +340,9 @@ C=\sum_i p_i\,score(\hat s_i',s')
 
 # 17. Frozen holdout
 
-Evaluation 중 calibration reference가 계속 변하면 [같은 체크포인트(same-checkpoint)](Experiments) 비교가 불안정해질 수 있다.
+Evaluation 중 예측 신뢰도 보정 reference가 계속 변하면 [같은 체크포인트(same-checkpoint)](Experiments) 비교가 불안정해질 수 있다.
 
-AASSR 현재 calibration은 검증용 분리 데이터을 freeze하는 경로를 가진다.
+AASSR 현재 예측 신뢰도 보정은 검증용 분리 데이터을 freeze하는 경로를 가진다.
 
 ```text
 model/checkpoint 고정
@@ -350,13 +350,13 @@ holdout 고정
 → OFF / ON 평가
 ```
 
-이렇게 하면 [Imagination(가상 미래 탐색)](Imagination) ON/OFF 비교에서 calibration 기준 자체가 움직이는 confound를 줄일 수 있다.
+이렇게 하면 [Imagination(가상 미래 탐색)](Imagination) ON/OFF 비교에서 예측 신뢰도 보정 기준 자체가 움직이는 confound를 줄일 수 있다.
 
 ---
 
 # 18. Data shortage와 fail-closed
 
-특정 관계 기반 행동 region에 검증용 분리 데이터 sample이 거의 없다고 하자.
+특정 관계 기반 행동 영역에 검증용 분리 데이터 표본이 거의 없다고 하자.
 
 두 해석이 가능하다.
 
@@ -395,7 +395,7 @@ high reliability
 high task value
 ```
 
-AASSR 현재 design은 예측 신뢰 정도를 [Critic](Critic) 가치 bonus로 넣지 않는다.
+AASSR 현재 [설계(design)](Design-Rationale)은 예측 신뢰 정도를 [Critic](Critic) 가치 [추가 점수(bonus)](Information-Theory-and-Intrinsic-Motivation)로 넣지 않는다.
 
 ---
 
@@ -427,7 +427,7 @@ Critic OOD
 
 # 21. Calibration metric 자체의 overfitting
 
-[Calibration](Calibration) [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility)을 반복해서 보며 학습 모델 [구조(architecture)](Research-Architecture)/hyperparameter를 맞추면 사실상 [검증(validation)](Ablation-Benchmarking-and-Reproducibility) set에 overfit할 수 있다.
+[Calibration](Calibration) [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility)을 반복해서 보며 학습 모델 [구조(architecture)](Research-Architecture)/hyperparameter를 맞추면 사실상 [검증(validation)](Ablation-Benchmarking-and-Reproducibility) [집합(set)](Terminology-Guide)에 overfit할 수 있다.
 
 그래서 최종 연구에서는:
 
@@ -445,7 +445,7 @@ Critic OOD
 
 # 22. Reliability diagram 개념
 
-분류 확률 calibration을 볼 때 예측 예측 신뢰 정도 bin과 empirical accuracy를 비교하는 신뢰도 diagram을 사용할 수 있다.
+분류 확률 예측 신뢰도 보정을 볼 때 예측 예측 신뢰 정도 bin과 [실제 관측 경험에 근거한(empirical)](Ablation-Benchmarking-and-Reproducibility) 정확도를 비교하는 신뢰도 diagram을 사용할 수 있다.
 
 ```text
 0.1 confidence bin → 실제 10% 맞음?
@@ -453,13 +453,13 @@ Critic OOD
 0.9 confidence bin → 실제 90% 맞음?
 ```
 
-AASSR의 의미 기준 세계 모델에는 그대로 적용하기 어렵지만, **예측 신뢰 정도가 실제 correctness를 반영해야 한다**는 기본 철학은 같다.
+AASSR의 의미 기준 세계 모델에는 그대로 적용하기 어렵지만, **예측 신뢰 정도가 실제 정확한 동작 여부를 반영해야 한다**는 기본 철학은 같다.
 
 ---
 
 # 23. Expected Calibration Error 개념
 
-일반 classification에서 ECE는 예측 신뢰 정도 bin별 예측 신뢰 정도와 accuracy 차이를 가중 평균한다.
+일반 classification에서 ECE는 예측 신뢰 정도 bin별 예측 신뢰 정도와 정확도 차이를 가중 평균한다.
 
 개념적으로:
 
@@ -467,7 +467,7 @@ AASSR의 의미 기준 세계 모델에는 그대로 적용하기 어렵지만, 
 ECE=\sum_b\frac{|B_b|}{N}|acc(B_b)-conf(B_b)|
 ```
 
-AASSR 현재 의미 기준 calibration은 ECE 하나로 정의되는 구조는 아니지만, 관련 연구 배경으로 알아두면 좋다.
+AASSR 현재 의미 기준 예측 신뢰도 보정은 ECE 하나로 정의되는 구조는 아니지만, 관련 연구 배경으로 알아두면 좋다.
 
 ---
 
@@ -493,19 +493,19 @@ reliable branches만 planner에 허용
 
 ## "Mixture component 수가 많을수록 무조건 좋다"
 
-아니다. 너무 많으면 학습/식별이 어렵고 구성요소 collapse/redundancy가 생길 수 있다.
+아니다. 너무 많으면 학습/식별이 어렵고 구성요소 [여러 결과가 하나로 뭉개지는 붕괴(collapse)](Mixture-Ensemble-and-Calibration)/redundancy가 생길 수 있다.
 
 ## "Ensemble이 동의하면 정답이다"
 
-아니다. shared bias가 있으면 모두 같이 틀릴 수 있다.
+아니다. shared [편향(bias)](Ablation-Benchmarking-and-Reproducibility)가 있으면 모두 같이 틀릴 수 있다.
 
 ## "Softmax 0.99면 reliability 0.99다"
 
-아니다. neural classifier는 [학습 분포 밖(OOD)](Critic-Support-and-OOD)에서 과도하게 confident할 수 있다.
+아니다. [신경망 기반(neural)](Neural-Networks-and-Optimization) classifier는 [학습 분포 밖(OOD)](Critic-Support-and-OOD)에서 과도하게 confident할 수 있다.
 
 ## "Calibration이 높으면 좋은 행동이다"
 
-아니다. 정확하게 예측된 실패도 calibration은 높을 수 있다.
+아니다. 정확하게 예측된 실패도 예측 신뢰도 보정은 높을 수 있다.
 
 ---
 

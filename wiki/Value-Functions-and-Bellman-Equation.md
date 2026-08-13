@@ -1,6 +1,6 @@
 # Value Functions and Bellman Equation
 
-강화학습에서 **[가치(value)](Value-Functions-and-Bellman-Equation) function**은 현재 상태 또는 행동이 장기적으로 얼마나 좋은지를 **미래 누적 [보상(reward)](Sparse-Reward-and-Credit-Assignment)의 기대값**으로 나타낸다.
+강화학습에서 **[가치(value)](Value-Functions-and-Bellman-Equation) [함수(function)](Terminology-Guide)**은 현재 상태 또는 행동이 장기적으로 얼마나 좋은지를 **미래 누적 [보상(reward)](Sparse-Reward-and-Credit-Assignment)의 기대값**으로 나타낸다.
 
 AASSR의 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) [Policy(정책 모델)](Policy)와 sparse-[누적 보상(return)](Value-Functions-and-Bellman-Equation) [Critic(미래 가치 평가기)](Critic)을 이해하는 핵심 기초다.
 
@@ -45,7 +45,7 @@ G_t = R_{t+1} + \gamma R_{t+2} + \gamma^2R_{t+3}+\cdots
 
 더 늦은 보상가 더 많이 할인된다.
 
-`γ=1`에 가까우면 장기 horizon을 더 강하게 고려하지만, 문제 성질과 안정성을 함께 고려해야 한다.
+`γ=1`에 가까우면 장기 [미래를 내다보는 범위(horizon)](Counterfactual-Planning-and-Search)을 더 강하게 고려하지만, 문제 성질과 안정성을 함께 고려해야 한다.
 
 ---
 
@@ -59,13 +59,13 @@ V^\pi(s)=\mathbb{E}_\pi[G_t\mid S_t=s]
 
 뜻:
 
-> 현재 상태에 있고 앞으로 policy `π`를 따르면 평균적으로 얼마나 많은 discounted 누적 보상을 받을까?
+> 현재 상태에 있고 앞으로 [정책(policy)](Policy) `π`를 따르면 평균적으로 얼마나 많은 [미래 보상을 시간에 따라 할인한(discounted)](Value-Functions-and-Bellman-Equation) 누적 보상을 받을까?
 
 ---
 
 # 4. Action value Q
 
-[상태(State)](State-Representation) `s`에서 행동 `a`를 먼저 한 뒤 policy `π`를 따를 때의 기대 누적 보상:
+[상태(State)](State-Representation) `s`에서 행동 `a`를 먼저 한 뒤 정책 `π`를 따를 때의 기대 누적 보상:
 
 ```math
 Q^\pi(s,a)=\mathbb{E}_\pi[G_t\mid S_t=s,A_t=a]
@@ -79,7 +79,7 @@ AASSR [Policy](Policy)에서:
 Q_task(relational_state, action)
 ```
 
-는 외부 sparse task 누적 보상을 학습하는 부분이다.
+는 외부 [드문 보상만 있는(sparse)](Sparse-Reward-and-Credit-Assignment) [연구 과제(task)](Sparse-Reward-Problem) 누적 보상을 학습하는 부분이다.
 
 ---
 
@@ -101,7 +101,7 @@ Policy action value
 intervention advantage
 ```
 
-다만 AASSR의 구현상 advantage는 [계획기(planner)](Counterfactual-Planning-and-Search) [탐색의 첫 행동(root)](Imagination) [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility) 차이이며, 일반 actor-critic의 학습 advantage와 완전히 같은 객체라고 볼 필요는 없다.
+다만 AASSR의 구현상 [다른 선택보다 나은 정도(advantage)](Value-Functions-and-Bellman-Equation)는 [계획기(planner)](Counterfactual-Planning-and-Search) [탐색의 첫 행동(root)](Imagination) [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility) 차이이며, 일반 actor-critic의 학습 상대적 이점와 완전히 같은 객체라고 볼 필요는 없다.
 
 ---
 
@@ -144,7 +144,7 @@ Q^*(s,a)=
 \mathbb{E}\left[R_{t+1}+\gamma\max_{a'}Q^*(S_{t+1},a')\right]
 ```
 
-이 식이 [Q-learning](Q-Learning-DQN-and-TD)의 핵심 target으로 이어진다.
+이 식이 [Q-learning](Q-Learning-DQN-and-TD)의 핵심 [대상 또는 학습 목표값(target)](Terminology-Guide)으로 이어진다.
 
 ---
 
@@ -166,9 +166,9 @@ Bellman 가치 되돌림 계산:
 y=r+\gamma\max_{a'}Q(s',a')
 ```
 
-AASSR [Imagination](Imagination)에서도 tree의 자식 node 가치를 부모로 올리는 **[계획(planning)](Counterfactual-Planning-and-Search) 가치 되돌림 계산**이 존재한다.
+AASSR [Imagination](Imagination)에서도 [탐색 트리(tree)](Counterfactual-Planning-and-Search)의 자식 [탐색 트리의 한 지점(node)](Chance-and-Decision-Nodes) 가치를 부모로 올리는 **[계획(planning)](Counterfactual-Planning-and-Search) 가치 되돌림 계산**이 존재한다.
 
-하지만 [환경 결과 노드(chance node)](Chance-and-Decision-Nodes)와 [행동 선택 노드(decision node)](Chance-and-Decision-Nodes)의 가치 되돌림 계산 rule은 다르다.
+하지만 [환경 결과 노드(chance node)](Chance-and-Decision-Nodes)와 [행동 선택 노드(decision node)](Chance-and-Decision-Nodes)의 가치 되돌림 계산 [규칙(rule)](Terminology-Guide)은 다르다.
 
 관련 페이지:
 
@@ -179,7 +179,7 @@ AASSR [Imagination](Imagination)에서도 tree의 자식 node 가치를 부모�
 
 # 9. Bootstrapping
 
-현재 target을 계산할 때 **이미 학습 중인 가치 [추정값(estimate)](Value-Functions-and-Bellman-Equation)를 다시 사용하는 것**을 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)ping이라고 한다.
+현재 대상/목표값을 계산할 때 **이미 학습 중인 가치 [추정값(estimate)](Value-Functions-and-Bellman-Equation)를 다시 사용하는 것**을 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)ping이라고 한다.
 
 ```math
 target=r+\gamma V_{estimate}(s')
@@ -192,8 +192,8 @@ target=r+\gamma V_{estimate}(s')
 
 단점:
 
-- 잘못된 가치가 target으로 다시 들어가 bias/error를 퍼뜨릴 수 있음
-- [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries)/boundary 처리 실수가 큰 오류를 만듦
+- 잘못된 가치가 대상/목표값으로 다시 들어가 [편향(bias)](Ablation-Benchmarking-and-Reproducibility)/[오차(error)](Loss-Functions-and-Class-Imbalance)를 퍼뜨릴 수 있음
+- [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries)/[경계(boundary)](Replay-Buffer-and-Episode-Boundaries) 처리 실수가 큰 오류를 만듦
 
 더 자세히:
 
@@ -219,7 +219,7 @@ G_t=R_{t+1}+\gamma R_{t+2}+\cdots
 단점:
 
 - 종료까지 기다려야 함
-- variance가 클 수 있음
+- [분산(variance)](Stochasticity-Uncertainty-and-Probability)가 클 수 있음
 
 ## TD
 
@@ -231,11 +231,11 @@ r+\gamma V(s')
 
 장점:
 
-- 빠른 online update
+- 빠른 [경험이 들어올 때마다 갱신하는 온라인 방식(online)](Neural-Networks-and-Optimization) [학습 갱신(update)](Neural-Networks-and-Optimization)
 
 단점:
 
-- 추정값 error가 target에 들어감
+- 추정값 오차가 대상/목표값에 들어감
 
 ---
 
@@ -249,7 +249,7 @@ S0 → S1 → S2 → S3 → success(+1)
 
 처음에는 `S3` 근처에서만 성공 신호가 직접 보인다.
 
-TD update를 반복하면:
+TD 학습 갱신를 반복하면:
 
 ```text
 S3 value ↑
@@ -265,7 +265,7 @@ S1 target에 반영
 
 처럼 성공 신호가 뒤로 전파된다.
 
-문제는 **성공 한 번의 문제 풀이 구간 자체가 너무 드물면 이 propagation이 시작될 sample이 부족하다**는 것이다.
+문제는 **성공 한 번의 문제 풀이 구간 자체가 너무 드물면 이 propagation이 시작될 [표본(sample)](Ablation-Benchmarking-and-Reproducibility)이 부족하다**는 것이다.
 
 관련 페이지:
 
@@ -295,7 +295,7 @@ y=r+\gamma\max_{a'}Q(s',a')
 
 즉 에피소드 종료 flag는 **보상 값과 별개의 학습 의미**를 가진다.
 
-AASSR에서 stalled/reset이 보상 `0`이더라도 TD 다음 상태 가치 이어받기 boundary를 끊을 수 있는 이유가 여기에 있다.
+AASSR에서 [진전 없이 반복하다 멈춘(stalled)](ASEQ)/[환경 초기화(reset)](Replay-Buffer-and-Episode-Boundaries)이 보상 `0`이더라도 TD 다음 상태 가치 이어받기 경계를 끊을 수 있는 이유가 여기에 있다.
 
 관련 페이지:
 
@@ -305,13 +305,13 @@ AASSR에서 stalled/reset이 보상 `0`이더라도 TD 다음 상태 가치 이�
 
 # 13. Truncation의 복잡성
 
-Time limit 때문에 한 번의 문제 풀이 구간를 강제로 끊었다고 하자.
+Time [제한(limit)](Terminology-Guide) 때문에 한 번의 문제 풀이 구간를 강제로 끊었다고 하자.
 
-환경의 실제 underlying task는 에피소드 종료이 아닐 수도 있다.
+환경의 실제 underlying 연구 과제는 에피소드 종료이 아닐 수도 있다.
 
 그래서 일반 RL에서는 [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries)을 무조건 true 에피소드 종료과 동일하게 처리할지 주의해야 한다.
 
-AASSR의 [현재(current)](Current-Status) [학습(training)](Terminology-Guide)에서는 **world reset으로 이어져 다음 [관측(observation)](MDP-and-POMDP)이 같은 한 번의 문제 풀이 구간의 연속이 아니면 TD 다음 상태 가치 이어받기을 끊어야 하는 경우**가 있다.
+AASSR의 [현재(current)](Current-Status) [학습(training)](Terminology-Guide)에서는 **world 환경 초기화으로 이어져 다음 [관측(observation)](MDP-and-POMDP)이 같은 한 번의 문제 풀이 구간의 연속이 아니면 TD 다음 상태 가치 이어받기을 끊어야 하는 경우**가 있다.
 
 이것은 "외부 제한 종료 보상를 [실패(failure)](Replay-Buffer-and-Episode-Boundaries)로 바꾼다"와는 다르다.
 
@@ -354,7 +354,7 @@ decision node → max
 Q[s,a]
 ```
 
-큰 상태 space에서는 neural [신경망(network)](Neural-Networks-and-Optimization) 같은 function approximator를 쓴다.
+큰 상태 [공간(space)](MDP-and-POMDP)에서는 [신경망 기반(neural)](Neural-Networks-and-Optimization) [신경망(network)](Neural-Networks-and-Optimization) 같은 함수 approximator를 쓴다.
 
 ```math
 Q_\theta(s,a)
@@ -362,7 +362,7 @@ Q_\theta(s,a)
 
 [DQN](Q-Learning-DQN-and-TD)이 대표적이다.
 
-Function approximation은 [일반화(generalization)](Relational-Representation-and-Generalization)을 가능하게 하지만 동시에 [학습 분포 밖(OOD)](Critic-Support-and-OOD) extrapolation 문제를 만든다.
+Function [근사(approximation)](Value-Functions-and-Bellman-Equation)은 [일반화(generalization)](Relational-Representation-and-Generalization)을 가능하게 하지만 동시에 [학습 분포 밖(OOD)](Critic-Support-and-OOD) [학습 범위 밖으로 값을 추정하는 외삽(extrapolation)](Critic-Support-and-OOD) 문제를 만든다.
 
 관련 페이지:
 
@@ -373,9 +373,9 @@ Function approximation은 [일반화(generalization)](Relational-Representation-
 
 # 16. Critic이란?
 
-넓은 의미에서 [Critic](Critic)은 상태/행동/trajectory의 미래 누적 보상을 평가하는 가치 [값을 추정하는 모델(estimator)](Terminology-Guide)다.
+넓은 의미에서 [Critic](Critic)은 상태/행동/[경험 경로(trajectory)](Reinforcement-Learning)의 미래 누적 보상을 평가하는 가치 [값을 추정하는 모델(estimator)](Terminology-Guide)다.
 
-Actor-critic에서는 actor가 policy를 만들고 critic이 그 policy의 가치/advantage를 평가한다.
+Actor-critic에서는 actor가 정책를 만들고 critic이 그 정책의 가치/상대적 이점를 평가한다.
 
 AASSR의 [Critic](Critic)은 조금 다르게 사용된다.
 
@@ -430,7 +430,7 @@ AASSR에서:
 
 # 18. Value와 information value도 다르다
 
-AASSR [Policy](Policy)는 외부 task Q와 [정보 가치 잔차(information residual)](Policy)을 분리한다.
+AASSR [Policy](Policy)는 외부 연구 과제 Q와 [정보 가치 잔차(information residual)](Policy)을 분리한다.
 
 ```text
 Q_task
@@ -440,7 +440,7 @@ I
 = future decision에 도움이 될 정보의 내부 가치
 ```
 
-둘을 같은 보상 target으로 학습시키지 않는다.
+둘을 같은 보상 대상/목표값으로 학습시키지 않는다.
 
 관련 페이지:
 

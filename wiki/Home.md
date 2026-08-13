@@ -240,7 +240,7 @@ flowchart TD
 
 ## 혼합 분포 ≠ 앙상블
 
-**혼합 분포(mixture)**는 환경에서 실제로 여러 결과가 나올 수 있다는 뜻이다.
+**혼합 분포([여러 결과의 혼합 분포(mixture)](Mixture-Ensemble-and-Calibration))**는 환경에서 실제로 여러 결과가 나올 수 있다는 뜻이다.
 
 ```text
 70% 정상
@@ -248,7 +248,7 @@ flowchart TD
 10% 요청 제한
 ```
 
-**앙상블(ensemble)**은 여러 학습 모델을 같이 사용한다는 뜻이다.
+**앙상블([여러 모델을 함께 쓰는 앙상블(ensemble)](Mixture-Ensemble-and-Calibration))**은 여러 학습 모델을 같이 사용한다는 뜻이다.
 
 자세히: [혼합·앙상블·보정](Mixture-Ensemble-and-Calibration)
 

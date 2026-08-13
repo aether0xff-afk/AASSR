@@ -19,7 +19,7 @@ proof        +1.0
 
 그러나 그러면 [에이전트(agent)](Reinforcement-Learning)가 스스로 장기 구조를 배운 것인지, 사람이 제공한 subgoal을 따라간 것인지 분리하기 어렵다.
 
-따라서 [현재(current)](Current-Status) [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)는 외부 task 보상를 좁게 유지한다.
+따라서 [현재(current)](Current-Status) [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)는 외부 [연구 과제(task)](Sparse-Reward-Problem) 보상를 좁게 유지한다.
 
 ```text
 success       +1
@@ -27,7 +27,7 @@ true failure  -1
 otherwise      0
 ```
 
-AASSR의 내부 신호는 보상 shaping과 분리한다.
+AASSR의 내부 신호는 보상 [인위적인 형태 조정(shaping)](Sparse-Reward-and-Credit-Assignment)과 분리한다.
 
 ---
 
@@ -82,7 +82,7 @@ S -> A -> S
 
 의 진전 없는 반복이다.
 
-그래서 현재 [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ) guard는 intentionally narrow하다.
+그래서 현재 [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ) [잘못된 행동을 제한하는 보호 규칙(guard)](ASEQ)는 intentionally narrow하다.
 
 ---
 
@@ -102,7 +102,7 @@ separate information residual
 
 로 유지한다.
 
-이렇게 하면 환경이 주는 외부 [학습 목표(objective)](Terminology-Guide)와 internal [탐색(exploration)](Exploration-and-Exploitation) signal을 구분해서 감사할 수 있다.
+이렇게 하면 환경이 주는 외부 [학습 목표(objective)](Terminology-Guide)와 internal [탐색(exploration)](Exploration-and-Exploitation) [학습 신호(signal)](Information-Theory-and-Intrinsic-Motivation)을 구분해서 감사할 수 있다.
 
 ---
 
@@ -121,7 +121,7 @@ nonexistent C
 
 를 만들 수 있다.
 
-그래서 현재 [Prophecy(미래 예측 모델)](Prophecy)는 conditional mixture를 사용해 여러 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability) [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration)와 [확률 질량(probability mass)](Stochasticity-Uncertainty-and-Probability)를 보존한다.
+그래서 현재 [Prophecy(미래 예측 모델)](Prophecy)는 [조건부(conditional)](Stochasticity-Uncertainty-and-Probability) [여러 결과의 혼합 분포(mixture)](Mixture-Ensemble-and-Calibration)를 사용해 여러 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability) [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration)와 [확률 질량(probability mass)](Stochasticity-Uncertainty-and-Probability)를 보존한다.
 
 ---
 
@@ -137,9 +137,9 @@ nonexistent C
 
 이지만 의미를 그렇게 해석할 근거는 없다.
 
-그래서 서로 배타적인 [범주형(categorical)](Loss-Functions-and-Class-Imbalance) class로 학습한다.
+그래서 서로 배타적인 [범주형(categorical)](Loss-Functions-and-Class-Imbalance) [범주(class)](Loss-Functions-and-Class-Imbalance)로 학습한다.
 
-또 사람이 `403=나쁨` 같은 [가치(value)](Value-Functions-and-Bellman-Equation) rule을 직접 주입하지 않고 class imbalance만 일반적으로 보정한다.
+또 사람이 `403=나쁨` 같은 [가치(value)](Value-Functions-and-Bellman-Equation) [규칙(rule)](Terminology-Guide)을 직접 주입하지 않고 범주 [데이터 수의 불균형(imbalance)](Loss-Functions-and-Class-Imbalance)만 일반적으로 보정한다.
 
 ---
 
@@ -159,9 +159,9 @@ reliability
 success 90%
 ```
 
-라고 말해도 해당 region을 한 번도 제대로 학습하지 않았다면 그 90% 자체가 신뢰할 수 없을 수 있다.
+라고 말해도 해당 [상태 공간의 영역(region)](Critic-Support-and-OOD)을 한 번도 제대로 학습하지 않았다면 그 90% 자체가 신뢰할 수 없을 수 있다.
 
-따라서 mixture mass와 calibration [예측 신뢰 정도(confidence)](Calibration)를 다른 의미로 유지한다.
+따라서 혼합 분포 [확률 질량(mass)](Stochasticity-Uncertainty-and-Probability)와 [예측 신뢰도 보정(calibration)](Calibration) [예측 신뢰 정도(confidence)](Calibration)를 다른 의미로 유지한다.
 
 ---
 
@@ -209,7 +209,7 @@ V_{decision}=\max_aV(a)
 
 # 10. 왜 단순히 Imagination depth를 크게 하지 않는가?
 
-초기 질문을 `k를 몇으로 할 것인가?`라고 둘 수 있지만 현재 system에서는 trade-off가 더 중요하다.
+초기 질문을 `k를 몇으로 할 것인가?`라고 둘 수 있지만 현재 system에서는 [한쪽을 얻으면 다른 쪽을 잃는 상충 관계(trade-off)](Terminology-Guide)가 더 중요하다.
 
 ```text
 depth 증가
@@ -219,12 +219,12 @@ depth 증가
 -> branch explosion
 ```
 
-그래서 depth 하나의 정답보다:
+그래서 [탐색 깊이(depth)](Counterfactual-Planning-and-Search) 하나의 정답보다:
 
-- calibration
-- [탐색의 첫 행동(root)](Imagination) preservation
+- 예측 신뢰도 보정
+- [탐색의 첫 행동(root)](Imagination) [의미 보존(preservation)](Ablation-Benchmarking-and-Reproducibility)
 - 결과 경로 validity
-- [Critic](Critic) horizon
+- [Critic](Critic) [미래를 내다보는 범위(horizon)](Counterfactual-Planning-and-Search)
 - [묶음 처리(batching)](Reproduction)
 
 을 함께 본다.
@@ -233,14 +233,14 @@ depth 증가
 
 # 11. 왜 branch count `n`을 concrete action 수로 보면 안 되는가?
 
-현재 [행동(action)](Reinforcement-Learning) surface에는 이름만 다른 [구조 기반(structural)](Relational-Representation-and-Generalization) alias가 많을 수 있다.
+현재 [행동(action)](Reinforcement-Learning) [현재 선택 가능한 영역(surface)](Terminology-Guide)에는 이름만 다른 [구조 기반(structural)](Relational-Representation-and-Generalization) [같은 구조를 가리키는 다른 이름(alias)](State-Representation)가 많을 수 있다.
 
 ```text
 172 concrete actions
 -> 약 17 relational structures
 ```
 
-172개를 모두 독립적인 world-model 계산으로 보면 비용이 불필요하게 커진다.
+172개를 모두 독립적인 [세계 모델(world-model)](Model-Based-RL-and-World-Models) 계산으로 보면 비용이 불필요하게 커진다.
 
 그래서 계산 [식별 방식(identity)](State-Representation)와 실행 식별 방식를 분리한다.
 
@@ -258,7 +258,7 @@ real execution
 
 # 12. 왜 root를 보존하는가?
 
-깊은 결과 경로가 불확실하다고 탐색의 첫 행동 행동까지 삭제하면 계획기가 실제 legal 행동을 평가 후보에서 잃을 수 있다.
+깊은 결과 경로가 불확실하다고 탐색의 첫 행동 행동까지 삭제하면 계획기가 실제 [현재 허용된(legal)](Terminology-Guide) 행동을 평가 후보에서 잃을 수 있다.
 
 그래서:
 
@@ -274,7 +274,7 @@ deep rollout 실패
 
 # 13. 왜 Critic은 actual sparse return을 학습하는가?
 
-Planner 전용 handcrafted [평가 점수(score)](Terminology-Guide)를 [Critic](Critic) target으로 쓰면 최종 학습 목표와 [계획(planning)](Counterfactual-Planning-and-Search) 가치가 달라질 수 있다.
+[계획기(Planner)](Counterfactual-Planning-and-Search) 전용 handcrafted [평가 점수(score)](Terminology-Guide)를 [Critic](Critic) [대상 또는 학습 목표값(target)](Terminology-Guide)으로 쓰면 최종 학습 목표와 [계획(planning)](Counterfactual-Planning-and-Search) 가치가 달라질 수 있다.
 
 그래서 현재 [Critic](Critic)은 실제 환경이 주는 외부 환경 결과을 기반으로 한다.
 
@@ -284,15 +284,15 @@ failure -1
 truncation 0
 ```
 
-이렇게 하면 [Policy](Policy)와 계획이 궁극적으로 같은 task 학습 목표를 향한다.
+이렇게 하면 [Policy](Policy)와 계획이 궁극적으로 같은 연구 과제 학습 목표를 향한다.
 
 ---
 
 # 14. 왜 Critic을 모든 trajectory suffix에서 학습하는가?
 
-[Imagination(가상 미래 탐색)](Imagination)은 [한 번의 문제 풀이 구간(episode)](Terminology-Guide) 중간 어느 decision point에서도 시작할 수 있다.
+[Imagination(가상 미래 탐색)](Imagination)은 [한 번의 문제 풀이 구간(episode)](Terminology-Guide) 중간 어느 [의사결정(decision)](Chance-and-Decision-Nodes) [지점(point)](Terminology-Guide)에서도 시작할 수 있다.
 
-하지만 [GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) [Critic](Critic)을 한 번의 문제 풀이 구간 시작점에서만 학습하면 inference 시 필요한 과거 [숨겨진(hidden)](MDP-and-POMDP) memory가 없을 수 있다.
+하지만 [GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) [Critic](Critic)을 한 번의 문제 풀이 구간 시작점에서만 학습하면 [학습된 모델로 값을 계산하는 추론(inference)](Neural-Networks-and-Optimization) 시 필요한 과거 [숨겨진(hidden)](MDP-and-POMDP) [기억(memory)](GRU-and-Sequence-Models)가 없을 수 있다.
 
 그래서:
 
@@ -309,13 +309,13 @@ S2...
 S3...
 ```
 
-모든 decision suffix를 zero-memory 탐색의 첫 행동로 학습한다.
+모든 의사결정 [후속 구간(suffix)](GRU-and-Sequence-Models)를 [과거 기억을 0으로 초기화한(zero-memory)](GRU-and-Sequence-Models) 탐색의 첫 행동로 학습한다.
 
 ---
 
 # 15. 왜 global critic-ready만으로 부족한가?
 
-[Critic](Critic)이 [학습(training)](Terminology-Guide)을 완료했다는 것과 현재 [상태(state)](State-Representation)/행동 region을 경험했다는 것은 다르다.
+[Critic](Critic)이 [학습(training)](Terminology-Guide)을 완료했다는 것과 현재 [상태(state)](State-Representation)/행동 영역을 경험했다는 것은 다르다.
 
 ```text
 global ready = yes
@@ -326,7 +326,7 @@ local support = no
 
 2k [진단 실험(diagnostic)](Evidence-Matrix)은 실제로 이 문제를 드러냈다.
 
-그래서 현재 세대은 local real-training [데이터 근거(support)](Critic-Support-and-OOD) [판정 관문(gate)](Terminology-Guide)를 둔다.
+그래서 현재 세대은 [현재 주변에 한정된 국소적(local)](Critic-Support-and-OOD) [실제 환경 경험으로 학습한(real-training)](Critic-Support-and-OOD) [데이터 근거(support)](Critic-Support-and-OOD) [판정 관문(gate)](Terminology-Guide)를 둔다.
 
 ---
 
@@ -359,7 +359,7 @@ support threshold 통과?
 training with intervention
 ```
 
-을 허용하면 Full과 OFF가 서로 다른 state-distribution에서 학습하게 된다.
+을 허용하면 [전체 AASSR 조건(Full)](Experiments)과 OFF가 서로 다른 state-distribution에서 학습하게 된다.
 
 현재:
 
@@ -376,7 +376,7 @@ one training run
 
 # 18. 왜 imagined experience를 real truth로 학습하지 않는가?
 
-World [학습 모델(model)](Terminology-Guide)이 틀릴 수 있기 때문이다.
+[세계(World)](Model-Based-RL-and-World-Models) [학습 모델(model)](Terminology-Guide)이 틀릴 수 있기 때문이다.
 
 ```text
 model error
@@ -385,7 +385,7 @@ model error
 -> error amplification
 ```
 
-을 피하기 위해 **상상은 계획에 쓰고 factual learning은 [실제 환경에서 관측된(real)](Research-Jargon-Guide) [상태 전이(transition)](MDP-and-POMDP)에 근거한다**는 원칙을 유지한다.
+을 피하기 위해 **상상은 계획에 쓰고 [실제 사실에 근거한(factual)](Causality-Leakage-and-Evaluation) [학습(learning)](Reinforcement-Learning)은 [실제 환경에서 관측된(real)](Research-Jargon-Guide) [상태 전이(transition)](MDP-and-POMDP)에 근거한다**는 원칙을 유지한다.
 
 ---
 
@@ -410,9 +410,9 @@ imagined fact인가 real fact인가?
 
 # 20. 왜 Skill은 concrete macro가 아니라 relational template인가?
 
-Raw 성공 sequence를 저장하면 난수 시드가 바뀌었을 때 target ID가 달라져 재사용하기 어렵다.
+Raw 성공 [순서열(sequence)](GRU-and-Sequence-Models)를 저장하면 난수 시드가 바뀌었을 때 대상/목표값 ID가 달라져 재사용하기 어렵다.
 
-그래서 성공 ASeq를 [관계 기반(relational)](Relational-Representation-and-Generalization) 행동 [재사용 가능한 틀(template)](Skills)로 저장하고 현재 행동 surface에 다시 bind한다.
+그래서 성공 ASeq를 [관계 기반(relational)](Relational-Representation-and-Generalization) 행동 [재사용 가능한 틀(template)](Skills)로 저장하고 현재 행동 선택 가능 영역에 다시 [역할을 실제 객체에 연결(bind)](Skills)한다.
 
 ```text
 structure transfer

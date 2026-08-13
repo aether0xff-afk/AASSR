@@ -402,11 +402,11 @@ request       0.33
 
 그래서 현재 [Prophecy](Prophecy)는 여러 가능한 결과와 각각의 확률을 따로 표현한다.
 
-이를 **혼합 분포(mixture)**라고 생각하면 된다.
+이를 **혼합 분포([여러 결과의 혼합 분포(mixture)](Mixture-Ensemble-and-Calibration))**라고 생각하면 된다.
 
 또 여러 학습 모델을 함께 사용해 모델 사이의 차이도 본다.
 
-이를 **앙상블(ensemble)**이라고 한다.
+이를 **앙상블([여러 모델을 함께 쓰는 앙상블(ensemble)](Mixture-Ensemble-and-Calibration))**이라고 한다.
 
 둘은 다르다.
 

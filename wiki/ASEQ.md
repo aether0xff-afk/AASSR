@@ -10,7 +10,7 @@
 - `A`: 실제로 실행한 행동
 - `S'`: 행동 후 상태
 
-현재 pentest [실행 구조(runtime)](Current-Status)에서 [ASEQ](ASEQ)는 특히 **진전 없는 [제자리 반복(self-loop)](ASEQ)를 최소한으로 억제하는 memory/[행동(action)](Reinforcement-Learning)-selection [구성요소(component)](Research-Architecture)**로 사용된다.
+현재 pentest [실행 구조(runtime)](Current-Status)에서 [ASEQ](ASEQ)는 특히 **진전 없는 [제자리 반복(self-loop)](ASEQ)를 최소한으로 억제하는 [기억(memory)](GRU-and-Sequence-Models)/[행동(action)](Reinforcement-Learning)-selection [구성요소(component)](Research-Architecture)**로 사용된다.
 
 ---
 
@@ -36,7 +36,7 @@ v
 
 상태가 그대로이므로 [Policy(정책 모델)](Policy) [후보 순위(ranking)](Policy)도 그대로 유지되고 같은 행동을 계속 고를 수 있다.
 
-2026-08-07 [전이(transfer)](Relational-Representation-and-Generalization) 진단에서 실제 [DQN](Q-Learning-DQN-and-TD) [체크포인트(checkpoint)](Reproduction)가 L1 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) 평가에서 이런 형태로 정체했다. 일부 체크포인트에서는 raw greedy 평가의 마지막 12개 행동이 동일 행동 `12/12` 반복이었다.
+2026-08-07 [전이(transfer)](Relational-Representation-and-Generalization) 진단에서 실제 [DQN](Q-Learning-DQN-and-TD) [체크포인트(checkpoint)](Reproduction)가 L1 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) 평가에서 이런 형태로 정체했다. 일부 체크포인트에서는 [가공하지 않은 원본(raw)](State-Representation) [현재 추정값이 가장 큰 행동만 고르는 탐욕 선택(greedy)](Exploration-and-Exploitation) 평가의 마지막 12개 행동이 동일 행동 `12/12` 반복이었다.
 
 따라서 문제는 단순히 “정답 route를 모른다”가 아니라 **이미 방문해서 상태가 변하지 않는 행동을 계속 최고 Q로 선택하는 제자리 반복**였다.
 
@@ -94,15 +94,15 @@ S -> A -> S2
 
 ### 모든 행동을 막는 경우
 
-[ASEQ](ASEQ) guard 때문에 가능한 모든 행동이 제거될 경우 원래 행동 freedom을 복원하는 fail-safe가 필요하다.
+[ASEQ](ASEQ) [잘못된 행동을 제한하는 보호 규칙(guard)](ASEQ) 때문에 가능한 모든 행동이 제거될 경우 원래 행동 freedom을 복원하는 fail-safe가 필요하다.
 
-목표는 [에이전트(agent)](Reinforcement-Learning)의 자유를 없애는 것이 아니라 **이미 경험적으로 무의미하다고 확인한 exact loop만 피하는 것**이다.
+목표는 [에이전트(agent)](Reinforcement-Learning)의 자유를 없애는 것이 아니라 **이미 경험적으로 무의미하다고 확인한 [정확히 동일한(exact)](ASEQ) loop만 피하는 것**이다.
 
 ---
 
 ## 4. 왜 raw vector identity를 쓰지 않는가?
 
-상태에는 request count처럼 매 step 변하는 값이 있을 수 있다.
+상태에는 request [횟수(count)](Terminology-Guide)처럼 매 [단계(step)](Terminology-Guide) 변하는 값이 있을 수 있다.
 
 예를 들어 실제 문제 상황은 똑같은데 단순 카운터만 바뀌면:
 
@@ -112,7 +112,7 @@ raw S1 != raw S2
 
 가 된다.
 
-그러면 인간이 보기에는 같은 제자리 반복인데 exact raw vector 비교에서는 매번 다른 상태가 된다.
+그러면 인간이 보기에는 같은 제자리 반복인데 정확히 동일한 원본 [수치 벡터(vector)](Neural-Networks-and-Optimization) 비교에서는 매번 다른 상태가 된다.
 
 따라서 [ASEQ](ASEQ)의 `S`는 task-relevant **[실제 개체를 구분하는(concrete)](State-Representation) [의미 기준(semantic)](State-Representation) [식별 방식(identity)](State-Representation)**를 사용한다.
 
@@ -130,7 +130,7 @@ route-A와 route-B가 둘 다 catalog 역할
 
 | 목적 | 식별 방식 |
 |---|---|
-| exact 제자리 반복 detection | 실제 개체를 구분하는 의미 기준 |
+| 정확히 동일한 제자리 반복 detection | 실제 개체를 구분하는 의미 기준 |
 | [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility) 간 일반화 | 관계 기반 |
 
 ---
@@ -141,11 +141,11 @@ route-A와 route-B가 둘 다 catalog 역할
 
 3개 체크포인트 × L1 학습 중 보지 못한 8 난수 시드s에서 비교했다.
 
-| 체크포인트 | raw greedy | exact [ASEQ](ASEQ) guard |
+| 체크포인트 | 원본 탐욕 선택 | 정확히 동일한 [ASEQ](ASEQ) 보호 규칙 |
 |---|---:|---:|
-| L2 first reached | 0/8, stalled 8/8 | 2/8, stalled 0/8 |
-| L2 pre-demotion | 0/8, stalled 8/8 | 7/8, stalled 0/8 |
-| post-demotion retrained | 0/8, stalled 8/8 | 5/8, stalled 0/8 |
+| L2 first [도달한(reached)](Curriculum-Learning) | 0/8, [진전 없이 반복하다 멈춘(stalled)](ASEQ) 8/8 | 2/8, 진전 없이 멈춘 0/8 |
+| L2 pre-demotion | 0/8, 진전 없이 멈춘 8/8 | 7/8, 진전 없이 멈춘 0/8 |
+| post-demotion retrained | 0/8, 진전 없이 멈춘 8/8 | 5/8, 진전 없이 멈춘 0/8 |
 
 핵심 결과:
 
@@ -154,37 +154,37 @@ route-A와 route-B가 둘 다 catalog 역할
 24 ASEQ episodes: stalled 0/24
 ```
 
-즉 관측된 무한 제자리 반복는 exact [ASEQ](ASEQ) 수준의 최소 제약으로 제거할 수 있었다.
+즉 관측된 무한 제자리 반복는 정확히 동일한 [ASEQ](ASEQ) 수준의 최소 제약으로 제거할 수 있었다.
 
 하지만 성공률은 더 강한 `greedy_no_repeat`보다 낮았다. 이것은 [ASEQ](ASEQ)가 일부 불필요한 탐색을 허용하기 때문이다.
 
 이 결과는 오히려 설계 의도와 맞는다.
 
-> [ASEQ](ASEQ)는 성공 행동을 대신 골라주는 oracle이 아니라, 이미 확인된 무진전 loop를 제거하는 장치다.
+> [ASEQ](ASEQ)는 성공 행동을 대신 골라주는 [정답을 알고 있는 기준(oracle)](Ablation-Benchmarking-and-Reproducibility)이 아니라, 이미 확인된 무진전 loop를 제거하는 장치다.
 
 ---
 
 ### 5.2 consistent exact-ASEQ retraining
 
-동일한 exact [ASEQ](ASEQ) 규칙을 학습과 평가에 모두 사용한 6,000-[상태 전이(transition)](MDP-and-POMDP) focused experiment에서는:
+동일한 정확히 동일한 [ASEQ](ASEQ) 규칙을 학습과 평가에 모두 사용한 6,000-[상태 전이(transition)](MDP-and-POMDP) [특정 범위에 집중한(focused)](Experiments) [실험(experiment)](Experiments)에서는:
 
 #### 학습 중 성공
 
 | [학습(training)](Terminology-Guide) [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration) | episodes | successes | L0 | L1 | L2 |
 |---|---:|---:|---:|---:|---:|
-| legacy filter | 94 | 29 | 15 | 14 | 0 |
-| exact [ASEQ](ASEQ) | 109 | **50** | **30** | **19** | **1** |
+| [구버전 호환 코드(legacy)](Development-History) filter | 94 | 29 | 15 | 14 | 0 |
+| 정확히 동일한 [ASEQ](ASEQ) | 109 | **50** | **30** | **19** | **1** |
 
 #### 최종 unseen + ASEQ guard ON
 
 | trained with | L0 | L1 | L2 |
 |---|---:|---:|---:|
-| legacy filter | 1/8 | 1/8 | 0/8 |
-| exact [ASEQ](ASEQ) | **8/8** | **7/8** | **1/8** |
+| 구버전 filter | 1/8 | 1/8 | 0/8 |
+| 정확히 동일한 [ASEQ](ASEQ) | **8/8** | **7/8** | **1/8** |
 
-모든 exact-[ASEQ](ASEQ) [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)에서 stalled는 0이었다.
+모든 exact-[ASEQ](ASEQ) [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)에서 진전 없이 멈춘는 0이었다.
 
-다만 이 실험은 research 난수 시드 1개, 평가 난수 시드 8개, L0~L2 focused 조건이었다. 따라서 최종 일반화 성능으로 과장해서는 안 된다.
+다만 이 실험은 [연구(research)](Research-Questions) 난수 시드 1개, 평가 난수 시드 8개, L0~L2 집중형 조건이었다. 따라서 최종 일반화 성능으로 과장해서는 안 된다.
 
 ---
 
@@ -193,13 +193,13 @@ route-A와 route-B가 둘 다 catalog 역할
 ### 해결한 것
 
 - 동일한 무진전 행동의 무한 반복
-- train/eval repetition-control mismatch의 일부
+- train/eval repetition-control [서로 맞지 않는 불일치(mismatch)](Causality-Leakage-and-Evaluation)의 일부
 - [Policy](Policy) 내부에 남아 있던 해결 능력이 제자리 반복 때문에 가려지는 문제
 
 ### 해결하지 못한 것
 
 - 어떤 행동이 성공으로 더 빨리 이어지는지 우선순위화
-- request budget을 낭비하는 넓은 탐색
+- request [실험에 허용된 전이 수 한도(budget)](Ablation-Benchmarking-and-Reproducibility)을 낭비하는 넓은 탐색
 - L2 이상 복잡도에서의 장기 dependency reasoning
 - [Prophecy(미래 예측 모델)](Prophecy) 정확도
 - [Imagination(가상 미래 탐색)](Imagination) [실제 행동 개입(intervention)](Imagination)의 신뢰성
@@ -240,7 +240,7 @@ self-loop 제거
 -> 하나의 재사용 가능한 template 후보로 묶자
 ```
 
-[ASEQ](ASEQ) guard는 **negative repetition memory**에 가깝고, [Skill(성공 절차 재사용)](Skills)은 **positive reusable sequence abstr행동**에 가깝다.
+[ASEQ](ASEQ) 보호 규칙는 **negative [반복(repetition)](ASEQ) 기억**에 가깝고, [Skill(성공 절차 재사용)](Skills)은 **positive reusable [순서열(sequence)](GRU-and-Sequence-Models) abstr행동**에 가깝다.
 
 ---
 

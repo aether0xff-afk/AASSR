@@ -63,7 +63,7 @@ A0 -> A1 -> A2 -> A3 -> A4 -> success
 
 ## 2.2 큰 행동 공간
 
-현재 가능한 행동 수가 많으면 무작위 탐색으로 성공 trajectory를 만날 확률이 급격히 낮아진다.
+현재 가능한 행동 수가 많으면 무작위 탐색으로 성공 [경험 경로(trajectory)](Reinforcement-Learning)를 만날 확률이 급격히 낮아진다.
 
 특히 이름만 다른 [실제 실행 행동(concrete action)](State-Representation)이 많이 존재할 수 있다.
 
@@ -90,7 +90,7 @@ A0 -> A1 -> A2 -> A3 -> A4 -> success
   `-- p3 --> S3'
 ```
 
-이 때문에 현재 [Prophecy(미래 예측 모델)](Prophecy)는 deterministic [회귀 검증(regression)](Ablation-Benchmarking-and-Reproducibility)이 아니라 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) conditional mixture를 사용한다.
+이 때문에 현재 [Prophecy(미래 예측 모델)](Prophecy)는 [같은 입력이면 항상 같은 결과인 결정론적(deterministic)](Stochasticity-Uncertainty-and-Probability) [회귀 검증(regression)](Ablation-Benchmarking-and-Reproducibility)이 아니라 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) [조건부(conditional)](Stochasticity-Uncertainty-and-Probability) [여러 결과의 혼합 분포(mixture)](Mixture-Ensemble-and-Calibration)를 사용한다.
 
 ---
 
@@ -100,9 +100,9 @@ A0 -> A1 -> A2 -> A3 -> A4 -> success
 
 예:
 
-- true lockout
+- true [복구할 수 없는 실패 잠금(lockout)](Replay-Buffer-and-Episode-Boundaries)
 - irreversible workflow [실패(failure)](Replay-Buffer-and-Episode-Boundaries)
-- session [학습 손실(loss)](Loss-Functions-and-Class-Imbalance) 후 복구 불가능한 상태
+- [한 번의 접속 세션(session)](Terminology-Guide) [학습 손실(loss)](Loss-Functions-and-Class-Imbalance) 후 복구 불가능한 상태
 
 따라서 실제로 행동하기 전에 미래 위험을 추정하는 능력이 중요해진다.
 
@@ -140,7 +140,7 @@ transfer representation
 
 # 3. 왜 중간 보상을 넣지 않는가?
 
-가장 쉬운 해결책 중 하나는 사람이 중간 goal을 만들어 보상 shaping을 하는 것이다.
+가장 쉬운 해결책 중 하나는 사람이 중간 [최종 목표(goal)](Sparse-Reward-Problem)을 만들어 보상 [인위적인 형태 조정(shaping)](Sparse-Reward-and-Credit-Assignment)을 하는 것이다.
 
 예:
 
@@ -154,7 +154,7 @@ proof           +1.0
 
 하지만 이렇게 하면 에이전트가 **스스로 장기 문제 구조를 학습했는지**와 **사람이 만들어준 subgoal을 따라갔는지**를 분리하기 어렵다.
 
-AASSR은 이 문제를 연구하기 때문에 현재 표준 비교 실험에서는 intermediate shaping 보상를 사용하지 않는다.
+AASSR은 이 문제를 연구하기 때문에 현재 표준 비교 실험에서는 [중간(intermediate)](Sparse-Reward-and-Credit-Assignment) 형태 조정 보상를 사용하지 않는다.
 
 이 선택은 성능을 쉽게 만드는 방법을 일부러 포기하는 대신 연구 질문을 더 명확하게 만든다.
 
@@ -162,7 +162,7 @@ AASSR은 이 문제를 연구하기 때문에 현재 표준 비교 실험에서�
 
 # 4. AASSR이 추가하는 것은 reward가 아니다
 
-AASSR의 여러 구성 요소는 학습을 돕지만 외부 task 보상 자체를 바꾸지 않는다.
+AASSR의 여러 구성 요소는 학습을 돕지만 외부 [연구 과제(task)](Sparse-Reward-Problem) 보상 자체를 바꾸지 않는다.
 
 예를 들어:
 
@@ -170,7 +170,7 @@ AASSR의 여러 구성 요소는 학습을 돕지만 외부 task 보상 자체�
 - [ASEQ](ASEQ)는 **진전 없는 반복 행동 후보**를 억제한다.
 - [Prophecy](Prophecy)는 **미래 상태 분포**를 예측한다.
 - [Calibration(예측 신뢰도 보정)](Calibration)은 **예측 신뢰도**를 측정한다.
-- [Critic(미래 가치 평가기)](Critic)은 **실제 sparse [누적 보상(return)](Value-Functions-and-Bellman-Equation)**을 학습한다.
+- [Critic(미래 가치 평가기)](Critic)은 **실제 [드문 보상만 있는(sparse)](Sparse-Reward-and-Credit-Assignment) [누적 보상(return)](Value-Functions-and-Bellman-Equation)**을 학습한다.
 - [Imagination(가상 미래 탐색)](Imagination)은 **실행 전 [반사실적 계획(counterfactual planning)](Counterfactual-Planning-and-Search)**을 한다.
 
 즉 내부 계산은 복잡해져도 외부 보상 명세는 그대로 유지된다.
@@ -199,20 +199,20 @@ Sparse reward
 
 # 6. 현재 benchmark는 어떻게 이 문제를 만든가?
 
-AASSR의 [현재(current)](Current-Status) HTTP pentest lab은 실제 공격 대신 safe in-process simulator를 사용한다.
+AASSR의 [현재(current)](Current-Status) HTTP pentest lab은 실제 공격 대신 safe in-process [환경 시뮬레이터(simulator)](MDP-and-POMDP)를 사용한다.
 
 환경은 다음 요소를 포함한다.
 
-- route discovery
-- authentication / session
+- route [스스로 새로운 성공 경로를 발견하는 것(discovery)](Research-Questions)
+- authentication / 접속 세션
 - CSRF
 - object authorization
 - state-changing workflow
 - decoy routes
-- audit / lockout
-- rate limit
-- session expiration
-- opaque identifier permutation
+- [공정성과 구현을 점검하는 감사(audit)](Causality-Leakage-and-Evaluation) / 실패 잠금
+- [비율(rate)](Terminology-Guide) [제한(limit)](Terminology-Guide)
+- 접속 세션 expiration
+- opaque [식별자(identifier)](State-Representation) [이름 순서를 바꾸는 순열(permutation)](Relational-Representation-and-Generalization)
 - HTTP-like [공개된(public)](State-Representation) [상태 코드(status)](Terminology-Guide)
 
 대표적인 진행 구조는 다음과 같다.
@@ -243,8 +243,8 @@ Proof
 
 그래서 표준 비교 실험 [검증(validation)](Ablation-Benchmarking-and-Reproducibility) 단계에서는 다음을 따로 확인한다.
 
-- Oracle은 일관되게 성공하는가?
-- Random은 거의 성공하지 못하는가?
+- [정답을 알고 있는 기준(Oracle)](Ablation-Benchmarking-and-Reproducibility)은 일관되게 성공하는가?
+- [무작위(Random)](Ablation-Benchmarking-and-Reproducibility)은 거의 성공하지 못하는가?
 - 단순 heuristic은 낮은 난도에서는 일부 성공하지만 높은 난도에서 무너지는가?
 
 즉 표준 비교 실험의 목표는

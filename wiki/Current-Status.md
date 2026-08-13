@@ -6,7 +6,7 @@
 
 이 페이지는 AASSR의 “지금 상태”를 설명한다. 가장 중요한 원칙은 **현재 코드**, **과거 [진단 실험(diagnostic)](Evidence-Matrix)**, **현재 성능 [증거(evidence)](Evidence-Matrix)**, **앞으로 검증할 [연구 주장(claim)](Evidence-Matrix)**을 한 문장에 섞지 않는 것이다.
 
-> [!IMPORTANT]
+> [!**중요**]
 > 연구 브랜치에서 진행 중인 변경은 `main`에 합쳐지기 전까지 이 페이지의 [현재 구조(current architecture)](Current-Status)로 취급하지 않는다. 위키가 특정 실험 브랜치 이름을 [현재(current)](Current-Status) 최종 기준로 사용하지 않는다.
 
 ---
@@ -64,7 +64,7 @@ flowchart LR
 
 `src/aassr_v2/current_manifest.py`가 [현재 실행 구조(current runtime)](Current-Status)의 단일 [구성요소 명세(component contract)](Current-Status)다.
 
-| Layer | Current [명세(contract)](Current-Status) | 의미 |
+| Layer | [현재(Current)](Current-Status) [명세(contract)](Current-Status) | 의미 |
 |---|---|---|
 | [관측(Observation)](MDP-and-POMDP) | `response-causal-relational-public-state-v3+latest-http-status` | 실제 [응답(response)](State-Representation)에서 인과적으로 볼 수 있는 [공개된(public)](State-Representation) 정보만 사용 |
 | [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ) | `semantic-self-loop-empirical-v3` | 실제 `(S,A,S')` 중 [의미 기준(semantic)](State-Representation) [제자리 반복(self-loop)](ASEQ) 증거 관리 |
@@ -75,11 +75,11 @@ flowchart LR
 | [Prophecy](Prophecy) 상태 코드 [학습 목표(objective)](Terminology-Guide) | `class-balanced-categorical-public-http-status-v2` | [드문(rare)](Loss-Functions-and-Class-Imbalance) 공개된 상태 코드를 [범주형(categorical)](Loss-Functions-and-Class-Imbalance) 학습 목표로 학습 |
 | [Calibration(예측 신뢰도 보정)](Calibration) | `semantic-probability-holdout-calibration-v3-status-aware` | [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability)와 [신뢰도(reliability)](Calibration)를 분리하고 [상태 코드까지 고려하는(status-aware)](Calibration) [검증용 분리 데이터(holdout)](Calibration) 평가 |
 | [Knowledge(에피소드 지식)](Knowledge) | `episode-local-response-knowledge-context-v1` | 실제 응답에서 이미 알아낸 [현재 에피소드 안에서만 유지되는(episode-local)](Knowledge) 사실과 [정보의 출처 기록(provenance)](Knowledge) |
-| [Imagination](Imagination) | [탐색의 첫 행동(root)](Imagination) 실제 개체를 구분하는 execution + [구조 기반(structural)](Relational-Representation-and-Generalization) compute dedup + [확률(probability)](Stochasticity-Uncertainty-and-Probability) chance / max decision 계획 | [반사실적 계획(counterfactual planning)](Counterfactual-Planning-and-Search) |
-| [Critic(미래 가치 평가기)](Critic) | 관계 기반 [GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) discounted sparse-누적 보상 + zero-memory suffix [학습(training)](Terminology-Guide) | [모델이 상상한(imagined)](Research-Jargon-Guide) future의 환경이 주는 외부 누적 보상 추정 |
+| [Imagination](Imagination) | [탐색의 첫 행동(root)](Imagination) 실제 개체를 구분하는 [실제 실행(execution)](Research-Jargon-Guide) + [구조 기반(structural)](Relational-Representation-and-Generalization) [계산(compute)](Reproduction) [중복 계산 제거(dedup)](Reproduction) + [확률(probability)](Stochasticity-Uncertainty-and-Probability) [환경의 확률 분기(chance)](Chance-and-Decision-Nodes) / max [의사결정(decision)](Chance-and-Decision-Nodes) 계획 | [반사실적 계획(counterfactual planning)](Counterfactual-Planning-and-Search) |
+| [Critic(미래 가치 평가기)](Critic) | 관계 기반 [GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) [미래 보상을 시간에 따라 할인한(discounted)](Value-Functions-and-Bellman-Equation) sparse-누적 보상 + [과거 기억을 0으로 초기화한(zero-memory)](GRU-and-Sequence-Models) [후속 구간(suffix)](GRU-and-Sequence-Models) [학습(training)](Terminology-Guide) | [모델이 상상한(imagined)](Research-Jargon-Guide) [미래(future)](Counterfactual-Planning-and-Search)의 환경이 주는 외부 누적 보상 추정 |
 | 가치 평가 데이터 근거 | `local-real-training-support-fail-closed-v1` | 현재 [가치(value)](Value-Functions-and-Bellman-Equation) [추정값(estimate)](Value-Functions-and-Bellman-Equation) 주변의 실제 [데이터 근거(support)](Critic-Support-and-OOD) 확인 |
 | [Skills(성공 절차 재사용)](Skills) | `relational-aseq-template-v1` | 반복 성공 ASeq의 관계 기반 [재사용 가능한 틀(template)](Skills) 재사용 |
-| Training [Imagination](Imagination) | `disabled-same-checkpoint` | OFF/ON [인과적으로 공정한(causal)](Causality-Leakage-and-Evaluation) [비교(comparison)](Ablation-Benchmarking-and-Reproducibility)을 위해 persistent 학습 [실제 행동 개입(intervention)](Imagination) 비활성 |
+| [학습(Training)](Reinforcement-Learning) [Imagination](Imagination) | `disabled-same-checkpoint` | OFF/ON [인과적으로 공정한(causal)](Causality-Leakage-and-Evaluation) [비교(comparison)](Ablation-Benchmarking-and-Reproducibility)을 위해 [에피소드가 끝나도 유지되는(persistent)](Knowledge) 학습 [실제 행동 개입(intervention)](Imagination) 비활성 |
 | Chance 학습 목표 | `expected-external-sparse-return` | 확률적 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)은 확률 [확률 기댓값(expectation)](Chance-and-Decision-Nodes)으로 [미래 가치를 앞 단계로 되돌려 계산하는 과정(backup)](Value-Functions-and-Bellman-Equation) |
 
 각 용어가 낯설면 [Concept Index](Concept-Index) 또는 [Glossary](Glossary)에서 내려가면 된다.
@@ -131,11 +131,11 @@ final blind                                   -> L5
 
 현재 manifest의 `LEGACY_COMPONENTS_ACTIVE = ()` 계약에 따라 현재 builder는 과거 v0.4/effect-composition 세대를 [현재 활성(active)](Current-Status) [구성요소(component)](Research-Architecture)로 섞지 않는다.
 
-따라서 위키의 현재 mechanism 설명은 [State Representation](State-Representation), [Policy](Policy), [Prophecy](Prophecy), [Calibration](Calibration), [Critic](Critic), [Imagination](Imagination), [Skills](Skills)의 [현재 세대(current-generation)](Current-Status) 페이지를 기준으로 읽는다.
+따라서 위키의 현재 [작동 원리(mechanism)](Evidence-Matrix) 설명은 [State Representation](State-Representation), [Policy](Policy), [Prophecy](Prophecy), [Calibration](Calibration), [Critic](Critic), [Imagination](Imagination), [Skills](Skills)의 [현재 세대(current-generation)](Current-Status) 페이지를 기준으로 읽는다.
 
 ## 4.2 Response-causal public observation이 current contract다
 
-Current 상태는 latest 공개된 HTTP 상태 코드를 포함하지만 [숨겨진(hidden)](MDP-and-POMDP) audit pressure, exact 숨겨진 session countdown 같은 simulator 내부 정답을 직접 보지 않는다.
+현재 상태는 [가장 최근의(latest)](Current-Status) 공개된 HTTP 상태 코드를 포함하지만 [숨겨진(hidden)](MDP-and-POMDP) [공정성과 구현을 점검하는 감사(audit)](Causality-Leakage-and-Evaluation) [환경 내부의 숨은 압박 값(pressure)](Causality-Leakage-and-Evaluation), [정확히 동일한(exact)](ASEQ) 숨겨진 [한 번의 접속 세션(session)](Terminology-Guide) [남은 횟수 카운트다운(countdown)](Causality-Leakage-and-Evaluation) 같은 [환경 시뮬레이터(simulator)](MDP-and-POMDP) 내부 정답을 직접 보지 않는다.
 
 ```text
 public observed 403          -> 허용
@@ -169,7 +169,7 @@ relational-conditional-mixture-ensemble-v5-status-balanced
 
 이다.
 
-즉 현재 [Prophecy](Prophecy)는 단일 평균 future가 아니라 [mixture](Mixture-Ensemble-and-Calibration) 환경 결과과 [상태 코드 데이터 불균형을 보정한(status-balanced)](Prophecy) supervision을 포함하는 확률적 관계 기반 세계 모델이다.
+즉 현재 [Prophecy](Prophecy)는 단일 평균 미래가 아니라 [mixture](Mixture-Ensemble-and-Calibration) 환경 결과과 [상태 코드 데이터 불균형을 보정한(status-balanced)](Prophecy) supervision을 포함하는 확률적 관계 기반 세계 모델이다.
 
 ## 4.5 Chance와 Decision backup은 의도적으로 다르다
 
@@ -203,7 +203,7 @@ Critic local support
 
 # 5. 아직 말할 수 없는 것
 
-현재 위키에서 다음 문장은 **final/현재 증거가 충분해질 때까지 보류**한다.
+현재 위키에서 다음 문장은 **[최종(final)](Ablation-Benchmarking-and-Reproducibility)/현재 증거가 충분해질 때까지 보류**한다.
 
 ```text
 “AASSR Full이 DQN보다 최종적으로 우수하다.”
@@ -244,9 +244,9 @@ bad-status errors        58 / 86
 
 가 관측됐다.
 
-이 결과는 **현재 performance scoreboard가 아니다.**
+이 결과는 **현재 [성능(performance)](Ablation-Benchmarking-and-Reproducibility) scoreboard가 아니다.**
 
-당시 [구조(architecture)](Research-Architecture)의 잘못된 실제 행동 개입을 분석해 다음 repair를 설계한 [과거 기록(historical)](Development-History) 증거다.
+당시 [구조(architecture)](Research-Architecture)의 잘못된 실제 행동 개입을 분석해 다음 [문제 수정(repair)](Development-History)를 설계한 [과거 기록(historical)](Development-History) 증거다.
 
 ```text
 Relational State v2에서 status 소실
@@ -283,7 +283,7 @@ imagined transition
 → real replay fact로 자동 승격하지 않음
 ```
 
-Current 비교에서는 training-time [Imagination](Imagination) 실제 행동 개입을 끈다.
+현재 비교에서는 training-time [Imagination](Imagination) 실제 행동 개입을 끈다.
 
 ## 7.2 Root action identity
 
@@ -295,11 +295,11 @@ Current 비교에서는 training-time [Imagination](Imagination) 실제 행동 �
 = relational legal slot
 ```
 
-그래서 실제 개체를 구분하는 alias는 구분해 실행하지만 구조적으로 같은 탐색의 첫 행동의 [학습 모델(model)](Terminology-Guide)/[Critic](Critic) 계산은 deduplicate할 수 있다.
+그래서 실제 개체를 구분하는 [같은 구조를 가리키는 다른 이름(alias)](State-Representation)는 구분해 실행하지만 구조적으로 같은 탐색의 첫 행동의 [학습 모델(model)](Terminology-Guide)/[Critic](Critic) 계산은 deduplicate할 수 있다.
 
 ## 7.3 Reliability gate
 
-[예측 신뢰도(Prediction reliability)](Calibration)는 가치 bonus가 아니다.
+[예측 신뢰도(Prediction reliability)](Calibration)는 가치 [추가 점수(bonus)](Information-Theory-and-Intrinsic-Motivation)가 아니다.
 
 ```text
 높은 reliability
@@ -308,7 +308,7 @@ Current 비교에서는 training-time [Imagination](Imagination) 실제 행동 �
 
 ## 7.4 Local support gate
 
-[Critic](Critic)의 global readiness만으로 기본 행동 덮어쓰기하지 않는다.
+[Critic](Critic)의 [전체 범위(global)](Terminology-Guide) readiness만으로 기본 행동 덮어쓰기하지 않는다.
 
 ```text
 unsupported imagined state/action
@@ -318,7 +318,7 @@ unsupported imagined state/action
 
 ## 7.5 Advantage margin
 
-Planner가 [Policy](Policy)를 바꾸려면 [선택 후보(candidate)](Terminology-Guide) 가치가 [Policy](Policy) 탐색의 첫 행동보다 fixed [최소 차이 기준(margin)](Imagination)을 넘어야 한다.
+[계획기(Planner)](Counterfactual-Planning-and-Search)가 [Policy](Policy)를 바꾸려면 [선택 후보(candidate)](Terminology-Guide) 가치가 [Policy](Policy) 탐색의 첫 행동보다 [고정된(fixed)](Ablation-Benchmarking-and-Reproducibility) [최소 차이 기준(margin)](Imagination)을 넘어야 한다.
 
 이 최소 차이 기준은 [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility) 전에 고정하고 결과를 보고 사후 조정하지 않는다.
 
@@ -326,15 +326,15 @@ Planner가 [Policy](Policy)를 바꾸려면 [선택 후보(candidate)](Terminolo
 
 # 8. Current benchmark design
 
-최종 현재 세대 비교은 다음 5개 condition을 구분한다.
+최종 현재 세대 비교은 다음 5개 [실험 조건(condition)](Ablation-Benchmarking-and-Reproducibility)을 구분한다.
 
 | Condition | 분리하려는 효과 |
 |---|---|
-| `dqn_raw` | 가장 단순한 corrected model-free [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility) |
+| `dqn_raw` | 가장 단순한 corrected [환경 예측 모델 없이 직접 학습하는(model-free)](Reinforcement-Learning) [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility) |
 | `dqn_relational` | [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization) 효과 |
-| `dreamerv3_relational` | 환경이 주는 외부 model-based imagination 비교 기준 |
+| `dreamerv3_relational` | 환경이 주는 외부 [환경 모델을 사용하는(model-based)](Model-Based-RL-and-World-Models) imagination 비교 기준 |
 | `aassr_current_no_imagination` | AASSR stack beyond [표현(representation)](Relational-Representation-and-Generalization) |
-| `aassr_current_full` | [Imagination](Imagination) marginal effect |
+| `aassr_current_full` | [Imagination](Imagination) [다른 조건이 같을 때의 추가 기여(marginal)](Ablation-Benchmarking-and-Reproducibility) [효과(effect)](Ablation-Benchmarking-and-Reproducibility) |
 
 AASSR OFF/ON은 반드시:
 
@@ -384,9 +384,9 @@ one AASSR checkpoint
 
 # 10. 현재 연구를 한 문장으로
 
-> **AASSR 현재 세대은 sparse-[보상(reward)](Sparse-Reward-and-Credit-Assignment)·partial-[관측(observation)](MDP-and-POMDP) 환경에서 관계 기반 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD), empirical [ASEQ](ASEQ), 현재 에피소드 안에서만 유지되는 [Knowledge](Knowledge), 확률적 [조건부 혼합(conditional-mixture)](Prophecy) [Prophecy](Prophecy), 상태 코드까지 고려하는 [Calibration](Calibration), sparse-누적 보상 [GRU](GRU-and-Sequence-Models) [Critic](Critic), local real-training 데이터 근거, multi-step counterfactual [Imagination](Imagination), 관계 기반 [Skill(성공 절차 재사용)](Skills)을 하나의 response-causal [실행 구조(runtime)](Current-Status)으로 통합한 상태이며, 현재 연구의 핵심은 이 구조가 같은 체크포인트 및 multi-[난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility) 평가에서 실제 장기 문제 해결 성능을 높이는지 분리 검증하는 것이다.**
+> **AASSR 현재 세대은 sparse-[보상(reward)](Sparse-Reward-and-Credit-Assignment)·partial-[관측(observation)](MDP-and-POMDP) 환경에서 관계 기반 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD), [실제 관측 경험에 근거한(empirical)](Ablation-Benchmarking-and-Reproducibility) [ASEQ](ASEQ), 현재 에피소드 안에서만 유지되는 [Knowledge](Knowledge), 확률적 [조건부 혼합(conditional-mixture)](Prophecy) [Prophecy](Prophecy), 상태 코드까지 고려하는 [Calibration](Calibration), sparse-누적 보상 [GRU](GRU-and-Sequence-Models) [Critic](Critic), [현재 주변에 한정된 국소적(local)](Critic-Support-and-OOD) [실제 환경 경험으로 학습한(real-training)](Critic-Support-and-OOD) 데이터 근거, multi-step [실제로 하지 않은 경우를 가정하는 반사실적(counterfactual)](Counterfactual-Planning-and-Search) [Imagination](Imagination), 관계 기반 [Skill(성공 절차 재사용)](Skills)을 하나의 [실제 응답에서 원인 순서를 지키는(response-causal)](Causality-Leakage-and-Evaluation) [실행 구조(runtime)](Current-Status)으로 통합한 상태이며, 현재 연구의 핵심은 이 구조가 같은 체크포인트 및 multi-[난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility) 평가에서 실제 장기 문제 해결 성능을 높이는지 분리 검증하는 것이다.**
 
-이 문장보다 강한 성능 주장은 [Evidence Matrix](Evidence-Matrix)의 증거 level이 올라간 뒤 갱신한다.
+이 문장보다 강한 성능 주장은 [Evidence Matrix](Evidence-Matrix)의 증거 [난이도 단계(level)](Curriculum-Learning)이 올라간 뒤 갱신한다.
 
 ---
 

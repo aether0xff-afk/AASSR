@@ -1,8 +1,8 @@
 # GRU and Sequence Models
 
-AASSR의 [현재(current)](Current-Status) [Critic(미래 가치 평가기)](Critic)은 **[GRU(게이트 순환 유닛)](GRU-and-Sequence-Models)(Gated Recurrent Unit)** 기반 sequence [학습 모델(model)](Terminology-Guide)을 사용한다.
+AASSR의 [현재(current)](Current-Status) [Critic(미래 가치 평가기)](Critic)은 **[GRU(게이트 순환 유닛)](GRU-and-Sequence-Models)(Gated Recurrent Unit)** 기반 [순서열(sequence)](GRU-and-Sequence-Models) [학습 모델(model)](Terminology-Guide)을 사용한다.
 
-이 페이지는 RNN, [숨은 환경 상태(hidden state)](MDP-and-POMDP), [GRU](GRU-and-Sequence-Models) [판정 관문(gate)](Terminology-Guide), sequence encoding, zero-memory inference, suffix [학습(training)](Terminology-Guide)을 설명한다.
+이 페이지는 RNN, [숨은 환경 상태(hidden state)](MDP-and-POMDP), [GRU](GRU-and-Sequence-Models) [판정 관문(gate)](Terminology-Guide), 순서열 [학습용 수치 표현으로 바꾸는 인코딩(encoding)](State-Representation), [과거 기억을 0으로 초기화한(zero-memory)](GRU-and-Sequence-Models) [학습된 모델로 값을 계산하는 추론(inference)](Neural-Networks-and-Optimization), [후속 구간(suffix)](GRU-and-Sequence-Models) [학습(training)](Terminology-Guide)을 설명한다.
 
 ---
 
@@ -16,7 +16,7 @@ S0 → S1 → S2 → S3
 
 현재 `S3`의 의미가 그 전에 어떤 경로를 거쳤는지에 따라 달라질 수 있다.
 
-특히 [POMDP](MDP-and-POMDP)에서는 history가 숨은 환경 상태를 추론하는 데 도움이 된다.
+특히 [POMDP](MDP-and-POMDP)에서는 [기록(history)](Development-History)가 숨은 환경 상태를 추론하는 데 도움이 된다.
 
 Sequence 학습 모델은 여러 timestep 정보를 하나의 internal [표현(representation)](Relational-Representation-and-Generalization)으로 압축한다.
 
@@ -48,7 +48,7 @@ x_t + h_{t-1}
 
 # 3. Hidden state
 
-RNN의 숨은 환경 상태는 과거 sequence 정보를 압축한 내부 벡터다.
+RNN의 숨은 환경 상태는 과거 순서열 정보를 압축한 내부 벡터다.
 
 ```math
 h_t=f(x_t,h_{t-1})
@@ -62,14 +62,14 @@ h_t=f(x_t,h_{t-1})
 
 # 4. Vanilla RNN의 문제
 
-긴 sequence를 학습할 때 gradient가 너무 작아지거나 커지는 문제가 있다.
+긴 순서열를 학습할 때 [기울기(gradient)](Neural-Networks-and-Optimization)가 너무 작아지거나 커지는 문제가 있다.
 
-- vanishing gradient
-- exploding gradient
+- vanishing 기울기
+- exploding 기울기
 
 이 때문에 오래 전 정보를 학습하기 어려울 수 있다.
 
-LSTM과 [GRU](GRU-and-Sequence-Models)는 [조건부 통과 판단(gating)](Terminology-Guide) mechanism을 사용해 이 문제를 완화하려는 re[현재 구조(current architecture)](Current-Status)다.
+LSTM과 [GRU](GRU-and-Sequence-Models)는 [조건부 통과 판단(gating)](Terminology-Guide) [작동 원리(mechanism)](Evidence-Matrix)을 사용해 이 문제를 완화하려는 re[현재 구조(current architecture)](Current-Status)다.
 
 ---
 
@@ -77,8 +77,8 @@ LSTM과 [GRU](GRU-and-Sequence-Models)는 [조건부 통과 판단(gating)](Term
 
 [GRU](GRU-and-Sequence-Models)는 대표적으로:
 
-- update 판정 관문
-- reset 판정 관문
+- [학습 갱신(update)](Neural-Networks-and-Optimization) 판정 관문
+- [환경 초기화(reset)](Replay-Buffer-and-Episode-Boundaries) 판정 관문
 
 를 사용한다.
 
@@ -129,7 +129,7 @@ Reset 판정 관문는 새 선택 후보를 계산할 때 과거 숨은 환경 �
 
 # 8. Sequence encoding
 
-AASSR [Critic](Critic)은 trajectory의 [관계 기반(relational)](Relational-Representation-and-Generalization) 상태 전이 정보를 sequence로 받아 [숨겨진(hidden)](MDP-and-POMDP) 표현을 만들고 sparse [누적 보상(return)](Value-Functions-and-Bellman-Equation)을 예측한다.
+AASSR [Critic](Critic)은 [경험 경로(trajectory)](Reinforcement-Learning)의 [관계 기반(relational)](Relational-Representation-and-Generalization) 상태 전이 정보를 순서열로 받아 [숨겨진(hidden)](MDP-and-POMDP) 표현을 만들고 [드문 보상만 있는(sparse)](Sparse-Reward-and-Credit-Assignment) [누적 보상(return)](Value-Functions-and-Bellman-Equation)을 예측한다.
 
 개념적으로:
 
@@ -153,13 +153,13 @@ Return prediction
 
 # 9. Sequence length
 
-더 긴 sequence를 주면 더 많은 history를 볼 수 있다.
+더 긴 순서열를 주면 더 많은 기록를 볼 수 있다.
 
 하지만:
 
-- compute 증가
+- [계산(compute)](Reproduction) 증가
 - padding/[묶음 처리(batching)](Reproduction) 복잡성
-- irrelevant history 가능
+- irrelevant 기록 가능
 
 이 생긴다.
 
@@ -169,7 +169,7 @@ AASSR에서는 [계획(planning)](Counterfactual-Planning-and-Search) [탐색의
 
 # 10. Hidden state mismatch
 
-Training에서는 항상 한 번의 문제 풀이 구간 시작부터 [GRU](GRU-and-Sequence-Models)를 돌렸다고 하자.
+[학습(Training)](Reinforcement-Learning)에서는 항상 한 번의 문제 풀이 구간 시작부터 [GRU](GRU-and-Sequence-Models)를 돌렸다고 하자.
 
 ```text
 S0 → S1 → S2 → S3
@@ -178,7 +178,7 @@ h0   h1   h2   h3
 
 그런데 실제 [Imagination(가상 미래 탐색)](Imagination)은 `S2`에서 갑자기 시작한다.
 
-Planner가 과거 recurrent memory `h2`를 가지고 있지 않다면:
+[계획기(Planner)](Counterfactual-Planning-and-Search)가 과거 [과거 정보를 이어가는 순환형(recurrent)](GRU-and-Sequence-Models) [기억(memory)](GRU-and-Sequence-Models) `h2`를 가지고 있지 않다면:
 
 ```text
 S2 + zero hidden state
@@ -186,21 +186,21 @@ S2 + zero hidden state
 
 로 [Critic](Critic)을 평가하게 된다.
 
-Training과 inference 조건이 다르다.
+학습과 추론 조건이 다르다.
 
-이를 recurrent-state mismatch라고 볼 수 있다.
+이를 recurrent-state [서로 맞지 않는 불일치(mismatch)](Causality-Leakage-and-Evaluation)라고 볼 수 있다.
 
 ---
 
 # 11. Zero-memory inference
 
-Current decision point에서 과거 [Critic](Critic) 숨은 환경 상태를 명시적으로 전달하지 않고:
+[현재(Current)](Current-Status) [의사결정(decision)](Chance-and-Decision-Nodes) [지점(point)](Terminology-Guide)에서 과거 [Critic](Critic) 숨은 환경 상태를 명시적으로 전달하지 않고:
 
 ```text
 h_0 = zeros
 ```
 
-에서 현재 suffix [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)을 시작할 수 있다.
+에서 현재 후속 구간 [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)을 시작할 수 있다.
 
 그렇다면 학습도 이 조건을 포함해야 한다.
 
@@ -223,9 +223,9 @@ S0 → S1 → S2 → S3 → terminal
 [S3]
 ```
 
-각 sequence를 **zero 숨은 환경 상태에서 시작**하게 학습한다.
+각 순서열를 **zero 숨은 환경 상태에서 시작**하게 학습한다.
 
-따라서 어느 decision 상태에서 계획이 시작되더라도 학습 [명세(contract)](Current-Status)와 더 잘 맞는다.
+따라서 어느 의사결정 상태에서 계획이 시작되더라도 학습 [명세(contract)](Current-Status)와 더 잘 맞는다.
 
 AASSR 현재 [Critic](Critic)의 중요한 설계다.
 
@@ -233,7 +233,7 @@ AASSR 현재 [Critic](Critic)의 중요한 설계다.
 
 # 13. Suffix target
 
-각 suffix의 시작점에서 [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) sparse 누적 보상까지의 discounted 누적 보상을 target으로 둘 수 있다.
+각 후속 구간의 시작점에서 [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) 희소한 누적 보상까지의 [미래 보상을 시간에 따라 할인한(discounted)](Value-Functions-and-Bellman-Equation) 누적 보상을 [대상 또는 학습 목표값(target)](Terminology-Guide)으로 둘 수 있다.
 
 예:
 
@@ -241,7 +241,7 @@ AASSR 현재 [Critic](Critic)의 중요한 설계다.
 S2 → S3 → success +1
 ```
 
-이면 탐색의 첫 행동 `S2`의 target은 discount factor에 따라 `γ` 계열이 된다.
+이면 탐색의 첫 행동 `S2`의 대상/목표값은 [미래 보상의 할인율(discount)](Value-Functions-and-Bellman-Equation) [실험에서 바꾸어 보는 요인(factor)](Ablation-Benchmarking-and-Reproducibility)에 따라 `γ` 계열이 된다.
 
 관련 페이지:
 
@@ -252,7 +252,7 @@ S2 → S3 → success +1
 
 # 14. Prefix training within suffix
 
-한 suffix 안에서도 여러 prefix를 학습 example로 사용할 수 있다.
+한 후속 구간 안에서도 여러 prefix를 학습 example로 사용할 수 있다.
 
 ```text
 [S1]
@@ -260,7 +260,7 @@ S2 → S3 → success +1
 [S1,S2,S3]
 ```
 
-Current AASSR [Critic](Critic)은 계획 탐색의 첫 행동 관점의 sparse-누적 보상 target을 sequence prefixes에 학습하도록 설계되어 있다.
+현재 AASSR [Critic](Critic)은 계획 탐색의 첫 행동 관점의 sparse-누적 보상 대상/목표값을 순서열 prefixes에 학습하도록 설계되어 있다.
 
 이 부분은 일반적인 sequence-to-one [회귀 검증(regression)](Ablation-Benchmarking-and-Reproducibility)보다 AASSR 계획 명세에 맞춘 특수한 학습 구조다.
 
@@ -268,22 +268,22 @@ Current AASSR [Critic](Critic)은 계획 탐색의 첫 행동 관점의 sparse-�
 
 # 15. Padding과 batching
 
-Batch 안의 sequence 길이가 다르면 shorter sequence에 padding을 넣을 수 있다.
+Batch 안의 순서열 길이가 다르면 shorter 순서열에 padding을 넣을 수 있다.
 
 ```text
 seq A: x1 x2 x3 x4
 seq B: y1 y2 PAD PAD
 ```
 
-실제 학습 모델은 sequence length/mask를 이용해 padding이 숨겨진 update에 의미 있는 data처럼 들어가지 않도록 해야 한다.
+실제 학습 모델은 순서열 length/[가능/불가능을 표시하는 마스크(mask)](Terminology-Guide)를 이용해 padding이 숨겨진 학습 갱신에 의미 있는 [데이터(data)](Terminology-Guide)처럼 들어가지 않도록 해야 한다.
 
-AASSR 현재 hardware path는 [Critic](Critic)의 많은 [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes) 평가을 batch 처리해 GPU 효율을 높인다.
+AASSR 현재 hardware [경로(path)](Counterfactual-Planning-and-Search)는 [Critic](Critic)의 많은 [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes) 평가을 [여러 입력 묶음(batch)](Reproduction) 처리해 GPU 효율을 높인다.
 
 ---
 
 # 16. Batched inference
 
-[Imagination](Imagination) tree에서는 여러 결과 경로 [Critic](Critic) [평가 점수(score)](Terminology-Guide)가 한꺼번에 필요하다.
+[Imagination](Imagination) [탐색 트리(tree)](Counterfactual-Planning-and-Search)에서는 여러 결과 경로 [Critic](Critic) [평가 점수(score)](Terminology-Guide)가 한꺼번에 필요하다.
 
 Scalar 호출:
 
@@ -304,13 +304,13 @@ branch 3 → GPU
 
 가 효율적이다.
 
-이 최적화는 [Critic](Critic) [가치(value)](Value-Functions-and-Bellman-Equation) semantics를 바꾸지 않고 execution overhead를 줄이는 목적이다.
+이 최적화는 [Critic](Critic) [가치(value)](Value-Functions-and-Bellman-Equation) [의미 규칙(semantics)](State-Representation)를 바꾸지 않고 [실제 실행(execution)](Research-Jargon-Guide) overhead를 줄이는 목적이다.
 
 ---
 
 # 17. GRU와 Partial Observability
 
-Recurrent [신경망(network)](Neural-Networks-and-Optimization)는 past [관측(observation)](MDP-and-POMDP) history를 숨은 환경 상태에 압축하여 POMDP에서 도움이 될 수 있다.
+Recurrent [신경망(network)](Neural-Networks-and-Optimization)는 past [관측(observation)](MDP-and-POMDP) 기록를 숨은 환경 상태에 압축하여 POMDP에서 도움이 될 수 있다.
 
 하지만:
 
@@ -322,7 +322,7 @@ POMDP 완전 해결
 
 이다.
 
-필요한 숨겨진 information이 관측 history에 전혀 나타나지 않거나 학습이 충분하지 않으면 복원할 수 없다.
+필요한 숨겨진 [정보(information)](Information-Theory-and-Intrinsic-Motivation)이 관측 기록에 전혀 나타나지 않거나 학습이 충분하지 않으면 복원할 수 없다.
 
 ---
 
@@ -330,7 +330,7 @@ POMDP 완전 해결
 
 AASSR [Critic](Critic)의 입력은 [실제 개체를 구분하는(concrete)](State-Representation) identifiers보다 관계 기반 상태 전이 [학습에 사용하는 특징(features)](Terminology-Guide)를 사용한다.
 
-따라서 recurrent memory도:
+따라서 순환형 기억도:
 
 ```text
 route-12라는 이름
@@ -352,7 +352,7 @@ route-12라는 이름
 
 # 19. GRU와 Prophecy의 차이
 
-과거 AASSR에는 [GRU](GRU-and-Sequence-Models) 기반 [Prophecy(미래 예측 모델)](Prophecy) 계열도 있었지만 [현재 세대(current-generation)](Current-Status)의 [현재 활성(active)](Current-Status) [Prophecy](Prophecy)는 관계 기반 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) mixture 구조로 발전했다.
+과거 AASSR에는 [GRU](GRU-and-Sequence-Models) 기반 [Prophecy(미래 예측 모델)](Prophecy) 계열도 있었지만 [현재 세대(current-generation)](Current-Status)의 [현재 활성(active)](Current-Status) [Prophecy](Prophecy)는 관계 기반 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) [여러 결과의 혼합 분포(mixture)](Mixture-Ensemble-and-Calibration) 구조로 발전했다.
 
 현재 [GRU](GRU-and-Sequence-Models)를 보면 무조건 [Prophecy](Prophecy)라고 생각하면 안 된다.
 
@@ -370,7 +370,7 @@ Current Critic
 
 # 20. Gradient clipping
 
-Recurrent 학습 모델은 exploding gradient 위험이 있을 수 있어 gradient norm clipping을 사용할 수 있다.
+Recurrent 학습 모델은 exploding 기울기 위험이 있을 수 있어 기울기 norm clipping을 사용할 수 있다.
 
 개념:
 
@@ -399,7 +399,7 @@ KnowledgeStore
 
 [Knowledge(에피소드 지식)](Knowledge)는 어떤 사실을 언제 알았는지 명시적으로 추적할 수 있다.
 
-[GRU](GRU-and-Sequence-Models) 숨은 환경 상태는 학습된 latent vector라 직접 의미를 해석하기 어렵다.
+[GRU](GRU-and-Sequence-Models) 숨은 환경 상태는 학습된 [직접 관측되지 않는 잠재 표현(latent)](GRU-and-Sequence-Models) [수치 벡터(vector)](Neural-Networks-and-Optimization)라 직접 의미를 해석하기 어렵다.
 
 관련 페이지:
 
@@ -411,15 +411,15 @@ KnowledgeStore
 
 ## Training/inference hidden-state mismatch
 
-Episode-start 숨은 환경 상태로만 학습했는데 mid-episode zero-memory에서 평가.
+Episode-start 숨은 환경 상태로만 학습했는데 mid-episode 기억 0 초기화에서 평가.
 
 ## Sequence truncation
 
-중요한 오래 전 history가 sequence에서 잘림.
+중요한 오래 전 기록가 순서열에서 잘림.
 
 ## Overfitting
 
-특정 학습 trajectory pattern을 암기.
+특정 학습 경험 경로 pattern을 암기.
 
 ## OOD sequence
 
