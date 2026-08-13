@@ -13,7 +13,7 @@ AASSR은 **중간 힌트가 거의 없는 문제에서 인공지능이 스스로
 
 AASSR이라는 이름은 `An Agent for Solving Sparse Reward problem`에서 왔다.
 
-여기서 **희소 보상([희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment))**은 성공에 도달하기 전까지 점수가 거의 주어지지 않는 문제를 뜻한다.
+여기서 **[희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment)**은 성공에 도달하기 전까지 점수가 거의 주어지지 않는 문제를 뜻한다.
 
 예를 들어:
 
@@ -90,7 +90,7 @@ AASSR이라는 이름은 `An Agent for Solving Sparse Reward problem`에서 왔�
 
 예를 들어 `OOD`만 던지는 대신:
 
-> **학습 분포 밖([학습 분포 밖(OOD)](Critic-Support-and-OOD), Out-of-Distribution)** — 모델이 학습할 때 충분히 보지 못한 종류의 상태나 행동 영역
+> **[학습 분포 밖(OOD, Out-of-Distribution)](Critic-Support-and-OOD)** — 모델이 학습할 때 충분히 보지 못한 종류의 상태나 행동 영역
 
 처럼 읽을 수 있게 한다.
 
@@ -212,11 +212,11 @@ flowchart TD
 
 ## 보상 ≠ 누적 보상 ≠ Q값
 
-**보상([보상(reward)](Sparse-Reward-and-Credit-Assignment))**은 환경이 지금 주는 점수다.
+**[보상(reward)](Sparse-Reward-and-Credit-Assignment)**은 환경이 지금 주는 점수다.
 
-**누적 보상([누적 보상(return)](Value-Functions-and-Bellman-Equation))**은 앞으로 받을 보상을 합친 장기 점수다.
+**[누적 보상(return)](Value-Functions-and-Bellman-Equation)**은 앞으로 받을 보상을 합친 장기 점수다.
 
-**Q값([Q값(Q-value)](Value-Functions-and-Bellman-Equation))**은 현재 상태에서 특정 행동을 했을 때 기대되는 장기 가치를 학습 모델이 추정한 값이다.
+**[Q값(Q-value)](Value-Functions-and-Bellman-Equation)**은 현재 상태에서 특정 행동을 했을 때 기대되는 장기 가치를 학습 모델이 추정한 값이다.
 
 자세히: [가치 함수와 Bellman 식](Value-Functions-and-Bellman-Equation)
 
@@ -224,9 +224,9 @@ flowchart TD
 
 **환경 상태([상태(state)](State-Representation))**는 실제 세계의 전체 상황이다.
 
-**관측([관측(observation)](MDP-and-POMDP))**은 그중 에이전트가 실제로 볼 수 있는 정보다.
+**[관측(observation)](MDP-and-POMDP)**은 그중 에이전트가 실제로 볼 수 있는 정보다.
 
-**표현([표현(representation)](Relational-Representation-and-Generalization))**은 관측을 신경망이 쓰기 좋은 숫자·구조로 바꾼 것이다.
+**[표현(representation)](Relational-Representation-and-Generalization)**은 관측을 신경망이 쓰기 좋은 숫자·구조로 바꾼 것이다.
 
 자세히: [상태 표현](State-Representation)
 
@@ -264,7 +264,7 @@ flowchart TD
 
 에피소드가 끝났다는 사실만으로 `-1` 실패라고 보면 안 된다.
 
-예를 들어 실험의 행동 수 제한 때문에 강제로 끊긴 경우는 **외부 제한 종료([외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries))**이지 문제 자체의 실패가 아닐 수 있다.
+예를 들어 실험의 행동 수 제한 때문에 강제로 끊긴 경우는 **[외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries)**이지 문제 자체의 실패가 아닐 수 있다.
 
 자세히: [경험 저장소와 에피소드 경계](Replay-Buffer-and-Episode-Boundaries)
 

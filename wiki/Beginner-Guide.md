@@ -41,7 +41,7 @@ AASSR은 다음 질문에서 출발한다.
 
 중간에는 거의 아무 점수도 없다.
 
-이런 문제를 **희소 보상([희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment))** 문제라고 부른다.
+이런 문제를 **[희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment)** 문제라고 부른다.
 
 AASSR은 이런 환경에서 단순히 “직전에 점수가 높았던 행동”만 반복하지 않고,
 
@@ -335,7 +335,7 @@ request       0.33
 
 가장 큰 숫자만 고르면 `login`을 선택하게 된다.
 
-이 숫자를 Q값([Q값(Q-value)](Value-Functions-and-Bellman-Equation))이라고 한다.
+이 숫자를 [Q값(Q-value)](Value-Functions-and-Bellman-Equation)이라고 한다.
 
 하지만 이 값은 **즉시 보상**과 같은 것이 아니다.
 

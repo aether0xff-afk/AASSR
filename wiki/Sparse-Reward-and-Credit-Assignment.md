@@ -1,6 +1,6 @@
 # Sparse Reward and Credit Assignment
 
-이 페이지는 **희소 보상([희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment))** 과 **[보상 책임 배분(credit assignment)](Sparse-Reward-and-Credit-Assignment)**를 강화학습 일반 개념 수준에서 설명한다.
+이 페이지는 **[희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment)** 과 **[보상 책임 배분(credit assignment)](Sparse-Reward-and-Credit-Assignment)**를 강화학습 일반 개념 수준에서 설명한다.
 
 AASSR 자체의 구체적인 문제 정의는 **[Sparse Reward Problem](Sparse-Reward-Problem)** 에서 다룬다.
 
