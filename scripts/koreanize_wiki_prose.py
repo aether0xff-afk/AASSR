@@ -5,7 +5,7 @@ from pathlib import Path
 
 WIKI = Path("wiki")
 
-# This pass is intentionally conservative:
+# This pass is intentionally conservative and is also re-run after manual prose edits:
 # - fenced code blocks are untouched
 # - inline code is untouched
 # - existing Markdown links/images are untouched
@@ -141,7 +141,6 @@ TERMS: dict[str, tuple[str, str]] = {
     "DreamerV3": ("[DreamerV3(외부 세계 모델 강화학습 비교군)](Experiments)", "[DreamerV3](Experiments)"),
 }
 
-# Exact level-1 title translations. File names stay stable so Wiki links do not break.
 TITLE_MAP = {
     "# AASSR Wiki": "# AASSR 위키",
     "# AASSR in 5 Minutes": "# AASSR 5분 설명",
@@ -190,8 +189,6 @@ def transform_line(line: str, seen: set[str]) -> str:
         suffix = "\n" if line.endswith("\n") else ""
         return TITLE_MAP[line.rstrip("\n")] + suffix
 
-    # Keep other headings stable; headings are navigation anchors and excessive
-    # auto-linking inside them makes anchors unpredictable.
     if line.lstrip().startswith("#"):
         return line
 
