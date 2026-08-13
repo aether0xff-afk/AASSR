@@ -6,6 +6,7 @@ on:
       - docs/wiki-beginner-korean-pass
     paths:
       - scripts/koreanize_wiki_prose.py
+      - scripts/koreanize_wiki_common_jargon.py
       - scripts/fix_wiki_beginner_compounds.py
       - scripts/check_wiki_beginner_language.py
       - .github/workflows/wiki-beginner-language-pass.yml
@@ -25,8 +26,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Apply Korean-first terminology pass
+      - name: Apply core Korean-first terminology pass
         run: python scripts/koreanize_wiki_prose.py
+      - name: Apply common research-jargon Korean-first pass
+        run: python scripts/koreanize_wiki_common_jargon.py
       - name: Fix compound terminology and preserve research markers
         run: python scripts/fix_wiki_beginner_compounds.py
       - name: Validate wiki links and current contracts
@@ -43,5 +46,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add wiki
-          git commit -m 'Apply Korean-first terminology pass'
+          git commit -m 'Expand Korean-first Wiki prose'
           git push origin HEAD:docs/wiki-beginner-korean-pass
