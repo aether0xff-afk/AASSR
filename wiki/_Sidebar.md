@@ -69,10 +69,11 @@
 - [가치 평가 데이터 근거와 학습 분포 밖(OOD)](Critic-Support-and-OOD)
 - [계층형 강화학습과 Skill](Hierarchical-RL-and-Skills)
 
-### 연구 방법
+### 연구 방법과 문서 작성
 
 - [인과성·정보 누출·공정 평가](Causality-Leakage-and-Evaluation)
 - [구성요소 제거 실험·비교 실험·재현성](Ablation-Benchmarking-and-Reproducibility)
+- [위키 문체 안내 — 아마추어 연구자 기준](Language-Style-Guide)
 
 ### 과거 실험과 실패 기록
 
