@@ -38,7 +38,7 @@ AASSR의 현재 실행 구조는 [현재 연구 상태](Current-Status)에서 �
 
 단순히 최신 파일이라는 뜻보다 조금 더 강하다.
 
-AASSR에서 **현재 세대([현재 세대(current-generation)](Current-Status))**는 지금 연구의 기준이 되는 한 묶음의 설계 세대를 뜻한다.
+AASSR에서 **[현재 세대(current-generation)](Current-Status)**는 지금 연구의 기준이 되는 한 묶음의 설계 세대를 뜻한다.
 
 예:
 
