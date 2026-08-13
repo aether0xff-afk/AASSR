@@ -1,30 +1,30 @@
-# Prophecy
+# Prophecy — 미래 예측 모델
 
-Prophecy는 AASSR의 **확률적 [world model](Model-Based-RL-and-World-Models)** 이다.
+[Prophecy(미래 예측 모델)](Prophecy)는 AASSR의 **확률적 [world model](Model-Based-RL-and-World-Models)** 이다.
 
 목표는 다음 질문에 답하는 것이다.
 
 > **현재 공개 상태에서 어떤 행동을 했을 때 다음에 어떤 공개 결과들이 얼마나 가능한가?**
 
-current-generation의 Prophecy는 단순한 `(S,A) → S'` 회귀 모델이 아니다. [부분 관측](MDP-and-POMDP), [stochastic outcome](Stochasticity-Uncertainty-and-Probability), public HTTP status, legal action surface, terminal class를 함께 다루는 **relational conditional-mixture ensemble**이다.
+current-generation의 [Prophecy](Prophecy)는 단순한 `(S,A) → S'` 회귀 모델이 아니다. [부분 관측](MDP-and-POMDP), [stochastic outcome](Stochasticity-Uncertainty-and-Probability), public HTTP status, legal [행동(action)](Reinforcement-Learning) surface, [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) class를 함께 다루는 **relational [조건부 혼합(conditional-mixture)](Prophecy) ensemble**이다.
 
 > [!IMPORTANT]
-> 현재 source of truth: `src/aassr_v2/current_manifest.py`  
-> 핵심 구현 계열: `src/aassr_v2/current_relational_mixture_model.py`, status-aware current model/repair modules
+> 현재 [최종 기준(source of truth)](Current-Status): `src/aassr_v2/current_manifest.py`  
+> 핵심 구현 계열: `src/aassr_v2/current_relational_mixture_model.py`, [상태 코드까지 고려하는(status-aware)](Calibration) current model/repair modules
 
 ---
 
 # 0. 먼저 알아두면 좋은 개념
 
-Prophecy 문서를 제대로 이해하려면 다음 배경이 직접 연결된다.
+[Prophecy](Prophecy) 문서를 제대로 이해하려면 다음 배경이 직접 연결된다.
 
-- [MDP and POMDP](MDP-and-POMDP) — state, observation, hidden state, partial observability
+- [MDP and POMDP](MDP-and-POMDP) — state, [관측(observation)](MDP-and-POMDP), hidden state, [부분 관측(partial observability)](MDP-and-POMDP)
 - [Model-Based RL & World Models](Model-Based-RL-and-World-Models) — learned dynamics와 planning
-- [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability) — probability, aleatoric/epistemic uncertainty
+- [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability) — probability, aleatoric/[지식 부족에서 오는 불확실성(epistemic uncertainty)](Stochasticity-Uncertainty-and-Probability)
 - [Mixture, Ensemble & Calibration](Mixture-Ensemble-and-Calibration) — multimodal prediction, mixture weight, ensemble
 - [Relational Representation & Generalization](Relational-Representation-and-Generalization) — concrete ID 대신 구조를 학습하는 이유
 - [Loss Functions & Class Imbalance](Loss-Functions-and-Class-Imbalance) — categorical status, BCE/CE, rare class
-- [Causality, Leakage & Fair Evaluation](Causality-Leakage-and-Evaluation) — Knowledge anti-hindsight boundary
+- [Causality, Leakage & Fair Evaluation](Causality-Leakage-and-Evaluation) — [Knowledge(에피소드 지식)](Knowledge) anti-hindsight boundary
 
 ---
 
@@ -32,7 +32,7 @@ Prophecy 문서를 제대로 이해하려면 다음 배경이 직접 연결된�
 
 > **미래의 public outcome 분포를 학습하면 [희소 보상](Sparse-Reward-and-Credit-Assignment) 환경에서 실제 행동 전에 더 나은 의사결정을 할 수 있는가?**
 
-Prophecy 자체의 목표는 행동을 직접 선택하는 것이 아니다.
+[Prophecy](Prophecy) 자체의 목표는 행동을 직접 선택하는 것이 아니다.
 
 ```text
 Policy       = 지금 무엇을 할까?
@@ -41,19 +41,19 @@ Imagination  = 여러 미래를 이어 보면 어떤 행동이 더 나을까?
 Critic       = 그 미래의 장기 sparse return은 얼마일까?
 ```
 
-즉 Prophecy는 **environment dynamics를 근사하는 prediction layer**이고, 최종 행동 선택은 [Imagination](Imagination)과 [Critic](Critic), 그리고 여러 reliability gate를 거친다.
+즉 [Prophecy](Prophecy)는 **[환경(environment)](Reinforcement-Learning) dynamics를 근사하는 prediction layer**이고, 최종 행동 선택은 [Imagination](Imagination)과 [Critic](Critic), 그리고 여러 reliability gate를 거친다.
 
 ---
 
 # 2. 왜 world model이 필요한가?
 
-[Model-free](Reinforcement-Learning) Policy는 현재 state/action의 장기 value를 직접 학습한다.
+[Model-free](Reinforcement-Learning) [Policy(정책 모델)](Policy)는 현재 state/행동의 장기 value를 직접 학습한다.
 
 ```text
 Q(S,A)
 ```
 
-하지만 [sparse reward](Sparse-Reward-and-Credit-Assignment)에서는 대부분의 즉시 reward가 `0`이다.
+하지만 [sparse reward](Sparse-Reward-and-Credit-Assignment)에서는 대부분의 즉시 [보상(reward)](Sparse-Reward-and-Credit-Assignment)가 `0`이다.
 
 ```text
 A0 → 0
@@ -75,7 +75,7 @@ success/failure/truncation인가?
 몇 단계 더 전개하면 어떤 장기 outcome이 가능한가?
 ```
 
-이 prediction을 여러 단계 이어붙이는 것이 [counterfactual planning](Counterfactual-Planning-and-Search), 즉 AASSR의 Imagination이다.
+이 prediction을 여러 단계 이어붙이는 것이 [counterfactual planning](Counterfactual-Planning-and-Search), 즉 AASSR의 [Imagination(가상 미래 탐색)](Imagination)이다.
 
 ---
 
@@ -91,7 +91,7 @@ Observed state
 Relational State v3
 ```
 
-따라서 Prophecy가 근사하는 것은 **hidden simulator truth 자체가 아니라 learner가 인과적으로 접근 가능한 public future representation**이다.
+따라서 [Prophecy](Prophecy)가 근사하는 것은 **hidden simulator truth 자체가 아니라 learner가 인과적으로 접근 가능한 public future [표현(representation)](Relational-Representation-and-Generalization)**이다.
 
 이 차이는 [POMDP](MDP-and-POMDP) 관점에서 중요하다.
 
@@ -109,7 +109,7 @@ P(R_public' | R_public, A, K)
 
 # 4. 입력
 
-개념적으로 Prophecy input은 다음처럼 생각할 수 있다.
+개념적으로 [Prophecy](Prophecy) input은 다음처럼 생각할 수 있다.
 
 ```text
 X_t = [R_t, A_t, K_t]
@@ -119,7 +119,7 @@ X_t = [R_t, A_t, K_t]
 - `A_t`: [relational action representation](Relational-Representation-and-Generalization)
 - `K_t`: 행동 전에 이미 획득한 episode-local [Knowledge](Knowledge)
 
-중요한 점은 concrete identifier 자체를 transfer learner의 주요 identity로 쓰지 않는다는 것이다.
+중요한 점은 concrete identifier 자체를 [전이(transfer)](Relational-Representation-and-Generalization) learner의 주요 identity로 쓰지 않는다는 것이다.
 
 ```text
 route-12
@@ -140,7 +140,7 @@ object-like role
 
 # 5. 왜 Knowledge가 input에 들어갈 수 있는가?
 
-[POMDP](MDP-and-POMDP)에서는 현재 observation 하나만으로 과거에 알아낸 정보를 잃을 수 있다.
+[POMDP](MDP-and-POMDP)에서는 현재 관측 하나만으로 과거에 알아낸 정보를 잃을 수 있다.
 
 예:
 
@@ -151,7 +151,7 @@ object-like role
 
 현재 decision에 그 fact가 필요하다면 explicit memory가 필요하다.
 
-AASSR의 Knowledge는 이런 **과거 real response에서 이미 알게 된 사실**을 보존한다.
+AASSR의 [Knowledge](Knowledge)는 이런 **과거 real response에서 이미 알게 된 사실**을 보존한다.
 
 단, 시간 순서는 엄격하다.
 
@@ -173,7 +173,7 @@ K_{t+1}
 
 # 6. 출력
 
-현재 Prophecy는 다음 state vector 하나만 내지 않는다.
+현재 [Prophecy](Prophecy)는 다음 state vector 하나만 내지 않는다.
 
 각 stochastic outcome branch는 개념적으로 다음을 포함한다.
 
@@ -199,18 +199,18 @@ Concrete ID를 그대로 생성하는 대신:
 - known route/profile/object structure
 - role distribution
 - public workflow-related relations
-- available action structure
+- available 행동 structure
 - latest observed status
 
-같은 transfer 가능한 descriptor를 중심으로 한다.
+같은 전이 가능한 descriptor를 중심으로 한다.
 
-왜 이런 abstraction을 쓰는지는 [Relational Representation & Generalization](Relational-Representation-and-Generalization)에서 다룬다.
+왜 이런 abstr행동을 쓰는지는 [Relational Representation & Generalization](Relational-Representation-and-Generalization)에서 다룬다.
 
 ---
 
 # 8. 왜 deterministic prediction이 아닌가?
 
-가장 단순한 world model:
+가장 단순한 [세계 모델(world model)](Model-Based-RL-and-World-Models):
 
 ```math
 \hat S' = f_\theta(S,A)
@@ -236,7 +236,7 @@ Concrete ID를 그대로 생성하는 대신:
 가상의 C
 ```
 
-특히 categorical state/action structure에서는 이 문제가 심각하다.
+특히 categorical state/행동 structure에서는 이 문제가 심각하다.
 
 그래서 current-generation은 [conditional mixture model](Mixture-Ensemble-and-Calibration)을 사용한다.
 
@@ -306,7 +306,7 @@ Ensemble disagreement
 
 ## Outcome probability
 
-> **이 결과가 환경에서 실제로 발생할 probability mass는 얼마인가?**
+> **이 결과가 환경에서 실제로 발생할 [확률 질량(probability mass)](Stochasticity-Uncertainty-and-Probability)는 얼마인가?**
 
 예:
 
@@ -322,7 +322,7 @@ Ensemble disagreement
 
 > **이 world-model prediction 자체를 얼마나 믿을 수 있는가?**
 
-이 값은 [Calibration](Calibration)이 real holdout evidence로 판단한다.
+이 값은 [Calibration](Calibration)이 real [검증용 분리 데이터(holdout)](Calibration) evidence로 판단한다.
 
 따라서:
 
@@ -340,11 +340,11 @@ high value != high support
 
 # 12. HTTP status를 왜 명시적으로 예측하는가?
 
-과거 repaired Imagination 2k diagnostic에서는 전체 semantic prediction이 그럴듯해도 실제 planner intervention이 `403/404/429` 같은 public outcome으로 이어지는 문제가 드러났다.
+과거 repaired [Imagination](Imagination) 2k diagnostic에서는 전체 semantic prediction이 그럴듯해도 실제 planner [실제 행동 개입(intervention)](Imagination)이 `403/404/429` 같은 public outcome으로 이어지는 문제가 드러났다.
 
-그 결과 **decision-critical public variable을 abstraction 과정에서 잃으면 전체 semantic similarity만으로는 부족하다**는 점이 중요해졌다.
+그 결과 **decision-critical public variable을 abstr행동 과정에서 잃으면 전체 semantic similarity만으로는 부족하다**는 점이 중요해졌다.
 
-그래서 Relational State v3는 latest public HTTP status를 명시적으로 보존하고 Prophecy도 이를 예측한다.
+그래서 Relational State v3는 latest public HTTP status를 명시적으로 보존하고 [Prophecy](Prophecy)도 이를 예측한다.
 
 대표 status vocabulary:
 
@@ -393,7 +393,7 @@ L_{status}=-\sum_c w_cy_c\log \hat p_c
 Rare 429 sample에 training weight를 더 줌
 ```
 
-은 **prediction model이 rare class를 무시하지 않도록 loss/sample distribution을 조정하는 것**이다.
+은 **prediction model이 rare class를 무시하지 않도록 [학습 손실(loss)](Loss-Functions-and-Class-Imbalance)/sample distribution을 조정하는 것**이다.
 
 반면:
 
@@ -401,17 +401,17 @@ Rare 429 sample에 training weight를 더 줌
 429가 나오면 reward -0.5
 ```
 
-는 agent의 task objective를 바꾸는 [reward shaping](Sparse-Reward-and-Credit-Assignment)이다.
+는 [에이전트(agent)](Reinforcement-Learning)의 task objective를 바꾸는 [reward shaping](Sparse-Reward-and-Credit-Assignment)이다.
 
 둘은 완전히 다르다.
 
-AASSR current design은 전자를 사용할 수 있지만 후자로 sparse reward contract를 바꾸지 않는다.
+AASSR current design은 전자를 사용할 수 있지만 후자로 [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment) contract를 바꾸지 않는다.
 
 ---
 
 # 15. Legal action mask prediction
 
-다음 state representation을 대충 맞혀도 **그 state에서 가능한 action 집합**을 틀리면 planner는 존재하지 않는 행동을 상상할 수 있다.
+다음 state 표현을 대충 맞혀도 **그 state에서 가능한 행동 집합**을 틀리면 planner는 존재하지 않는 행동을 상상할 수 있다.
 
 ```text
 Predicted state
@@ -421,9 +421,9 @@ Predicted legal action surface
 
 가 함께 필요하다.
 
-Legal action mask는 여러 action이 동시에 가능할 수 있으므로 [multi-label prediction](Loss-Functions-and-Class-Imbalance)과 연결된다.
+Legal 행동 mask는 여러 행동이 동시에 가능할 수 있으므로 [multi-label prediction](Loss-Functions-and-Class-Imbalance)과 연결된다.
 
-평가에는 [Jaccard similarity](Loss-Functions-and-Class-Imbalance) 같은 set metric을 사용할 수 있다.
+평가에는 [Jaccard similarity](Loss-Functions-and-Class-Imbalance) 같은 set [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility)을 사용할 수 있다.
 
 ---
 
@@ -448,13 +448,13 @@ true failure  → -1
 truncation    →  0
 ```
 
-`true failure`와 administrative truncation을 같은 class로 합치면 planner/Critic semantics가 왜곡될 수 있다.
+`true failure`와 administrative [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries)을 같은 class로 합치면 planner/[Critic(미래 가치 평가기)](Critic) semantics가 왜곡될 수 있다.
 
 ---
 
 # 17. Prophecy training loss와 agent reward는 다르다
 
-Prophecy는 여러 supervised objective를 사용할 수 있다.
+[Prophecy](Prophecy)는 여러 supervised objective를 사용할 수 있다.
 
 개념적으로:
 
@@ -472,7 +472,7 @@ L
 \lambda_{mix}L_{mixture}
 ```
 
-이 loss는 neural network training을 위한 objective다.
+이 학습 손실는 neural network training을 위한 objective다.
 
 ```text
 Prophecy loss
@@ -480,7 +480,7 @@ Prophecy loss
 Environment reward
 ```
 
-따라서 status loss weight를 키운다고 agent에게 중간 reward를 주는 것이 아니다.
+따라서 status 학습 손실 weight를 키운다고 에이전트에게 중간 보상를 주는 것이 아니다.
 
 자세히: [Loss Functions & Class Imbalance](Loss-Functions-and-Class-Imbalance)
 
@@ -488,7 +488,7 @@ Environment reward
 
 # 18. Calibration
 
-좋은 world model은 단순히 평균 loss/accuracy가 높은 모델이 아니다.
+좋은 세계 모델은 단순히 평균 학습 손실/accuracy가 높은 모델이 아니다.
 
 Planner가 필요한 것은:
 
@@ -496,17 +496,17 @@ Planner가 필요한 것은:
 
 다.
 
-현재 [Calibration](Calibration)은 real holdout transition을 기준으로 semantic reliability를 평가한다.
+현재 [Calibration](Calibration)은 real 검증용 분리 데이터 [상태 전이(transition)](MDP-and-POMDP)을 기준으로 semantic reliability를 평가한다.
 
 평가 요소에는 다음이 포함될 수 있다.
 
 - relational semantic next-state quality
-- legal-action-mask correctness
-- terminal-class correctness
+- legal-행동-mask correctness
+- 에피소드 종료-class correctness
 - HTTP-status correctness
 - probability-weighted semantic quality
 
-Calibration은 value bonus가 아니다.
+[Calibration(예측 신뢰도 보정)](Calibration)은 value bonus가 아니다.
 
 ```text
 reliability 충분
@@ -545,7 +545,7 @@ C=\sum_i p_i\,score(\hat s_i',s')
 
 # 20. Ensemble을 쓰는 이유
 
-여러 model을 독립적 bootstrap/initialization으로 학습하면 prediction disagreement를 관찰할 수 있다.
+여러 model을 독립적 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)/initialization으로 학습하면 prediction disagreement를 관찰할 수 있다.
 
 ```text
 Model 1 → A
@@ -575,7 +575,7 @@ Model 3 → C
 
 # 21. Real transition만 factual target인가?
 
-current research 원칙에서는 Prophecy 학습의 사실 근거는 **real environment transition**이다.
+current research 원칙에서는 [Prophecy](Prophecy) 학습의 사실 근거는 **real 환경 상태 전이**이다.
 
 ```text
 real S_t
@@ -583,7 +583,7 @@ real A_t
 real S_{t+1}
 ```
 
-Imagined transition을 정답 data처럼 다시 Prophecy에 넣으면:
+Imagined 상태 전이을 정답 data처럼 다시 [Prophecy](Prophecy)에 넣으면:
 
 ```text
 model error
@@ -600,13 +600,13 @@ model error
 
 # 22. One-step prediction과 multi-step planning
 
-Prophecy는 기본적으로 다음 transition distribution을 학습한다.
+[Prophecy](Prophecy)는 기본적으로 다음 상태 전이 distribution을 학습한다.
 
 ```text
 (S_t,A_t) → distribution over S_{t+1}
 ```
 
-Imagination은 예측 state를 다시 Prophecy input으로 사용한다.
+[Imagination](Imagination)은 예측 state를 다시 [Prophecy](Prophecy) input으로 사용한다.
 
 ```text
 S0
@@ -626,7 +626,7 @@ S0
 
 # 23. Planner와의 연결
 
-한 root action에 대해 Prophecy가 다음 분포를 만든다고 하자.
+한 root 행동에 대해 [Prophecy](Prophecy)가 다음 분포를 만든다고 하자.
 
 ```text
 root action A
@@ -638,7 +638,7 @@ root action A
 
 이것은 [chance node](Chance-and-Decision-Nodes)다.
 
-각 predicted state에서는 agent가 다음 action을 선택할 수 있으므로 [decision node](Chance-and-Decision-Nodes)가 된다.
+각 predicted state에서는 에이전트가 다음 행동을 선택할 수 있으므로 [decision node](Chance-and-Decision-Nodes)가 된다.
 
 ```text
 Decision
@@ -650,7 +650,7 @@ Decision
 Chance
 ```
 
-이 구조가 AASSR Imagination의 핵심이다.
+이 구조가 AASSR [Imagination](Imagination)의 핵심이다.
 
 ---
 
@@ -666,9 +666,9 @@ Critic
 → 그 trajectory/state의 future sparse return은 얼마일까?
 ```
 
-예를 들어 Prophecy는 403 outcome을 정확하게 예측할 수 있다.
+예를 들어 [Prophecy](Prophecy)는 403 outcome을 정확하게 예측할 수 있다.
 
-그 403이 task objective에서 얼마나 나쁜지는 Critic/return semantics가 평가한다.
+그 403이 task objective에서 얼마나 나쁜지는 [Critic](Critic)/[누적 보상(return)](Value-Functions-and-Bellman-Equation) semantics가 평가한다.
 
 ```text
 prediction correctness
@@ -712,7 +712,7 @@ Critic local support
 - probability-weighted semantic quality
 - HTTP status accuracy / per-class recall
 - legal-mask quality
-- terminal accuracy
+- 에피소드 종료 accuracy
 - NLL / likelihood류
 - mixture component usage
 - ensemble disagreement
@@ -727,11 +727,11 @@ Critic local support
 
 ## Agent-level metric
 
-- intervention error rate
-- direct success-producing intervention
-- no-Imagination 대비 success difference
+- 실제 행동 개입 error rate
+- direct success-producing 실제 행동 개입
+- no-[Imagination](Imagination) 대비 success difference
 
-[Proxy metric](Ablation-Benchmarking-and-Reproducibility)과 final task metric을 구분해야 한다.
+[Proxy metric](Ablation-Benchmarking-and-Reproducibility)과 final task 평가지표을 구분해야 한다.
 
 ---
 
@@ -739,23 +739,23 @@ Critic local support
 
 ## 27.1 평균 semantic score는 높은데 중요한 status를 틀림
 
-**문제:** representation/metric이 decision-critical public channel을 충분히 반영하지 않음.
+**문제:** 표현/평가지표이 decision-critical public channel을 충분히 반영하지 않음.
 
 **대응:**
 
 - latest HTTP status를 Relational State v3에 보존
 - categorical status supervision
-- status-aware semantic calibration
+- 상태 코드까지 고려하는 semantic calibration
 
 ## 27.2 Higher-level OOD
 
-쉬운 curriculum level에서만 충분한 data가 있고 higher level에서 model이 extrapolate할 수 있다.
+쉬운 [난이도 조절 학습(curriculum)](Curriculum-Learning) level에서만 충분한 data가 있고 higher level에서 model이 extrapolate할 수 있다.
 
 **대응:**
 
-- real holdout reliability
+- real 검증용 분리 데이터 reliability
 - [Curriculum transfer](Curriculum-Learning) 분석
-- larger real transition budget
+- larger real 상태 전이 budget
 - fail-closed gating
 
 ## 27.3 Multimodal collapse
@@ -766,7 +766,7 @@ Critic local support
 
 - conditional mixture
 - component/mass diagnostic
-- multimodality regression tests
+- multimodality [회귀 테스트(regression test)](Ablation-Benchmarking-and-Reproducibility)s
 
 ## 27.4 Rare critical status 무시
 
@@ -775,24 +775,24 @@ Imbalanced data 때문에 majority status만 잘 맞힘.
 **대응:**
 
 - [class-balanced training](Loss-Functions-and-Class-Imbalance)
-- per-status metric
+- per-status 평가지표
 - semantic calibration
 
 ## 27.5 Long rollout compounding error
 
-한 단계 prediction은 괜찮지만 깊은 Imagination에서 drift.
+한 단계 prediction은 괜찮지만 깊은 [Imagination](Imagination)에서 drift.
 
 **대응:**
 
 - shallow/root-preserving planning
 - calibration gate
-- re-plan after every real action
+- re-plan after every real 행동
 
 ---
 
 # 28. 연구 가설
 
-Prophecy에 대한 질문은 단계적으로 분리하는 것이 좋다.
+[Prophecy](Prophecy)에 대한 질문은 단계적으로 분리하는 것이 좋다.
 
 ```text
 H1. relational next-state structure를 학습할 수 있는가?
@@ -825,7 +825,7 @@ current_planner.py / imagination tree
         ↓ planning consumption
 ```
 
-신경망/optimizer/loss 자체가 낯설다면:
+신경망/optimizer/학습 손실 자체가 낯설다면:
 
 - [Neural Networks & Optimization](Neural-Networks-and-Optimization)
 - [Loss Functions & Class Imbalance](Loss-Functions-and-Class-Imbalance)
@@ -836,7 +836,7 @@ current_planner.py / imagination tree
 
 # 30. 한 문장 요약
 
-> **Prophecy는 정답 미래 하나를 맞히는 모델이 아니라, 공개 관측으로부터 가능한 미래의 구조·확률을 예측하고, 별도의 reliability evidence와 함께 Imagination에 공급하는 stochastic relational world model이다.**
+> **[Prophecy](Prophecy)는 정답 미래 하나를 맞히는 모델이 아니라, 공개 관측으로부터 가능한 미래의 구조·확률을 예측하고, 별도의 reliability evidence와 함께 [Imagination](Imagination)에 공급하는 stochastic relational 세계 모델이다.**
 
 ---
 

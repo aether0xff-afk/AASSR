@@ -1,9 +1,9 @@
-# AASSR Wiki
+# AASSR 위키
 
-> **AASSR (An Agent for Solving Sparse Reward problem)**는 [희소 보상](Sparse-Reward-and-Credit-Assignment), [부분 관측](MDP-and-POMDP), 큰 동적 행동 공간에서 **실제 경험을 구조화하고, 확률적 [world model](Model-Based-RL-and-World-Models)로 미래를 예측한 뒤, 신뢰 가능한 범위에서 [counterfactual planning](Counterfactual-Planning-and-Search)으로 행동을 비교하는 강화학습 연구 시스템**이다.
+> **AASSR (An [에이전트(Agent)](Reinforcement-Learning) for Solving [희소 보상(Sparse Reward)](Sparse-Reward-and-Credit-Assignment) problem)**는 [희소 보상](Sparse-Reward-and-Credit-Assignment), [부분 관측](MDP-and-POMDP), 큰 동적 행동 공간에서 **실제 경험을 구조화하고, 확률적 [world model](Model-Based-RL-and-World-Models)로 미래를 예측한 뒤, 신뢰 가능한 범위에서 [counterfactual planning](Counterfactual-Planning-and-Search)으로 행동을 비교하는 강화학습 연구 시스템**이다.
 
 > [!IMPORTANT]
-> 이 위키의 **현재 구조(current architecture)** 는 항상 `main`의 `src/aassr_v2/current_manifest.py`를 source of truth로 삼는다. 과거 실험은 [Development History](Development-History) 또는 별도 historical diagnostic 페이지에 남기고 current 성능처럼 섞지 않는다.
+> 이 위키의 **현재 구조([현재 구조(current architecture)](Current-Status))** 는 항상 `main`의 `src/aassr_v2/current_manifest.py`를 [최종 기준(source of truth)](Current-Status)로 삼는다. 과거 실험은 [Development History](Development-History) 또는 별도 historical diagnostic 페이지에 남기고 current 성능처럼 섞지 않는다.
 
 ---
 
@@ -85,14 +85,14 @@ flowchart LR
 | 영역 | Current 의미 |
 |---|---|
 | [State](State-Representation) | response-causal relational public state v3 + latest status |
-| [ASEQ](ASEQ) | real semantic `(S,A,S')`, exact self-loop evidence |
-| [Policy](Policy) | relational DQN + separate information residual |
+| [ASEQ](ASEQ) | real semantic `(S,A,S')`, exact [제자리 반복(self-loop)](ASEQ) evidence |
+| [Policy](Policy) | relational [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) + separate [정보 가치 잔차(information residual)](Policy) |
 | [Knowledge](Knowledge) | episode-local real-response facts + provenance |
-| [Prophecy](Prophecy) | conditional-mixture ensemble v5, status-balanced stochastic world model |
-| [Calibration](Calibration) | probability-aware status-aware holdout reliability |
-| [Critic](Critic) | relational GRU discounted external sparse-return estimator |
+| [Prophecy](Prophecy) | [조건부 혼합(conditional-mixture)](Prophecy) ensemble v5, [상태 코드 데이터 불균형을 보정한(status-balanced)](Prophecy) stochastic [세계 모델(world model)](Model-Based-RL-and-World-Models) |
+| [Calibration](Calibration) | probability-aware [상태 코드까지 고려하는(status-aware)](Calibration) [검증용 분리 데이터(holdout)](Calibration) reliability |
+| [Critic](Critic) | relational [GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) discounted external sparse-[누적 보상(return)](Value-Functions-and-Bellman-Equation) estimator |
 | [Critic Support](Critic-Support-and-OOD) | local real-training support, fail closed |
-| [Imagination](Imagination) | chance expectation / decision max counterfactual planning |
+| [Imagination](Imagination) | chance expectation / decision max [반사실적 계획(counterfactual planning)](Counterfactual-Planning-and-Search) |
 | [Skills](Skills) | successful real ASeq → relational reusable template |
 
 ---
@@ -101,7 +101,7 @@ flowchart LR
 
 AASSR의 큰 질문:
 
-> **최종 목표 이외의 보상 힌트가 거의 없는 환경에서 agent가 실제 경험과 예측을 이용해 스스로 장기 행동 과정을 만들어낼 수 있는가?**
+> **최종 목표 이외의 보상 힌트가 거의 없는 환경에서 [에이전트(agent)](Reinforcement-Learning)가 실제 경험과 예측을 이용해 스스로 장기 행동 과정을 만들어낼 수 있는가?**
 
 현재 이 질문을 다음처럼 분해한다.
 
@@ -249,7 +249,7 @@ Reproduction
 
 ## Historical
 
-과거 architecture/checkpoint에서 얻은 mechanism 또는 failure evidence.
+과거 architecture/[체크포인트(checkpoint)](Reproduction)에서 얻은 mechanism 또는 failure evidence.
 
 대표 historical negative result:
 
@@ -263,7 +263,7 @@ Reproduction
 58/86 bad-status errors
 ```
 
-가 관측됐지만, 이것을 current v5/status-aware/local-support architecture의 성능으로 인용하면 안 된다.
+가 관측됐지만, 이것을 current v5/상태 코드까지 고려하는/local-support architecture의 성능으로 인용하면 안 된다.
 
 ---
 

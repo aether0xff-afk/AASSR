@@ -1,4 +1,4 @@
-# Evidence Matrix
+# 연구 질문-증거 연결표 (Evidence Matrix)
 
 이 페이지는 AASSR의 **연구 질문 → 가설 → 비교 조건 → 측정 지표 → 현재 evidence → 주장 가능한 범위**를 한 장에서 연결한다.
 
@@ -47,47 +47,47 @@ Imagination이 성공률을 높임
 
 ## 질문
 
-> [guided trajectory](Causality-Leakage-and-Evaluation), oracle action injection, intermediate [reward shaping](Sparse-Reward-and-Credit-Assignment) 없이도 에이전트가 실제 성공 경험을 스스로 만들 수 있는가?
+> [guided trajectory](Causality-Leakage-and-Evaluation), oracle [행동(action)](Reinforcement-Learning) injection, intermediate [reward shaping](Sparse-Reward-and-Credit-Assignment) 없이도 에이전트가 실제 성공 경험을 스스로 만들 수 있는가?
 
 ## 가설
 
-**H1:** [Curriculum Learning](Curriculum-Learning), [exploration](Exploration-and-Exploitation), [Policy](Policy), [ASEQ](ASEQ)를 이용하면 sparse external reward만으로 최초 proof가 발생할 수 있다.
+**H1:** [Curriculum Learning](Curriculum-Learning), [exploration](Exploration-and-Exploitation), [Policy](Policy), [ASEQ](ASEQ)를 이용하면 sparse external [보상(reward)](Sparse-Reward-and-Credit-Assignment)만으로 최초 proof가 발생할 수 있다.
 
 **H0:** 성공 trajectory를 직접 주입하지 않으면 학습 예산 안에서 성공 experience가 발생하지 않는다.
 
 ## 독립변수
 
 - autonomous learner configuration
-- curriculum schedule / promotion-demotion rule
-- ASEQ guard 사용 여부
+- [난이도 조절 학습(curriculum)](Curriculum-Learning) schedule / promotion-demotion rule
+- [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ) guard 사용 여부
 
 ## 종속변수
 
-- first-proof transition index
+- first-proof [상태 전이(transition)](MDP-and-POMDP) index
 - training success count
 - difficulty level reached
 - stalled episode rate
 
 ## 통제해야 할 것
 
-- external reward contract
-- real transition budget
-- scenario seed pool
+- external 보상 contract
+- real 상태 전이 budget
+- scenario [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility) pool
 - hidden information access
 
 ## 현재 evidence
 
-과거 autonomous pilot과 exact-ASEQ focused run에서 **성공 경험 자체가 사람의 정답 action sequence 없이 발생할 수 있음**은 관측됐다.
+과거 autonomous pilot과 exact-[ASEQ](ASEQ) focused run에서 **성공 경험 자체가 사람의 정답 행동 sequence 없이 발생할 수 있음**은 관측됐다.
 
 ## 지금 주장 가능한 것
 
-> AASSR 계열 autonomous training은 적어도 일부 benchmark 설정에서 sparse terminal reward만으로 실제 성공 experience를 생성할 수 있다.
+> AASSR 계열 autonomous training은 적어도 일부 [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility) 설정에서 sparse [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) 보상만으로 실제 성공 experience를 생성할 수 있다.
 
 ## 아직 주장하면 안 되는 것
 
 - 모든 난도에서 안정적으로 최초 성공을 발견한다.
-- curriculum 없이도 같은 성능을 낸다.
-- 현재 Full AASSR이 다른 baseline보다 sample-efficient하다.
+- 난이도 조절 학습 없이도 같은 성능을 낸다.
+- 현재 Full AASSR이 다른 [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility)보다 sample-efficient하다.
 
 관련 페이지: [Sparse Reward Problem](Sparse-Reward-Problem), [Curriculum Learning](Curriculum-Learning), [Experiments](Experiments)
 
@@ -97,15 +97,15 @@ Imagination이 성공률을 높임
 
 ## 질문
 
-> concrete identifier를 외우는 대신 역할과 관계를 표현하면 이름이 바뀐 unseen scenario에서 더 잘 일반화하는가?
+> concrete identifier를 외우는 대신 역할과 관계를 표현하면 이름이 바뀐 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) scenario에서 더 잘 일반화하는가?
 
 관련 개념: [Relational Representation & Generalization](Relational-Representation-and-Generalization), [State Representation](State-Representation)
 
 ## 가설
 
-**H1:** 동일한 training budget에서 `dqn_relational`이 `dqn_raw`보다 unseen seed에서 높은 성공률 또는 더 나은 milestone reach를 보인다.
+**H1:** 동일한 training budget에서 `dqn_relational`이 `dqn_raw`보다 학습 중 보지 못한 난수 시드에서 높은 성공률 또는 더 나은 milestone reach를 보인다.
 
-**H0:** relational representation은 raw representation보다 unseen performance를 개선하지 않는다.
+**H0:** [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)은 raw [표현(representation)](Relational-Representation-and-Generalization)보다 학습 중 보지 못한 performance를 개선하지 않는다.
 
 ## 핵심 ablation
 
@@ -118,30 +118,30 @@ dqn_relational
 
 ## 독립변수
 
-- state/action representation
+- state/행동 표현
 
 ## 종속변수
 
-- unseen success rate
+- 학습 중 보지 못한 success rate
 - milestone reach
 - stalled rate
-- mean transitions / requests
+- mean 상태 전이s / requests
 
 ## 고정 변수
 
-- DQN architecture와 optimizer 계열
-- reward
+- [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) architecture와 optimizer 계열
+- 보상
 - training budget
-- curriculum exposure
-- evaluation seeds
+- 난이도 조절 학습 exposure
+- evaluation 난수 시드s
 
 ## 현재 상태
 
-Relational representation 자체는 current runtime에서 사용 중이지만, **current-generation 최종 multi-seed representation ablation은 최종 suite evidence로 별도 보고해야 한다.**
+Relational 표현 자체는 current runtime에서 사용 중이지만, **current-generation 최종 multi-난수 시드 표현 [구성요소 제거 비교(ablation)](Ablation-Benchmarking-and-Reproducibility)은 최종 suite evidence로 별도 보고해야 한다.**
 
 ## 주장 경계
 
-Representation이 rename invariance를 구현한다는 code-level 사실과, unseen success를 유의미하게 높인다는 performance claim은 구분한다.
+[표현(Representation)](Relational-Representation-and-Generalization)이 rename invariance를 구현한다는 code-level 사실과, 학습 중 보지 못한 success를 유의미하게 높인다는 performance claim은 구분한다.
 
 ---
 
@@ -149,39 +149,39 @@ Representation이 rename invariance를 구현한다는 code-level 사실과, uns
 
 ## 질문
 
-> 실제 [ASEQ](ASEQ) `(S,A,S')` 중 `S → A → S`로 반복되는 semantic self-loop만 억제하면 탐색 정체가 줄어드는가?
+> 실제 [ASEQ](ASEQ) `(S,A,S')` 중 `S → A → S`로 반복되는 semantic [제자리 반복(self-loop)](ASEQ)만 억제하면 탐색 정체가 줄어드는가?
 
 ## 가설
 
-**H1:** exact ASEQ guard는 greedy policy의 stalled episode를 줄이며, 진행하는 동일 action 반복은 막지 않는다.
+**H1:** exact [ASEQ](ASEQ) guard는 greedy policy의 stalled episode를 줄이며, 진행하는 동일 행동 반복은 막지 않는다.
 
-**H0:** ASEQ guard는 stalled rate를 줄이지 못하거나 필요한 반복 행동까지 막아 성능을 해친다.
+**H0:** [ASEQ](ASEQ) guard는 stalled rate를 줄이지 못하거나 필요한 반복 행동까지 막아 성능을 해친다.
 
 ## 핵심 diagnostic
 
-과거 L1 unseen diagnostic:
+과거 L1 학습 중 보지 못한 diagnostic:
 
 ```text
 raw greedy stalled       24 / 24
 exact ASEQ stalled        0 / 24
 ```
 
-이 결과는 **self-loop suppression mechanism evidence**다.
+이 결과는 **제자리 반복 suppression mechanism evidence**다.
 
 ## 추가로 봐야 할 지표
 
 - success rate
 - stalled rate
-- suppressed-action count
+- suppressed-행동 count
 - false suppression: `S → A → S'`, `S' != S`인데 막힌 횟수
 
 ## 지금 주장 가능한 것
 
-> 관측된 semantic `S → A → S` 반복을 이용하는 exact ASEQ guard가 특정 unseen diagnostic에서 deterministic stall을 제거했다.
+> 관측된 semantic `S → A → S` 반복을 이용하는 exact [ASEQ](ASEQ) guard가 특정 학습 중 보지 못한 diagnostic에서 deterministic stall을 제거했다.
 
 ## 아직 주장하면 안 되는 것
 
-> ASEQ 하나만으로 전체 AASSR의 최종 성능이 높아진다.
+> [ASEQ](ASEQ) 하나만으로 전체 AASSR의 최종 성능이 높아진다.
 
 ---
 
@@ -189,29 +189,29 @@ exact ASEQ stalled        0 / 24
 
 ## 질문
 
-> 현재 public state, action, causal Knowledge로부터 planner가 사용할 수 있는 next-outcome distribution을 학습하는가?
+> 현재 public state, 행동, causal [Knowledge(에피소드 지식)](Knowledge)로부터 planner가 사용할 수 있는 next-outcome distribution을 학습하는가?
 
 관련 페이지: [Prophecy](Prophecy), [Model-Based RL & World Models](Model-Based-RL-and-World-Models), [Mixture, Ensemble & Calibration](Mixture-Ensemble-and-Calibration)
 
 ## current contract
 
-현재 `main`의 `current_manifest.py` 기준 Prophecy는:
+현재 `main`의 `current_manifest.py` 기준 [Prophecy(미래 예측 모델)](Prophecy)는:
 
 ```text
 relational-conditional-mixture-ensemble-v5-status-balanced
 ```
 
-이며 다음을 예측하는 stochastic world model 계열이다.
+이며 다음을 예측하는 stochastic [세계 모델(world model)](Model-Based-RL-and-World-Models) 계열이다.
 
 - relational next descriptor
 - latest public HTTP status
-- legal-action mask
-- active / success / failure / truncation outcome
-- mixture outcome probability
+- [가능 행동 마스크(legal-action mask)](Prophecy)
+- active / success / failure / [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries) outcome
+- mixture [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability)
 
 ## 가설
 
-**H1:** holdout real transitions에서 Prophecy가 decision-relevant next-state structure와 outcome distribution을 충분히 보존한다.
+**H1:** [검증용 분리 데이터(holdout)](Calibration) real 상태 전이s에서 [Prophecy](Prophecy)가 decision-relevant next-state structure와 outcome distribution을 충분히 보존한다.
 
 **H0:** prediction error 또는 mode collapse 때문에 planning에 사용할 수 없다.
 
@@ -220,7 +220,7 @@ relational-conditional-mixture-ensemble-v5-status-balanced
 - probability-weighted semantic quality
 - top-k semantic quality
 - legal-mask accuracy
-- terminal-class accuracy
+- 에피소드 종료-class accuracy
 - public HTTP-status categorical accuracy
 - mixture mode coverage
 - rare-status recall
@@ -242,7 +242,7 @@ planner가 안전하게 사용 가능
 
 ## 질문
 
-> world-model outcome probability와 model reliability를 분리했을 때, unreliable prediction을 실제 override 전에 걸러낼 수 있는가?
+> world-model 결과 확률와 model reliability를 분리했을 때, unreliable prediction을 실제 override 전에 걸러낼 수 있는가?
 
 관련 페이지: [Calibration](Calibration), [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability)
 
@@ -258,7 +258,7 @@ Prediction reliability
 
 ## 가설
 
-**H1:** holdout-calibrated reliability gate를 적용하면 prediction-error-heavy intervention을 줄이면서 유용한 planning opportunity는 유지한다.
+**H1:** 검증용 분리 데이터-calibrated reliability gate를 적용하면 prediction-error-heavy [실제 행동 개입(intervention)](Imagination)을 줄이면서 유용한 planning opportunity는 유지한다.
 
 ## 측정 지표
 
@@ -266,11 +266,11 @@ Prediction reliability
 - gate reject rate
 - accepted vs rejected branch error
 - reliability bucket별 observed prediction quality
-- intervention error rate
+- 실제 행동 개입 error rate
 
 ## 현재 상태
 
-current runtime은 `semantic-probability-holdout-calibration-v3-status-aware` 계약을 사용한다. 이것은 구현 contract이며, 최종 causal performance effect는 current reduced/final ablation으로 검증해야 한다.
+current runtime은 `semantic-probability-holdout-calibration-v3-status-aware` 계약을 사용한다. 이것은 구현 contract이며, 최종 causal performance effect는 current reduced/final 구성요소 제거 비교으로 검증해야 한다.
 
 ---
 
@@ -278,7 +278,7 @@ current runtime은 `semantic-probability-holdout-calibration-v3-status-aware` �
 
 ## 질문
 
-> [Critic](Critic)이 global training을 받았더라도 현재 imagined state/action이 training distribution 밖이라면 그 value를 믿어도 되는가?
+> [Critic](Critic)이 global training을 받았더라도 현재 imagined state/행동이 training distribution 밖이라면 그 value를 믿어도 되는가?
 
 답해야 하는 두 질문은 다르다.
 
@@ -296,20 +296,20 @@ Locally supported?
 
 **H1:** local real-training support gate를 추가하면 unsupported high-value override를 억제한다.
 
-**H0:** local support는 intervention quality에 영향을 주지 않거나 지나치게 보수적으로 planner를 비활성화한다.
+**H0:** [국소 데이터 근거(local support)](Critic-Support-and-OOD)는 실제 행동 개입 quality에 영향을 주지 않거나 지나치게 보수적으로 planner를 비활성화한다.
 
 ## 지표
 
-- local support pass/fail
+- 국소 데이터 근거 pass/fail
 - support distance distribution
-- unsupported intervention count
-- supported intervention outcome quality
-- planner intervention count
+- unsupported 실제 행동 개입 count
+- supported 실제 행동 개입 outcome quality
+- planner 실제 행동 개입 count
 - false-closed rate
 
 ## historical evidence
 
-2026-08-11 diagnostic에서 training successes는 낮은 curriculum level에 집중되었지만 Imagination override는 높은 unseen level에서 대량 발생했다. 이 결과는 local support gate를 설계하게 만든 **root-cause evidence**다.
+2026-08-11 diagnostic에서 training successes는 낮은 난이도 조절 학습 level에 집중되었지만 [Imagination(가상 미래 탐색)](Imagination) override는 높은 학습 중 보지 못한 level에서 대량 발생했다. 이 결과는 국소 데이터 근거 gate를 설계하게 만든 **root-cause evidence**다.
 
 ---
 
@@ -317,7 +317,7 @@ Locally supported?
 
 ## 질문
 
-> 같은 학습된 AASSR checkpoint에서 planner를 켰을 때 Policy-only보다 실제 첫 행동과 최종 성능이 좋아지는가?
+> 같은 학습된 AASSR [체크포인트(checkpoint)](Reproduction)에서 planner를 켰을 때 [Policy(정책 모델)](Policy)-only보다 실제 첫 행동과 최종 성능이 좋아지는가?
 
 관련 페이지: [Imagination](Imagination), [Chance Nodes & Decision Nodes](Chance-and-Decision-Nodes)
 
@@ -331,11 +331,11 @@ frozen checkpoint
 planner OFF      planner ON
 ```
 
-OFF/ON을 따로 학습하면 Imagination의 causal marginal effect를 분리할 수 없다.
+OFF/ON을 따로 학습하면 [Imagination](Imagination)의 causal marginal effect를 분리할 수 없다.
 
 ## H1
 
-`aassr_current_full`이 동일 checkpoint의 `aassr_current_no_imagination`보다 unseen success / failure trade-off에서 개선된다.
+`aassr_current_full`이 동일 체크포인트의 `aassr_current_no_imagination`보다 학습 중 보지 못한 success / failure trade-off에서 개선된다.
 
 ## H0
 
@@ -347,7 +347,7 @@ planner ON/OFF 차이가 없거나 planner가 오류를 늘린다.
 - success
 - true failure
 - stalled
-- truncation
+- 외부 제한 종료
 - milestone reach
 
 ### Planner mechanism
@@ -355,20 +355,20 @@ planner ON/OFF 차이가 없거나 planner가 오류를 늘린다.
 - switch candidates
 - reliability rejects
 - support rejects
-- final interventions
-- changed actions
-- direct-success interventions
-- bad-status interventions
+- final 실제 행동 개입s
+- changed 행동s
+- direct-success 실제 행동 개입s
+- bad-status 실제 행동 개입s
 
 ### Runtime
 - wall time
-- Prophecy calls
-- Critic calls
+- [Prophecy](Prophecy) calls
+- [Critic(미래 가치 평가기)](Critic) calls
 - structural root dedup ratio
 
 ## historical warning
 
-2026-08-11의 `4/20 vs 4/20`, 86 intervention 결과는 **현재 repaired architecture의 최종 성능 결과가 아니다.** 그것은 잘못된 intervention 원인을 찾은 historical diagnostic이다.
+2026-08-11의 `4/20 vs 4/20`, 86 실제 행동 개입 결과는 **현재 repaired architecture의 최종 성능 결과가 아니다.** 그것은 잘못된 실제 행동 개입 원인을 찾은 historical diagnostic이다.
 
 ---
 
@@ -376,7 +376,7 @@ planner ON/OFF 차이가 없거나 planner가 오류를 늘린다.
 
 ## 질문
 
-> 동일한 observation/reward/budget/evaluation protocol에서 current AASSR은 model-free 및 model-based baseline보다 더 높은 장기 문제 해결 성능을 보이는가?
+> 동일한 [관측(observation)](MDP-and-POMDP)/보상/budget/evaluation protocol에서 current AASSR은 model-free 및 model-based 비교 기준보다 더 높은 장기 문제 해결 성능을 보이는가?
 
 ## current comparison chain
 
@@ -400,26 +400,26 @@ aassr_current_full
 
 ## 핵심 조건
 
-- 같은 real transition budget
-- 같은 train/eval seed protocol
-- 같은 external sparse reward
+- 같은 real 상태 전이 budget
+- 같은 train/eval 난수 시드 protocol
+- 같은 external [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment)
 - hidden information 없음
-- final blind set 사전 미사용
-- AASSR OFF/ON same checkpoint
+- [최종 비공개 평가(final blind)](Ablation-Benchmarking-and-Reproducibility) set 사전 미사용
+- AASSR OFF/ON [같은 체크포인트(same checkpoint)](Experiments)
 
 ## 최종 지표
 
 - success rate by tier
 - aggregate success
 - true failure
-- stalled/truncation
+- stalled/외부 제한 종료
 - mean requests
 - runtime
-- seed variance
+- 난수 시드 variance
 
 ## 현재 주장 상태
 
-> **Pending.** current-generation full multi-seed/final-blind evidence가 완료되기 전에는 “AASSR이 DQN/DreamerV3보다 우수하다”고 쓰지 않는다.
+> **Pending.** current-generation full multi-난수 시드/final-blind evidence가 완료되기 전에는 “AASSR이 [DQN](Q-Learning-DQN-and-TD)/[DreamerV3(외부 세계 모델 강화학습 비교군)](Experiments)보다 우수하다”고 쓰지 않는다.
 
 ---
 
@@ -427,13 +427,13 @@ aassr_current_full
 
 ## 질문
 
-> 반복 성공한 real ASeq를 [relational template](Relational-Representation-and-Generalization)로 승격하면 concrete ID가 달라진 unseen scenario에서도 재사용할 수 있는가?
+> 반복 성공한 real ASeq를 [relational template](Relational-Representation-and-Generalization)로 승격하면 concrete ID가 달라진 학습 중 보지 못한 scenario에서도 재사용할 수 있는가?
 
 관련 페이지: [Skills](Skills), [Hierarchical RL & Skills](Hierarchical-RL-and-Skills)
 
 ## 가설
 
-**H1:** relational Skill은 raw concrete macro보다 unseen rebinding 성공률이 높고 primitive-only search cost를 줄인다.
+**H1:** relational [Skill(성공 절차 재사용)](Skills)은 raw concrete macro보다 학습 중 보지 못한 rebinding 성공률이 높고 primitive-only search cost를 줄인다.
 
 ## 지표
 
@@ -441,20 +441,20 @@ aassr_current_full
 - rebinding success
 - unavailable primitive rate
 - skill-completion success
-- primitive-only 대비 transition saving
+- primitive-only 대비 상태 전이 saving
 - stochastic rollout failure
 
 ## 현재 상태
 
-Skill은 current runtime에 구현되어 있지만 전체 final benchmark의 primary performance claim과는 별도 evidence로 다룬다.
+[Skill](Skills)은 current runtime에 구현되어 있지만 전체 final 표준 비교 실험의 primary performance claim과는 별도 evidence로 다룬다.
 
 ---
 
 # 장기 질문: Creativity
 
-> 에이전트가 사람이 제공한 정답 trajectory나 이미 저장된 Skill을 그대로 복제하지 않고도 **새로운 유효한 해결 경로**를 반복적으로 만들어내는가?
+> 에이전트가 사람이 제공한 정답 trajectory나 이미 저장된 [Skill](Skills)을 그대로 복제하지 않고도 **새로운 유효한 해결 경로**를 반복적으로 만들어내는가?
 
-이 질문은 현재 primary benchmark보다 한 단계 뒤에 둔다.
+이 질문은 현재 primary 표준 비교 실험보다 한 단계 뒤에 둔다.
 
 먼저 필요한 조건:
 
@@ -465,7 +465,7 @@ autonomous success
 → path diversity analysis
 ```
 
-Creativity는 단순 action diversity가 아니다. 유효한 목표 달성 경로 중 **training solution structure와 실질적으로 다른 경로**인지 정의와 metric이 필요하다.
+Creativity는 단순 행동 diversity가 아니다. 유효한 목표 달성 경로 중 **training solution structure와 실질적으로 다른 경로**인지 정의와 [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility)이 필요하다.
 
 ---
 
@@ -473,15 +473,15 @@ Creativity는 단순 action diversity가 아니다. 유효한 목표 달성 경�
 
 | RQ | 핵심 비교 / evidence | 현재 상태 | 지금 가능한 주장 |
 |---|---|---|---|
-| RQ1 최초 성공 | autonomous sparse-reward training | 부분 evidence | 일부 setting에서 autonomous proof 가능 |
-| RQ2 relational transfer | raw vs relational DQN | final current suite 필요 | representation contract는 active |
-| RQ3 ASEQ | exact self-loop guard diagnostic | mechanism evidence 있음 | observed self-loop stall 억제 |
-| RQ4 Prophecy | holdout world-model metrics | active + validation 진행 | stochastic v5 contract active |
-| RQ5 Calibration | reliability gate audit | active + validation 진행 | status-aware calibration active |
-| RQ6 Critic support | local support ablation | active + validation 진행 | fail-closed support gate active |
-| RQ7 Imagination | same-checkpoint OFF vs ON | final performance 미확정 | planner semantics active |
+| RQ1 최초 성공 | autonomous sparse-보상 training | 부분 evidence | 일부 setting에서 autonomous proof 가능 |
+| RQ2 relational [전이(transfer)](Relational-Representation-and-Generalization) | raw vs relational [DQN](Q-Learning-DQN-and-TD) | final current suite 필요 | 표현 contract는 active |
+| RQ3 [ASEQ](ASEQ) | exact 제자리 반복 guard diagnostic | mechanism evidence 있음 | observed 제자리 반복 stall 억제 |
+| RQ4 [Prophecy](Prophecy) | 검증용 분리 데이터 world-model [평가지표(metrics)](Ablation-Benchmarking-and-Reproducibility) | active + validation 진행 | stochastic v5 contract active |
+| RQ5 [Calibration(예측 신뢰도 보정)](Calibration) | reliability gate audit | active + validation 진행 | [상태 코드까지 고려하는(status-aware)](Calibration) calibration active |
+| RQ6 [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD) | 국소 데이터 근거 구성요소 제거 비교 | active + validation 진행 | fail-closed support gate active |
+| RQ7 [Imagination](Imagination) | [같은 체크포인트(same-checkpoint)](Experiments) OFF vs ON | final performance 미확정 | planner semantics active |
 | RQ8 전체 성능 | five-condition + blind | pending | 우월성 주장 금지 |
-| RQ9 Skill | primitive vs relational skill | 제한적 evidence | mechanism experimental |
+| RQ9 [Skill](Skills) | primitive vs relational skill | 제한적 evidence | mechanism experimental |
 | Creativity | path novelty analysis | future | primary claim 아님 |
 
 ---

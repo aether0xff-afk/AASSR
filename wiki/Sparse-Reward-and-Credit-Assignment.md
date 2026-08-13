@@ -1,6 +1,6 @@
 # Sparse Reward and Credit Assignment
 
-이 페이지는 **희소 보상(sparse reward)** 과 **credit assignment**를 강화학습 일반 개념 수준에서 설명한다.
+이 페이지는 **희소 보상([희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment))** 과 **[보상 책임 배분(credit assignment)](Sparse-Reward-and-Credit-Assignment)**를 강화학습 일반 개념 수준에서 설명한다.
 
 AASSR 자체의 구체적인 문제 정의는 **[Sparse Reward Problem](Sparse-Reward-Problem)** 에서 다룬다.
 
@@ -10,7 +10,7 @@ AASSR 자체의 구체적인 문제 정의는 **[Sparse Reward Problem](Sparse-R
 
 ## Dense reward
 
-에이전트가 목표로 가는 과정에서도 자주 reward를 받는다.
+에이전트가 목표로 가는 과정에서도 자주 [보상(reward)](Sparse-Reward-and-Credit-Assignment)를 받는다.
 
 ```text
 좋은 방향으로 이동   +0.1
@@ -36,7 +36,7 @@ A0 → A1 → A2 → A3 → A4 → success
 
 # 2. Delayed reward
 
-**Delayed reward**는 행동의 결과가 한참 뒤에 보상으로 나타나는 상황이다.
+**Delayed 보상**는 행동의 결과가 한참 뒤에 보상으로 나타나는 상황이다.
 
 ```text
 A0
@@ -62,7 +62,7 @@ A3
 
 **Credit assignment problem**은 최종 결과의 책임 또는 공로를 과거의 행동/상태에 어떻게 배분할지에 대한 문제다.
 
-강화학습에서는 특히 **temporal credit assignment**가 중요하다.
+강화학습에서는 특히 **temporal 보상 책임 배분**가 중요하다.
 
 ```text
 오래 전 행동 A
@@ -80,7 +80,7 @@ A3
 
 # 4. 희소 보상에서는 왜 credit assignment가 더 어려운가?
 
-Dense reward에서는 중간 단계마다 힌트가 있다.
+Dense 보상에서는 중간 단계마다 힌트가 있다.
 
 ```text
 A0 +0.1
@@ -89,7 +89,7 @@ A2 -0.1
 A3 +0.4
 ```
 
-Sparse reward에서는:
+Sparse 보상에서는:
 
 ```text
 A0 0
@@ -119,9 +119,9 @@ credit assignment 느림
 
 # 5. Exploration 문제와 연결
 
-희소 보상에서는 credit assignment 이전에 **성공 trajectory 자체를 발견하지 못하는 문제**가 있다.
+희소 보상에서는 보상 책임 배분 이전에 **성공 trajectory 자체를 발견하지 못하는 문제**가 있다.
 
-행동 수가 각 단계마다 `b`, 성공까지 필요한 깊이가 `d`라고 단순화하면 random exploration으로 특정 경로를 고를 확률은 대략:
+행동 수가 각 단계마다 `b`, 성공까지 필요한 깊이가 `d`라고 단순화하면 random [탐색(exploration)](Exploration-and-Exploitation)으로 특정 경로를 고를 확률은 대략:
 
 ```math
 \left(\frac{1}{b}\right)^d
@@ -151,12 +151,12 @@ credit assignment 느림
 
 긴 horizon에서는:
 
-- reward가 더 멀리 있음
+- 보상가 더 멀리 있음
 - model-based planning에서는 prediction error가 더 많이 누적됨
-- value learning에서는 bootstrap chain이 길어짐
-- exploration에서 가능한 경로 수가 커짐
+- value learning에서는 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries) chain이 길어짐
+- 탐색에서 가능한 경로 수가 커짐
 
-AASSR이 Imagination depth를 무조건 크게 하지 않는 이유도 여기에 있다.
+AASSR이 [Imagination(가상 미래 탐색)](Imagination) depth를 무조건 크게 하지 않는 이유도 여기에 있다.
 
 관련 페이지:
 
@@ -167,16 +167,16 @@ AASSR이 Imagination depth를 무조건 크게 하지 않는 이유도 여기에
 
 # 7. Reward shaping
 
-희소 보상 문제를 쉽게 만드는 대표적인 방법은 **reward shaping**이다.
+희소 보상 문제를 쉽게 만드는 대표적인 방법은 **보상 shaping**이다.
 
-원래 reward:
+원래 보상:
 
 ```text
 goal +1
 otherwise 0
 ```
 
-shaped reward:
+shaped 보상:
 
 ```text
 subgoal A +0.1
@@ -188,7 +188,7 @@ goal      +1.0
 
 하지만 연구자가 subgoal을 미리 알고 있어야 하는 경우가 있다.
 
-AASSR의 핵심 질문이 "중간 목표를 사람이 정해주지 않아도 되는가?"이므로 current benchmark는 외부 shaping reward를 의도적으로 제한한다.
+AASSR의 핵심 질문이 "중간 목표를 사람이 정해주지 않아도 되는가?"이므로 current [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)는 외부 shaping 보상를 의도적으로 제한한다.
 
 ---
 
@@ -196,13 +196,13 @@ AASSR의 핵심 질문이 "중간 목표를 사람이 정해주지 않아도 되
 
 아니다.
 
-Reward shaping은 정당한 RL 기법이다. 문제는 **무엇을 연구하려는가**다.
+[보상(Reward)](Sparse-Reward-and-Credit-Assignment) shaping은 정당한 RL 기법이다. 문제는 **무엇을 연구하려는가**다.
 
 예를 들어 실제 제품 최적화가 목적이라면 사람이 유용한 intermediate objective를 설계하는 것이 합리적일 수 있다.
 
 반면 AASSR 연구 질문은:
 
-> sparse external reward에서도 경험 구조와 planning이 도움이 되는가?
+> sparse external 보상에서도 경험 구조와 planning이 도움이 되는가?
 
 이므로 강한 hand-crafted shaping을 넣으면 원래 질문을 흐릴 수 있다.
 
@@ -222,13 +222,13 @@ F(s,a,s')=\gamma\Phi(s')-\Phi(s)
 
 이 방식은 특정 조건에서 원래 optimal policy를 보존하는 이론적 성질을 가진다.
 
-하지만 AASSR current benchmark는 더 강한 질문을 유지하기 위해 **외부 중간 reward 자체를 사용하지 않는 방향**을 택한다.
+하지만 AASSR current 표준 비교 실험는 더 강한 질문을 유지하기 위해 **외부 중간 보상 자체를 사용하지 않는 방향**을 택한다.
 
 ---
 
 # 10. Intrinsic reward
 
-환경이 주는 외부 reward와 별도로 agent 내부에서 exploration을 위한 reward를 만들 수도 있다.
+환경이 주는 외부 보상와 별도로 [에이전트(agent)](Reinforcement-Learning) 내부에서 탐색을 위한 보상를 만들 수도 있다.
 
 예:
 
@@ -237,9 +237,9 @@ F(s,a,s')=\gamma\Phi(s')-\Phi(s)
 - prediction error
 - information gain
 
-이를 **intrinsic motivation**이라고 부른다.
+이를 **[내재 동기(intrinsic motivation)](Information-Theory-and-Intrinsic-Motivation)**이라고 부른다.
 
-AASSR의 information residual은 "정보의 가치"와 관련 있지만, current 설계에서는 이를 **외부 DQN task reward와 분리된 residual**로 유지한다.
+AASSR의 [정보 가치 잔차(information residual)](Policy)은 "정보의 가치"와 관련 있지만, current 설계에서는 이를 **외부 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) task 보상와 분리된 residual**로 유지한다.
 
 즉:
 
@@ -267,7 +267,7 @@ internal information value
 하지만 실제 도달한 상태를 다른 목표로 보면 성공 경험으로 재사용
 ```
 
-AASSR의 현재 benchmark와는 목적과 계약이 다르다.
+AASSR의 현재 표준 비교 실험와는 목적과 계약이 다르다.
 
 AASSR은 행동 후 알게 된 미래 정보를 행동 전 prediction에 넣는 [hindsight leakage](Causality-Leakage-and-Evaluation)를 특히 경계한다.
 
@@ -277,7 +277,7 @@ HER 자체가 leakage라는 뜻은 아니다. **목표 재라벨링을 명시적
 
 # 12. Monte Carlo credit assignment
 
-Episode가 끝난 뒤 실제 return을 계산해서 각 state/action에 학습 신호를 줄 수 있다.
+Episode가 끝난 뒤 실제 [누적 보상(return)](Value-Functions-and-Bellman-Equation)을 계산해서 각 state/[행동(action)](Reinforcement-Learning)에 학습 신호를 줄 수 있다.
 
 ```math
 G_t=\sum_{k=0}^{T-t-1}\gamma^kR_{t+k+1}
@@ -285,22 +285,22 @@ G_t=\sum_{k=0}^{T-t-1}\gamma^kR_{t+k+1}
 
 장점:
 
-- 실제 observed return 사용
-- bootstrap bias가 없음
+- 실제 observed 누적 보상 사용
+- 다음 상태 가치 이어받기 bias가 없음
 
 단점:
 
 - episode 종료까지 기다려야 함
-- sparse reward에서는 유용한 성공 episode가 드물 수 있음
+- 희소 보상에서는 유용한 성공 episode가 드물 수 있음
 - variance가 클 수 있음
 
-AASSR Critic은 실제 sparse-return을 기반으로 하지만 recurrent suffix training이라는 별도 구조를 사용한다.
+AASSR [Critic(미래 가치 평가기)](Critic)은 실제 sparse-누적 보상을 기반으로 하지만 recurrent suffix training이라는 별도 구조를 사용한다.
 
 ---
 
 # 13. Temporal Difference credit assignment
 
-TD는 실제 final return을 전부 기다리지 않고 다음 value estimate를 이용해 현재 value를 업데이트한다.
+TD는 실제 final 누적 보상을 전부 기다리지 않고 다음 value estimate를 이용해 현재 value를 업데이트한다.
 
 ```math
 y_t=r_t+\gamma V(s_{t+1})
@@ -312,12 +312,12 @@ y_t=r_t+\gamma V(s_{t+1})
 y_t=r_t+\gamma\max_{a'}Q(s_{t+1},a')
 ```
 
-이것을 **bootstrapping**이라고 한다.
+이것을 **다음 상태 가치 이어받기ping**이라고 한다.
 
 장점:
 
 - online update 가능
-- reward 신호를 단계적으로 뒤로 전파 가능
+- 보상 신호를 단계적으로 뒤로 전파 가능
 
 단점:
 
@@ -333,7 +333,7 @@ y_t=r_t+\gamma\max_{a'}Q(s_{t+1},a')
 
 # 14. Model-based planning과 credit assignment
 
-World model을 이용하면 실제 reward가 오기 전에 미래를 전개해볼 수 있다.
+World model을 이용하면 실제 보상가 오기 전에 미래를 전개해볼 수 있다.
 
 ```text
 현재 state
@@ -347,9 +347,9 @@ World model을 이용하면 실제 reward가 오기 전에 미래를 전개해�
 
 이것은 value learning의 temporal propagation과 다른 방식으로 장기 의사결정을 보완할 수 있다.
 
-AASSR의 Prophecy + Imagination은 이 방향에 해당한다.
+AASSR의 [Prophecy(미래 예측 모델)](Prophecy) + [Imagination](Imagination)은 이 방향에 해당한다.
 
-하지만 world model이 틀리면 planning도 틀릴 수 있다.
+하지만 [세계 모델(world model)](Model-Based-RL-and-World-Models)이 틀리면 planning도 틀릴 수 있다.
 
 그래서 다음이 필요하다.
 
@@ -360,13 +360,13 @@ AASSR의 Prophecy + Imagination은 이 방향에 해당한다.
 
 # 15. Self-loop와 sparse reward
 
-Reward가 계속 0이면 agent가 같은 행동을 반복해도 강한 부정 신호가 없을 수 있다.
+보상가 계속 0이면 에이전트가 같은 행동을 반복해도 강한 부정 신호가 없을 수 있다.
 
 ```text
 S → A → S → A → S → A → S
 ```
 
-AASSR의 ASEQ는 **반복 행동 자체**가 아니라 실제로 관측된 진전 없는:
+AASSR의 [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ)는 **반복 행동 자체**가 아니라 실제로 관측된 진전 없는:
 
 ```text
 S → A → S
@@ -374,7 +374,7 @@ S → A → S
 
 만 좁게 억제한다.
 
-이것은 reward를 추가하는 것이 아니라 action selection constraint에 가깝다.
+이것은 보상를 추가하는 것이 아니라 행동 selection constraint에 가깝다.
 
 관련 페이지:
 
@@ -384,7 +384,7 @@ S → A → S
 
 # 16. 정보 수집 행동의 credit
 
-어떤 행동은 즉시 reward를 주지 않지만 정보를 얻어 미래의 action space를 바꿀 수 있다.
+어떤 행동은 즉시 보상를 주지 않지만 정보를 얻어 미래의 행동 space를 바꿀 수 있다.
 
 ```text
 정보 탐색 action
@@ -398,15 +398,15 @@ S → A → S
 
 단순 TD만으로도 이 관계를 장기적으로 학습할 수 있지만 성공 sample이 매우 적으면 느릴 수 있다.
 
-AASSR Policy는 external Q-value와 별도로 delayed information residual을 관리한다.
+AASSR [Policy(정책 모델)](Policy)는 external [Q값(Q-value)](Value-Functions-and-Bellman-Equation)와 별도로 delayed 정보 가치 잔차을 관리한다.
 
-중요한 점은 **그 residual을 외부 reward로 위장하지 않는 것**이다.
+중요한 점은 **그 residual을 외부 보상로 위장하지 않는 것**이다.
 
 ---
 
 # 17. Sparse reward benchmark에서 꼭 확인할 것
 
-희소 보상 환경을 만들었다고 해서 좋은 benchmark가 되는 것은 아니다.
+희소 보상 환경을 만들었다고 해서 좋은 표준 비교 실험가 되는 것은 아니다.
 
 다음이 중요하다.
 
@@ -416,19 +416,19 @@ Oracle 또는 검증된 solver가 성공할 수 있어야 한다.
 
 ## Non-triviality
 
-Random이 너무 쉽게 성공하면 sparse exploration 연구가 의미가 없다.
+Random이 너무 쉽게 성공하면 sparse 탐색 연구가 의미가 없다.
 
 ## No shortcut
 
-hidden 정답 정보가 observation에 들어가면 안 된다.
+hidden 정답 정보가 [관측(observation)](MDP-and-POMDP)에 들어가면 안 된다.
 
 ## Stable failure semantics
 
-failure와 truncation을 구분해야 한다.
+failure와 [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries)을 구분해야 한다.
 
 ## Comparable budgets
 
-baseline과 proposed model이 같은 transition budget을 가져야 한다.
+[비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility)과 proposed model이 같은 [상태 전이(transition)](MDP-and-POMDP) budget을 가져야 한다.
 
 관련 페이지:
 
@@ -438,7 +438,7 @@ baseline과 proposed model이 같은 transition budget을 가져야 한다.
 
 # 18. AASSR과 연결
 
-AASSR은 sparse reward 문제를 한 가지 trick으로 해결하려 하지 않는다.
+AASSR은 희소 보상 문제를 한 가지 trick으로 해결하려 하지 않는다.
 
 ```text
 Sparse reward
@@ -459,7 +459,7 @@ Sparse reward
 
 ## "reward가 0이면 학습이 아예 안 된다"
 
-항상 그렇지는 않다. bootstrap이나 이후 terminal reward가 이전 state/action으로 전파될 수 있다. 문제는 **성공 경험이 너무 적으면 그 전파를 시작할 sample 자체가 부족하다**는 것이다.
+항상 그렇지는 않다. 다음 상태 가치 이어받기이나 이후 [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) 보상가 이전 state/행동으로 전파될 수 있다. 문제는 **성공 경험이 너무 적으면 그 전파를 시작할 sample 자체가 부족하다**는 것이다.
 
 ## "중간 reward를 주면 sparse reward가 해결된다"
 
@@ -467,7 +467,7 @@ Sparse reward
 
 ## "정보를 얻으면 reward를 주면 되지 않나?"
 
-가능하지만 그 순간 연구 objective가 바뀔 수 있다. AASSR은 information signal과 external task reward를 분리해 분석한다.
+가능하지만 그 순간 연구 objective가 바뀔 수 있다. AASSR은 information signal과 external task 보상를 분리해 분석한다.
 
 ---
 

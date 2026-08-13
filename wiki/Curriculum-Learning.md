@@ -1,14 +1,14 @@
 # Curriculum Learning
 
-**Curriculum Learning**은 처음부터 가장 어려운 문제만 주는 대신, 학습 가능한 쉬운 문제에서 시작해 점차 난도를 높이는 방법이다.
+**[난이도 조절 학습(Curriculum)](Curriculum-Learning) Learning**은 처음부터 가장 어려운 문제만 주는 대신, 학습 가능한 쉬운 문제에서 시작해 점차 난도를 높이는 방법이다.
 
-AASSR에서는 희소 보상 환경에서 **최초 성공 experience를 스스로 발견할 수 있게 하면서도 정답 trajectory를 직접 주입하지 않는 방법**으로 curriculum을 사용한다.
+AASSR에서는 희소 보상 환경에서 **최초 성공 experience를 스스로 발견할 수 있게 하면서도 정답 trajectory를 직접 주입하지 않는 방법**으로 [난이도 조절 학습(curriculum)](Curriculum-Learning)을 사용한다.
 
 ---
 
 # 1. 왜 Curriculum이 필요한가?
 
-아주 어려운 sparse-reward environment에서는 random exploration으로 성공을 단 한 번도 찾지 못할 수 있다.
+아주 어려운 sparse-[보상(reward)](Sparse-Reward-and-Credit-Assignment) [환경(environment)](Reinforcement-Learning)에서는 random [탐색(exploration)](Exploration-and-Exploitation)으로 성공을 단 한 번도 찾지 못할 수 있다.
 
 ```text
 Hard task
@@ -35,7 +35,7 @@ Hard task
 
 순서로 연습한다.
 
-Curriculum learning도 비슷한 직관을 machine learning에 적용한다.
+난이도 조절 학습 learning도 비슷한 직관을 machine learning에 적용한다.
 
 ---
 
@@ -54,12 +54,12 @@ Level 3
 난도는 다음과 같은 구조 변화로 만들 수 있다.
 
 - 더 긴 required horizon
-- 더 많은 distractor action
+- 더 많은 distractor [행동(action)](Reinforcement-Learning)
 - 더 복잡한 dependency
-- 더 강한 partial observability
+- 더 강한 [부분 관측(partial observability)](MDP-and-POMDP)
 - 더 큰 irreversible-risk structure
 
-AASSR benchmark의 실제 difficulty contract는 [Experiments](Experiments)와 current environment code를 source of truth로 봐야 한다.
+AASSR [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)의 실제 difficulty contract는 [Experiments](Experiments)와 current 환경 code를 [최종 기준(source of truth)](Current-Status)로 봐야 한다.
 
 ---
 
@@ -79,7 +79,7 @@ AASSR benchmark의 실제 difficulty contract는 [Experiments](Experiments)와 c
 
 # 5. Adaptive curriculum
 
-Agent performance에 따라 난도를 자동으로 바꾼다.
+[에이전트(Agent)](Reinforcement-Learning) performance에 따라 난도를 자동으로 바꾼다.
 
 ```text
 성공 안정화
@@ -89,7 +89,7 @@ Agent performance에 따라 난도를 자동으로 바꾼다.
 → 강등
 ```
 
-AASSR current research에서는 자동 promotion/demotion 구조를 사용해 쉬운 환경 성공과 높은 난도의 transfer를 연결하려 한다.
+AASSR current research에서는 자동 promotion/demotion 구조를 사용해 쉬운 환경 성공과 높은 난도의 [전이(transfer)](Relational-Representation-and-Generalization)를 연결하려 한다.
 
 ---
 
@@ -122,7 +122,7 @@ L2 도달
 
 AASSR pilot에서 실제로 자동 승급과 강등이 관찰된 적이 있다.
 
-Curriculum 자체가 동작했다는 evidence와 final unseen transfer가 성공했다는 claim은 분리해야 한다.
+난이도 조절 학습 자체가 동작했다는 evidence와 final [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) 전이가 성공했다는 claim은 분리해야 한다.
 
 ---
 
@@ -132,7 +132,7 @@ Curriculum 자체가 동작했다는 evidence와 final unseen transfer가 성공
 
 ## Reward shaping
 
-같은 task 안에서 intermediate reward를 추가한다.
+같은 task 안에서 intermediate 보상를 추가한다.
 
 ```text
 subgoal → +0.2
@@ -140,13 +140,13 @@ subgoal → +0.2
 
 ## Curriculum
 
-External reward는 그대로 두고 **task distribution의 난도**를 조절한다.
+External 보상는 그대로 두고 **task distribution의 난도**를 조절한다.
 
 ```text
 쉬운 task → 어려운 task
 ```
 
-AASSR은 sparse reward contract를 유지하기 위해 후자를 사용한다.
+AASSR은 [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment) contract를 유지하기 위해 후자를 사용한다.
 
 관련 페이지:
 
@@ -156,7 +156,7 @@ AASSR은 sparse reward contract를 유지하기 위해 후자를 사용한다.
 
 # 9. Guided trajectory와도 다르다
 
-Curriculum:
+난이도 조절 학습:
 
 ```text
 문제를 쉽게 함
@@ -169,13 +169,13 @@ Guided trajectory:
 정답 action sequence 자체를 제공
 ```
 
-AASSR current main protocol은 curriculum을 허용하지만 oracle/guided success trajectory injection을 피한다.
+AASSR current main protocol은 난이도 조절 학습을 허용하지만 oracle/guided success trajectory injection을 피한다.
 
 ---
 
 # 10. Easy task가 너무 쉬우면 생기는 문제
 
-Level 0이 사실상 random action으로도 쉽게 성공하면 의미 있는 learning structure를 만들지 못할 수 있다.
+Level 0이 사실상 random 행동으로도 쉽게 성공하면 의미 있는 learning structure를 만들지 못할 수 있다.
 
 좋은 easy level은:
 
@@ -190,9 +190,9 @@ learned exploration에는 가능
 
 # 11. Transfer bottleneck
 
-Curriculum에서 가장 중요한 질문은:
+난이도 조절 학습에서 가장 중요한 질문은:
 
-> 쉬운 level에서 배운 것이 더 어려운 level에 실제로 transfer되는가?
+> 쉬운 level에서 배운 것이 더 어려운 level에 실제로 전이되는가?
 
 이다.
 
@@ -202,7 +202,7 @@ L0 success
 → L2 success?
 ```
 
-AASSR 연구에서는 최초 성공 discovery 병목을 해결한 뒤 **higher-level transfer failure**가 주요 병목으로 나타난 적이 있다.
+AASSR 연구에서는 최초 성공 discovery 병목을 해결한 뒤 **higher-level 전이 failure**가 주요 병목으로 나타난 적이 있다.
 
 ---
 
@@ -212,13 +212,13 @@ AASSR 연구에서는 최초 성공 discovery 병목을 해결한 뒤 **higher-l
 
 이를 막기 위해 mixed replay나 이전 level sample 유지 같은 방법을 사용할 수 있다.
 
-AASSR에서는 쉬운 난도 경험을 replay에 유지하는지 여부가 curriculum transfer에 영향을 줄 수 있다.
+AASSR에서는 쉬운 난도 경험을 replay에 유지하는지 여부가 난이도 조절 학습 전이에 영향을 줄 수 있다.
 
 ---
 
 # 13. Distribution shift
 
-Level이 올라가면 state/action distribution이 바뀐다.
+Level이 올라가면 state/행동 distribution이 바뀐다.
 
 ```text
 L0 distribution
@@ -226,7 +226,7 @@ L0 distribution
 → L2 distribution
 ```
 
-Prophecy와 Critic이 L0/L1에만 익숙하면 higher level에서 OOD가 될 수 있다.
+[Prophecy(미래 예측 모델)](Prophecy)와 [Critic(미래 가치 평가기)](Critic)이 L0/L1에만 익숙하면 higher level에서 [학습 분포 밖(OOD)](Critic-Support-and-OOD)가 될 수 있다.
 
 관련 페이지:
 
@@ -237,11 +237,11 @@ Prophecy와 Critic이 L0/L1에만 익숙하면 higher level에서 OOD가 될 수
 
 # 14. Curriculum과 World Model
 
-쉬운 level transition만으로 학습한 world model이 higher-level dynamics를 정확히 예측한다고 보장할 수 없다.
+쉬운 level [상태 전이(transition)](MDP-and-POMDP)만으로 학습한 [세계 모델(world model)](Model-Based-RL-and-World-Models)이 higher-level dynamics를 정확히 예측한다고 보장할 수 없다.
 
-따라서 curriculum 승급 직후:
+따라서 난이도 조절 학습 승급 직후:
 
-- Prophecy reliability
+- [Prophecy](Prophecy) reliability
 - status prediction
 - legal-mask prediction
 
@@ -256,9 +256,9 @@ Prophecy와 Critic이 L0/L1에만 익숙하면 higher level에서 OOD가 될 수
 
 # 15. Curriculum과 Critic
 
-Critic도 쉬운 level success/failure return에만 학습되어 higher-level imagined state에서 extrapolate할 수 있다.
+[Critic](Critic)도 쉬운 level success/failure [누적 보상(return)](Value-Functions-and-Bellman-Equation)에만 학습되어 higher-level imagined state에서 extrapolate할 수 있다.
 
-이것이 local support gate와 연결된다.
+이것이 [국소 데이터 근거(local support)](Critic-Support-and-OOD) gate와 연결된다.
 
 ```text
 Global Critic trained
@@ -270,9 +270,9 @@ Higher-level current state supported
 
 # 16. Curriculum과 Skill
 
-쉬운 level의 성공 sequence를 Skill로 승격하면 higher level에서 긴 primitive sequence를 압축할 수 있다.
+쉬운 level의 성공 sequence를 [Skill(성공 절차 재사용)](Skills)로 승격하면 higher level에서 긴 primitive sequence를 압축할 수 있다.
 
-하지만 higher level의 prerequisites가 다르면 Skill이 그대로 작동하지 않을 수 있다.
+하지만 higher level의 prerequisites가 다르면 [Skill](Skills)이 그대로 작동하지 않을 수 있다.
 
 관련 페이지:
 
@@ -293,7 +293,7 @@ observation에 current hidden level = 3 제공
 
 이 값이 실제 response에서 알 수 없는 simulator metadata라면 learner shortcut이 된다.
 
-AASSR은 hidden curriculum metadata를 public observation에 직접 주지 않는 방향을 사용한다.
+AASSR은 hidden 난이도 조절 학습 metadata를 public [관측(observation)](MDP-and-POMDP)에 직접 주지 않는 방향을 사용한다.
 
 관련 페이지:
 
@@ -305,13 +305,13 @@ AASSR은 hidden curriculum metadata를 public observation에 직접 주지 않�
 
 단순 최종 success뿐 아니라:
 
-- first success transition
+- first success 상태 전이
 - level promotion time
 - maximum level reached
 - demotion count
 - per-level success
 - replay composition
-- transfer after promotion
+- 전이 after promotion
 
 등을 함께 볼 수 있다.
 
@@ -319,7 +319,7 @@ AASSR은 hidden curriculum metadata를 public observation에 직접 주지 않�
 
 # 19. Curriculum ablation
 
-Curriculum이 실제로 도움이 되는지 보려면:
+난이도 조절 학습이 실제로 도움이 되는지 보려면:
 
 ```text
 Fixed hard training
@@ -329,7 +329,7 @@ Adaptive curriculum
 
 같은 비교를 할 수 있다.
 
-하지만 environment interactions와 total transition budget을 공정하게 맞춰야 한다.
+하지만 환경 inter행동s와 total 상태 전이 budget을 공정하게 맞춰야 한다.
 
 관련 페이지:
 
@@ -339,7 +339,7 @@ Adaptive curriculum
 
 # 20. Automatic curriculum이 정답을 알려주는가?
 
-자동으로 난도를 조절하는 것 자체는 정답 action을 알려주는 것이 아니다.
+자동으로 난도를 조절하는 것 자체는 정답 행동을 알려주는 것이 아니다.
 
 다만 promotion rule이 hidden goal progress를 너무 자세히 사용하거나 다음 정답 stage를 직접 expose하면 indirect guidance가 될 수 있다.
 
@@ -361,7 +361,7 @@ higher-level transfer 실패
 representation / Prophecy / Critic / Imagination reliability 문제 분석
 ```
 
-즉 curriculum은 전체 문제의 끝이 아니라 **학습이 시작될 수 있는 frontier를 만들어주는 장치**다.
+즉 난이도 조절 학습은 전체 문제의 끝이 아니라 **학습이 시작될 수 있는 frontier를 만들어주는 장치**다.
 
 ---
 

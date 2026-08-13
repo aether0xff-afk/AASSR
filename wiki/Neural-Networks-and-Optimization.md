@@ -1,6 +1,6 @@
 # Neural Networks and Optimization
 
-AASSR의 DQN, Prophecy, Critic은 모두 어떤 형태로든 **함수 근사(function approximation)** 를 사용한다. 이 페이지는 신경망을 처음 보는 독자가 AASSR 구현 문서를 따라갈 수 있을 정도의 기초를 정리한다.
+AASSR의 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD), [Prophecy(미래 예측 모델)](Prophecy), [Critic(미래 가치 평가기)](Critic)은 모두 어떤 형태로든 **함수 근사(function approximation)** 를 사용한다. 이 페이지는 신경망을 처음 보는 독자가 AASSR 구현 문서를 따라갈 수 있을 정도의 기초를 정리한다.
 
 ---
 
@@ -28,7 +28,7 @@ f_\theta(x)
 Q_\theta(s,a)
 ```
 
-로 action value를 근사할 수 있다.
+로 [행동(action)](Reinforcement-Learning) value를 근사할 수 있다.
 
 World model에서는:
 
@@ -91,7 +91,7 @@ layer 2
 output
 ```
 
-DQN에서는 Q-value가 나오고, Prophecy에서는 future prediction parameter가 나오며, Critic에서는 return estimate가 나올 수 있다.
+[DQN](Q-Learning-DQN-and-TD)에서는 [Q값(Q-value)](Value-Functions-and-Bellman-Equation)가 나오고, [Prophecy](Prophecy)에서는 future prediction parameter가 나오며, [Critic](Critic)에서는 [누적 보상(return)](Value-Functions-and-Bellman-Equation) estimate가 나올 수 있다.
 
 ---
 
@@ -103,15 +103,15 @@ Prediction과 target의 차이를 하나의 scalar로 만든다.
 L(\theta)
 ```
 
-Training은 loss를 작게 만드는 `θ`를 찾는 과정이다.
+Training은 [학습 손실(loss)](Loss-Functions-and-Class-Imbalance)를 작게 만드는 `θ`를 찾는 과정이다.
 
-더 자세한 loss 종류는 **[Loss Functions & Class Imbalance](Loss-Functions-and-Class-Imbalance)** 에서 본다.
+더 자세한 학습 손실 종류는 **[Loss Functions & Class Imbalance](Loss-Functions-and-Class-Imbalance)** 에서 본다.
 
 ---
 
 # 6. Gradient
 
-Loss가 parameter마다 어느 방향으로 얼마나 변하는지를 나타낸다.
+[학습 손실(Loss)](Loss-Functions-and-Class-Imbalance)가 parameter마다 어느 방향으로 얼마나 변하는지를 나타낸다.
 
 ```math
 \nabla_\theta L
@@ -129,7 +129,7 @@ Gradient descent의 기본 update:
 
 # 7. Backpropagation
 
-Network output에서 loss를 계산한 뒤 chain rule로 각 parameter gradient를 뒤로 전파하는 알고리즘이다.
+Network output에서 학습 손실를 계산한 뒤 chain rule로 각 parameter gradient를 뒤로 전파하는 알고리즘이다.
 
 ```text
 forward
@@ -197,7 +197,7 @@ Batch size가 너무 작으면 gradient noise가 크고, 너무 크면 memory/co
 
 Supervised learning에서는 dataset 전체를 한 번 본 것을 epoch라고 자주 부른다.
 
-RL replay training에서는 고정 dataset epoch보다 **environment transitions 수와 gradient update 수**가 더 자연스러운 단위일 수 있다.
+RL replay training에서는 고정 dataset epoch보다 **[환경(environment)](Reinforcement-Learning) [상태 전이(transition)](MDP-and-POMDP)s 수와 gradient update 수**가 더 자연스러운 단위일 수 있다.
 
 AASSR 문서에서 `2k transitions`와 `gradient_updates`를 구분해야 하는 이유다.
 
@@ -205,7 +205,7 @@ AASSR 문서에서 `2k transitions`와 `gradient_updates`를 구분해야 하는
 
 # 12. Overfitting
 
-Training data에는 매우 잘 맞지만 unseen data에는 잘 맞지 않는 현상이다.
+Training data에는 매우 잘 맞지만 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) data에는 잘 맞지 않는 현상이다.
 
 ```text
 train error ↓
@@ -225,7 +225,7 @@ AASSR에서는 특히 concrete ID memorization과 validation/test 반복 tuning�
 
 Model capacity가 부족하거나 training이 충분하지 않아 training data조차 잘 설명하지 못하는 상태다.
 
-Prophecy가 미래 outcome mode를 제대로 분리하지 못하거나 Critic이 모든 branch에 비슷한 값을 내는 경우 capacity/training 부족 가능성을 생각할 수 있다.
+[Prophecy](Prophecy)가 미래 outcome mode를 제대로 분리하지 못하거나 [Critic](Critic)이 모든 branch에 비슷한 값을 내는 경우 capacity/training 부족 가능성을 생각할 수 있다.
 
 ---
 
@@ -240,7 +240,7 @@ Overfitting을 줄이기 위한 방법들이다.
 - data augmentation
 - early stopping
 
-하지만 RL에서는 distribution shift와 target drift가 있어 일반 supervised learning보다 진단이 복잡할 수 있다.
+하지만 RL에서는 [데이터 분포 변화(distribution shift)](Critic-Support-and-OOD)와 target drift가 있어 일반 supervised learning보다 진단이 복잡할 수 있다.
 
 ---
 
@@ -257,7 +257,7 @@ Test
 → 최종 성능 평가
 ```
 
-AASSR에서는 real replay holdout, development benchmark, final unseen benchmark를 목적에 따라 분리한다.
+AASSR에서는 real replay [검증용 분리 데이터(holdout)](Calibration), development [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility), final 학습 중 보지 못한 표준 비교 실험를 목적에 따라 분리한다.
 
 ---
 
@@ -306,7 +306,7 @@ ID/category
 vector
 ```
 
-AASSR current relational representation은 concrete ID embedding 암기보다 role/relationship features를 강조한다.
+AASSR current [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)은 concrete ID embedding 암기보다 role/relationship features를 강조한다.
 
 ---
 
@@ -314,9 +314,9 @@ AASSR current relational representation은 concrete ID embedding 암기보다 ro
 
 Neural network는 정확히 본 sample뿐 아니라 비슷한 input에도 output을 만든다.
 
-이것이 generalization의 장점이다.
+이것이 [일반화(generalization)](Relational-Representation-and-Generalization)의 장점이다.
 
-하지만 training support 밖에서도 숫자를 출력하므로 OOD extrapolation의 원인이 되기도 한다.
+하지만 training support 밖에서도 숫자를 출력하므로 [학습 분포 밖(OOD)](Critic-Support-and-OOD) extrapolation의 원인이 되기도 한다.
 
 관련 페이지:
 
@@ -334,7 +334,7 @@ Gradient norm이 너무 커지는 것을 제한한다.
 g\leftarrow c\frac{g}{\|g\|}
 ```
 
-RNN/GRU training 안정화에 자주 사용된다.
+RNN/[GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) training 안정화에 자주 사용된다.
 
 관련 페이지:
 
@@ -349,12 +349,12 @@ RNN/GRU training 안정화에 자주 사용된다.
 차이를 만들기 위해:
 
 - initialization
-- bootstrap sample
+- [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries) sample
 - stochastic optimization
 
 등을 다르게 할 수 있다.
 
-AASSR Prophecy ensemble의 uncertainty evidence와 연결된다.
+AASSR [Prophecy](Prophecy) ensemble의 uncertainty evidence와 연결된다.
 
 관련 페이지:
 
@@ -366,7 +366,7 @@ AASSR Prophecy ensemble의 uncertainty evidence와 연결된다.
 
 GPU는 작은 model call을 수천 번 순차 실행하는 것보다 큰 tensor batch를 한 번에 처리할 때 효율적인 경우가 많다.
 
-AASSR current-generation에서 Prophecy/Critic depth batching이 큰 성능 최적화였던 이유다.
+AASSR current-generation에서 [Prophecy](Prophecy)/[Critic](Critic) depth [묶음 처리(batching)](Reproduction)이 큰 성능 최적화였던 이유다.
 
 ```text
 scalar calls × N
@@ -384,7 +384,7 @@ GPU 연산 중간에 `.item()`처럼 값을 CPU로 자주 가져오면 GPU가 �
 
 많은 작은 sync는 성능을 크게 떨어뜨릴 수 있다.
 
-AASSR current hardware optimizations가 batch transfer와 bulk loss bookkeeping을 사용하는 이유와 연결된다.
+AASSR current hardware optimizations가 batch [전이(transfer)](Relational-Representation-and-Generalization)와 bulk 학습 손실 bookkeeping을 사용하는 이유와 연결된다.
 
 ---
 

@@ -1,6 +1,6 @@
 # ASEQ
 
-ASEQ는 AASSR에서 실제 경험을 다루는 핵심 단위다.
+[ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ)는 AASSR에서 실제 경험을 다루는 핵심 단위다.
 
 ```text
 (S, A, S')
@@ -10,13 +10,13 @@ ASEQ는 AASSR에서 실제 경험을 다루는 핵심 단위다.
 - `A`: 실제로 실행한 행동
 - `S'`: 행동 후 상태
 
-현재 pentest runtime에서 ASEQ는 특히 **진전 없는 self-loop를 최소한으로 억제하는 memory/action-selection component**로 사용된다.
+현재 pentest runtime에서 [ASEQ](ASEQ)는 특히 **진전 없는 [제자리 반복(self-loop)](ASEQ)를 최소한으로 억제하는 memory/[행동(action)](Reinforcement-Learning)-selection component**로 사용된다.
 
 ---
 
 ## 1. 왜 필요한가?
 
-DQN이 어떤 행동의 Q값을 높게 평가한 상태에서 그 행동이 실제로 아무것도 바꾸지 못한다면 다음이 발생할 수 있다.
+[DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD)이 어떤 행동의 Q값을 높게 평가한 상태에서 그 행동이 실제로 아무것도 바꾸지 못한다면 다음이 발생할 수 있다.
 
 ```text
 S
@@ -34,11 +34,11 @@ v
 ...
 ```
 
-상태가 그대로이므로 Policy ranking도 그대로 유지되고 같은 행동을 계속 고를 수 있다.
+상태가 그대로이므로 [Policy(정책 모델)](Policy) ranking도 그대로 유지되고 같은 행동을 계속 고를 수 있다.
 
-2026-08-07 transfer 진단에서 실제 DQN checkpoint가 L1 unseen 평가에서 이런 형태로 정체했다. 일부 checkpoint에서는 raw greedy 평가의 마지막 12개 행동이 동일 행동 `12/12` 반복이었다.
+2026-08-07 [전이(transfer)](Relational-Representation-and-Generalization) 진단에서 실제 [DQN](Q-Learning-DQN-and-TD) [체크포인트(checkpoint)](Reproduction)가 L1 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) 평가에서 이런 형태로 정체했다. 일부 체크포인트에서는 raw greedy 평가의 마지막 12개 행동이 동일 행동 `12/12` 반복이었다.
 
-따라서 문제는 단순히 “정답 route를 모른다”가 아니라 **이미 방문해서 상태가 변하지 않는 행동을 계속 최고 Q로 선택하는 self-loop**였다.
+따라서 문제는 단순히 “정답 route를 모른다”가 아니라 **이미 방문해서 상태가 변하지 않는 행동을 계속 최고 Q로 선택하는 제자리 반복**였다.
 
 ---
 
@@ -52,7 +52,7 @@ v
 S -> A -> S
 ```
 
-즉 같은 semantic state에서 같은 행동을 했고, 결과도 같은 semantic state로 돌아온 self-loop다.
+즉 같은 [의미 기반 상태(semantic state)](State-Representation)에서 같은 행동을 했고, 결과도 같은 의미 기반 상태로 돌아온 제자리 반복다.
 
 그리고 이것이 **실제로 반복 관측**되어야 한다.
 
@@ -90,13 +90,13 @@ S -> A -> S2
 
 환경이 stochastic하거나 부분 관측 때문에 결과가 달라질 수 있다는 증거다.
 
-이 경우 `(S,A)`를 무조건 self-loop라고 단정해서는 안 된다.
+이 경우 `(S,A)`를 무조건 제자리 반복라고 단정해서는 안 된다.
 
 ### 모든 행동을 막는 경우
 
-ASEQ guard 때문에 가능한 모든 행동이 제거될 경우 원래 action freedom을 복원하는 fail-safe가 필요하다.
+[ASEQ](ASEQ) guard 때문에 가능한 모든 행동이 제거될 경우 원래 행동 freedom을 복원하는 fail-safe가 필요하다.
 
-목표는 agent의 자유를 없애는 것이 아니라 **이미 경험적으로 무의미하다고 확인한 exact loop만 피하는 것**이다.
+목표는 [에이전트(agent)](Reinforcement-Learning)의 자유를 없애는 것이 아니라 **이미 경험적으로 무의미하다고 확인한 exact loop만 피하는 것**이다.
 
 ---
 
@@ -112,26 +112,26 @@ raw S1 != raw S2
 
 가 된다.
 
-그러면 인간이 보기에는 같은 self-loop인데 exact raw vector 비교에서는 매번 다른 상태가 된다.
+그러면 인간이 보기에는 같은 제자리 반복인데 exact raw vector 비교에서는 매번 다른 상태가 된다.
 
-따라서 ASEQ의 `S`는 task-relevant **concrete semantic identity**를 사용한다.
+따라서 [ASEQ](ASEQ)의 `S`는 task-relevant **concrete semantic identity**를 사용한다.
 
 하지만 여기서 또 중요한 점이 있다.
 
-ASEQ는 transfer용 relational identity와 완전히 같지 않다.
+[ASEQ](ASEQ)는 전이용 relational identity와 완전히 같지 않다.
 
 ```text
 route-A와 route-B가 둘 다 catalog 역할
 ```
 
-이라고 해도 같은 episode에서 서로 다른 concrete route라면 ASEQ에서는 구분해야 한다. 그렇지 않으면 route-A에서 실패한 행동 때문에 route-B까지 막을 수 있다.
+이라고 해도 같은 episode에서 서로 다른 concrete route라면 [ASEQ](ASEQ)에서는 구분해야 한다. 그렇지 않으면 route-A에서 실패한 행동 때문에 route-B까지 막을 수 있다.
 
 정리하면:
 
 | 목적 | identity |
 |---|---|
-| exact self-loop detection | concrete semantic |
-| seed 간 일반화 | relational |
+| exact 제자리 반복 detection | concrete semantic |
+| [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility) 간 일반화 | relational |
 
 ---
 
@@ -139,9 +139,9 @@ route-A와 route-B가 둘 다 catalog 역할
 
 ### 5.1 재학습 없는 root-cause diagnostic
 
-3개 checkpoint × L1 unseen 8 seeds에서 비교했다.
+3개 체크포인트 × L1 학습 중 보지 못한 8 난수 시드s에서 비교했다.
 
-| checkpoint | raw greedy | exact ASEQ guard |
+| 체크포인트 | raw greedy | exact [ASEQ](ASEQ) guard |
 |---|---:|---:|
 | L2 first reached | 0/8, stalled 8/8 | 2/8, stalled 0/8 |
 | L2 pre-demotion | 0/8, stalled 8/8 | 7/8, stalled 0/8 |
@@ -154,37 +154,37 @@ route-A와 route-B가 둘 다 catalog 역할
 24 ASEQ episodes: stalled 0/24
 ```
 
-즉 관측된 무한 self-loop는 exact ASEQ 수준의 최소 제약으로 제거할 수 있었다.
+즉 관측된 무한 제자리 반복는 exact [ASEQ](ASEQ) 수준의 최소 제약으로 제거할 수 있었다.
 
-하지만 성공률은 더 강한 `greedy_no_repeat`보다 낮았다. 이것은 ASEQ가 일부 불필요한 탐색을 허용하기 때문이다.
+하지만 성공률은 더 강한 `greedy_no_repeat`보다 낮았다. 이것은 [ASEQ](ASEQ)가 일부 불필요한 탐색을 허용하기 때문이다.
 
 이 결과는 오히려 설계 의도와 맞는다.
 
-> ASEQ는 성공 행동을 대신 골라주는 oracle이 아니라, 이미 확인된 무진전 loop를 제거하는 장치다.
+> [ASEQ](ASEQ)는 성공 행동을 대신 골라주는 oracle이 아니라, 이미 확인된 무진전 loop를 제거하는 장치다.
 
 ---
 
 ### 5.2 consistent exact-ASEQ retraining
 
-동일한 exact ASEQ 규칙을 학습과 평가에 모두 사용한 6,000-transition focused experiment에서는:
+동일한 exact [ASEQ](ASEQ) 규칙을 학습과 평가에 모두 사용한 6,000-[상태 전이(transition)](MDP-and-POMDP) focused experiment에서는:
 
 #### 학습 중 성공
 
 | training mode | episodes | successes | L0 | L1 | L2 |
 |---|---:|---:|---:|---:|---:|
 | legacy filter | 94 | 29 | 15 | 14 | 0 |
-| exact ASEQ | 109 | **50** | **30** | **19** | **1** |
+| exact [ASEQ](ASEQ) | 109 | **50** | **30** | **19** | **1** |
 
 #### 최종 unseen + ASEQ guard ON
 
 | trained with | L0 | L1 | L2 |
 |---|---:|---:|---:|
 | legacy filter | 1/8 | 1/8 | 0/8 |
-| exact ASEQ | **8/8** | **7/8** | **1/8** |
+| exact [ASEQ](ASEQ) | **8/8** | **7/8** | **1/8** |
 
-모든 exact-ASEQ evaluation에서 stalled는 0이었다.
+모든 exact-[ASEQ](ASEQ) evaluation에서 stalled는 0이었다.
 
-다만 이 실험은 research seed 1개, evaluation seed 8개, L0~L2 focused 조건이었다. 따라서 최종 일반화 성능으로 과장해서는 안 된다.
+다만 이 실험은 research 난수 시드 1개, evaluation 난수 시드 8개, L0~L2 focused 조건이었다. 따라서 최종 일반화 성능으로 과장해서는 안 된다.
 
 ---
 
@@ -194,15 +194,15 @@ route-A와 route-B가 둘 다 catalog 역할
 
 - 동일한 무진전 행동의 무한 반복
 - train/eval repetition-control mismatch의 일부
-- Policy 내부에 남아 있던 해결 능력이 self-loop 때문에 가려지는 문제
+- [Policy](Policy) 내부에 남아 있던 해결 능력이 제자리 반복 때문에 가려지는 문제
 
 ### 해결하지 못한 것
 
 - 어떤 행동이 성공으로 더 빨리 이어지는지 우선순위화
 - request budget을 낭비하는 넓은 탐색
 - L2 이상 복잡도에서의 장기 dependency reasoning
-- Prophecy 정확도
-- Imagination intervention의 신뢰성
+- [Prophecy(미래 예측 모델)](Prophecy) 정확도
+- [Imagination(가상 미래 탐색)](Imagination) [실제 행동 개입(intervention)](Imagination)의 신뢰성
 
 즉 병목은 다음처럼 이동했다.
 
@@ -240,12 +240,12 @@ self-loop 제거
 -> 하나의 재사용 가능한 template 후보로 묶자
 ```
 
-ASEQ guard는 **negative repetition memory**에 가깝고, Skill은 **positive reusable sequence abstraction**에 가깝다.
+[ASEQ](ASEQ) guard는 **negative repetition memory**에 가깝고, [Skill(성공 절차 재사용)](Skills)은 **positive reusable sequence abstr행동**에 가깝다.
 
 ---
 
 ## 8. 한 줄 요약
 
-> **ASEQ는 반복 행동을 금지하는 장치가 아니라, 실제 경험으로 확인된 `(S,A,S')` 중 `S -> A -> S` 형태의 진전 없는 self-loop만 최소한으로 억제하는 경험 메모리다.**
+> **[ASEQ](ASEQ)는 반복 행동을 금지하는 장치가 아니라, 실제 경험으로 확인된 `(S,A,S')` 중 `S -> A -> S` 형태의 진전 없는 제자리 반복만 최소한으로 억제하는 경험 메모리다.**
 
 다음: **[Experiments](Experiments)**

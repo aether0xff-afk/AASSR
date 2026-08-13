@@ -1,6 +1,6 @@
 # Mixture Models, Ensembles and Calibration
 
-이 페이지는 AASSR Prophecy의 세 가지 핵심 배경을 연결한다.
+이 페이지는 AASSR [Prophecy(미래 예측 모델)](Prophecy)의 세 가지 핵심 배경을 연결한다.
 
 ```text
 Mixture Model
@@ -14,7 +14,7 @@ Calibration
 
 # 1. 왜 하나의 예측만으로 부족한가?
 
-같은 public state/action에서 여러 다음 outcome이 실제로 가능할 수 있다.
+같은 public state/[행동(action)](Reinforcement-Learning)에서 여러 다음 outcome이 실제로 가능할 수 있다.
 
 ```text
 (S,A)
@@ -64,13 +64,13 @@ p(y\mid x)=\sum_{m=1}^{M}\pi_m(x)p_m(y\mid x)
 
 조건 `x`에 따라 mixture weight가 달라지면 **conditional mixture**다.
 
-AASSR에서는 `x`가 relational state/action context에 해당한다.
+AASSR에서는 `x`가 relational state/행동 context에 해당한다.
 
 ---
 
 # 4. Mixture weight
 
-`π_m`은 각 mode의 probability mass다.
+`π_m`은 각 mode의 [확률 질량(probability mass)](Stochasticity-Uncertainty-and-Probability)다.
 
 ```math
 \pi_m\ge0,
@@ -78,7 +78,7 @@ AASSR에서는 `x`가 relational state/action context에 해당한다.
 \sum_m\pi_m=1
 ```
 
-AASSR planner에서 이 mass는 chance outcome probability와 연결된다.
+AASSR planner에서 이 mass는 chance [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability)와 연결된다.
 
 중요:
 
@@ -102,9 +102,9 @@ component 2 → A
 component 3 → A
 ```
 
-실제 environment가 multimodal인데 model이 한 mode만 남기면 위험 outcome이나 rare outcome을 잃을 수 있다.
+실제 [환경(environment)](Reinforcement-Learning)가 multimodal인데 model이 한 mode만 남기면 위험 outcome이나 rare outcome을 잃을 수 있다.
 
-AASSR에서는 multimodality preservation 자체를 regression test/diagnostic 대상으로 둘 가치가 있다.
+AASSR에서는 multimodality preservation 자체를 [회귀 테스트(regression test)](Ablation-Benchmarking-and-Reproducibility)/diagnostic 대상으로 둘 가치가 있다.
 
 ---
 
@@ -121,7 +121,7 @@ B = failure-like
 C = neither
 ```
 
-Planner는 `C`에서 존재하지 않는 legal action을 상상하거나 잘못된 Critic value를 받을 수 있다.
+Planner는 `C`에서 존재하지 않는 legal 행동을 상상하거나 잘못된 [Critic(미래 가치 평가기)](Critic) value를 받을 수 있다.
 
 Conditional mixture가 필요한 핵심 이유다.
 
@@ -182,7 +182,7 @@ Model 3
 combined prediction / disagreement
 ```
 
-각 model은 다른 initialization, bootstrap sample, training noise 등을 가질 수 있다.
+각 model은 다른 initialization, [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries) sample, training noise 등을 가질 수 있다.
 
 ---
 
@@ -255,7 +255,7 @@ Ensemble disagreement
 
 # 13. Calibration이란?
 
-Calibration은 model이 내는 confidence/probability와 실제 correctness의 관계를 맞추는 개념이다.
+[Calibration(예측 신뢰도 보정)](Calibration)은 model이 내는 confidence/probability와 실제 correctness의 관계를 맞추는 개념이다.
 
 Binary classification에서 이상적으로:
 
@@ -263,13 +263,13 @@ Binary classification에서 이상적으로:
 
 와 같은 성질을 생각할 수 있다.
 
-하지만 AASSR의 world model은 단순 binary classifier가 아니므로 calibration도 더 복잡하다.
+하지만 AASSR의 [세계 모델(world model)](Model-Based-RL-and-World-Models)은 단순 binary classifier가 아니므로 calibration도 더 복잡하다.
 
 ---
 
 # 14. Holdout calibration
 
-Training에 직접 사용하지 않은 real transition을 이용해 model prediction quality를 평가한다.
+Training에 직접 사용하지 않은 real [상태 전이(transition)](MDP-and-POMDP)을 이용해 model prediction quality를 평가한다.
 
 ```text
 Training set
@@ -279,7 +279,7 @@ Holdout set
 → reliability evaluation
 ```
 
-AASSR에서는 relational action region별로 충분한 holdout sample이 있는지 확인하고 semantic prediction correctness를 계산한다.
+AASSR에서는 relational 행동 region별로 충분한 [검증용 분리 데이터(holdout)](Calibration) sample이 있는지 확인하고 semantic prediction correctness를 계산한다.
 
 관련 페이지:
 
@@ -295,9 +295,9 @@ World model의 correctness를 단순 vector MSE 하나로만 측정하면 decisi
 AASSR semantic evaluation은 개념적으로 다음을 함께 본다.
 
 - relational state semantics
-- legal action mask
+- [가능 행동 마스크(legal action mask)](Prophecy)
 - public HTTP status
-- terminal class
+- [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) class
 
 즉:
 
@@ -340,9 +340,9 @@ C=\sum_i p_i\,score(\hat s_i',s')
 
 # 17. Frozen holdout
 
-Evaluation 중 calibration reference가 계속 변하면 same-checkpoint 비교가 불안정해질 수 있다.
+Evaluation 중 calibration reference가 계속 변하면 [같은 체크포인트(same-checkpoint)](Experiments) 비교가 불안정해질 수 있다.
 
-AASSR current calibration은 holdout을 freeze하는 경로를 가진다.
+AASSR current calibration은 검증용 분리 데이터을 freeze하는 경로를 가진다.
 
 ```text
 model/checkpoint 고정
@@ -350,13 +350,13 @@ holdout 고정
 → OFF / ON 평가
 ```
 
-이렇게 하면 Imagination ON/OFF 비교에서 calibration 기준 자체가 움직이는 confound를 줄일 수 있다.
+이렇게 하면 [Imagination(가상 미래 탐색)](Imagination) ON/OFF 비교에서 calibration 기준 자체가 움직이는 confound를 줄일 수 있다.
 
 ---
 
 # 18. Data shortage와 fail-closed
 
-특정 relational action region에 holdout sample이 거의 없다고 하자.
+특정 relational 행동 region에 검증용 분리 데이터 sample이 거의 없다고 하자.
 
 두 해석이 가능하다.
 
@@ -379,7 +379,7 @@ insufficient evidence
 
 # 19. Reliability calibration과 task value
 
-Calibration이 높다는 것은 prediction이 믿을 만하다는 뜻이다.
+[Calibration](Calibration)이 높다는 것은 prediction이 믿을 만하다는 뜻이다.
 
 ```text
 Reliability = 0.95
@@ -395,7 +395,7 @@ high reliability
 high task value
 ```
 
-AASSR current design은 confidence를 Critic value bonus로 넣지 않는다.
+AASSR current design은 confidence를 [Critic](Critic) value bonus로 넣지 않는다.
 
 ---
 
@@ -427,13 +427,13 @@ Critic OOD
 
 # 21. Calibration metric 자체의 overfitting
 
-Calibration metric을 반복해서 보며 model architecture/hyperparameter를 맞추면 사실상 validation set에 overfit할 수 있다.
+[Calibration](Calibration) [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility)을 반복해서 보며 model architecture/hyperparameter를 맞추면 사실상 validation set에 overfit할 수 있다.
 
 그래서 최종 연구에서는:
 
 - development validation
 - frozen evaluation
-- blind/unseen benchmark
+- blind/[학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)
 
 같은 단계 분리가 중요하다.
 
@@ -453,7 +453,7 @@ Calibration metric을 반복해서 보며 model architecture/hyperparameter를 �
 0.9 confidence bin → 실제 90% 맞음?
 ```
 
-AASSR의 semantic world model에는 그대로 적용하기 어렵지만, **confidence가 실제 correctness를 반영해야 한다**는 기본 철학은 같다.
+AASSR의 semantic 세계 모델에는 그대로 적용하기 어렵지만, **confidence가 실제 correctness를 반영해야 한다**는 기본 철학은 같다.
 
 ---
 
@@ -501,7 +501,7 @@ reliable branches만 planner에 허용
 
 ## "Softmax 0.99면 reliability 0.99다"
 
-아니다. neural classifier는 OOD에서 과도하게 confident할 수 있다.
+아니다. neural classifier는 [학습 분포 밖(OOD)](Critic-Support-and-OOD)에서 과도하게 confident할 수 있다.
 
 ## "Calibration이 높으면 좋은 행동이다"
 

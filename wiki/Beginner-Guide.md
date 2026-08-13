@@ -41,7 +41,7 @@ AASSR은 다음 질문에서 출발한다.
 
 중간에는 거의 아무 점수도 없다.
 
-이런 문제를 **희소 보상(sparse reward)** 문제라고 부른다.
+이런 문제를 **희소 보상([희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment))** 문제라고 부른다.
 
 AASSR은 이런 환경에서 단순히 “직전에 점수가 높았던 행동”만 반복하지 않고,
 
@@ -125,7 +125,7 @@ AASSR의 핵심 연구 환경에서는 보상을 최대한 단순하게 둔다.
 
 따라서 마지막 +1을 과거 행동에 어떻게 연결할지가 어렵다.
 
-이 문제를 **보상 책임 배분(credit assignment)** 문제라고 부른다.
+이 문제를 **보상 책임 배분([보상 책임 배분(credit assignment)](Sparse-Reward-and-Credit-Assignment))** 문제라고 부른다.
 
 ## 문제 2. 세계의 모든 정보를 볼 수 없다
 
@@ -143,7 +143,7 @@ AASSR의 핵심 연구 환경에서는 보상을 최대한 단순하게 둔다.
 - 과거 응답에서 실제로 발견한 정보
 ```
 
-이처럼 세계 일부만 볼 수 있는 상황을 **부분 관측(partial observability)**이라고 한다.
+이처럼 세계 일부만 볼 수 있는 상황을 **부분 관측([부분 관측(partial observability)](MDP-and-POMDP))**이라고 한다.
 
 관련 문서: [MDP와 POMDP](MDP-and-POMDP)
 
@@ -264,7 +264,7 @@ object-2
 
 그래서 AASSR은 일부 학습 모듈에서 **이름보다 관계와 역할을 중심으로 표현**한다.
 
-이를 관계 기반 표현(relational representation)이라고 한다.
+이를 관계 기반 표현([관계 기반 표현(relational representation)](Relational-Representation-and-Generalization))이라고 한다.
 
 관련 문서: [관계 기반 표현과 일반화](Relational-Representation-and-Generalization)
 
@@ -272,7 +272,7 @@ object-2
 
 # 7. ASEQ는 무엇인가?
 
-ASEQ는 AASSR에서 실제로 관측된 한 번의 상태 전이를 다음 세 요소로 기록한 것이다.
+[ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ)는 AASSR에서 실제로 관측된 한 번의 상태 전이를 다음 세 요소로 기록한 것이다.
 
 ```text
 현재 상태 S
@@ -294,7 +294,7 @@ ASEQ는 AASSR에서 실제로 관측된 한 번의 상태 전이를 다음 세 �
 S → A → S
 ```
 
-현재 상태에서 어떤 행동을 했는데 실제 상황이 그대로라면 **제자리 반복(self-loop)**일 수 있다.
+현재 상태에서 어떤 행동을 했는데 실제 상황이 그대로라면 **제자리 반복([제자리 반복(self-loop)](ASEQ))**일 수 있다.
 
 같은 무진전 패턴이 실제 경험으로 반복 확인되면 그 행동을 잠시 억제한다.
 
@@ -305,7 +305,7 @@ S1 → browse → S2
 S2 → browse → S3
 ```
 
-따라서 ASEQ는 “같은 행동 두 번 금지”가 아니다.
+따라서 [ASEQ](ASEQ)는 “같은 행동 두 번 금지”가 아니다.
 
 정확히는 **실제로 관측된 의미상 동일한 제자리 반복만 줄이려는 장치**다.
 
@@ -315,11 +315,11 @@ S2 → browse → S3
 
 # 8. Policy는 무엇인가?
 
-Policy는 현재 상태에서 기본 행동을 정하는 정책 모델이다.
+[Policy(정책 모델)](Policy)는 현재 상태에서 기본 행동을 정하는 정책 모델이다.
 
-AASSR의 현재 Policy는 DQN 계열을 사용한다.
+AASSR의 현재 [Policy](Policy)는 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) 계열을 사용한다.
 
-DQN은 아주 간단히 말하면:
+[DQN](Q-Learning-DQN-and-TD)은 아주 간단히 말하면:
 
 > “현재 상태에서 이 행동을 했을 때 장기적으로 얼마나 좋은가?”
 
@@ -335,7 +335,7 @@ request       0.33
 
 가장 큰 숫자만 고르면 `login`을 선택하게 된다.
 
-이 숫자를 Q값(Q-value)이라고 한다.
+이 숫자를 Q값([Q값(Q-value)](Value-Functions-and-Bellman-Equation))이라고 한다.
 
 하지만 이 값은 **즉시 보상**과 같은 것이 아니다.
 
@@ -359,7 +359,7 @@ request       0.33
 
 사람이라면 “아까 token을 봤다”는 사실을 기억한다.
 
-Knowledge는 이런 **현재 에피소드에서 실제로 얻은 사실**을 보존한다.
+[Knowledge(에피소드 지식)](Knowledge)는 이런 **현재 에피소드에서 실제로 얻은 사실**을 보존한다.
 
 단, 미래에 알게 된 사실을 과거 판단에 몰래 넣으면 안 된다.
 
@@ -383,7 +383,7 @@ Knowledge는 이런 **현재 에피소드에서 실제로 얻은 사실**을 보
 
 # 10. Prophecy는 무엇인가?
 
-Prophecy는 **행동 뒤에 어떤 다음 상황들이 생길 수 있는지 예측하는 모델**이다.
+[Prophecy(미래 예측 모델)](Prophecy)는 **행동 뒤에 어떤 다음 상황들이 생길 수 있는지 예측하는 모델**이다.
 
 쉽게 말하면 AASSR의 미래 예측기다.
 
@@ -400,7 +400,7 @@ Prophecy는 **행동 뒤에 어떤 다음 상황들이 생길 수 있는지 예�
 
 만약 세 결과를 그냥 평균내면 실제로는 존재하지 않는 애매한 미래가 생길 수 있다.
 
-그래서 현재 Prophecy는 여러 가능한 결과와 각각의 확률을 따로 표현한다.
+그래서 현재 [Prophecy](Prophecy)는 여러 가능한 결과와 각각의 확률을 따로 표현한다.
 
 이를 **혼합 분포(mixture)**라고 생각하면 된다.
 
@@ -434,7 +434,7 @@ ensemble
 
 그런데 과거에 비슷한 상황에서 80%라고 말한 예측이 실제로는 절반만 맞았다면 그 모델은 과신하고 있는 것이다.
 
-Calibration은 이런 **예측의 신뢰도를 실제 검증 데이터와 비교해 보는 과정**이다.
+[Calibration(예측 신뢰도 보정)](Calibration)은 이런 **예측의 신뢰도를 실제 검증 데이터와 비교해 보는 과정**이다.
 
 AASSR에서는 특히 중요한 공개 상태 코드까지 제대로 맞추는지 본다.
 
@@ -444,7 +444,7 @@ AASSR에서는 특히 중요한 공개 상태 코드까지 제대로 맞추는�
 
 # 12. Imagination은 무엇인가?
 
-Imagination은 실제 행동하기 전에 Prophecy의 예측을 여러 단계 연결해 보는 계획 탐색기다.
+[Imagination(가상 미래 탐색)](Imagination)은 실제 행동하기 전에 [Prophecy](Prophecy)의 예측을 여러 단계 연결해 보는 계획 탐색기다.
 
 ```text
 현재
@@ -466,13 +466,13 @@ Imagination은 실제 행동하기 전에 Prophecy의 예측을 여러 단계 �
 
 환경 결과는 확률에 따라 평균해야 한다.
 
-이를 **환경 결과 노드(chance node)**라고 한다.
+이를 **환경 결과 노드([환경 결과 노드(chance node)](Chance-and-Decision-Nodes))**라고 한다.
 
 ## 다음 행동은 에이전트가 선택할 수 있다
 
 어떤 미래 상태에서 가능한 행동이 세 개 있다면 가장 좋아 보이는 행동을 선택할 수 있다.
 
-이를 **행동 선택 노드(decision node)**라고 한다.
+이를 **행동 선택 노드([행동 선택 노드(decision node)](Chance-and-Decision-Nodes))**라고 한다.
 
 관련 문서: [Imagination](Imagination), [환경 결과 노드와 행동 선택 노드](Chance-and-Decision-Nodes)
 
@@ -480,7 +480,7 @@ Imagination은 실제 행동하기 전에 Prophecy의 예측을 여러 단계 �
 
 # 13. Critic은 무엇인가?
 
-Prophecy는 미래를 예측하지만, 그 미래가 목표에 좋은지는 별도 문제다.
+[Prophecy](Prophecy)는 미래를 예측하지만, 그 미래가 목표에 좋은지는 별도 문제다.
 
 ```text
 Prophecy
@@ -490,9 +490,9 @@ Critic
 = 그 미래가 최종 성공에 좋은가?
 ```
 
-Critic은 상상된 미래 상태가 장기적으로 얼마나 좋은지 평가한다.
+[Critic(미래 가치 평가기)](Critic)은 상상된 미래 상태가 장기적으로 얼마나 좋은지 평가한다.
 
-현재 AASSR은 실제 희소 보상 경험으로 Critic을 학습한다.
+현재 AASSR은 실제 희소 보상 경험으로 [Critic](Critic)을 학습한다.
 
 관련 문서: [Critic](Critic)
 
@@ -510,7 +510,7 @@ Critic = 0.95
 
 하지만 “0.95라는 숫자를 냈다”와 “그 숫자를 믿을 실제 데이터가 있다”는 다르다.
 
-AASSR은 그래서 별도의 **국소 데이터 근거(local support)**를 확인한다.
+AASSR은 그래서 별도의 **국소 데이터 근거([국소 데이터 근거(local support)](Critic-Support-and-OOD))**를 확인한다.
 
 ```text
 Critic이 높은 값을 냄
@@ -528,7 +528,7 @@ Imagination이 기본 Policy를 덮어쓰지 못하게 막음
 
 # 15. Skill은 무엇인가?
 
-Skill은 성공했던 행동 순서를 그대로 외우는 기능과는 조금 다르다.
+[Skill(성공 절차 재사용)](Skills)은 성공했던 행동 순서를 그대로 외우는 기능과는 조금 다르다.
 
 AASSR은 반복 성공한 실제 행동 구조에서 관계 패턴을 뽑아 새 문제의 실제 객체에 다시 연결하려고 한다.
 
@@ -585,7 +585,7 @@ route-X → profile-Y → object-Z
 
 ## 국소 데이터 근거(local support)
 
-그 Critic 값을 뒷받침하는 실제 학습 데이터가 주변에 충분히 있는지.
+그 [Critic](Critic) 값을 뒷받침하는 실제 학습 데이터가 주변에 충분히 있는지.
 
 ```text
 보상
@@ -630,7 +630,7 @@ vs
 같은 checkpoint + Imagination OFF
 ```
 
-이 비교는 Imagination의 추가 효과를 보려는 것이다.
+이 비교는 [Imagination](Imagination)의 추가 효과를 보려는 것이다.
 
 ## 학습 중 보지 못한 문제(unseen)
 
@@ -699,7 +699,7 @@ src/aassr_v2/current_manifest.py
 
 난수 생성 결과를 재현하기 위해 사용하는 시작 숫자다.
 
-같은 seed와 같은 코드/환경이면 가능한 한 같은 실험 조건을 다시 만들 수 있다.
+같은 [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)와 같은 코드/환경이면 가능한 한 같은 실험 조건을 다시 만들 수 있다.
 
 ## regression test
 

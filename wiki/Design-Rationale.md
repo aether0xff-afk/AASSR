@@ -1,4 +1,4 @@
-# Design Rationale
+# 설계 이유 (Design Rationale)
 
 이 페이지는 AASSR의 각 설계를 **"무엇을 썼는가"가 아니라 "왜 그렇게 설계했는가"** 중심으로 정리한다.
 
@@ -8,7 +8,7 @@
 
 # 1. 왜 sparse reward를 그대로 유지하는가?
 
-가장 쉬운 방법은 사람이 중간 reward를 만드는 것이다.
+가장 쉬운 방법은 사람이 중간 [보상(reward)](Sparse-Reward-and-Credit-Assignment)를 만드는 것이다.
 
 ```text
 route 발견   +0.1
@@ -17,9 +17,9 @@ object 발견  +0.2
 proof        +1.0
 ```
 
-그러나 그러면 agent가 스스로 장기 구조를 배운 것인지, 사람이 제공한 subgoal을 따라간 것인지 분리하기 어렵다.
+그러나 그러면 [에이전트(agent)](Reinforcement-Learning)가 스스로 장기 구조를 배운 것인지, 사람이 제공한 subgoal을 따라간 것인지 분리하기 어렵다.
 
-따라서 current benchmark는 외부 task reward를 좁게 유지한다.
+따라서 current [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)는 외부 task 보상를 좁게 유지한다.
 
 ```text
 success       +1
@@ -27,7 +27,7 @@ true failure  -1
 otherwise      0
 ```
 
-AASSR의 내부 신호는 reward shaping과 분리한다.
+AASSR의 내부 신호는 보상 shaping과 분리한다.
 
 ---
 
@@ -41,7 +41,7 @@ AASSR의 내부 신호는 reward shaping과 분리한다.
 route-12 != route-31
 ```
 
-새 seed에서 이름만 바뀌어도 새로운 문제처럼 보인다.
+새 [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)에서 이름만 바뀌어도 새로운 문제처럼 보인다.
 
 ## Relational만 쓰면
 
@@ -82,7 +82,7 @@ S -> A -> S
 
 의 진전 없는 반복이다.
 
-그래서 current ASEQ guard는 intentionally narrow하다.
+그래서 current [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ) guard는 intentionally narrow하다.
 
 ---
 
@@ -90,9 +90,9 @@ S -> A -> S
 
 정보를 얻는 행동은 장기적으로 유용할 수 있다.
 
-하지만 이를 external reward로 만들면 연구자가 사실상 subgoal reward를 설계하는 셈이 될 수 있다.
+하지만 이를 external 보상로 만들면 연구자가 사실상 subgoal 보상를 설계하는 셈이 될 수 있다.
 
-그래서 Policy는:
+그래서 [Policy(정책 모델)](Policy)는:
 
 ```text
 Q_task
@@ -102,7 +102,7 @@ separate information residual
 
 로 유지한다.
 
-이렇게 하면 external objective와 internal exploration signal을 구분해서 감사할 수 있다.
+이렇게 하면 external objective와 internal [탐색(exploration)](Exploration-and-Exploitation) signal을 구분해서 감사할 수 있다.
 
 ---
 
@@ -121,7 +121,7 @@ nonexistent C
 
 를 만들 수 있다.
 
-그래서 current Prophecy는 conditional mixture를 사용해 여러 outcome mode와 probability mass를 보존한다.
+그래서 current [Prophecy(미래 예측 모델)](Prophecy)는 conditional mixture를 사용해 여러 outcome mode와 [확률 질량(probability mass)](Stochasticity-Uncertainty-and-Probability)를 보존한다.
 
 ---
 
@@ -183,13 +183,13 @@ confidence 충분?
   no  -> fail closed
 ```
 
-그래서 confidence가 Critic branch ranking에 다시 새어 들어가지 않도록 current encoder에서도 이를 중립화한다.
+그래서 confidence가 [Critic(미래 가치 평가기)](Critic) branch ranking에 다시 새어 들어가지 않도록 current encoder에서도 이를 중립화한다.
 
 ---
 
 # 9. 왜 chance node는 평균이고 decision node는 max인가?
 
-Agent는 자신의 다음 행동은 선택할 수 있지만 환경 outcome은 선택할 수 없다.
+[에이전트(Agent)](Reinforcement-Learning)는 자신의 다음 행동은 선택할 수 있지만 환경 outcome은 선택할 수 없다.
 
 따라서:
 
@@ -203,7 +203,7 @@ V_{decision}=\max_aV(a)
 
 를 구분한다.
 
-환경 stochasticity에도 `max`를 쓰면 agent가 실제로 통제할 수 없는 좋은 outcome만 고르는 낙관적 planner가 된다.
+환경 stochasticity에도 `max`를 쓰면 에이전트가 실제로 통제할 수 없는 좋은 outcome만 고르는 낙관적 planner가 된다.
 
 ---
 
@@ -224,8 +224,8 @@ depth 증가
 - calibration
 - root preservation
 - branch validity
-- Critic horizon
-- batching
+- [Critic](Critic) horizon
+- [묶음 처리(batching)](Reproduction)
 
 을 함께 본다.
 
@@ -233,7 +233,7 @@ depth 증가
 
 # 11. 왜 branch count `n`을 concrete action 수로 보면 안 되는가?
 
-현재 action surface에는 이름만 다른 structural alias가 많을 수 있다.
+현재 [행동(action)](Reinforcement-Learning) surface에는 이름만 다른 structural alias가 많을 수 있다.
 
 ```text
 172 concrete actions
@@ -258,7 +258,7 @@ real execution
 
 # 12. 왜 root를 보존하는가?
 
-깊은 branch가 불확실하다고 root action까지 삭제하면 planner가 실제 legal action을 평가 후보에서 잃을 수 있다.
+깊은 branch가 불확실하다고 root 행동까지 삭제하면 planner가 실제 legal 행동을 평가 후보에서 잃을 수 있다.
 
 그래서:
 
@@ -274,9 +274,9 @@ deep rollout 실패
 
 # 13. 왜 Critic은 actual sparse return을 학습하는가?
 
-Planner 전용 handcrafted score를 Critic target으로 쓰면 최종 objective와 planning value가 달라질 수 있다.
+Planner 전용 handcrafted score를 [Critic](Critic) target으로 쓰면 최종 objective와 planning value가 달라질 수 있다.
 
-그래서 current Critic은 실제 external outcome을 기반으로 한다.
+그래서 current [Critic](Critic)은 실제 external outcome을 기반으로 한다.
 
 ```text
 success +1
@@ -284,15 +284,15 @@ failure -1
 truncation 0
 ```
 
-이렇게 하면 Policy와 planning이 궁극적으로 같은 task objective를 향한다.
+이렇게 하면 [Policy](Policy)와 planning이 궁극적으로 같은 task objective를 향한다.
 
 ---
 
 # 14. 왜 Critic을 모든 trajectory suffix에서 학습하는가?
 
-Imagination은 episode 중간 어느 decision point에서도 시작할 수 있다.
+[Imagination(가상 미래 탐색)](Imagination)은 episode 중간 어느 decision point에서도 시작할 수 있다.
 
-하지만 GRU Critic을 episode 시작점에서만 학습하면 inference 시 필요한 과거 hidden memory가 없을 수 있다.
+하지만 [GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) [Critic](Critic)을 episode 시작점에서만 학습하면 inference 시 필요한 과거 hidden memory가 없을 수 있다.
 
 그래서:
 
@@ -315,7 +315,7 @@ S3...
 
 # 15. 왜 global critic-ready만으로 부족한가?
 
-Critic이 training을 완료했다는 것과 현재 state/action region을 경험했다는 것은 다르다.
+[Critic](Critic)이 training을 완료했다는 것과 현재 state/행동 region을 경험했다는 것은 다르다.
 
 ```text
 global ready = yes
@@ -332,7 +332,7 @@ local support = no
 
 # 16. 왜 support도 value bonus가 아닌가?
 
-Support가 높다는 뜻은 그 행동이 좋다는 게 아니라 **Critic value를 믿을 실증적 근거가 더 많다**는 뜻이다.
+Support가 높다는 뜻은 그 행동이 좋다는 게 아니라 **[Critic](Critic) value를 믿을 실증적 근거가 더 많다**는 뜻이다.
 
 따라서:
 
@@ -353,7 +353,7 @@ support threshold 통과?
 
 # 17. 왜 Training Imagination intervention을 끄는가?
 
-핵심 실험이 같은 checkpoint에서 planner 효과만 보는 것이기 때문이다.
+핵심 실험이 같은 [체크포인트(checkpoint)](Reproduction)에서 planner 효과만 보는 것이기 때문이다.
 
 ```text
 training with intervention
@@ -385,7 +385,7 @@ model error
 -> error amplification
 ```
 
-을 피하기 위해 **상상은 planning에 쓰고 factual learning은 real transition에 근거한다**는 원칙을 유지한다.
+을 피하기 위해 **상상은 planning에 쓰고 factual learning은 real [상태 전이(transition)](MDP-and-POMDP)에 근거한다**는 원칙을 유지한다.
 
 ---
 
@@ -404,15 +404,15 @@ imagined fact인가 real fact인가?
 
 이다.
 
-그래서 Knowledge 문서는 lookup 성능보다 anti-hindsight / provenance contract를 중심으로 다룬다.
+그래서 [Knowledge(에피소드 지식)](Knowledge) 문서는 lookup 성능보다 anti-hindsight / provenance contract를 중심으로 다룬다.
 
 ---
 
 # 20. 왜 Skill은 concrete macro가 아니라 relational template인가?
 
-Raw 성공 sequence를 저장하면 seed가 바뀌었을 때 target ID가 달라져 재사용하기 어렵다.
+Raw 성공 sequence를 저장하면 난수 시드가 바뀌었을 때 target ID가 달라져 재사용하기 어렵다.
 
-그래서 성공 ASeq를 relational action template로 저장하고 현재 action surface에 다시 bind한다.
+그래서 성공 ASeq를 relational 행동 template로 저장하고 현재 행동 surface에 다시 bind한다.
 
 ```text
 structure transfer
@@ -437,7 +437,7 @@ dqn_raw
 -> AASSR Full
 ```
 
-과 DreamerV3를 둔다.
+과 [DreamerV3(외부 세계 모델 강화학습 비교군)](Experiments)를 둔다.
 
 각 차이는 다른 질문을 검증한다.
 

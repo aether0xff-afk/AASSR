@@ -1,8 +1,8 @@
 # Model-Based RL and World Models
 
-**Model-Based Reinforcement Learning**은 환경의 dynamics를 명시적으로 모델링하고, 그 모델을 이용해 행동 전에 미래를 예측하거나 계획하는 강화학습 계열이다.
+**Model-Based [강화학습(Reinforcement Learning)](Reinforcement-Learning)**은 환경의 dynamics를 명시적으로 모델링하고, 그 모델을 이용해 행동 전에 미래를 예측하거나 계획하는 강화학습 계열이다.
 
-AASSR에서는 [Prophecy](Prophecy)가 learned world model의 역할을 하고, [Imagination](Imagination)이 그 모델을 이용해 counterfactual planning을 수행한다.
+AASSR에서는 [Prophecy](Prophecy)가 learned [세계 모델(world model)](Model-Based-RL-and-World-Models)의 역할을 하고, [Imagination](Imagination)이 그 모델을 이용해 [반사실적 계획(counterfactual planning)](Counterfactual-Planning-and-Search)을 수행한다.
 
 ---
 
@@ -10,7 +10,7 @@ AASSR에서는 [Prophecy](Prophecy)가 learned world model의 역할을 하고, 
 
 ## Model-Free
 
-환경 transition model을 명시적으로 사용하지 않고 value/policy를 직접 학습한다.
+환경 [상태 전이(transition)](MDP-and-POMDP) model을 명시적으로 사용하지 않고 value/policy를 직접 학습한다.
 
 ```text
 State
@@ -23,9 +23,9 @@ Action
 대표 예:
 
 - Q-learning
-- DQN
+- [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD)
 
-AASSR의 기본 [Policy](Policy)는 model-free DQN 계열이다.
+AASSR의 기본 [Policy](Policy)는 model-free [DQN](Q-Learning-DQN-and-TD) 계열이다.
 
 ## Model-Based
 
@@ -43,7 +43,7 @@ Planning
 Action
 ```
 
-AASSR의 Prophecy + Imagination이 이 방향이다.
+AASSR의 [Prophecy(미래 예측 모델)](Prophecy) + [Imagination(가상 미래 탐색)](Imagination)이 이 방향이다.
 
 ---
 
@@ -57,31 +57,31 @@ AASSR의 Prophecy + Imagination이 이 방향이다.
 
 를 근사한다.
 
-Reward model도 함께 학습할 수 있다.
+[보상(Reward)](Sparse-Reward-and-Credit-Assignment) model도 함께 학습할 수 있다.
 
 ```math
 \hat R(s,a,s')
 ```
 
-하지만 AASSR current Prophecy의 핵심은 **public next-state distribution**과 legal action/status/terminal structure를 예측하는 데 있다.
+하지만 AASSR current [Prophecy](Prophecy)의 핵심은 **public next-state distribution**과 legal [행동(action)](Reinforcement-Learning)/status/[에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) structure를 예측하는 데 있다.
 
-외부 task reward 자체를 임의의 learned shaping signal로 바꾸지 않는다.
+외부 task [보상(reward)](Sparse-Reward-and-Credit-Assignment) 자체를 임의의 learned shaping signal로 바꾸지 않는다.
 
 ---
 
 # 3. World Model이란?
 
-넓은 의미에서 world model은 **환경이 어떻게 변하는지에 대한 내부 예측 모델**이다.
+넓은 의미에서 세계 모델은 **환경이 어떻게 변하는지에 대한 내부 예측 모델**이다.
 
 가능한 구성:
 
 - next-state predictor
 - latent dynamics model
-- observation predictor
-- reward predictor
-- terminal predictor
+- [관측(observation)](MDP-and-POMDP) predictor
+- 보상 predictor
+- 에피소드 종료 predictor
 
-AASSR Prophecy는 relational public state 공간에서 다음을 다룬다.
+AASSR [Prophecy](Prophecy)는 relational public state 공간에서 다음을 다룬다.
 
 ```text
 next relational descriptor
@@ -91,13 +91,13 @@ terminal class
 outcome probability
 ```
 
-즉 단순한 vector regression 하나보다 넓은 transition model이다.
+즉 단순한 vector [회귀 검증(regression)](Ablation-Benchmarking-and-Reproducibility) 하나보다 넓은 상태 전이 model이다.
 
 ---
 
 # 4. 왜 World Model이 도움이 될 수 있나?
 
-Model-free agent는 실제 경험을 통해 value를 학습한다.
+Model-free [에이전트(agent)](Reinforcement-Learning)는 실제 경험을 통해 value를 학습한다.
 
 World model이 있으면 **실제로 행동하지 않고도 가능한 미래를 계산**할 수 있다.
 
@@ -112,7 +112,7 @@ World model이 있으면 **실제로 행동하지 않고도 가능한 미래를 
 
 이것이 lookahead planning의 핵심이다.
 
-희소 보상에서는 즉시 reward가 모두 0이어도 여러 단계 뒤의 구조 차이를 비교할 수 있다는 기대가 있다.
+희소 보상에서는 즉시 보상가 모두 0이어도 여러 단계 뒤의 구조 차이를 비교할 수 있다는 기대가 있다.
 
 ---
 
@@ -132,9 +132,9 @@ Planner
 
 AASSR에서는:
 
-- Prophecy = model
-- Imagination = planner
-- Critic = long-horizon evaluator
+- [Prophecy](Prophecy) = model
+- [Imagination](Imagination) = planner
+- [Critic(미래 가치 평가기)](Critic) = long-horizon evaluator
 
 로 역할을 분리한다.
 
@@ -142,7 +142,7 @@ AASSR에서는:
 
 # 6. One-step model과 Multi-step planning
 
-World model은 보통 한 transition을 예측하도록 학습할 수 있다.
+World model은 보통 한 상태 전이을 예측하도록 학습할 수 있다.
 
 ```text
 (S_t,A_t) → S_{t+1}
@@ -180,7 +180,7 @@ Predicted: S0 → Ŝ1 → Ŝ2 → Ŝ3
 
 그래서 planning depth를 무조건 키우는 것이 좋은 것은 아니다.
 
-AASSR의 Imagination depth 역시 **longer horizon vs accumulated model error**의 trade-off를 가진다.
+AASSR의 [Imagination](Imagination) depth 역시 **longer horizon vs accumulated model error**의 trade-off를 가진다.
 
 관련 페이지:
 
@@ -191,7 +191,7 @@ AASSR의 Imagination depth 역시 **longer horizon vs accumulated model error**�
 
 # 8. Model bias
 
-Learned world model은 실제 환경과 완전히 같지 않다.
+Learned 세계 모델은 실제 환경과 완전히 같지 않다.
 
 그 차이 때문에 planner가 실제 환경에서는 잘못된 행동을 고를 수 있다.
 
@@ -203,7 +203,7 @@ True dynamics P
 Learned dynamics P_hat
 ```
 
-AASSR에서 Calibration과 local support gate가 필요한 이유 중 하나다.
+AASSR에서 [Calibration(예측 신뢰도 보정)](Calibration)과 [국소 데이터 근거(local support)](Critic-Support-and-OOD) gate가 필요한 이유 중 하나다.
 
 ---
 
@@ -220,11 +220,11 @@ Planner는 단순히 model을 사용하는 것을 넘어 **model의 오류를 �
 Planner가 그 action을 반복 선택
 ```
 
-이 현상을 model exploitation이라고 볼 수 있다.
+이 현상을 [모델 오류 악용(model exploitation)](Model-Based-RL-and-World-Models)이라고 볼 수 있다.
 
 Optimization이 강할수록 model의 작은 오류를 찾아낼 수 있다.
 
-AASSR의 repaired Imagination diagnostic에서 "planner가 행동을 바꾸기는 하지만 나쁜 status로 이어지는" 현상은 이 문제와 밀접하다.
+AASSR의 repaired [Imagination](Imagination) diagnostic에서 "planner가 행동을 바꾸기는 하지만 나쁜 status로 이어지는" 현상은 이 문제와 밀접하다.
 
 관련 페이지:
 
@@ -235,7 +235,7 @@ AASSR의 repaired Imagination diagnostic에서 "planner가 행동을 바꾸기�
 
 # 10. Deterministic model
 
-가장 단순한 world model:
+가장 단순한 세계 모델:
 
 ```math
 \hat s'=f_\theta(s,a)
@@ -257,7 +257,7 @@ AASSR의 repaired Imagination diagnostic에서 "planner가 행동을 바꾸기�
 p_\theta(s'\mid s,a)
 ```
 
-AASSR Prophecy는 이 방향이다.
+AASSR [Prophecy](Prophecy)는 이 방향이다.
 
 같은 public `(S,A)`에서 여러 outcome이 가능하므로 단일 평균 state보다 multimodal prediction이 필요하다.
 
@@ -301,7 +301,7 @@ AASSR이 conditional mixture를 사용하는 이유다.
 
 # 13. Latent World Model
 
-많은 modern model-based RL은 raw observation을 그대로 예측하지 않고 latent representation `z`에서 dynamics를 학습한다.
+많은 modern [모델 기반 강화학습(model-based RL)](Model-Based-RL-and-World-Models)은 raw 관측을 그대로 예측하지 않고 latent [표현(representation)](Relational-Representation-and-Generalization) `z`에서 dynamics를 학습한다.
 
 ```text
 Observation
@@ -313,10 +313,10 @@ Latent z_{t+1}
 
 장점:
 
-- 고차원 raw observation 압축
+- 고차원 raw 관측 압축
 - task-relevant feature에 집중 가능
 
-AASSR current Prophecy는 일반적인 pixel latent world model과 달리 **명시적 relational public descriptor**를 중심으로 한다.
+AASSR current [Prophecy](Prophecy)는 일반적인 pixel latent 세계 모델과 달리 **명시적 relational public descriptor**를 중심으로 한다.
 
 Dreamer 계열과 비교할 때 이 차이가 중요하다.
 
@@ -324,9 +324,9 @@ Dreamer 계열과 비교할 때 이 차이가 중요하다.
 
 # 14. Dreamer와 개념적 비교
 
-Dreamer류 알고리즘은 learned latent world model 안에서 imagined trajectories를 만들고 actor/critic을 학습하는 대표적인 model-based RL 계열이다.
+Dreamer류 알고리즘은 learned latent 세계 모델 안에서 imagined trajectories를 만들고 actor/critic을 학습하는 대표적인 모델 기반 강화학습 계열이다.
 
-AASSR은 "world model + imagination"이라는 큰 틀에서는 유사한 문제를 다루지만 current 연구 계약은 다르다.
+AASSR은 "세계 모델 + imagination"이라는 큰 틀에서는 유사한 문제를 다루지만 current 연구 계약은 다르다.
 
 AASSR의 중요한 차이 중 하나:
 
@@ -336,15 +336,15 @@ Imagined experience
 → current main comparison에서는 real Policy를 직접 재학습시키지 않음
 ```
 
-또 AASSR은 explicit relational state, ASEQ, Knowledge, chance/decision semantics, local support gate 등을 별도로 둔다.
+또 AASSR은 explicit relational state, [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ), [Knowledge(에피소드 지식)](Knowledge), chance/decision semantics, 국소 데이터 근거 gate 등을 별도로 둔다.
 
-그래서 DreamerV3를 별도 model-based baseline으로 비교하는 것이 의미가 있다.
+그래서 [DreamerV3(외부 세계 모델 강화학습 비교군)](Experiments)를 별도 model-based [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility)으로 비교하는 것이 의미가 있다.
 
 ---
 
 # 15. Real-data grounding
 
-World model은 실제 transition으로 학습한다.
+World model은 실제 상태 전이으로 학습한다.
 
 ```text
 real state
@@ -354,9 +354,9 @@ real next state
 
 AASSR 원칙:
 
-> 상상은 계획에 사용하지만 사실 학습의 기준은 real transition이다.
+> 상상은 계획에 사용하지만 사실 학습의 기준은 real 상태 전이이다.
 
-Imagined state를 다시 world model의 정답으로 학습시키면:
+Imagined state를 다시 세계 모델의 정답으로 학습시키면:
 
 ```text
 model error
@@ -381,7 +381,7 @@ success 0.9
 failure 0.1
 ```
 
-이 state/action을 training에서 거의 본 적 없다면 `0.9` 자체를 신뢰하기 어려울 수 있다.
+이 state/행동을 training에서 거의 본 적 없다면 `0.9` 자체를 신뢰하기 어려울 수 있다.
 
 그래서 AASSR은:
 
@@ -402,7 +402,7 @@ prediction reliability
 
 # 17. Calibration
 
-Calibration은 model이 **언제 맞고 언제 틀리는지에 대한 reliability**를 real holdout으로 점검한다.
+[Calibration](Calibration)은 model이 **언제 맞고 언제 틀리는지에 대한 reliability**를 real [검증용 분리 데이터(holdout)](Calibration)으로 점검한다.
 
 AASSR에서는 confidence를 좋은 미래에 대한 bonus로 쓰지 않는다.
 
@@ -423,7 +423,7 @@ reliability 부족
 
 # 18. Legal action prediction
 
-다음 state를 맞혀도 그 state에서 가능한 action을 틀리면 planner는 존재하지 않는 행동을 만들 수 있다.
+다음 state를 맞혀도 그 state에서 가능한 행동을 틀리면 planner는 존재하지 않는 행동을 만들 수 있다.
 
 ```text
 Predicted S'
@@ -431,9 +431,9 @@ Predicted S'
 Predicted legal actions
 ```
 
-AASSR Prophecy는 legal action mask를 decision-critical target으로 포함한다.
+AASSR [Prophecy](Prophecy)는 [가능 행동 마스크(legal action mask)](Prophecy)를 decision-critical target으로 포함한다.
 
-이것은 generic numeric next-state MSE만 보는 world model과 다른 중요한 설계점이다.
+이것은 generic numeric next-state MSE만 보는 세계 모델과 다른 중요한 설계점이다.
 
 ---
 
@@ -452,13 +452,13 @@ truncation
 
 Terminal semantics를 틀리면 value backup이 크게 왜곡될 수 있다.
 
-AASSR Prophecy는 terminal class를 별도로 예측한다.
+AASSR [Prophecy](Prophecy)는 에피소드 종료 class를 별도로 예측한다.
 
 ---
 
 # 20. Status prediction
 
-AASSR environment의 public HTTP-like status는 decision-critical할 수 있다.
+AASSR [환경(environment)](Reinforcement-Learning)의 public HTTP-like status는 decision-critical할 수 있다.
 
 예:
 
@@ -469,9 +469,9 @@ AASSR environment의 public HTTP-like status는 decision-critical할 수 있다.
 429
 ```
 
-과거 representation에서는 전체 semantic similarity가 높아도 status를 놓쳐 planner가 실제로 bad action을 고를 수 있었다.
+과거 표현에서는 전체 semantic similarity가 높아도 status를 놓쳐 planner가 실제로 bad 행동을 고를 수 있었다.
 
-그래서 current Relational State v3와 Prophecy는 latest public status를 명시적으로 보존/예측한다.
+그래서 current Relational State v3와 [Prophecy](Prophecy)는 latest public status를 명시적으로 보존/예측한다.
 
 관련 페이지:
 
@@ -484,7 +484,7 @@ AASSR environment의 public HTTP-like status는 decision-critical할 수 있다.
 
 - 실제 행동 전에 미래를 비교 가능
 - delayed consequence를 명시적으로 계산 가능
-- learned model을 여러 후보 action에 재사용 가능
+- learned model을 여러 후보 행동에 재사용 가능
 - planning depth를 조절 가능
 
 ---
@@ -493,8 +493,8 @@ AASSR environment의 public HTTP-like status는 decision-critical할 수 있다.
 
 - model error
 - compounding error
-- OOD rollout
-- model exploitation
+- [학습 분포 밖(OOD)](Critic-Support-and-OOD) rollout
+- 모델 오류 악용
 - expensive tree search
 - uncertainty misinterpretation
 

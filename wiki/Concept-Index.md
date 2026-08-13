@@ -70,10 +70,10 @@ flowchart TD
 
 다음 개념을 한꺼번에 연결한다.
 
-- agent / environment
-- state / observation
-- action
-- reward / return
+- [에이전트(agent)](Reinforcement-Learning) / [환경(environment)](Reinforcement-Learning)
+- state / [관측(observation)](MDP-and-POMDP)
+- [행동(action)](Reinforcement-Learning)
+- [보상(reward)](Sparse-Reward-and-Credit-Assignment) / [누적 보상(return)](Value-Functions-and-Bellman-Equation)
 - discount factor
 - policy
 - value function
@@ -89,25 +89,25 @@ AASSR의 `Policy`, `Prophecy`, `Critic`, `Imagination`이 일반 강화학습에
 
 - Markov property
 - MDP의 `(S, A, P, R, γ)`
-- hidden state와 observation
+- hidden state와 관측
 - POMDP
 - belief state
 - state aliasing
 - memory
 
-AASSR의 partial observation contract와 stochastic Prophecy를 이해하는 기반이다.
+AASSR의 partial 관측 contract와 stochastic [Prophecy(미래 예측 모델)](Prophecy)를 이해하는 기반이다.
 
 ---
 
 ## [Sparse Reward and Credit Assignment](Sparse-Reward-and-Credit-Assignment)
 
-- dense / sparse reward
-- delayed reward
+- dense / [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment)
+- delayed 보상
 - long horizon
-- temporal credit assignment
-- reward shaping
+- temporal [보상 책임 배분(credit assignment)](Sparse-Reward-and-Credit-Assignment)
+- 보상 shaping
 - potential-based shaping
-- intrinsic reward
+- intrinsic 보상
 - Monte Carlo vs TD
 
 AASSR 자체의 구체적인 문제 설정은 **[Sparse Reward Problem](Sparse-Reward-Problem)** 에서 이어진다.
@@ -116,16 +116,16 @@ AASSR 자체의 구체적인 문제 설정은 **[Sparse Reward Problem](Sparse-R
 
 ## [Exploration and Exploitation](Exploration-and-Exploitation)
 
-- exploitation / exploration
+- [활용(exploitation)](Exploration-and-Exploitation) / [탐색(exploration)](Exploration-and-Exploitation)
 - epsilon-greedy
 - epsilon decay
-- random exploration의 한계
+- random 탐색의 한계
 - novelty
 - curiosity
 - information gain
-- risky exploration
+- risky 탐색
 
-AASSR Policy의 information residual과 ASEQ를 이해하는 데 중요하다.
+AASSR [Policy(정책 모델)](Policy)의 [정보 가치 잔차(information residual)](Policy)과 [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ)를 이해하는 데 중요하다.
 
 ---
 
@@ -141,21 +141,21 @@ AASSR Policy의 information residual과 ASEQ를 이해하는 데 중요하다.
 - noisy-TV problem
 - intrinsic vs extrinsic objective
 
-AASSR의 information-value residual을 일반 이론과 구분하면서 이해하는 페이지다.
+AASSR의 [정보 가치 잔차(information-value residual)](Policy)을 일반 이론과 구분하면서 이해하는 페이지다.
 
 ---
 
 ## [Curriculum Learning](Curriculum-Learning)
 
-- fixed / adaptive curriculum
+- fixed / adaptive [난이도 조절 학습(curriculum)](Curriculum-Learning)
 - promotion / demotion
 - easy-to-hard learning
-- transfer bottleneck
+- [전이(transfer)](Relational-Representation-and-Generalization) bottleneck
 - catastrophic forgetting
-- curriculum과 reward shaping의 차이
+- 난이도 조절 학습과 보상 shaping의 차이
 - guided trajectory와의 차이
 
-AASSR에서 최초 성공 discovery와 higher-level transfer가 왜 별개의 문제인지 연결한다.
+AASSR에서 최초 성공 discovery와 higher-level 전이가 왜 별개의 문제인지 연결한다.
 
 ---
 
@@ -163,17 +163,17 @@ AASSR에서 최초 성공 discovery와 higher-level transfer가 왜 별개의 �
 
 ## [Value Functions and Bellman Equation](Value-Functions-and-Bellman-Equation)
 
-- return `G_t`
+- 누적 보상 `G_t`
 - discount factor `γ`
 - state value `V(s)`
-- action value `Q(s,a)`
+- 행동 value `Q(s,a)`
 - advantage
 - Bellman expectation equation
 - Bellman optimality equation
 - backup
-- bootstrapping
+- [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)ping
 
-AASSR의 DQN Policy와 sparse-return Critic의 수학적 기반이다.
+AASSR의 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) [Policy](Policy)와 sparse-누적 보상 [Critic(미래 가치 평가기)](Critic)의 수학적 기반이다.
 
 ---
 
@@ -183,11 +183,11 @@ AASSR의 DQN Policy와 sparse-return Critic의 수학적 기반이다.
 - TD error
 - target network
 - experience replay
-- DQN
+- [DQN](Q-Learning-DQN-and-TD)
 - epsilon-greedy
-- terminal mask
+- [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) mask
 - overestimation
-- distribution shift
+- [데이터 분포 변화(distribution shift)](Critic-Support-and-OOD)
 
 `dqn_raw`, `dqn_relational`, `CurrentRelationalPolicy`를 읽기 전에 보면 좋다.
 
@@ -196,16 +196,16 @@ AASSR의 DQN Policy와 sparse-return Critic의 수학적 기반이다.
 ## [Replay Buffer and Episode Boundaries](Replay-Buffer-and-Episode-Boundaries)
 
 - experience replay
-- terminal
-- truncation
+- 에피소드 종료
+- [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries)
 - stalled reset
 - rate-limit reset
-- transition cap
-- reward boundary vs bootstrap boundary
-- replay vs Knowledge
-- real transition vs imagined transition
+- [상태 전이(transition)](MDP-and-POMDP) cap
+- 보상 boundary vs 다음 상태 가치 이어받기 boundary
+- replay vs [Knowledge(에피소드 지식)](Knowledge)
+- real 상태 전이 vs imagined 상태 전이
 
-AASSR에서 **reward가 0이어도 TD bootstrap은 끊어야 할 수 있다**는 수정의 이론적 배경이다.
+AASSR에서 **보상가 0이어도 TD 다음 상태 가치 이어받기은 끊어야 할 수 있다**는 수정의 이론적 배경이다.
 
 ---
 
@@ -223,7 +223,7 @@ AASSR에서 **reward가 0이어도 TD bootstrap은 끊어야 할 수 있다**는
 - overfitting / underfitting
 - normalization
 - one-hot encoding
-- GPU batching / synchronization
+- GPU [묶음 처리(batching)](Reproduction) / synchronization
 
 AASSR 코드에서 신경망 구현을 읽기 위한 기초다.
 
@@ -239,10 +239,10 @@ AASSR 코드에서 신경망 구현을 읽기 위한 기초다.
 - class imbalance
 - class weighting / oversampling
 - NLL / mixture likelihood
-- multi-task loss
-- training loss vs validation metric
+- multi-task [학습 손실(loss)](Loss-Functions-and-Class-Imbalance)
+- training 학습 손실 vs validation [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility)
 
-특히 status-aware Prophecy에서 **rare class를 더 잘 학습하는 것과 reward shaping은 다른 문제**라는 점을 설명한다.
+특히 [상태 코드까지 고려하는(status-aware)](Calibration) [Prophecy](Prophecy)에서 **rare class를 더 잘 학습하는 것과 보상 shaping은 다른 문제**라는 점을 설명한다.
 
 ---
 
@@ -251,18 +251,18 @@ AASSR 코드에서 신경망 구현을 읽기 위한 기초다.
 ## [Model-Based RL and World Models](Model-Based-RL-and-World-Models)
 
 - model-free vs model-based
-- transition model
-- reward model
-- world model
+- 상태 전이 model
+- 보상 model
+- [세계 모델(world model)](Model-Based-RL-and-World-Models)
 - learned dynamics
 - one-step vs multi-step prediction
 - compounding error
 - model bias
-- model exploitation
-- latent world model
+- [모델 오류 악용(model exploitation)](Model-Based-RL-and-World-Models)
+- latent 세계 모델
 - Dreamer 계열과의 개념적 비교
 
-AASSR의 Prophecy와 Imagination을 일반 model-based RL 안에서 위치시킨다.
+AASSR의 [Prophecy](Prophecy)와 [Imagination(가상 미래 탐색)](Imagination)을 일반 [모델 기반 강화학습(model-based RL)](Model-Based-RL-and-World-Models) 안에서 위치시킨다.
 
 ---
 
@@ -274,7 +274,7 @@ AASSR의 Prophecy와 Imagination을 일반 model-based RL 안에서 위치시킨
 - variance
 - stochasticity
 - aleatoric uncertainty
-- epistemic uncertainty
+- [지식 부족에서 오는 불확실성(epistemic uncertainty)](Stochasticity-Uncertainty-and-Probability)
 - reliability
 - value
 - support
@@ -298,12 +298,12 @@ outcome probability
 - mixture collapse
 - ensemble / disagreement
 - aleatoric vs epistemic 관점
-- holdout calibration
+- [검증용 분리 데이터(holdout)](Calibration) calibration
 - probability-weighted semantic score
-- frozen holdout
+- frozen 검증용 분리 데이터
 - reliability diagram / ECE 개념
 
-AASSR stochastic Prophecy와 Calibration의 직접 배경이다.
+AASSR stochastic [Prophecy](Prophecy)와 [Calibration(예측 신뢰도 보정)](Calibration)의 직접 배경이다.
 
 ---
 
@@ -323,9 +323,9 @@ AASSR stochastic Prophecy와 Calibration의 직접 배경이다.
 - root preservation
 - structural deduplication
 - MPC / receding horizon과의 개념적 연결
-- intervention margin
+- [실제 행동 개입(intervention)](Imagination) margin
 
-AASSR의 Imagination을 단순 `n × k`보다 깊게 이해하는 페이지다.
+AASSR의 [Imagination](Imagination)을 단순 `n × k`보다 깊게 이해하는 페이지다.
 
 ---
 
@@ -339,12 +339,12 @@ V_{chance}=\sum_i p_iV_i
 V_{decision}=\max_aV(a)
 ```
 
-- 왜 environment randomness에는 expectation을 쓰는가?
-- 왜 agent choice에는 max를 쓸 수 있는가?
+- 왜 환경 randomness에는 expectation을 쓰는가?
+- 왜 에이전트 choice에는 max를 쓸 수 있는가?
 - optimistic stochastic backup은 왜 틀리는가?
 - probability와 reliability는 왜 다른가?
 
-AASSR Imagination의 핵심 수학적 semantics다.
+AASSR [Imagination](Imagination)의 핵심 수학적 semantics다.
 
 ---
 
@@ -352,19 +352,19 @@ AASSR Imagination의 핵심 수학적 semantics다.
 
 ## [Relational Representation and Generalization](Relational-Representation-and-Generalization)
 
-- representation
-- memorization vs generalization
+- [표현(representation)](Relational-Representation-and-Generalization)
+- memorization vs [일반화(generalization)](Relational-Representation-and-Generalization)
 - permutation
 - invariance / equivariance
 - relational inductive bias
-- abstraction
+- abstr행동
 - state aliasing
 - concrete vs relational identity
-- transfer learning
+- 전이 learning
 - structural root dedup
-- representation leakage
+- 표현 leakage
 
-AASSR `Relational State v3`, action key, Skill transfer의 기반이다.
+AASSR `Relational State v3`, 행동 key, [Skill(성공 절차 재사용)](Skills) 전이의 기반이다.
 
 ---
 
@@ -372,14 +372,14 @@ AASSR `Relational State v3`, action key, Skill transfer의 기반이다.
 
 - function approximation
 - interpolation / extrapolation
-- in-distribution / OOD
-- global readiness vs local support
+- in-distribution / [학습 분포 밖(OOD)](Critic-Support-and-OOD)
+- global readiness vs [국소 데이터 근거(local support)](Critic-Support-and-OOD)
 - nearest-neighbor evidence
 - density/support intuition
 - fail-open / fail-closed
 - conservative RL과의 문제의식 연결
 
-AASSR에서 Critic이 숫자를 출력한다는 사실만으로 override를 허용하지 않는 이유를 설명한다.
+AASSR에서 [Critic](Critic)이 숫자를 출력한다는 사실만으로 override를 허용하지 않는 이유를 설명한다.
 
 ---
 
@@ -389,30 +389,30 @@ AASSR에서 Critic이 숫자를 출력한다는 사실만으로 override를 허�
 
 - RNN
 - hidden state
-- GRU update/reset gate
+- [GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) update/reset gate
 - sequence encoding
 - recurrent-state mismatch
 - zero-memory inference
 - decision suffix training
-- sequence batching
+- sequence 묶음 처리
 
-AASSR Critic의 recurrent contract를 이해하는 페이지다.
+AASSR [Critic](Critic)의 recurrent contract를 이해하는 페이지다.
 
 ---
 
 ## [Hierarchical Reinforcement Learning and Skills](Hierarchical-RL-and-Skills)
 
-- temporal abstraction
-- macro action
+- temporal abstr행동
+- macro 행동
 - option framework
-- primitive action
+- primitive 행동
 - skill discovery
 - promotion
-- relational Skill
+- relational [Skill](Skills)
 - initiation / availability
 - stochastic skill rollout
 
-AASSR의 Skill이 사람이 넣은 정답 macro와 어떻게 다른지 설명한다.
+AASSR의 [Skill](Skills)이 사람이 넣은 정답 macro와 어떻게 다른지 설명한다.
 
 ---
 
@@ -425,34 +425,34 @@ AASSR의 Skill이 사람이 넣은 정답 macro와 어떻게 다른지 설명한
 - target leakage
 - hindsight leakage
 - privileged information
-- public observation contract
+- public 관측 contract
 - cross-episode leakage
 - imagined fact vs real fact
 - train/test contamination
-- same-checkpoint comparison
+- [같은 체크포인트(same-checkpoint)](Experiments) comparison
 - Oracle / guided trajectory
 
-AASSR의 anti-hindsight, hidden-state 금지, same-checkpoint protocol과 연결된다.
+AASSR의 anti-hindsight, hidden-state 금지, 같은 체크포인트 protocol과 연결된다.
 
 ---
 
 ## [Ablation, Benchmarking and Reproducibility](Ablation-Benchmarking-and-Reproducibility)
 
-- benchmark
-- baseline / control
-- ablation
+- [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)
+- [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility) / control
+- [구성요소 제거 비교(ablation)](Ablation-Benchmarking-and-Reproducibility)
 - confounder
 - independent / dependent variable
-- seed
+- [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)
 - training budget
 - hyperparameter tuning
-- metric / proxy metric
+- 평가지표 / proxy 평가지표
 - mean / standard deviation / confidence interval
 - paired comparison
-- diagnostic vs final benchmark
+- diagnostic vs final 표준 비교 실험
 - reproducibility
 - artifact provenance
-- source of truth
+- [최종 기준(source of truth)](Current-Status)
 
 AASSR의 핵심 비교:
 
@@ -506,28 +506,28 @@ dqn_raw
 
 | 단어 | 먼저 읽을 페이지 |
 |---|---|
-| 강화학습, agent, environment | [Reinforcement Learning](Reinforcement-Learning) |
-| state, observation, Markov, POMDP | [MDP and POMDP](MDP-and-POMDP) |
-| sparse reward, delayed reward, credit assignment | [Sparse Reward and Credit Assignment](Sparse-Reward-and-Credit-Assignment) |
-| exploration, epsilon, curiosity | [Exploration and Exploitation](Exploration-and-Exploitation) |
+| 강화학습, 에이전트, 환경 | [Reinforcement Learning](Reinforcement-Learning) |
+| state, 관측, Markov, POMDP | [MDP and POMDP](MDP-and-POMDP) |
+| 희소 보상, delayed 보상, 보상 책임 배분 | [Sparse Reward and Credit Assignment](Sparse-Reward-and-Credit-Assignment) |
+| 탐색, epsilon, curiosity | [Exploration and Exploitation](Exploration-and-Exploitation) |
 | entropy, mutual information, information gain | [Information Theory and Intrinsic Motivation](Information-Theory-and-Intrinsic-Motivation) |
-| curriculum, promotion, demotion | [Curriculum Learning](Curriculum-Learning) |
-| value, return, Bellman, bootstrapping | [Value Functions and Bellman Equation](Value-Functions-and-Bellman-Equation) |
-| Q-learning, DQN, TD, target network | [Q-Learning, DQN and TD](Q-Learning-DQN-and-TD) |
-| replay, terminal, truncation | [Replay Buffer and Episode Boundaries](Replay-Buffer-and-Episode-Boundaries) |
+| 난이도 조절 학습, promotion, demotion | [Curriculum Learning](Curriculum-Learning) |
+| value, 누적 보상, Bellman, 다음 상태 가치 이어받기ping | [Value Functions and Bellman Equation](Value-Functions-and-Bellman-Equation) |
+| Q-learning, [DQN](Q-Learning-DQN-and-TD), TD, target network | [Q-Learning, DQN and TD](Q-Learning-DQN-and-TD) |
+| replay, 에피소드 종료, 외부 제한 종료 | [Replay Buffer and Episode Boundaries](Replay-Buffer-and-Episode-Boundaries) |
 | neural network, gradient, optimizer, GPU batch | [Neural Networks and Optimization](Neural-Networks-and-Optimization) |
 | MSE, cross entropy, Smooth L1, class imbalance | [Loss Functions and Class Imbalance](Loss-Functions-and-Class-Imbalance) |
-| world model, model bias, model exploitation | [Model-Based RL and World Models](Model-Based-RL-and-World-Models) |
+| 세계 모델, model bias, 모델 오류 악용 | [Model-Based RL and World Models](Model-Based-RL-and-World-Models) |
 | probability, uncertainty, aleatoric, epistemic | [Stochasticity, Uncertainty and Probability](Stochasticity-Uncertainty-and-Probability) |
 | mixture, ensemble, calibration | [Mixture, Ensemble and Calibration](Mixture-Ensemble-and-Calibration) |
 | rollout, lookahead, beam, pruning | [Counterfactual Planning and Search](Counterfactual-Planning-and-Search) |
-| chance node, decision node, expectation | [Chance and Decision Nodes](Chance-and-Decision-Nodes) |
-| relational, permutation, invariance, transfer | [Relational Representation and Generalization](Relational-Representation-and-Generalization) |
-| OOD, extrapolation, support, fail-closed | [Critic, Support and OOD](Critic-Support-and-OOD) |
-| GRU, recurrent, hidden state | [GRU and Sequence Models](GRU-and-Sequence-Models) |
-| skill, macro, option, temporal abstraction | [Hierarchical RL and Skills](Hierarchical-RL-and-Skills) |
+| [환경 결과 노드(chance node)](Chance-and-Decision-Nodes), [행동 선택 노드(decision node)](Chance-and-Decision-Nodes), expectation | [Chance and Decision Nodes](Chance-and-Decision-Nodes) |
+| relational, permutation, invariance, 전이 | [Relational Representation and Generalization](Relational-Representation-and-Generalization) |
+| [OOD](Critic-Support-and-OOD), extrapolation, support, fail-closed | [Critic, Support and OOD](Critic-Support-and-OOD) |
+| [GRU](GRU-and-Sequence-Models), recurrent, hidden state | [GRU and Sequence Models](GRU-and-Sequence-Models) |
+| skill, macro, option, temporal abstr행동 | [Hierarchical RL and Skills](Hierarchical-RL-and-Skills) |
 | leakage, hindsight, privileged information | [Causality, Leakage and Evaluation](Causality-Leakage-and-Evaluation) |
-| ablation, baseline, seed, confidence interval | [Ablation, Benchmarking and Reproducibility](Ablation-Benchmarking-and-Reproducibility) |
+| 구성요소 제거 비교, 비교 기준, 난수 시드, confidence interval | [Ablation, Benchmarking and Reproducibility](Ablation-Benchmarking-and-Reproducibility) |
 
 ---
 
@@ -536,13 +536,13 @@ dqn_raw
 **완전 처음부터:**  
 [Reinforcement Learning](Reinforcement-Learning) → [MDP and POMDP](MDP-and-POMDP) → [Sparse Reward & Credit Assignment](Sparse-Reward-and-Credit-Assignment) → [AASSR in 5 Minutes](AASSR-in-5-Minutes)
 
-**Policy를 이해하고 싶다면:**  
+**[Policy](Policy)를 이해하고 싶다면:**  
 [Value & Bellman](Value-Functions-and-Bellman-Equation) → [DQN & TD](Q-Learning-DQN-and-TD) → [Exploration](Exploration-and-Exploitation) → [Information Theory](Information-Theory-and-Intrinsic-Motivation) → [Policy](Policy)
 
-**Prophecy를 이해하고 싶다면:**  
+**[Prophecy](Prophecy)를 이해하고 싶다면:**  
 [MDP/POMDP](MDP-and-POMDP) → [World Models](Model-Based-RL-and-World-Models) → [Uncertainty](Stochasticity-Uncertainty-and-Probability) → [Mixture/Ensemble](Mixture-Ensemble-and-Calibration) → [Loss/Class Imbalance](Loss-Functions-and-Class-Imbalance) → [Prophecy](Prophecy)
 
-**Imagination을 이해하고 싶다면:**  
+**[Imagination](Imagination)을 이해하고 싶다면:**  
 [World Models](Model-Based-RL-and-World-Models) → [Planning](Counterfactual-Planning-and-Search) → [Chance/Decision](Chance-and-Decision-Nodes) → [Critic/OOD](Critic-Support-and-OOD) → [Imagination](Imagination)
 
 **실험을 검증하고 싶다면:**  

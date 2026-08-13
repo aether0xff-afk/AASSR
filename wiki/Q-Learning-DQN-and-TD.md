@@ -1,12 +1,12 @@
 # Q-Learning, DQN and Temporal Difference
 
-이 페이지는 AASSR의 model-free Policy를 이해하기 위한 핵심 배경인 **Q-learning**, **DQN(Deep Q-Network)**, **TD(Temporal-Difference) learning**을 설명한다.
+이 페이지는 AASSR의 model-free [Policy(정책 모델)](Policy)를 이해하기 위한 핵심 배경인 **Q-learning**, **[DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD)(Deep Q-Network)**, **TD(Temporal-Difference) learning**을 설명한다.
 
 ---
 
 # 1. Q-learning의 목표
 
-Q-learning은 최적 action value:
+Q-learning은 최적 [행동(action)](Reinforcement-Learning) value:
 
 ```math
 Q^*(s,a)
@@ -16,7 +16,7 @@ Q^*(s,a)
 
 이 값은:
 
-> state `s`에서 action `a`를 먼저 한 뒤 최적으로 행동했을 때 기대되는 장기 return
+> state `s`에서 행동 `a`를 먼저 한 뒤 최적으로 행동했을 때 기대되는 장기 [누적 보상(return)](Value-Functions-and-Bellman-Equation)
 
 이다.
 
@@ -56,7 +56,7 @@ r_t+\gamma\max_{a'}Q(s_{t+1},a')-Q(s_t,a_t)
 
 # 3. Temporal-Difference learning
 
-TD learning은 실제 최종 return 전체를 기다리지 않고 **현재 reward와 다음 state의 value estimate를 이용해 update**한다.
+TD learning은 실제 최종 누적 보상 전체를 기다리지 않고 **현재 [보상(reward)](Sparse-Reward-and-Credit-Assignment)와 다음 state의 value estimate를 이용해 update**한다.
 
 ```math
 target=r_t+\gamma V(s_{t+1})
@@ -103,13 +103,13 @@ target=0+0.9(0.8)=0.72
 
 현재 Q를 위쪽으로 수정한다.
 
-희소 보상에서는 terminal `+1`에서 생긴 value가 이런 TD update를 통해 이전 transition들로 전파될 수 있다.
+희소 보상에서는 [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) `+1`에서 생긴 value가 이런 TD update를 통해 이전 [상태 전이(transition)](MDP-and-POMDP)들로 전파될 수 있다.
 
 ---
 
 # 5. Q-learning이 off-policy인 이유
 
-Q-learning target은 실제 behavior가 다음에 어떤 action을 했는지가 아니라:
+Q-learning target은 실제 behavior가 다음에 어떤 행동을 했는지가 아니라:
 
 ```math
 \max_{a'}Q(s',a')
@@ -125,7 +125,7 @@ Q-learning target은 실제 behavior가 다음에 어떤 action을 했는지가 
 
 # 6. Tabular Q-learning의 한계
 
-State/action space가 작으면 table을 둘 수 있다.
+State/행동 space가 작으면 table을 둘 수 있다.
 
 ```text
 Q[state][action]
@@ -139,7 +139,7 @@ Q[state][action]
 Q_\theta(s,a)
 ```
 
-이 방향이 DQN이다.
+이 방향이 [DQN](Q-Learning-DQN-and-TD)이다.
 
 ---
 
@@ -153,9 +153,9 @@ Q_\theta(s,a)
 state representation
 ```
 
-출력 방식은 구현에 따라 다르지만 일반적으로 각 action Q-value 또는 state/action pair score를 만든다.
+출력 방식은 구현에 따라 다르지만 일반적으로 각 행동 [Q값(Q-value)](Value-Functions-and-Bellman-Equation) 또는 state/행동 pair score를 만든다.
 
-AASSR current DQN은 relational state/action structure를 이용하는 변형된 action scoring path를 사용한다.
+AASSR current [DQN](Q-Learning-DQN-and-TD)은 relational state/행동 structure를 이용하는 변형된 행동 scoring path를 사용한다.
 
 관련 페이지:
 
@@ -180,7 +180,7 @@ target도 다시 움직임
 
 또 연속 trajectory sample은 강하게 상관되어 있다.
 
-이 때문에 DQN에서는 대표적으로:
+이 때문에 [DQN](Q-Learning-DQN-and-TD)에서는 대표적으로:
 
 - experience replay
 - target network
@@ -191,7 +191,7 @@ target도 다시 움직임
 
 # 9. Experience Replay
 
-과거 transition을 buffer에 저장한다.
+과거 상태 전이을 buffer에 저장한다.
 
 ```text
 (S,A,R,S',done)
@@ -239,29 +239,29 @@ L(\theta)
 \right]
 ```
 
-같은 regression 형태를 사용한다.
+같은 [회귀 검증(regression)](Ablation-Benchmarking-and-Reproducibility) 형태를 사용한다.
 
-실제 구현에서는 MSE 대신 Huber/Smooth L1 loss를 사용할 수도 있다.
+실제 구현에서는 MSE 대신 Huber/Smooth L1 [학습 손실(loss)](Loss-Functions-and-Class-Imbalance)를 사용할 수도 있다.
 
 ---
 
 # 12. Terminal transition
 
-진짜 terminal이라면 future Q를 더하면 안 된다.
+진짜 에피소드 종료이라면 future Q를 더하면 안 된다.
 
 ```math
 y=r
 ```
 
-Non-terminal:
+Non-에피소드 종료:
 
 ```math
 y=r+\gamma\max_{a'}Q(s',a')
 ```
 
-따라서 `done`/terminal flag는 매우 중요하다.
+따라서 `done`/에피소드 종료 flag는 매우 중요하다.
 
-AASSR에서 한때 reset이 일어났는데 replay에서 non-terminal로 취급되어 **새 episode state를 이전 episode의 미래처럼 bootstrap**하는 mismatch가 문제가 된 이유가 이것이다.
+AASSR에서 한때 reset이 일어났는데 replay에서 non-에피소드 종료로 취급되어 **새 episode state를 이전 episode의 미래처럼 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)**하는 mismatch가 문제가 된 이유가 이것이다.
 
 관련 페이지:
 
@@ -271,7 +271,7 @@ AASSR에서 한때 reset이 일어났는데 replay에서 non-terminal로 취급�
 
 # 13. Reward 0과 terminal false는 같은 말이 아니다
 
-다음 두 transition은 reward가 모두 `0`일 수 있다.
+다음 두 상태 전이은 보상가 모두 `0`일 수 있다.
 
 ```text
 A. 정상 진행
@@ -283,7 +283,7 @@ reward = 0
 다음 observation은 새 episode
 ```
 
-A에서는 bootstrap이 자연스럽다.
+A에서는 다음 상태 가치 이어받기이 자연스럽다.
 
 ```math
 y=0+\gamma\max Q(s',a')
@@ -291,13 +291,13 @@ y=0+\gamma\max Q(s',a')
 
 B에서 같은 식을 쓰면 **새 episode의 value가 이전 episode 행동에 연결**된다.
 
-그래서 reward 의미와 episode boundary를 분리해야 한다.
+그래서 보상 의미와 episode boundary를 분리해야 한다.
 
 ---
 
 # 14. Epsilon-greedy
 
-DQN training에서 exploration을 위해:
+[DQN](Q-Learning-DQN-and-TD) training에서 [탐색(exploration)](Exploration-and-Exploitation)을 위해:
 
 ```text
 확률 ε → random action
@@ -306,7 +306,7 @@ DQN training에서 exploration을 위해:
 
 를 사용할 수 있다.
 
-AASSR current Policy도 이 기본 exploration mechanism을 가진다.
+AASSR current [Policy](Policy)도 이 기본 탐색 mechanism을 가진다.
 
 자세한 내용:
 
@@ -325,9 +325,9 @@ noise 때문에 어떤 action Q가 우연히 높음
 → optimistic bias
 ```
 
-Double DQN은 action selection과 evaluation을 분리해 이 문제를 줄이는 대표 방법이다.
+Double [DQN](Q-Learning-DQN-and-TD)은 행동 selection과 evaluation을 분리해 이 문제를 줄이는 대표 방법이다.
 
-AASSR의 Imagination에서도 비슷하게 **max를 어디에 사용해도 되는지**가 중요하다.
+AASSR의 [Imagination(가상 미래 탐색)](Imagination)에서도 비슷하게 **max를 어디에 사용해도 되는지**가 중요하다.
 
 환경 stochastic outcome에 max를 쓰면 더 심각한 optimistic planning 오류가 생긴다.
 
@@ -339,9 +339,9 @@ AASSR의 Imagination에서도 비슷하게 **max를 어디에 사용해도 되�
 
 # 16. Distribution shift
 
-DQN은 training 중 경험한 state/action distribution에서 학습한다.
+[DQN](Q-Learning-DQN-and-TD)은 training 중 경험한 state/행동 distribution에서 학습한다.
 
-새로운 unseen region에서는 function approximator가 근거 없는 Q-value를 낼 수 있다.
+새로운 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) region에서는 function approximator가 근거 없는 Q값를 낼 수 있다.
 
 ```text
 training support 안
@@ -351,9 +351,9 @@ training support 밖
 → extrapolation
 ```
 
-AASSR에서는 Policy뿐 아니라 Critic에서도 이 문제가 중요하다.
+AASSR에서는 [Policy](Policy)뿐 아니라 [Critic(미래 가치 평가기)](Critic)에서도 이 문제가 중요하다.
 
-특히 Imagination이 model-generated state를 평가하면 OOD risk가 더 커질 수 있다.
+특히 [Imagination](Imagination)이 model-generated state를 평가하면 [학습 분포 밖(OOD)](Critic-Support-and-OOD) risk가 더 커질 수 있다.
 
 관련 페이지:
 
@@ -363,7 +363,7 @@ AASSR에서는 Policy뿐 아니라 Critic에서도 이 문제가 중요하다.
 
 # 17. Raw DQN과 Relational DQN
 
-AASSR benchmark에서 representation 효과를 분리하기 위해:
+AASSR [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)에서 [표현(representation)](Relational-Representation-and-Generalization) 효과를 분리하기 위해:
 
 ```text
 dqn_raw
@@ -373,9 +373,9 @@ dqn_relational
 
 을 비교한다.
 
-핵심 차이는 "DQN이냐 아니냐"가 아니라 **state/action representation**이다.
+핵심 차이는 "[DQN](Q-Learning-DQN-and-TD)이냐 아니냐"가 아니라 **state/행동 표현**이다.
 
-Relational DQN은 concrete ID 자체보다 역할/관계 구조를 사용해 seed-renaming transfer를 노린다.
+Relational [DQN](Q-Learning-DQN-and-TD)은 concrete ID 자체보다 역할/관계 구조를 사용해 [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)-renaming [전이(transfer)](Relational-Representation-and-Generalization)를 노린다.
 
 관련 페이지:
 
@@ -386,15 +386,15 @@ Relational DQN은 concrete ID 자체보다 역할/관계 구조를 사용해 see
 
 # 18. AASSR Policy의 Q와 information residual
 
-Current Policy의 기본 개념:
+Current [Policy](Policy)의 기본 개념:
 
 ```math
 score(S,A)=Q_{task}(S,A)+I(S,A)
 ```
 
-여기서 `Q_task`는 DQN이 external sparse reward를 학습한 값이다.
+여기서 `Q_task`는 [DQN](Q-Learning-DQN-and-TD)이 external [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment)를 학습한 값이다.
 
-`I`는 별도의 information residual이다.
+`I`는 별도의 [정보 가치 잔차(information residual)](Policy)이다.
 
 중요:
 
@@ -410,9 +410,9 @@ I를 DQN reward target에 합쳐서 학습하는 것이 아니다.
 
 # 19. Imagination과 DQN의 관계
 
-DQN은 model-free하게 기본 action을 제안한다.
+[DQN](Q-Learning-DQN-and-TD)은 model-free하게 기본 행동을 제안한다.
 
-Imagination은 learned world model을 사용해 여러 root action을 미래 관점에서 재평가한다.
+[Imagination](Imagination)은 learned [세계 모델(world model)](Model-Based-RL-and-World-Models)을 사용해 여러 root 행동을 미래 관점에서 재평가한다.
 
 ```text
 DQN Policy action
@@ -422,15 +422,15 @@ Prophecy / Planner / Critic
 충분한 evidence가 있으면 override
 ```
 
-따라서 AASSR Full은 DQN을 제거한 시스템이 아니다.
+따라서 AASSR Full은 [DQN](Q-Learning-DQN-and-TD)을 제거한 시스템이 아니다.
 
-**DQN Policy가 fallback이자 baseline decision**이다.
+**[DQN](Q-Learning-DQN-and-TD) [Policy](Policy)가 fallback이자 [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility) decision**이다.
 
 ---
 
 # 20. TD와 Critic training의 차이
 
-AASSR의 Policy DQN과 GRU Critic은 둘 다 미래 return을 다루지만 학습 계약이 다르다.
+AASSR의 [Policy](Policy) [DQN](Q-Learning-DQN-and-TD)과 [GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) [Critic](Critic)은 둘 다 미래 누적 보상을 다루지만 학습 계약이 다르다.
 
 ```text
 Policy DQN
@@ -455,19 +455,19 @@ GRU Critic
 
 ## "Q가 높으면 실제 성공 확률인가?"
 
-아니다. Q는 reward 정의와 discounting 아래의 **expected return**이다. 성공 확률과 일치할 수도 있지만 일반적으로 같은 값은 아니다.
+아니다. Q는 보상 정의와 discounting 아래의 **expected 누적 보상**이다. 성공 확률과 일치할 수도 있지만 일반적으로 같은 값은 아니다.
 
 ## "Reward가 0이면 TD target도 0인가?"
 
-Non-terminal이면 다음 state Q가 들어가므로 아니다.
+Non-에피소드 종료이면 다음 state Q가 들어가므로 아니다.
 
 ## "DQN은 world model을 학습하나?"
 
-기본 DQN은 명시적인 transition world model 없이 Q-value를 직접 학습한다.
+기본 [DQN](Q-Learning-DQN-and-TD)은 명시적인 상태 전이 세계 모델 없이 Q값를 직접 학습한다.
 
 ## "Relational DQN이면 model-based인가?"
 
-아니다. representation이 relational일 뿐 DQN 자체는 model-free다.
+아니다. 표현이 relational일 뿐 [DQN](Q-Learning-DQN-and-TD) 자체는 model-free다.
 
 ---
 

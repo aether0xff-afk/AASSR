@@ -1,6 +1,6 @@
-# Policy
+# Policy — 기본 정책 모델
 
-Policy는 AASSR에서 **현재 상태에서 실제로 실행할 기본 행동을 선택하는 [model-free 강화학습](Reinforcement-Learning) 학습기**다.
+[Policy(정책 모델)](Policy)는 AASSR에서 **현재 상태에서 실제로 실행할 기본 행동을 선택하는 [model-free 강화학습](Reinforcement-Learning) 학습기**다.
 
 current-generation의 핵심은 단순 [DQN](Q-Learning-DQN-and-TD) 하나가 아니라 다음 두 신호를 의도적으로 분리한다는 점이다.
 
@@ -20,25 +20,25 @@ current-generation의 핵심은 단순 [DQN](Q-Learning-DQN-and-TD) 하나가 �
 
 이 문서에서 처음 보는 단어가 있다면 다음 순서로 읽으면 된다.
 
-- [Reinforcement Learning](Reinforcement-Learning) — policy, reward, return, model-free
-- [Value Functions & Bellman Equation](Value-Functions-and-Bellman-Equation) — `Q(s,a)`, return, discounting
-- [Q-Learning, DQN & TD](Q-Learning-DQN-and-TD) — DQN, TD target, target network, replay
+- [Reinforcement Learning](Reinforcement-Learning) — policy, [보상(reward)](Sparse-Reward-and-Credit-Assignment), [누적 보상(return)](Value-Functions-and-Bellman-Equation), model-free
+- [Value Functions & Bellman Equation](Value-Functions-and-Bellman-Equation) — `Q(s,a)`, 누적 보상, discounting
+- [Q-Learning, DQN & TD](Q-Learning-DQN-and-TD) — [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD), TD target, target network, replay
 - [Exploration & Exploitation](Exploration-and-Exploitation) — epsilon-greedy
 - [Information Theory & Intrinsic Motivation](Information-Theory-and-Intrinsic-Motivation) — information gain, intrinsic signal
-- [Relational Representation & Generalization](Relational-Representation-and-Generalization) — identifier permutation과 transfer
-- [Sparse Reward & Credit Assignment](Sparse-Reward-and-Credit-Assignment) — 왜 중간 reward를 따로 만들지 않는가?
+- [Relational Representation & Generalization](Relational-Representation-and-Generalization) — identifier permutation과 [전이(transfer)](Relational-Representation-and-Generalization)
+- [Sparse Reward & Credit Assignment](Sparse-Reward-and-Credit-Assignment) — 왜 중간 보상를 따로 만들지 않는가?
 
 ---
 
 # 1. 연구 질문
 
-> **[희소한 외부 reward](Sparse-Reward-and-Credit-Assignment)만 유지하면서도, 이름이 바뀐 unseen 환경에서 [관계 구조](Relational-Representation-and-Generalization)를 이용해 현재 행동의 가치를 학습할 수 있는가?**
+> **[희소한 외부 reward](Sparse-Reward-and-Credit-Assignment)만 유지하면서도, 이름이 바뀐 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) 환경에서 [관계 구조](Relational-Representation-and-Generalization)를 이용해 현재 행동의 가치를 학습할 수 있는가?**
 
-Policy는 AASSR의 fallback이기도 하다.
+[Policy](Policy)는 AASSR의 fallback이기도 하다.
 
-[Prophecy](Prophecy)나 [Critic](Critic)이 불확실하면 최종적으로 Policy 행동을 그대로 실행한다.
+[Prophecy](Prophecy)나 [Critic](Critic)이 불확실하면 최종적으로 [Policy](Policy) 행동을 그대로 실행한다.
 
-따라서 AASSR Full의 성능을 이해하려면 먼저 **[Imagination](Imagination)이 없어도 동작하는 Policy가 무엇을 학습하는지**를 분리해야 한다.
+따라서 AASSR Full의 성능을 이해하려면 먼저 **[Imagination](Imagination)이 없어도 동작하는 [Policy](Policy)가 무엇을 학습하는지**를 분리해야 한다.
 
 ---
 
@@ -46,7 +46,7 @@ Policy는 AASSR의 fallback이기도 하다.
 
 훈련 환경에서 중요한 route가 `route-12`였다고 하자.
 
-평가 seed에서는 같은 역할이 `route-31`이라는 새 이름을 가질 수 있다.
+평가 [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)에서는 같은 역할이 `route-31`이라는 새 이름을 가질 수 있다.
 
 Raw identity를 강하게 사용하면:
 
@@ -75,13 +75,13 @@ dqn_raw -> dqn_relational
 = representation effect
 ```
 
-AASSR 전체 효과와 representation 효과를 섞지 않는다. 이런 효과 분리는 [ablation/control](Ablation-Benchmarking-and-Reproducibility)의 핵심이다.
+AASSR 전체 효과와 [표현(representation)](Relational-Representation-and-Generalization) 효과를 섞지 않는다. 이런 효과 분리는 [ablation/control](Ablation-Benchmarking-and-Reproducibility)의 핵심이다.
 
 ---
 
 # 3. 기본 DQN objective
 
-Primitive action의 외부 task value는 [DQN](Q-Learning-DQN-and-TD)이 담당한다.
+Primitive [행동(action)](Reinforcement-Learning)의 외부 task value는 [DQN](Q-Learning-DQN-and-TD)이 담당한다.
 
 개념적으로 일반적인 [TD target](Q-Learning-DQN-and-TD)은 다음 형태다.
 
@@ -91,12 +91,12 @@ y_t = r_t + \gamma (1-d_t) \max_{a'} Q_{\theta^-}(S_{t+1},a')
 
 여기서:
 
-- `r_t`: 현재 transition의 외부 reward
+- `r_t`: 현재 [상태 전이(transition)](MDP-and-POMDP)의 외부 보상
 - `γ`: [discount factor](Value-Functions-and-Bellman-Equation)
 - `d_t`: [bootstrap을 끊는 episode boundary](Replay-Buffer-and-Episode-Boundaries)
 - `Q_{θ^-}`: target Q-network
 
-AASSR의 외부 reward contract는 좁게 유지한다.
+AASSR의 외부 보상 contract는 좁게 유지한다.
 
 ```text
 success       +1
@@ -104,7 +104,7 @@ true failure  -1
 otherwise      0
 ```
 
-즉 route 발견, token 발견, object 발견 같은 중간 이벤트를 외부 reward로 바꾸지 않는다. 이것은 [reward shaping](Sparse-Reward-and-Credit-Assignment)을 의도적으로 피하는 연구 설계다.
+즉 route 발견, token 발견, object 발견 같은 중간 이벤트를 외부 보상로 바꾸지 않는다. 이것은 [reward shaping](Sparse-Reward-and-Credit-Assignment)을 의도적으로 피하는 연구 설계다.
 
 ---
 
@@ -112,7 +112,7 @@ otherwise      0
 
 [희소 reward](Sparse-Reward-and-Credit-Assignment)에서는 어떤 행동이 바로 성공을 만들지는 않더라도 **나중의 의사결정을 가능하게 하는 정보**를 얻을 수 있다.
 
-AASSR은 이 신호를 외부 reward에 합쳐버리지 않고 별도 residual로 유지한다.
+AASSR은 이 신호를 외부 보상에 합쳐버리지 않고 별도 residual로 유지한다.
 
 개념적으로:
 
@@ -123,7 +123,7 @@ Q_{total}(S,A)
 
 여기서:
 
-- `Q_task`: 실제 환경 sparse return을 학습하는 DQN 값
+- `Q_task`: 실제 환경 sparse 누적 보상을 학습하는 [DQN](Q-Learning-DQN-and-TD) 값
 - `I`: 내부 information-value estimate
 
 핵심은 다음이다.
@@ -132,7 +132,7 @@ Q_{total}(S,A)
 I(S,A)는 환경 reward가 아니다.
 ```
 
-DQN target에 `정보를 얻었으니 +0.2` 같은 [shaping reward](Sparse-Reward-and-Credit-Assignment)를 주는 구조가 아니다.
+[DQN](Q-Learning-DQN-and-TD) target에 `정보를 얻었으니 +0.2` 같은 [shaping reward](Sparse-Reward-and-Credit-Assignment)를 주는 구조가 아니다.
 
 `information gain`, `intrinsic motivation`, `curiosity`와 어떤 점이 같고 다른지는 [Information Theory & Intrinsic Motivation](Information-Theory-and-Intrinsic-Motivation)에서 설명한다.
 
@@ -140,7 +140,7 @@ DQN target에 `정보를 얻었으니 +0.2` 같은 [shaping reward](Sparse-Rewar
 
 # 5. 왜 둘을 분리하는가?
 
-외부 reward와 information value를 하나로 섞으면 연구 질문이 달라질 수 있다.
+외부 보상와 information value를 하나로 섞으면 연구 질문이 달라질 수 있다.
 
 예를 들어:
 
@@ -150,10 +150,10 @@ login      +0.3
 proof      +1.0
 ```
 
-처럼 만들면 agent가 성공한 이유가
+처럼 만들면 [에이전트(agent)](Reinforcement-Learning)가 성공한 이유가
 
-- sparse reward를 스스로 연결했기 때문인지,
-- 사람이 설계한 중간 reward를 따라갔기 때문인지
+- [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment)를 스스로 연결했기 때문인지,
+- 사람이 설계한 중간 보상를 따라갔기 때문인지
 
 분리하기 어렵다.
 
@@ -173,7 +173,7 @@ Internal information signal
 
 # 6. Information residual은 어떻게 저장되는가?
 
-Primitive action에 대해서는 [relational state key와 relational action key](Relational-Representation-and-Generalization)의 쌍을 사용한다.
+Primitive 행동에 대해서는 [relational state key와 relational action key](Relational-Representation-and-Generalization)의 쌍을 사용한다.
 
 개념적으로:
 
@@ -190,7 +190,7 @@ Primitive action에 대해서는 [relational state key와 relational action key]
 
 # 7. 행동 선택
 
-Evaluation에서 exploration을 끄면 Policy는 가능한 행동을 점수화하고 가장 높은 행동을 고른다.
+Evaluation에서 [탐색(exploration)](Exploration-and-Exploitation)을 끄면 [Policy](Policy)는 가능한 행동을 점수화하고 가장 높은 행동을 고른다.
 
 ```text
 score(A)
@@ -207,9 +207,9 @@ otherwise:
     highest ranked action
 ```
 
-중요한 것은 Imagination이 이 Policy를 대체하는 별도 학습 actor가 아니라는 점이다.
+중요한 것은 [Imagination(가상 미래 탐색)](Imagination)이 이 [Policy](Policy)를 대체하는 별도 학습 actor가 아니라는 점이다.
 
-Policy는 언제나 기본 행동을 제공한다.
+[Policy](Policy)는 언제나 기본 행동을 제공한다.
 
 ---
 
@@ -235,9 +235,9 @@ A_imagined 실행               A_policy 실행
 
 - `reliable`: [Prophecy prediction reliability](Stochasticity-Uncertainty-and-Probability)
 - `supported`: [Critic local support](Critic-Support-and-OOD)
-- `advantage`: planner candidate와 Policy root의 value 차이
+- `advantage`: planner candidate와 [Policy](Policy) root의 value 차이
 
-즉 Imagination이 실패하거나 불확실하더라도 agent는 행동할 수 있다.
+즉 [Imagination](Imagination)이 실패하거나 불확실하더라도 에이전트는 행동할 수 있다.
 
 이것이 [fail-closed](Critic-Support-and-OOD) 설계의 기준점이다.
 
@@ -245,13 +245,13 @@ A_imagined 실행               A_policy 실행
 
 # 9. 왜 Imagination으로 Policy를 학습시키지 않는가?
 
-current protocol에서는 imagined experience가 real Policy를 직접 강화하지 않는다.
+current protocol에서는 imagined experience가 real [Policy](Policy)를 직접 강화하지 않는다.
 
 이유는 두 가지다.
 
 ## 9.1 Model error self-amplification 방지
 
-잘못된 [world model](Model-Based-RL-and-World-Models)이 만든 imagined transition을 Policy 학습 데이터로 쓰면:
+잘못된 [world model](Model-Based-RL-and-World-Models)이 만든 imagined 상태 전이을 [Policy](Policy) 학습 데이터로 쓰면:
 
 ```text
 world-model error
@@ -277,7 +277,7 @@ OFF eval     ON eval
 
 이다.
 
-Training trajectory 자체를 Imagination이 바꾸면 OFF/ON의 차이가 planner marginal effect만이 아니게 된다.
+Training trajectory 자체를 [Imagination](Imagination)이 바꾸면 OFF/ON의 차이가 planner marginal effect만이 아니게 된다.
 
 이 비교 원칙은 [same-checkpoint evaluation](Ablation-Benchmarking-and-Reproducibility)에서 더 깊게 설명한다.
 
@@ -285,9 +285,9 @@ Training trajectory 자체를 Imagination이 바꾸면 OFF/ON의 차이가 plann
 
 # 10. Policy Memory와 imagined delta
 
-Planner 내부에서는 branch-local Policy memory를 사용할 수 있다.
+Planner 내부에서는 branch-local [Policy](Policy) memory를 사용할 수 있다.
 
-이것은 실제 persistent Policy weights를 업데이트하는 것과 다르다.
+이것은 실제 persistent [Policy](Policy) weights를 업데이트하는 것과 다르다.
 
 ```text
 branch-local imagined memory
@@ -305,7 +305,7 @@ persistent DQN / information table
 
 # 11. Policy의 공정성 control
 
-현재 실험에서 Policy 관련 효과는 다음 순서로 분리한다.
+현재 실험에서 [Policy](Policy) 관련 효과는 다음 순서로 분리한다.
 
 ```text
 dqn_raw
@@ -323,7 +323,7 @@ aassr_current_no_imagination
 aassr_current_full
 ```
 
-따라서 `AASSR Full > raw DQN` 하나만 보고 모든 차이를 Imagination 효과라고 말하면 안 된다.
+따라서 `AASSR Full > raw DQN` 하나만 보고 모든 차이를 [Imagination](Imagination) 효과라고 말하면 안 된다.
 
 각 화살표가 어떤 가설을 검증하는지는 [Ablation, Benchmarking & Reproducibility](Ablation-Benchmarking-and-Reproducibility)에서 정리한다.
 
@@ -333,7 +333,7 @@ aassr_current_full
 
 ## 12.1 Concrete memorization
 
-ID 자체에 과도하게 의존하면 unseen seed transfer가 무너진다.
+ID 자체에 과도하게 의존하면 학습 중 보지 못한 난수 시드 전이가 무너진다.
 
 대응: [relational state/action representation](Relational-Representation-and-Generalization).
 
@@ -347,21 +347,21 @@ ID 자체에 과도하게 의존하면 unseen seed transfer가 무너진다.
 
 내부 information signal이 외부 task objective를 압도하면 탐색만 하고 목표를 끝내지 못할 수 있다.
 
-그래서 외부 DQN과 residual을 별도 신호로 관리하고 diagnostic을 분리해야 한다.
+그래서 외부 [DQN](Q-Learning-DQN-and-TD)과 residual을 별도 신호로 관리하고 diagnostic을 분리해야 한다.
 
 관련 일반 failure mode는 [Intrinsic Motivation](Information-Theory-and-Intrinsic-Motivation)에서 본다.
 
 ## 12.4 OOD action ranking
 
-새로운 relational region에서 Policy 자체도 틀릴 수 있다.
+새로운 relational region에서 [Policy](Policy) 자체도 틀릴 수 있다.
 
-[Imagination](Imagination)은 이를 고칠 가능성이 있지만, 반대로 Prophecy/Critic도 [OOD](Critic-Support-and-OOD)라면 Policy를 유지하는 쪽이 더 안전할 수 있다.
+[Imagination](Imagination)은 이를 고칠 가능성이 있지만, 반대로 [Prophecy(미래 예측 모델)](Prophecy)/[Critic(미래 가치 평가기)](Critic)도 [OOD](Critic-Support-and-OOD)라면 [Policy](Policy)를 유지하는 쪽이 더 안전할 수 있다.
 
 ---
 
 # 13. 연구 가설
 
-Policy에 대한 검증은 다음처럼 단계적으로 보는 것이 좋다.
+[Policy](Policy)에 대한 검증은 다음처럼 단계적으로 보는 것이 좋다.
 
 ```text
 H1. raw DQN보다 relational DQN이 unseen transfer에 유리한가?
@@ -389,7 +389,7 @@ src/aassr_v2/current_confidence_gate.py
   - Policy vs Imagination final selection
 ```
 
-신경망, loss, GPU batch 같은 구현 기초는:
+신경망, [학습 손실(loss)](Loss-Functions-and-Class-Imbalance), GPU batch 같은 구현 기초는:
 
 - [Neural Networks & Optimization](Neural-Networks-and-Optimization)
 - [Loss Functions & Class Imbalance](Loss-Functions-and-Class-Imbalance)

@@ -33,7 +33,7 @@ P(429) = 0.1
 
 이 값들의 합이 1이면 환경 outcome distribution으로 볼 수 있다.
 
-AASSR Prophecy의 **outcome probability**가 이 의미다.
+AASSR [Prophecy(미래 예측 모델)](Prophecy)의 **[결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability)**가 이 의미다.
 
 ---
 
@@ -108,7 +108,7 @@ B: 50%로 0, 50%로 1
 
 Risk-sensitive planning에서는 variance 같은 정보도 중요할 수 있다.
 
-AASSR current planner의 기본 chance semantics는 outcome probability의 expectation을 중심으로 하며, variance 자체를 reward로 추가하는 구조는 아니다.
+AASSR current planner의 기본 chance semantics는 결과 확률의 expectation을 중심으로 하며, variance 자체를 [보상(reward)](Sparse-Reward-and-Credit-Assignment)로 추가하는 구조는 아니다.
 
 ---
 
@@ -131,14 +131,14 @@ AASSR current planner의 기본 chance semantics는 outcome probability의 expec
 
 # 6. Partial observability로 인한 apparent stochasticity
 
-환경 자체는 deterministic하더라도 agent가 hidden state를 못 보면 public 관점에서는 여러 outcome이 가능해 보일 수 있다.
+환경 자체는 deterministic하더라도 [에이전트(agent)](Reinforcement-Learning)가 hidden state를 못 보면 public 관점에서는 여러 outcome이 가능해 보일 수 있다.
 
 ```text
 hidden H1 + public O + action A → outcome X
 hidden H2 + public O + action A → outcome Y
 ```
 
-agent는 `H1/H2`를 구분하지 못하므로:
+에이전트는 `H1/H2`를 구분하지 못하므로:
 
 ```text
 public (O,A)
@@ -198,8 +198,8 @@ AASSR에서는 **mixture outcome distribution**이 이런 multimodal uncertainty
 AASSR에서는:
 
 - ensemble
-- holdout calibration
-- local support
+- [검증용 분리 데이터(holdout)](Calibration) calibration
+- [국소 데이터 근거(local support)](Critic-Support-and-OOD)
 
 등이 epistemic risk를 판단하는 데 관련된다.
 
@@ -218,7 +218,7 @@ B. 모델들이 서로 동의하지 못함
 
 중 무엇인지 구분해야 한다.
 
-A는 stochastic environment structure이고 B는 model ignorance일 수 있다.
+A는 stochastic [환경(environment)](Reinforcement-Learning) structure이고 B는 model ignorance일 수 있다.
 
 그래서 AASSR은 개념적으로:
 
@@ -236,13 +236,13 @@ Ensemble/calibration
 
 # 11. Outcome probability
 
-AASSR에서 outcome probability는:
+AASSR에서 결과 확률는:
 
-> 이 prediction branch가 나타내는 public outcome이 환경에서 발생할 probability mass
+> 이 prediction branch가 나타내는 public outcome이 환경에서 발생할 [확률 질량(probability mass)](Stochasticity-Uncertainty-and-Probability)
 
 다.
 
-Chance node에서:
+[환경 결과 노드(Chance node)](Chance-and-Decision-Nodes)에서:
 
 ```math
 V=\sum_i p_iV_i
@@ -250,7 +250,7 @@ V=\sum_i p_iV_i
 
 의 `p_i`로 사용된다.
 
-이 값을 Critic value에 bonus처럼 더하지 않는다.
+이 값을 [Critic(미래 가치 평가기)](Critic) value에 bonus처럼 더하지 않는다.
 
 ---
 
@@ -258,7 +258,7 @@ V=\sum_i p_iV_i
 
 Reliability는:
 
-> world model이 이 state/action region에서 내놓는 prediction을 실제로 얼마나 믿을 수 있는가?
+> [세계 모델(world model)](Model-Based-RL-and-World-Models)이 이 state/[행동(action)](Reinforcement-Learning) region에서 내놓는 prediction을 실제로 얼마나 믿을 수 있는가?
 
 라는 질문이다.
 
@@ -277,7 +277,7 @@ reliability:
 
 즉 model은 90%라고 말하지만 **그 90% 자체를 잘 믿을 수 없는 상황**이다.
 
-AASSR Calibration이 이 의미를 담당한다.
+AASSR [Calibration(예측 신뢰도 보정)](Calibration)이 이 의미를 담당한다.
 
 관련 페이지:
 
@@ -313,13 +313,13 @@ Critic value
 
 # 14. Value
 
-Value는 **미래 task return의 기대값**이다.
+Value는 **미래 task [누적 보상(return)](Value-Functions-and-Bellman-Equation)의 기대값**이다.
 
 ```math
 V(s)=\mathbb{E}[G_t\mid S_t=s]
 ```
 
-또는 action value:
+또는 행동 value:
 
 ```math
 Q(s,a)=\mathbb{E}[G_t\mid S_t=s,A_t=a]
@@ -339,9 +339,9 @@ value 높음
 
 # 15. Support
 
-AASSR의 local Critic support는:
+AASSR의 local [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD)는:
 
-> 현재 state/action의 value estimate가 실제 Critic training data 근처에 있는가?
+> 현재 state/행동의 value estimate가 실제 [Critic](Critic) training data 근처에 있는가?
 
 를 나타낸다.
 
@@ -362,7 +362,7 @@ support 높음
 
 # 16. 다섯 값을 한 예제로 비교
 
-어떤 action `A`에 대해:
+어떤 행동 `A`에 대해:
 
 ```text
 Predicted outcomes:
@@ -408,7 +408,7 @@ Probability model이 calibration되어 있다는 것은 대략:
 
 라는 의미와 연결된다.
 
-하지만 AASSR current semantic calibration은 단순 binary confidence calibration만이 아니라 **semantic next-state correctness, status, legal mask, terminal 등 decision-critical correctness를 holdout으로 평가**하는 구조다.
+하지만 AASSR current semantic calibration은 단순 binary confidence calibration만이 아니라 **semantic next-state correctness, status, legal mask, [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) 등 decision-critical correctness를 검증용 분리 데이터으로 평가**하는 구조다.
 
 따라서 일반 확률 calibration 개념과 AASSR의 operational reliability gate를 구분해서 이해하는 것이 좋다.
 
@@ -423,7 +423,7 @@ Training: Level 0/1 region
 Evaluation: higher-level unseen region
 ```
 
-모델은 높은 softmax probability를 내더라도 실제로 OOD일 수 있다.
+모델은 높은 softmax probability를 내더라도 실제로 [학습 분포 밖(OOD)](Critic-Support-and-OOD)일 수 있다.
 
 이런 이유로 raw model confidence만으로 충분하지 않다.
 
@@ -450,7 +450,7 @@ Rare outcome이 중요한데 training data에서 매우 적으면 model이 다�
 
 하지만 429를 놓치면 decision quality에 치명적일 수 있다.
 
-AASSR status-supervised Prophecy가 class balance를 고려하는 이유다.
+AASSR status-supervised [Prophecy](Prophecy)가 class balance를 고려하는 이유다.
 
 관련 페이지:
 
@@ -471,7 +471,7 @@ V'=V-\lambda U
 
 하지만 AASSR current design은 reliability를 **가치 자체와 분리된 gate**로 보는 방향을 택한다.
 
-왜냐하면 uncertainty가 높은 action이 반드시 나쁜 action은 아니며, reliability와 task objective를 섞으면 해석이 어려워질 수 있기 때문이다.
+왜냐하면 uncertainty가 높은 행동이 반드시 나쁜 행동은 아니며, reliability와 task objective를 섞으면 해석이 어려워질 수 있기 때문이다.
 
 ```text
 reliability gate 통과
@@ -501,7 +501,7 @@ Action B
 → uncertainty 큼
 ```
 
-AASSR current planner의 기본 objective는 expected sparse return이지만, 위험과 uncertainty를 구분하는 것이 해석에 중요하다.
+AASSR current planner의 기본 objective는 expected sparse 누적 보상이지만, 위험과 uncertainty를 구분하는 것이 해석에 중요하다.
 
 ---
 
@@ -509,13 +509,13 @@ AASSR current planner의 기본 objective는 expected sparse return이지만, �
 
 | 개념 | AASSR에서의 대표 역할 |
 |---|---|
-| Outcome probability | Prophecy mixture branch mass |
+| [결과 확률(Outcome probability)](Stochasticity-Uncertainty-and-Probability) | [Prophecy](Prophecy) mixture branch mass |
 | Aleatoric uncertainty | 여러 stochastic outcome mode |
 | Epistemic uncertainty | model knowledge 부족 |
-| Reliability | Calibration gate |
-| Value | Policy DQN / Critic return estimate |
-| Support | Critic real-training neighborhood evidence |
-| Expected value | Imagination chance backup |
+| Reliability | [Calibration](Calibration) gate |
+| Value | [Policy(정책 모델)](Policy) [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) / [Critic](Critic) 누적 보상 estimate |
+| Support | [Critic](Critic) real-training neighborhood evidence |
+| Expected value | [Imagination(가상 미래 탐색)](Imagination) chance backup |
 
 ---
 

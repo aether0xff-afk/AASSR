@@ -1,9 +1,9 @@
-# Reproduction
+# 실험 재현 방법 (Reproduction)
 
 이 페이지는 **현재 `main`의 AASSR current-generation을 재현하고, 결과를 연구 evidence로 사용할 수 있는지 확인하는 최소 절차**를 설명한다.
 
 > [!IMPORTANT]
-> Current architecture의 source of truth는 특정 연구 브랜치가 아니라 `main`의 `src/aassr_v2/current_manifest.py`다. 과거 실험을 재현할 때만 해당 historical commit/branch를 명시적으로 checkout한다.
+> Current architecture의 [최종 기준(source of truth)](Current-Status)는 특정 연구 브랜치가 아니라 `main`의 `src/aassr_v2/current_manifest.py`다. 과거 실험을 재현할 때만 해당 historical commit/branch를 명시적으로 checkout한다.
 
 관련 페이지:
 - [Current Status](Current-Status)
@@ -154,22 +154,22 @@ python -m compileall -q src tests scripts
 pytest -q
 ```
 
-긴 전체 test가 부담되면 current-generation runner가 사용하는 preflight subset을 우선 사용할 수 있지만, 성능 evidence를 만들기 전에는 current contract에 직접 관련된 regression이 모두 통과해야 한다.
+긴 전체 test가 부담되면 current-generation runner가 사용하는 preflight subset을 우선 사용할 수 있지만, 성능 evidence를 만들기 전에는 current contract에 직접 관련된 [회귀 검증(regression)](Ablation-Benchmarking-and-Reproducibility)이 모두 통과해야 한다.
 
 특히 확인할 영역:
 
 - [State Representation v3](State-Representation)
 - public HTTP status preservation
-- action-surface reconstruction
+- [행동(action)](Reinforcement-Learning)-surface reconstruction
 - [Prophecy](Prophecy) multimodal outcome preservation
-- outcome probability normalization
+- [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability) normalization
 - status categorical supervision
 - [Calibration](Calibration)
 - [Chance vs Decision](Chance-and-Decision-Nodes) backup
-- [Critic](Critic) sparse-return contract
+- [Critic](Critic) sparse-[누적 보상(return)](Value-Functions-and-Bellman-Equation) contract
 - [Local Critic Support](Critic-Support-and-OOD)
 - structural root deduplication
-- same-checkpoint freeze
+- [같은 체크포인트(same-checkpoint)](Experiments) freeze
 
 Regression pass는 **성능 향상 evidence가 아니라 구현 contract evidence**다.
 
@@ -191,15 +191,15 @@ torch.cuda.is_available() == True
 
 를 확인하는 것이 아니다.
 
-Policy DQN, relational world model, Critic과 current batching path가 **실제로 요청한 accelerator contract를 사용하고 있는지** 확인한다.
+[Policy(정책 모델)](Policy) [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD), relational [세계 모델(world model)](Model-Based-RL-and-World-Models), [Critic(미래 가치 평가기)](Critic)과 current [묶음 처리(batching)](Reproduction) path가 **실제로 요청한 accelerator contract를 사용하고 있는지** 확인한다.
 
-성능 benchmark에서 CPU fallback이 일어났다면 runtime 비교를 그대로 사용하면 안 된다.
+성능 [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)에서 CPU fallback이 일어났다면 runtime 비교를 그대로 사용하면 안 된다.
 
 ---
 
 # 6. Reduced same-checkpoint validation
 
-현재 저장소에는 repaired Imagination validation entrypoint가 있다.
+현재 저장소에는 repaired [Imagination(가상 미래 탐색)](Imagination) validation entrypoint가 있다.
 
 예시:
 
@@ -216,7 +216,7 @@ python scripts\run_repaired_imagination_final.py `
 ```
 
 > [!NOTE]
-> 위 `2048`, `512`, `0.05`, `4`는 **reduced diagnostic 예시**다. 이것을 final benchmark budget과 혼동하지 않는다. 실제 논문/보고서 결과에는 실행 argument 전체와 commit SHA를 함께 기록한다.
+> 위 `2048`, `512`, `0.05`, `4`는 **reduced diagnostic 예시**다. 이것을 final 표준 비교 실험 budget과 혼동하지 않는다. 실제 논문/보고서 결과에는 실행 argument 전체와 commit SHA를 함께 기록한다.
 
 핵심 구조:
 
@@ -236,9 +236,9 @@ Policy       Imagination
 
 - OFF/ON을 따로 재학습하지 않았는가?
 - evaluation 중 persistent learner state가 변하지 않았는가?
-- external reward contract가 동일한가?
-- intervention margin을 결과 보기 전에 고정했는가?
-- transition budget이 real primitive action 기준인가?
+- external [보상(reward)](Sparse-Reward-and-Credit-Assignment) contract가 동일한가?
+- [실제 행동 개입(intervention)](Imagination) margin을 결과 보기 전에 고정했는가?
+- [상태 전이(transition)](MDP-and-POMDP) budget이 real primitive 행동 기준인가?
 
 ---
 
@@ -281,13 +281,13 @@ AASSR no-Imagination
 
 # 8. DreamerV3 baseline
 
-External model-based baseline entrypoint:
+External model-based [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility) entrypoint:
 
 ```text
 scripts/run_dreamerv3_current_baseline.py
 ```
 
-Canonical benchmark는 Linux/WSL + JAX/CUDA 환경의 pinned official upstream을 사용한다.
+Canonical 표준 비교 실험는 Linux/WSL + JAX/CUDA 환경의 pinned official upstream을 사용한다.
 
 최종 결과에 기록해야 할 것:
 
@@ -301,7 +301,7 @@ action adapter contract
 real primitive transition budget
 ```
 
-CPU/debug smoke는 API와 environment stepping contract 확인용이다.
+CPU/debug smoke는 API와 [환경(environment)](Reinforcement-Learning) stepping contract 확인용이다.
 
 ```text
 CPU smoke success
@@ -309,7 +309,7 @@ CPU smoke success
 canonical CUDA benchmark result
 ```
 
-외부 baseline의 알고리즘 내부를 AASSR에 맞춰 임의로 수정하면 비교 의미가 달라지므로 변경이 있다면 반드시 별도 condition으로 이름을 바꾼다.
+외부 비교 기준의 알고리즘 내부를 AASSR에 맞춰 임의로 수정하면 비교 의미가 달라지므로 변경이 있다면 반드시 별도 condition으로 이름을 바꾼다.
 
 ---
 
@@ -334,15 +334,15 @@ scripts/assemble_pentest_current_generation_suite.py
 Assembler 또는 사람이 확인해야 하는 주요 mismatch:
 
 - source commit
-- research seed
-- transition budget
-- train/eval seed pools
+- research [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)
+- 상태 전이 budget
+- train/eval 난수 시드 pools
 - stage/tier protocol
 - final-blind 사용 여부
-- AASSR same-checkpoint 여부
+- AASSR 같은 체크포인트 여부
 - Dreamer upstream/config
-- observation representation version
-- reward contract
+- [관측(observation)](MDP-and-POMDP) [표현(representation)](Relational-Representation-and-Generalization) version
+- 보상 contract
 
 ---
 
@@ -392,7 +392,7 @@ Assembler 또는 사람이 확인해야 하는 주요 mismatch:
 2026-08-11 historical Imagination diagnostic
 ```
 
-을 재현하려면 해당 당시 commit/branch와 당시 representation/Prophecy contract를 사용해야 한다.
+을 재현하려면 해당 당시 commit/branch와 당시 표현/[Prophecy(미래 예측 모델)](Prophecy) contract를 사용해야 한다.
 
 그 결과를 current performance와 분리해 저장한다.
 

@@ -3,13 +3,13 @@
 > [!WARNING]
 > 이 페이지는 **과거 실패 진단(historical diagnostic)** 을 보존한다. 여기의 `4/20 vs 4/20`, `86 interventions`, `58 bad-status interventions`는 **현재 repaired AASSR의 최종 성능 결과가 아니다.**
 
-이 실험의 가치는 성능 숫자 그 자체보다 **Imagination이 왜 잘못된 행동을 자신 있게 선택했는지 root cause를 찾아낸 것**에 있다.
+이 실험의 가치는 성능 숫자 그 자체보다 **[Imagination(가상 미래 탐색)](Imagination)이 왜 잘못된 행동을 자신 있게 선택했는지 root cause를 찾아낸 것**에 있다.
 
 ---
 
 # 1. 당시 질문
 
-당시 AASSR의 Imagination은 이전과 달리 실제 Policy 행동을 바꾸기 시작했다.
+당시 AASSR의 [Imagination](Imagination)은 이전과 달리 실제 [Policy(정책 모델)](Policy) 행동을 바꾸기 시작했다.
 
 그래서 질문이 바뀌었다.
 
@@ -34,11 +34,11 @@ Planner가 바꾼 action이 실제로 더 좋은가?
 # 2. 실험 설정
 
 - 날짜: `2026-08-11`
-- research seed: `7`
-- real training transitions: `2,048`
-- 하나의 AASSR checkpoint만 학습
-- 같은 frozen checkpoint에서 planner OFF / ON 비교
-- intervention margin: `0.05`
+- research [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility): `7`
+- real training [상태 전이(transition)](MDP-and-POMDP)s: `2,048`
+- 하나의 AASSR [체크포인트(checkpoint)](Reproduction)만 학습
+- 같은 frozen 체크포인트에서 planner OFF / ON 비교
+- [실제 행동 개입(intervention)](Imagination) margin: `0.05`
 
 즉 [same-checkpoint comparison](Ablation-Benchmarking-and-Reproducibility)을 사용했다.
 
@@ -57,7 +57,7 @@ Policy-only       Imagination enabled
 
 | Condition | Success | L0 | L1 | L2 | L3 | L4 | True failure |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| no-Imagination | **4/20** | 4/4 | 0/4 | 0/4 | 0/4 | 0/4 | 0 |
+| no-[Imagination](Imagination) | **4/20** | 4/4 | 0/4 | 0/4 | 0/4 | 0/4 | 0 |
 | Full | **4/20** | 4/4 | 0/4 | 0/4 | 0/4 | 0/4 | 2 |
 
 Planner diagnostics:
@@ -69,13 +69,13 @@ executed interventions     86
 changed actions             86
 ```
 
-즉 planner가 단순히 계산만 한 것이 아니라 **86번 실제 실행 action을 Policy 선택과 다르게 바꿨다.**
+즉 planner가 단순히 계산만 한 것이 아니라 **86번 실제 실행 [행동(action)](Reinforcement-Learning)을 [Policy](Policy) 선택과 다르게 바꿨다.**
 
 ---
 
 # 4. intervention quality
 
-86개 intervention은 모두 L3 `object_choices` 영역에서 발생했다.
+86개 실제 행동 개입은 모두 L3 `object_choices` 영역에서 발생했다.
 
 그중:
 
@@ -101,9 +101,9 @@ planner often wrong  = yes, in this diagnostic
 
 # 5. matched-state audit
 
-단순히 “ON run이 운이 나빴다”는 설명을 줄이기 위해 intervention state를 OFF run의 같은 scenario / semantic state와 맞췄다.
+단순히 “ON run이 운이 나빴다”는 설명을 줄이기 위해 실제 행동 개입 state를 OFF run의 같은 scenario / [의미 기반 상태(semantic state)](State-Representation)와 맞췄다.
 
-68개 matched intervention state에서:
+68개 matched 실제 행동 개입 state에서:
 
 ```text
 Full intervention -> error
@@ -150,16 +150,16 @@ transfer를 위한 abstraction
 
 # 7. Root cause 2 — calibration metric blind spot
 
-당시 holdout에서:
+당시 [검증용 분리 데이터(holdout)](Calibration)에서:
 
 ```text
 probability-weighted semantic quality ≈ 0.916
 terminal match                       ≈ 0.991
 ```
 
-처럼 전체 semantic metric은 높게 보였다.
+처럼 전체 semantic [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility)은 높게 보였다.
 
-하지만 실제 planner intervention은 나빴다.
+하지만 실제 planner 실제 행동 개입은 나빴다.
 
 즉:
 
@@ -177,9 +177,9 @@ decision-critical channel 정확함
 
 # 8. Root cause 3 — global Critic readiness와 local support 혼동
 
-당시 training success는 낮은 curriculum level에 집중되어 있었다.
+당시 training success는 낮은 [난이도 조절 학습(curriculum)](Curriculum-Learning) level에 집중되어 있었다.
 
-그런데 planner는 높은 unseen level에서 Critic value를 이용해 86번 override했다.
+그런데 planner는 높은 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) level에서 [Critic(미래 가치 평가기)](Critic) value를 이용해 86번 override했다.
 
 ```text
 Critic has trained somewhere
@@ -214,7 +214,7 @@ relational root structures   ~17
 
 이었다.
 
-실행에서는 concrete action을 구분해야 하지만, 관계적으로 같은 구조의 root를 world model과 Critic에 172번 다시 넣을 필요는 없다.
+실행에서는 [실제 실행 행동(concrete action)](State-Representation)을 구분해야 하지만, 관계적으로 같은 구조의 root를 [세계 모델(world model)](Model-Based-RL-and-World-Models)과 [Critic](Critic)에 172번 다시 넣을 필요는 없다.
 
 그래서 current planner는:
 
@@ -277,7 +277,7 @@ root-concrete-execution
 
 ## 올바른 표현
 
-> 2026-08-11 diagnostic에서 Imagination은 86회 실제 행동을 변경했지만 성공률 향상은 없었고, 58회의 bad-status intervention이 발생했다. 이 분석은 status-aware representation/calibration, local Critic support, structural root dedup을 도입하는 근거가 되었다.
+> 2026-08-11 diagnostic에서 [Imagination](Imagination)은 86회 실제 행동을 변경했지만 성공률 향상은 없었고, 58회의 bad-status 실제 행동 개입이 발생했다. 이 분석은 [상태 코드까지 고려하는(status-aware)](Calibration) [표현(representation)](Relational-Representation-and-Generalization)/calibration, local [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD), structural root dedup을 도입하는 근거가 되었다.
 
 ## 잘못된 표현
 
@@ -285,9 +285,9 @@ root-concrete-execution
 
 또는:
 
-> 현재 Imagination은 58/86 확률로 잘못된 행동을 한다.
+> 현재 [Imagination](Imagination)은 58/86 확률로 잘못된 행동을 한다.
 
-둘 다 잘못이다. 그 숫자는 **특정 과거 checkpoint와 당시 architecture의 diagnostic**이다.
+둘 다 잘못이다. 그 숫자는 **특정 과거 체크포인트와 당시 architecture의 diagnostic**이다.
 
 ---
 

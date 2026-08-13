@@ -1,6 +1,6 @@
-# Calibration
+# Calibration — 예측 신뢰도 보정
 
-Calibration은 AASSR에서 **[Prophecy](Prophecy)가 낸 미래 예측을 실제 [planning](Counterfactual-Planning-and-Search)에 얼마나 믿고 써도 되는지** 측정하는 계층이다.
+[Calibration(예측 신뢰도 보정)](Calibration)은 AASSR에서 **[Prophecy](Prophecy)가 낸 미래 예측을 실제 [planning](Counterfactual-Planning-and-Search)에 얼마나 믿고 써도 되는지** 측정하는 계층이다.
 
 핵심은 [outcome probability와 prediction reliability](Stochasticity-Uncertainty-and-Probability)를 분리하는 것이다.
 
@@ -20,18 +20,18 @@ prediction reliability
 
 # 0. 먼저 알아두면 좋은 개념
 
-- [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability) — probability, reliability, epistemic uncertainty, value의 차이
-- [Mixture, Ensemble & Calibration](Mixture-Ensemble-and-Calibration) — holdout calibration, ensemble, probability-weighted correctness
-- [Model-Based RL & World Models](Model-Based-RL-and-World-Models) — model error와 model exploitation
-- [Critic, Support & OOD](Critic-Support-and-OOD) — transition reliability와 value support가 왜 다른가?
-- [Loss Functions & Class Imbalance](Loss-Functions-and-Class-Imbalance) — status accuracy, rare class, calibration metric
-- [Causality, Leakage & Fair Evaluation](Causality-Leakage-and-Evaluation) — frozen holdout과 같은-checkpoint 비교
+- [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability) — probability, reliability, [지식 부족에서 오는 불확실성(epistemic uncertainty)](Stochasticity-Uncertainty-and-Probability), value의 차이
+- [Mixture, Ensemble & Calibration](Mixture-Ensemble-and-Calibration) — [검증용 분리 데이터(holdout)](Calibration) calibration, ensemble, probability-weighted correctness
+- [Model-Based RL & World Models](Model-Based-RL-and-World-Models) — model error와 [모델 오류 악용(model exploitation)](Model-Based-RL-and-World-Models)
+- [Critic, Support & OOD](Critic-Support-and-OOD) — [상태 전이(transition)](MDP-and-POMDP) reliability와 value support가 왜 다른가?
+- [Loss Functions & Class Imbalance](Loss-Functions-and-Class-Imbalance) — status accuracy, rare class, calibration [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility)
+- [Causality, Leakage & Fair Evaluation](Causality-Leakage-and-Evaluation) — frozen 검증용 분리 데이터과 같은-[체크포인트(checkpoint)](Reproduction) 비교
 
 ---
 
 # 1. 연구 질문
 
-> **[world model](Model-Based-RL-and-World-Models)의 평균 성능이 높아 보여도 실제 행동 결정에 중요한 오류가 숨어 있을 수 있는데, 어떤 예측을 planner가 믿어도 되는지 real holdout 경험으로 판단할 수 있는가?**
+> **[world model](Model-Based-RL-and-World-Models)의 평균 성능이 높아 보여도 실제 행동 결정에 중요한 오류가 숨어 있을 수 있는데, 어떤 예측을 planner가 믿어도 되는지 real 검증용 분리 데이터 경험으로 판단할 수 있는가?**
 
 AASSR의 [Imagination](Imagination)은 model error에 직접 노출된다.
 
@@ -51,7 +51,7 @@ AASSR의 [Imagination](Imagination)은 model error에 직접 노출된다.
 
 # 2. 왜 단순 confidence 하나로 부족한가?
 
-Prophecy가 다음 outcome을 낸다고 하자.
+[Prophecy(미래 예측 모델)](Prophecy)가 다음 outcome을 낸다고 하자.
 
 ```text
 200 : probability 0.7
@@ -59,9 +59,9 @@ Prophecy가 다음 outcome을 낸다고 하자.
 429 : probability 0.1
 ```
 
-이 숫자는 **environment outcome probability mass**다.
+이 숫자는 **[환경(environment)](Reinforcement-Learning) [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability) mass**다.
 
-하지만 model이 이 state/action region을 거의 학습하지 않았다면 이 distribution 자체를 신뢰하기 어렵다.
+하지만 model이 이 state/[행동(action)](Reinforcement-Learning) region을 거의 학습하지 않았다면 이 distribution 자체를 신뢰하기 어렵다.
 
 예:
 
@@ -89,7 +89,7 @@ model reliability
 
 # 3. Holdout calibration
 
-현재 calibration은 [real replay](Replay-Buffer-and-Episode-Boundaries)에서 분리된 holdout transition을 사용한다.
+현재 calibration은 [real replay](Replay-Buffer-and-Episode-Boundaries)에서 분리된 검증용 분리 데이터 상태 전이을 사용한다.
 
 개념적으로:
 
@@ -107,7 +107,7 @@ semantic correctness 측정
 state/action region reliability
 ```
 
-같은 relational action key에 해당하는 충분한 holdout sample이 없으면 calibration은 보수적으로 낮게 유지된다.
+같은 relational 행동 key에 해당하는 충분한 검증용 분리 데이터 sample이 없으면 calibration은 보수적으로 낮게 유지된다.
 
 즉:
 
@@ -134,7 +134,7 @@ train data에서 정확
 
 는 자동으로 성립하지 않는다.
 
-그래서 학습에 직접 사용하지 않은 real transition으로 reliability를 추정한다.
+그래서 학습에 직접 사용하지 않은 real 상태 전이으로 reliability를 추정한다.
 
 이는 일반적인 [train/validation/test 분리](Neural-Networks-and-Optimization)와 같은 문제의식이다.
 
@@ -142,7 +142,7 @@ train data에서 정확
 
 # 5. Probability-weighted semantic score
 
-Stochastic Prophecy는 여러 outcome을 낸다.
+Stochastic [Prophecy](Prophecy)는 여러 outcome을 낸다.
 
 실제 다음 state와의 correctness를 계산할 때 branch를 동일 가중치로 보면 model이 assign한 distribution을 무시하게 된다.
 
@@ -157,7 +157,7 @@ C(S,A,S')
 여기서:
 
 - `p_i`: [predicted outcome probability](Stochasticity-Uncertainty-and-Probability)
-- `score`: predicted semantic state와 actual next state의 일치도
+- `score`: predicted [의미 기반 상태(semantic state)](State-Representation)와 actual next state의 일치도
 
 이 방식은:
 
@@ -201,9 +201,9 @@ Decision-critical channel에는 다음이 포함된다.
 
 # 7. Frozen holdout
 
-Evaluation에서 calibration reference가 계속 바뀌면 같은 checkpoint 비교가 흔들릴 수 있다.
+Evaluation에서 calibration reference가 계속 바뀌면 같은 체크포인트 비교가 흔들릴 수 있다.
 
-현재 구현은 holdout을 freeze할 수 있다.
+현재 구현은 검증용 분리 데이터을 freeze할 수 있다.
 
 ```text
 training / validation data 준비
@@ -219,7 +219,7 @@ frozen reliability 기준으로 OFF/ON evaluation
 
 # 8. 왜 status-aware calibration이 필요한가?
 
-과거 2k diagnostic에서는 전체 semantic prediction quality가 그럴듯해도 Imagination intervention이 `403/404/429`로 이어지는 문제가 있었다.
+과거 2k diagnostic에서는 전체 semantic prediction quality가 그럴듯해도 [Imagination(가상 미래 탐색)](Imagination) [실제 행동 개입(intervention)](Imagination)이 `403/404/429`로 이어지는 문제가 있었다.
 
 즉:
 
@@ -231,13 +231,13 @@ decision-critical outcome을 충분히 잘 예측함
 
 이다.
 
-이후 [Relational State v3](State-Representation)는 latest public HTTP status를 명시적으로 보존하고, Prophecy와 calibration도 이를 중요한 target/metric으로 다룬다.
+이후 [Relational State v3](State-Representation)는 latest public HTTP status를 명시적으로 보존하고, [Prophecy](Prophecy)와 calibration도 이를 중요한 target/평가지표으로 다룬다.
 
 ---
 
 # 9. Rare status와 class imbalance
 
-Critical status가 data에서 드물면 majority status만 잘 맞혀도 전체 accuracy가 높아질 수 있다.
+[Critic(미래 가치 평가기)](Critic)al status가 data에서 드물면 majority status만 잘 맞혀도 전체 accuracy가 높아질 수 있다.
 
 ```text
 200: 90%
@@ -250,7 +250,7 @@ Critical status가 data에서 드물면 majority status만 잘 맞혀도 전체 
 
 - [class-balanced training](Loss-Functions-and-Class-Imbalance)
 - per-class accuracy/recall
-- status-aware semantic reliability
+- [상태 코드까지 고려하는(status-aware)](Calibration) semantic reliability
 
 가 중요하다.
 
@@ -268,7 +268,7 @@ confidence   0.9
 → 0.4 + 0.9 bonus
 ```
 
-이렇게 하면 high-confidence branch가 task return과 무관하게 좋은 행동처럼 보일 수 있다.
+이렇게 하면 high-confidence branch가 task [누적 보상(return)](Value-Functions-and-Bellman-Equation)과 무관하게 좋은 행동처럼 보일 수 있다.
 
 올바른 의미 분리:
 
@@ -284,7 +284,7 @@ reliability 충분?
 
 # 11. 왜 Critic에서도 confidence를 제거하는가?
 
-Critic input에 Prophecy confidence가 직접 들어가면 neural network가 confidence를 return signal처럼 사용할 수 있다.
+[Critic](Critic) input에 [Prophecy](Prophecy) confidence가 직접 들어가면 neural network가 confidence를 누적 보상 signal처럼 사용할 수 있다.
 
 current confidence gate는 기존 input shape를 유지하면서 해당 scalar slot을 상수로 중립화한다.
 
@@ -294,7 +294,7 @@ network shape 유지
 confidence feature → constant
 ```
 
-따라서 branch ranking은 sparse-return [Critic](Critic) value로 이루어지고 confidence는 reliability gate에만 쓰인다.
+따라서 branch ranking은 sparse-누적 보상 [Critic](Critic) value로 이루어지고 confidence는 reliability gate에만 쓰인다.
 
 이것은:
 
@@ -310,7 +310,7 @@ value
 
 # 12. Global coverage gate
 
-현재 state의 legal action surface 전체에서 Prophecy가 충분한 prediction reliability를 갖는지 먼저 본다.
+현재 state의 legal 행동 surface 전체에서 [Prophecy](Prophecy)가 충분한 [예측 신뢰도(prediction reliability)](Calibration)를 갖는지 먼저 본다.
 
 ```text
 coverage < threshold
@@ -326,7 +326,7 @@ coverage < threshold
 
 # 13. Per-root reliability gate
 
-Global coverage가 충분해도 특정 root action prediction은 unreliable할 수 있다.
+Global coverage가 충분해도 특정 root 행동 prediction은 unreliable할 수 있다.
 
 그래서 각 root에도 reliability를 확인한다.
 
@@ -342,7 +342,7 @@ unreliable roots
 
 # 14. 왜 Policy branch reliability도 필요한가?
 
-대안 candidate만 reliable하고 Policy baseline의 prediction이 unreliable하면:
+대안 candidate만 reliable하고 [Policy(정책 모델)](Policy) [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility)의 prediction이 unreliable하면:
 
 ```math
 advantage=V_{alt}-V_{policy}
@@ -350,7 +350,7 @@ advantage=V_{alt}-V_{policy}
 
 를 apples-to-apples하게 해석하기 어렵다.
 
-그래서 current gate는 Policy root가 평가되지 않았거나 prediction reliability가 낮으면 override를 [fail-closed](Critic-Support-and-OOD) 한다.
+그래서 current gate는 [Policy](Policy) root가 평가되지 않았거나 예측 신뢰도가 낮으면 override를 [fail-closed](Critic-Support-and-OOD) 한다.
 
 ---
 
@@ -360,10 +360,10 @@ advantage=V_{alt}-V_{policy}
 
 | 질문 | 담당 계층 |
 |---|---|
-| 이 stochastic outcome이 일어날 확률은? | Prophecy outcome probability |
-| 이 transition prediction을 믿을 수 있나? | Calibration |
-| predicted future의 sparse return은? | Critic |
-| 그 Critic value를 뒷받침하는 real training evidence가 있나? | Local Critic support |
+| 이 stochastic outcome이 일어날 확률은? | [Prophecy](Prophecy) 결과 확률 |
+| 이 상태 전이 prediction을 믿을 수 있나? | [Calibration](Calibration) |
+| predicted future의 sparse 누적 보상은? | [Critic](Critic) |
+| 그 [Critic](Critic) value를 뒷받침하는 real training evidence가 있나? | Local [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD) |
 
 두 gate 중 하나만 통과하면 충분하지 않다.
 
@@ -382,9 +382,9 @@ Critic OOD
 
 # 16. Calibration sample 부족
 
-동일 relational action region의 holdout sample이 최소 수에 못 미치면 reliability를 낮게 두는 보수적 경로를 가진다.
+동일 relational 행동 region의 검증용 분리 데이터 sample이 최소 수에 못 미치면 reliability를 낮게 두는 보수적 경로를 가진다.
 
-작은 transition budget에서는 이 때문에 Imagination이 거의 개입하지 않을 수 있다.
+작은 상태 전이 budget에서는 이 때문에 [Imagination](Imagination)이 거의 개입하지 않을 수 있다.
 
 이것은 성능 면에서는 답답할 수 있지만 방법론적으로:
 
@@ -401,13 +401,13 @@ Critic OOD
 
 # 17. Cache와 refresh
 
-Calibration을 매 decision마다 holdout 전체에 대해 다시 계산하면 비싸다.
+[Calibration](Calibration)을 매 decision마다 검증용 분리 데이터 전체에 대해 다시 계산하면 비싸다.
 
 현재 구현은:
 
-- relational action key
-- holdout sample count 구간
-- Prophecy gradient revision 구간
+- relational 행동 key
+- 검증용 분리 데이터 sample count 구간
+- [Prophecy](Prophecy) gradient revision 구간
 
 등을 포함한 cache key를 사용해 reliability 계산을 재사용한다.
 
@@ -421,16 +421,16 @@ Calibration을 매 decision마다 holdout 전체에 대해 다시 계산하면 �
 
 # 18. Calibration이 직접 해결하지 않는 것
 
-Calibration은 만능 안전장치가 아니다.
+[Calibration](Calibration)은 만능 안전장치가 아니다.
 
 다음을 직접 해결하지 않는다.
 
-- Policy 자체의 OOD ranking
-- Critic 자체의 OOD value
-- state representation에서 이미 지운 정보
+- [Policy](Policy) 자체의 [학습 분포 밖(OOD)](Critic-Support-and-OOD) ranking
+- [Critic](Critic) 자체의 [OOD](Critic-Support-and-OOD) value
+- state [표현(representation)](Relational-Representation-and-Generalization)에서 이미 지운 정보
 - 아주 희귀한 outcome의 data shortage
 - 긴 rollout의 [compounding model error](Model-Based-RL-and-World-Models)
-- 잘못된 reward/objective
+- 잘못된 [보상(reward)](Sparse-Reward-and-Credit-Assignment)/objective
 
 그래서 AASSR은 calibration을 다른 구조와 조합한다.
 
@@ -440,21 +440,21 @@ Calibration은 만능 안전장치가 아니다.
 
 ## 19.1 평균 metric blind spot
 
-전체 semantic score는 높지만 중요한 status/action channel이 틀림.
+전체 semantic score는 높지만 중요한 status/행동 channel이 틀림.
 
-**대응:** status-aware metric + downstream intervention audit.
+**대응:** 상태 코드까지 고려하는 평가지표 + downstream 실제 행동 개입 audit.
 
 ## 19.2 Sparse holdout
 
-특정 action region의 holdout이 부족.
+특정 행동 region의 검증용 분리 데이터이 부족.
 
-**대응:** fail-closed + real transition coverage 확대.
+**대응:** fail-closed + real 상태 전이 coverage 확대.
 
 ## 19.3 Confidence as value leakage
 
 Reliability가 value에 직접 섞임.
 
-**대응:** confidence-independent Critic encoding + gate-only 사용.
+**대응:** confidence-independent [Critic](Critic) encoding + gate-only 사용.
 
 ## 19.4 Stale reliability
 
@@ -464,22 +464,22 @@ Model이 크게 update됐는데 cache가 너무 오래 유지됨.
 
 ## 19.5 Over-conservative gate
 
-모든 novel branch를 막아 Imagination이 inert해짐.
+모든 novel branch를 막아 [Imagination](Imagination)이 inert해짐.
 
-**대응:** gate pass rate와 bad-intervention rate를 함께 보고 threshold를 [ablation](Ablation-Benchmarking-and-Reproducibility)으로 검증.
+**대응:** gate pass rate와 bad-실제 행동 개입 rate를 함께 보고 threshold를 [ablation](Ablation-Benchmarking-and-Reproducibility)으로 검증.
 
 ---
 
 # 20. Calibration 평가에서 봐야 할 metric
 
-- holdout semantic score
-- status-aware correctness
+- 검증용 분리 데이터 semantic score
+- 상태 코드까지 고려하는 correctness
 - reliability coverage
 - insufficient-evidence rate
-- reliable-root fraction
+- reliable-root fr행동
 - calibration refresh/cache diagnostics
-- low-reliability suppressed intervention count
-- suppression 후 bad intervention rate
+- low-reliability suppressed 실제 행동 개입 count
+- suppression 후 bad 실제 행동 개입 rate
 - suppression 때문에 놓친 successful candidate 여부
 
 마지막 두 개가 특히 중요하다.
@@ -529,7 +529,7 @@ src/aassr_v2/current_confidence_gate.py
 
 # 23. 한 문장 요약
 
-> **Calibration은 미래가 좋은지를 평가하는 계층이 아니라, Prophecy가 말한 미래 자체를 실제 행동 결정에 사용할 만한 empirical evidence가 있는지 판단하는 reliability gate다.**
+> **[Calibration](Calibration)은 미래가 좋은지를 평가하는 계층이 아니라, [Prophecy](Prophecy)가 말한 미래 자체를 실제 행동 결정에 사용할 만한 empirical evidence가 있는지 판단하는 reliability gate다.**
 
 ---
 

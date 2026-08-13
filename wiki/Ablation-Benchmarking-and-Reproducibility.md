@@ -25,11 +25,11 @@ source of truth
 
 # 1. Benchmark란?
 
-**Benchmark**는 여러 방법을 같은 조건에서 비교하기 위해 정의한 문제, 데이터, protocol, metric의 묶음이다.
+**[표준 비교 실험(Benchmark)](Ablation-Benchmarking-and-Reproducibility)**는 여러 방법을 같은 조건에서 비교하기 위해 정의한 문제, 데이터, protocol, [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility)의 묶음이다.
 
-단순히 환경 하나만 있으면 benchmark가 아니다.
+단순히 환경 하나만 있으면 [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)가 아니다.
 
-좋은 benchmark에는 적어도 다음이 필요하다.
+좋은 표준 비교 실험에는 적어도 다음이 필요하다.
 
 ```text
 Task definition
@@ -50,7 +50,7 @@ AASSR current pentest lab도 이 관점에서 봐야 한다.
 
 # 2. Baseline
 
-**Baseline**은 새 방법이 실제로 어떤 이득을 만드는지 비교하기 위한 기준 모델이다.
+**[비교 기준(Baseline)](Ablation-Benchmarking-and-Reproducibility)**은 새 방법이 실제로 어떤 이득을 만드는지 비교하기 위한 기준 모델이다.
 
 예:
 
@@ -72,7 +72,7 @@ AASSR = 30%
 
 처럼 비교해야 의미가 생긴다.
 
-하지만 여기서도 **각 baseline이 정확히 무엇을 통제하는지**가 중요하다.
+하지만 여기서도 **각 [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility)이 정확히 무엇을 통제하는지**가 중요하다.
 
 ---
 
@@ -80,7 +80,7 @@ AASSR = 30%
 
 Control은 특정 요인을 바꾸지 않은 비교 조건이다.
 
-예를 들어 relational representation의 효과를 알고 싶다면:
+예를 들어 [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)의 효과를 알고 싶다면:
 
 ```text
 Raw DQN
@@ -88,15 +88,15 @@ vs
 Relational DQN
 ```
 
-에서 나머지 training budget, reward, environment, evaluation split은 가능한 한 같아야 한다.
+에서 나머지 training budget, [보상(reward)](Sparse-Reward-and-Credit-Assignment), [환경(environment)](Reinforcement-Learning), evaluation split은 가능한 한 같아야 한다.
 
-그러면 차이를 representation에 더 직접적으로 귀속할 수 있다.
+그러면 차이를 [표현(representation)](Relational-Representation-and-Generalization)에 더 직접적으로 귀속할 수 있다.
 
 ---
 
 # 4. Ablation study
 
-**Ablation**은 전체 시스템에서 특정 구성 요소를 제거하거나 바꿔 그 요소의 기여를 측정하는 실험이다.
+**[구성요소 제거 비교(Ablation)](Ablation-Benchmarking-and-Reproducibility)**은 전체 시스템에서 특정 구성 요소를 제거하거나 바꿔 그 요소의 기여를 측정하는 실험이다.
 
 예:
 
@@ -106,9 +106,9 @@ vs
 AASSR without Imagination
 ```
 
-차이가 크면 Imagination이 성능에 영향을 주었다는 evidence가 된다.
+차이가 크면 [Imagination(가상 미래 탐색)](Imagination)이 성능에 영향을 주었다는 evidence가 된다.
 
-하지만 ablation condition이 다른 곳까지 바뀌면 해석이 깨진다.
+하지만 [구성요소 제거 비교(ablation)](Ablation-Benchmarking-and-Reproducibility) condition이 다른 곳까지 바뀌면 해석이 깨진다.
 
 ---
 
@@ -132,7 +132,7 @@ aassr_current_no_imagination
 aassr_current_full
 ```
 
-추가로 model-based RL 계열의 강한 비교점으로 DreamerV3 relational adapter를 둔다.
+추가로 [모델 기반 강화학습(model-based RL)](Model-Based-RL-and-World-Models) 계열의 강한 비교점으로 [DreamerV3(외부 세계 모델 강화학습 비교군)](Experiments) relational adapter를 둔다.
 
 각 화살표가 서로 다른 연구 질문에 답한다.
 
@@ -140,20 +140,20 @@ aassr_current_full
 
 # 6. 왜 `AASSR vs DQN` 하나로는 부족한가?
 
-AASSR Full과 raw DQN 사이에는 여러 차이가 동시에 있다.
+AASSR Full과 raw [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) 사이에는 여러 차이가 동시에 있다.
 
 예:
 
-- relational state representation
-- relational action representation
-- ASEQ
-- Knowledge
-- information residual
-- Prophecy
-- Calibration
-- Critic
-- Skill
-- Imagination
+- relational state 표현
+- relational [행동(action)](Reinforcement-Learning) 표현
+- [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ)
+- [Knowledge(에피소드 지식)](Knowledge)
+- [정보 가치 잔차(information residual)](Policy)
+- [Prophecy(미래 예측 모델)](Prophecy)
+- [Calibration(예측 신뢰도 보정)](Calibration)
+- [Critic(미래 가치 평가기)](Critic)
+- [Skill(성공 절차 재사용)](Skills)
+- [Imagination](Imagination)
 
 따라서:
 
@@ -182,11 +182,11 @@ B가 더 좋더라도 algorithm 때문인지 data/compute 때문인지 알기 �
 
 AASSR 비교에서도:
 
-- transition budget
-- checkpoint
-- observation representation
-- evaluation seed
-- exploration schedule
+- [상태 전이(transition)](MDP-and-POMDP) budget
+- [체크포인트(checkpoint)](Reproduction)
+- [관측(observation)](MDP-and-POMDP) 표현
+- evaluation [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)
+- [탐색(exploration)](Exploration-and-Exploitation) schedule
 
 을 최대한 분리해야 한다.
 
@@ -210,13 +210,13 @@ intervention error rate
 wall time
 ```
 
-Ablation은 independent variable을 가능한 한 하나씩 바꾸는 것이 이상적이다.
+구성요소 제거 비교은 independent variable을 가능한 한 하나씩 바꾸는 것이 이상적이다.
 
 ---
 
 # 9. Same-checkpoint comparison
 
-AASSR Imagination의 marginal effect를 측정할 때 매우 중요하다.
+AASSR [Imagination](Imagination)의 marginal effect를 측정할 때 매우 중요하다.
 
 ```text
 one AASSR training run
@@ -226,7 +226,7 @@ frozen checkpoint
 OFF eval     ON eval
 ```
 
-이렇게 해야 training trajectory, learned Policy, Prophecy, Critic 등이 같다.
+이렇게 해야 training trajectory, learned [Policy(정책 모델)](Policy), [Prophecy](Prophecy), [Critic](Critic) 등이 같다.
 
 차이는 평가 시 planner를 사용했느냐에 집중된다.
 
@@ -247,41 +247,41 @@ Agent B
 → Imagination ON으로 training
 ```
 
-을 비교하면 두 agent가 경험한 state/action distribution부터 달라진다.
+을 비교하면 두 [에이전트(agent)](Reinforcement-Learning)가 경험한 state/행동 distribution부터 달라진다.
 
 성능 차이가:
 
 - planner 때문인지
 - training data distribution 때문인지
-- random exploration 차이 때문인지
+- random 탐색 차이 때문인지
 
 분리하기 어렵다.
 
-그래서 current main protocol은 training Imagination intervention을 끄고 same-checkpoint evaluation을 사용한다.
+그래서 current main protocol은 training [Imagination](Imagination) [실제 행동 개입(intervention)](Imagination)을 끄고 [같은 체크포인트(same-checkpoint)](Experiments) evaluation을 사용한다.
 
 ---
 
 # 11. Random seed
 
-Neural network training과 environment에는 randomness가 많다.
+Neural network training과 환경에는 randomness가 많다.
 
 예:
 
 - parameter initialization
-- epsilon-greedy action
+- epsilon-greedy 행동
 - replay sampling
-- stochastic environment outcome
-- mixture training bootstrap
+- stochastic 환경 outcome
+- mixture training [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)
 
-따라서 seed 하나의 결과는 우연일 수 있다.
+따라서 난수 시드 하나의 결과는 우연일 수 있다.
 
-여러 research seed를 사용해야 variance를 볼 수 있다.
+여러 research 난수 시드를 사용해야 variance를 볼 수 있다.
 
 ---
 
 # 12. Seed의 두 역할을 구분
 
-AASSR benchmark에서는 seed라는 단어가 최소 두 의미로 쓰일 수 있다.
+AASSR 표준 비교 실험에서는 난수 시드라는 단어가 최소 두 의미로 쓰일 수 있다.
 
 ```text
 Research seed
@@ -297,7 +297,7 @@ Environment/scenario seed
 
 # 13. Training seed와 Evaluation seed
 
-Generalization을 보려면 평가 환경을 training에서 분리한다.
+[일반화(Generalization)](Relational-Representation-and-Generalization)을 보려면 평가 환경을 training에서 분리한다.
 
 ```text
 Training scenarios
@@ -305,7 +305,7 @@ Training scenarios
 Unseen evaluation scenarios
 ```
 
-특히 concrete identifier permutation이 있는 benchmark에서는 같은 seed를 반복하면 memorization shortcut이 생길 수 있다.
+특히 concrete identifier permutation이 있는 표준 비교 실험에서는 같은 난수 시드를 반복하면 memorization shortcut이 생길 수 있다.
 
 관련 페이지:
 
@@ -315,7 +315,7 @@ Unseen evaluation scenarios
 
 # 14. Transition budget
 
-RL에서 중요한 compute/data budget 중 하나가 environment transition 수다.
+RL에서 중요한 compute/data budget 중 하나가 환경 상태 전이 수다.
 
 ```text
 2k transitions
@@ -323,15 +323,15 @@ RL에서 중요한 compute/data budget 중 하나가 environment transition 수�
 100k transitions
 ```
 
-모델마다 transition budget이 다르면 sample efficiency 비교가 어렵다.
+모델마다 상태 전이 budget이 다르면 sample efficiency 비교가 어렵다.
 
-그래서 AASSR benchmark는 가능한 한 condition별 real transition budget을 명시한다.
+그래서 AASSR 표준 비교 실험는 가능한 한 condition별 real 상태 전이 budget을 명시한다.
 
 ---
 
 # 15. Real transition과 Model compute를 분리
 
-Model-based method는 같은 real transition 수에서도 훨씬 많은 내부 compute를 사용할 수 있다.
+Model-based method는 같은 real 상태 전이 수에서도 훨씬 많은 내부 compute를 사용할 수 있다.
 
 ```text
 Real environment interaction = 10k
@@ -354,11 +354,11 @@ AASSR은 둘 다 보고하는 것이 좋다.
 
 # 16. Wall time
 
-같은 transition budget이라도 runtime이 100배 다르면 실제 사용성에 큰 차이가 있다.
+같은 상태 전이 budget이라도 runtime이 100배 다르면 실제 사용성에 큰 차이가 있다.
 
-AASSR current-generation에서는 Prophecy/Critic batching, structural root dedup 같은 최적화가 중요한 이유다.
+AASSR current-generation에서는 [Prophecy](Prophecy)/[Critic](Critic) [묶음 처리(batching)](Reproduction), structural root dedup 같은 최적화가 중요한 이유다.
 
-Wall time은 성능 metric은 아니지만 engineering feasibility를 판단하는 중요한 보조 지표다.
+Wall time은 성능 평가지표은 아니지만 engineering feasibility를 판단하는 중요한 보조 지표다.
 
 ---
 
@@ -369,10 +369,10 @@ Hyperparameter 예:
 - learning rate
 - gamma
 - epsilon schedule
-- Imagination depth
+- [Imagination](Imagination) depth
 - branch/beam width
 - calibration threshold
-- intervention margin
+- 실제 행동 개입 margin
 - support threshold
 
 이 값을 evaluation 결과를 계속 보면서 맞추면 test overfitting이 생길 수 있다.
@@ -420,22 +420,22 @@ Calibration threshold 0.3 / 0.5 / 0.7
 
 Metric은 성능을 수치화한 값이다.
 
-AASSR에서 중요한 metric은 하나가 아니다.
+AASSR에서 중요한 평가지표은 하나가 아니다.
 
 ## Task-level
 
 - success rate
 - true failure rate
 - stall rate
-- truncation rate
-- transitions to success
+- [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries) rate
+- 상태 전이s to success
 
 ## World-model
 
 - semantic prediction quality
 - status accuracy
 - legal-mask accuracy
-- terminal accuracy
+- [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) accuracy
 - probability-weighted quality
 - calibration reliability
 
@@ -444,10 +444,10 @@ AASSR에서 중요한 metric은 하나가 아니다.
 - plan count
 - switch candidate count
 - suppressed switch count
-- executed intervention count
-- changed-action count
-- intervention error rate
-- direct success-producing intervention
+- executed 실제 행동 개입 count
+- changed-행동 count
+- 실제 행동 개입 error rate
+- direct success-producing 실제 행동 개입
 
 ## Compute
 
@@ -460,7 +460,7 @@ AASSR에서 중요한 metric은 하나가 아니다.
 
 # 20. Proxy metric의 위험
 
-World-model accuracy가 높다고 agent success가 자동으로 높아지는 것은 아니다.
+World-model accuracy가 높다고 에이전트 success가 자동으로 높아지는 것은 아니다.
 
 ```text
 Prophecy semantic accuracy ↑
@@ -478,13 +478,13 @@ Imagination intervention count ↑
 
 많이 바꿨지만 더 많이 실패할 수 있다.
 
-따라서 proxy metric과 final task metric을 분리해야 한다.
+따라서 proxy 평가지표과 final task 평가지표을 분리해야 한다.
 
 ---
 
 # 21. Aggregate와 Per-cell 결과
 
-난도/seed를 합친 aggregate만 보면 특정 cell의 실패가 가려질 수 있다.
+난도/난수 시드를 합친 aggregate만 보면 특정 cell의 실패가 가려질 수 있다.
 
 예:
 
@@ -502,13 +502,13 @@ Hard 0%
 
 일 수 있다.
 
-그래서 AASSR은 difficulty × seed cell과 aggregate를 함께 보는 것이 좋다.
+그래서 AASSR은 difficulty × 난수 시드 cell과 aggregate를 함께 보는 것이 좋다.
 
 ---
 
 # 22. Mean
 
-여러 seed success rate의 평균:
+여러 난수 시드 success rate의 평균:
 
 ```math
 \bar x=\frac1n\sum_i x_i
@@ -516,7 +516,7 @@ Hard 0%
 
 를 쓸 수 있다.
 
-하지만 mean만으로 seed variability를 알 수 없다.
+하지만 mean만으로 난수 시드 variability를 알 수 없다.
 
 ---
 
@@ -528,7 +528,7 @@ Sample standard deviation:
 s=\sqrt{\frac{1}{n-1}\sum_i(x_i-\bar x)^2}
 ```
 
-seed마다 결과가 얼마나 흔들리는지 보여준다.
+난수 시드마다 결과가 얼마나 흔들리는지 보여준다.
 
 RL은 variance가 큰 경우가 많아서 평균과 함께 보는 것이 중요하다.
 
@@ -546,9 +546,9 @@ SE=\frac{s}{\sqrt n}
 
 를 쓸 수 있다.
 
-하지만 seed 수가 매우 적으면 normal approximation이 부정확할 수 있다.
+하지만 난수 시드 수가 매우 적으면 normal approximation이 부정확할 수 있다.
 
-성공/실패 비율에는 binomial interval, seed aggregate에는 bootstrap interval 같은 방법도 고려할 수 있다.
+성공/실패 비율에는 binomial interval, 난수 시드 aggregate에는 다음 상태 가치 이어받기 interval 같은 방법도 고려할 수 있다.
 
 핵심은 숫자 하나보다 **불확실성을 함께 보고하는 것**이다.
 
@@ -570,13 +570,13 @@ raw counts
 
 를 함께 보는 것이 좋다.
 
-AASSR처럼 아직 seed 수가 제한된 연구에서는 특히 raw success counts와 per-seed 결과를 숨기지 않는 것이 중요하다.
+AASSR처럼 아직 난수 시드 수가 제한된 연구에서는 특히 raw success counts와 per-난수 시드 결과를 숨기지 않는 것이 중요하다.
 
 ---
 
 # 26. Paired comparison
 
-Same scenario/seed에서 OFF와 ON을 비교하면 paired structure를 활용할 수 있다.
+Same scenario/난수 시드에서 OFF와 ON을 비교하면 paired structure를 활용할 수 있다.
 
 ```text
 Scenario 1: OFF fail / ON success
@@ -586,7 +586,7 @@ Scenario 3: OFF success / ON fail
 
 단순 aggregate success rate뿐 아니라 **어떤 episode에서 행동이 실제로 개선/악화되었는지** 볼 수 있다.
 
-Imagination marginal effect 분석에 특히 유용하다.
+[Imagination](Imagination) marginal effect 분석에 특히 유용하다.
 
 ---
 
@@ -600,18 +600,18 @@ Imagination marginal effect 분석에 특히 유용하다.
 
 예:
 
-- chance node가 expectation을 쓰는가?
-- confidence가 Critic value에 들어가지 않는가?
+- [환경 결과 노드(chance node)](Chance-and-Decision-Nodes)가 expectation을 쓰는가?
+- confidence가 [Critic](Critic) value에 들어가지 않는가?
 - hidden state leakage가 없는가?
 
 ## Performance benchmark
 
-실제 agent가 더 잘 푸는지 확인.
+실제 에이전트가 더 잘 푸는지 확인.
 
 예:
 
 - success rate 향상
-- intervention error 감소
+- 실제 행동 개입 error 감소
 
 Regression test 통과는 성능 향상 증명이 아니다.
 
@@ -629,7 +629,7 @@ Imagination이 실제로 action을 바꾸는가?
 Critic support가 있는가?
 ```
 
-하지만 작은 diagnostic을 최종 benchmark claim으로 확대해석하면 안 된다.
+하지만 작은 diagnostic을 최종 표준 비교 실험 claim으로 확대해석하면 안 된다.
 
 ---
 
@@ -651,11 +651,11 @@ AASSR 위키에서는 결과를 다음 계층으로 나누는 것이 좋다.
 
 # 30. Oracle baseline
 
-Oracle은 hidden correct action/path를 알고 성공 가능한 upper-bound sanity check로 사용할 수 있다.
+Oracle은 hidden correct 행동/path를 알고 성공 가능한 upper-bound sanity check로 사용할 수 있다.
 
 Oracle이 성공하지 못하면 환경 자체가 잘못되었을 가능성이 있다.
 
-하지만 Oracle은 agent fairness baseline이 아니다.
+하지만 Oracle은 에이전트 fairness 비교 기준이 아니다.
 
 ```text
 Oracle
@@ -671,17 +671,17 @@ Learned agent
 
 # 31. Random baseline
 
-Random policy가 너무 잘하면 benchmark가 너무 쉽거나 action space가 제대로 어렵지 않을 수 있다.
+Random policy가 너무 잘하면 표준 비교 실험가 너무 쉽거나 행동 space가 제대로 어렵지 않을 수 있다.
 
-반대로 Oracle만 성공하고 모든 non-oracle method가 영원히 0이면 benchmark가 너무 어려워 model 차이를 측정하기 어렵다.
+반대로 Oracle만 성공하고 모든 non-oracle method가 영원히 0이면 표준 비교 실험가 너무 어려워 model 차이를 측정하기 어렵다.
 
-좋은 benchmark는 비교 가능한 난도 영역을 가져야 한다.
+좋은 표준 비교 실험는 비교 가능한 난도 영역을 가져야 한다.
 
 ---
 
 # 32. Heuristic baseline
 
-단순한 human-designed heuristic은 benchmark의 구조적 난도를 보는 데 유용하다.
+단순한 human-designed heuristic은 표준 비교 실험의 구조적 난도를 보는 데 유용하다.
 
 예:
 
@@ -690,17 +690,17 @@ Random policy가 너무 잘하면 benchmark가 너무 쉽거나 action space가 
 항상 새 action 우선
 ```
 
-다만 heuristic에 benchmark 정답 구조를 너무 많이 넣으면 사실상 oracle이 된다.
+다만 heuristic에 표준 비교 실험 정답 구조를 너무 많이 넣으면 사실상 oracle이 된다.
 
 ---
 
 # 33. Strong learned baseline
 
-새 RL architecture를 제안한다면 오래된 tabular/Q-learning만 비교하기보다 강한 현대 baseline이 필요하다.
+새 RL architecture를 제안한다면 오래된 tabular/Q-learning만 비교하기보다 강한 현대 비교 기준이 필요하다.
 
-AASSR에서는 official pinned DreamerV3 relational adapter를 model-based comparison으로 둔다.
+AASSR에서는 official pinned [DreamerV3](Experiments) relational adapter를 model-based comparison으로 둔다.
 
-중요한 점은 baseline을 약하게 만드는 것이 아니라 **가능한 한 공정하게 같은 observation/action/reward contract를 적용하는 것**이다.
+중요한 점은 비교 기준을 약하게 만드는 것이 아니라 **가능한 한 공정하게 같은 관측/행동/보상 contract를 적용하는 것**이다.
 
 ---
 
@@ -711,11 +711,11 @@ AASSR에서는 official pinned DreamerV3 relational adapter를 model-based compa
 필요한 것:
 
 - exact code revision
-- environment/version
+- 환경/version
 - dependencies
 - command line
-- seed
-- transition budget
+- 난수 시드
+- 상태 전이 budget
 - hardware assumptions
 - output artifact schema
 - evaluation protocol
@@ -746,7 +746,7 @@ AASSR 현재 단계에서는 먼저 repository 내부 reproducibility를 강하�
 
 여러 문서에 current component 정보가 복제되면 쉽게 drift한다.
 
-그래서 AASSR은 active runtime definition의 source of truth를:
+그래서 AASSR은 active runtime definition의 [최종 기준(source of truth)](Current-Status)를:
 
 ```text
 src/aassr_v2/current_manifest.py
@@ -802,7 +802,7 @@ start/end time
 
 # 39. Result cherry-picking
 
-여러 seed 중 가장 좋은 하나만 보고하면 실제 평균 성능보다 과장될 수 있다.
+여러 난수 시드 중 가장 좋은 하나만 보고하면 실제 평균 성능보다 과장될 수 있다.
 
 ```text
 seed 7   → 40%
@@ -810,9 +810,9 @@ seed 42  → 5%
 seed 100 → 0%
 ```
 
-인데 seed 7만 보고하면 매우 다른 인상을 준다.
+인데 난수 시드 7만 보고하면 매우 다른 인상을 준다.
 
-따라서 사전에 정한 seed set 전체를 보고하는 것이 중요하다.
+따라서 사전에 정한 난수 시드 set 전체를 보고하는 것이 중요하다.
 
 ---
 
@@ -820,7 +820,7 @@ seed 100 → 0%
 
 좋은 결과가 나온 시점에만 실험을 멈추면 선택 편향이 생길 수 있다.
 
-Training budget/stop criterion을 사전에 고정하고, 중간 checkpoint 분석과 final checkpoint claim을 분리하는 것이 좋다.
+Training budget/stop criterion을 사전에 고정하고, 중간 체크포인트 분석과 final 체크포인트 claim을 분리하는 것이 좋다.
 
 ---
 
@@ -842,12 +842,12 @@ Training budget/stop criterion을 사전에 고정하고, 중간 checkpoint 분�
 
 | Comparison | 연구 질문 |
 |---|---|
-| Raw DQN vs Relational DQN | relational representation이 transfer에 도움이 되는가? |
-| Relational DQN vs AASSR no-Imagination | ASEQ/Knowledge/information/Skill 등 non-planner stack의 추가 효과가 있는가? |
-| AASSR no-Imagination vs Full | 같은 checkpoint에서 Imagination의 marginal effect가 있는가? |
-| Full vs DreamerV3 relational | AASSR의 명시적 구조가 강한 world-model baseline과 비교해 경쟁력 있는가? |
-| ASEQ OFF vs ON | exact self-loop guard가 반복을 줄이는가? |
-| Calibration/support OFF vs ON | bad intervention을 실제로 줄이는가? |
+| Raw [DQN](Q-Learning-DQN-and-TD) vs Relational [DQN](Q-Learning-DQN-and-TD) | 관계 기반 표현이 [전이(transfer)](Relational-Representation-and-Generalization)에 도움이 되는가? |
+| Relational [DQN](Q-Learning-DQN-and-TD) vs AASSR no-[Imagination](Imagination) | [ASEQ](ASEQ)/[Knowledge](Knowledge)/information/[Skill](Skills) 등 non-planner stack의 추가 효과가 있는가? |
+| AASSR no-[Imagination](Imagination) vs Full | 같은 체크포인트에서 [Imagination](Imagination)의 marginal effect가 있는가? |
+| Full vs [DreamerV3](Experiments) relational | AASSR의 명시적 구조가 강한 world-model 비교 기준과 비교해 경쟁력 있는가? |
+| [ASEQ](ASEQ) OFF vs ON | exact [제자리 반복(self-loop)](ASEQ) guard가 반복을 줄이는가? |
+| [Calibration](Calibration)/support OFF vs ON | bad 실제 행동 개입을 실제로 줄이는가? |
 
 ---
 
@@ -864,7 +864,7 @@ Full ≈ no-img
 → 현재 checkpoint/budget에서 Imagination marginal benefit evidence 없음
 ```
 
-이 경우 "AASSR 전체가 효과 없음"도 아니고 "Imagination이 효과 있음"도 아니다.
+이 경우 "AASSR 전체가 효과 없음"도 아니고 "[Imagination](Imagination)이 효과 있음"도 아니다.
 
 **효과가 어느 층에서 발생했는지 분리해 말해야 한다.**
 

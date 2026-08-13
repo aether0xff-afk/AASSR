@@ -65,7 +65,7 @@
 ### 기초 · 일반화와 Skill
 
 - [관계 기반 표현과 일반화](Relational-Representation-and-Generalization)
-- [Critic 데이터 근거와 학습 분포 밖(OOD)](Critic-Support-and-OOD)
+- [가치 평가 데이터 근거와 학습 분포 밖(OOD)](Critic-Support-and-OOD)
 - [계층형 강화학습과 Skill](Hierarchical-RL-and-Skills)
 
 ### 연구 방법

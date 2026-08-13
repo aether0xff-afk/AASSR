@@ -58,7 +58,7 @@
 
 ## 상태 전이 — transition
 
-**영어:** transition
+**영어:** [상태 전이(transition)](MDP-and-POMDP)
 
 **쉬운 뜻:** 한 상태에서 행동을 한 뒤 다음 상태로 바뀌는 과정.
 
@@ -149,7 +149,7 @@ AASSR에는 기본 행동을 고르는 [Policy](Policy) 모듈이 있다.
 
 **쉬운 뜻:** 환경의 실제 목표 보상과 별개로, 새 정보나 새로운 상태를 찾도록 내부 신호를 주는 방법 계열.
 
-AASSR에서는 외부 task reward와 내부 정보 관련 신호를 구분한다.
+AASSR에서는 외부 task [보상(reward)](Sparse-Reward-and-Credit-Assignment)와 내부 정보 관련 신호를 구분한다.
 
 관련: [정보 이론과 내재 동기](Information-Theory-and-Intrinsic-Motivation)
 
@@ -237,13 +237,13 @@ route-17
 
 **쉬운 뜻:** 단순한 숫자나 문자열이 아니라 문제 해결에서 실제로 같은 의미인지 기준으로 보는 것.
 
-AASSR의 ASEQ 상태 비교에서 중요하다.
+AASSR의 [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ) 상태 비교에서 중요하다.
 
 관련: [상태 표현](State-Representation), [ASEQ](ASEQ)
 
 ## 실제 개체 구분 — concrete identity
 
-**영어:** concrete identity
+**영어:** [실제 개체 구분(concrete identity)](State-Representation)
 
 **쉬운 뜻:** 역할이 같아도 실제로 서로 다른 객체를 구분하기 위한 식별 방식.
 
@@ -281,7 +281,7 @@ AASSR의 ASEQ 상태 비교에서 중요하다.
 
 ## 제자리 반복 — self-loop
 
-**영어:** self-loop
+**영어:** [제자리 반복(self-loop)](ASEQ)
 
 **쉬운 뜻:** 행동했는데 의미 있는 상태 변화 없이 다시 같은 상태로 돌아오는 반복.
 
@@ -297,7 +297,7 @@ S → A → S
 
 **쉬운 뜻:** 어떤 행동을 영구 삭제하는 것이 아니라, 현재 선택 후보에서 우선적으로 제외하거나 약하게 만드는 것.
 
-ASEQ는 실제로 반복 확인된 무진전 행동만 제한하려고 한다.
+[ASEQ](ASEQ)는 실제로 반복 확인된 무진전 행동만 제한하려고 한다.
 
 ---
 
@@ -325,7 +325,7 @@ ASEQ는 실제로 반복 확인된 무진전 행동만 제한하려고 한다.
 
 ## 다음 상태 가치 이어받기 — bootstrap
 
-**영어:** bootstrap
+**영어:** [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)
 
 **쉬운 뜻:** 지금 정답 전체를 알지 못하므로 다음 상태의 추정 가치를 현재 학습 목표 계산에 사용하는 것.
 
@@ -347,7 +347,7 @@ ASEQ는 실제로 반복 확인된 무진전 행동만 제한하려고 한다.
 
 ## 학습 손실 — loss
 
-**영어:** loss
+**영어:** [학습 손실(loss)](Loss-Functions-and-Class-Imbalance)
 
 **쉬운 뜻:** 신경망 예측이 학습 목표와 얼마나 다른지 나타내는 최적화용 숫자.
 
@@ -401,7 +401,7 @@ ASEQ는 실제로 반복 확인된 무진전 행동만 제한하려고 한다.
 
 **쉬운 뜻:** 어떤 지식을 언제, 어디서, 어떤 실제 응답을 통해 알게 되었는지 기록하는 정보.
 
-Knowledge에서 시간 순서를 지키는 데 중요하다.
+[Knowledge(에피소드 지식)](Knowledge)에서 시간 순서를 지키는 데 중요하다.
 
 ---
 
@@ -423,7 +423,7 @@ Knowledge에서 시간 순서를 지키는 데 중요하다.
 
 **쉬운 뜻:** 미래 환경 자체를 명시적으로 예측하기보다 정책이나 가치 함수를 직접 학습하는 강화학습 계열.
 
-DQN은 대표적인 예다.
+[DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD)은 대표적인 예다.
 
 관련: [강화학습](Reinforcement-Learning)
 
@@ -563,17 +563,17 @@ DQN은 대표적인 예다.
 
 **쉬운 뜻:** 여러 단계 미래를 상상한 뒤 결국 지금 현실에서 처음 실행할 행동.
 
-Imagination이 아무리 많은 미래를 계산해도 실제로는 root action 하나만 실행한다.
+[Imagination(가상 미래 탐색)](Imagination)이 아무리 많은 미래를 계산해도 실제로는 root [행동(action)](Reinforcement-Learning) 하나만 실행한다.
 
 ## 개입 — intervention
 
-**쉬운 뜻:** Imagination이 기본 Policy가 고른 행동을 실제로 다른 행동으로 바꾼 경우.
+**쉬운 뜻:** [Imagination](Imagination)이 기본 [Policy(정책 모델)](Policy)가 고른 행동을 실제로 다른 행동으로 바꾼 경우.
 
-후보를 계산한 것만으로는 intervention이라고 하지 않는다.
+후보를 계산한 것만으로는 [실제 행동 개입(intervention)](Imagination)이라고 하지 않는다.
 
 ## 개입 최소 차이 — intervention margin
 
-**쉬운 뜻:** Imagination이 기본 Policy를 바꾸려면 최소한 이 정도는 더 좋아야 한다고 정한 차이.
+**쉬운 뜻:** [Imagination](Imagination)이 기본 [Policy](Policy)를 바꾸려면 최소한 이 정도는 더 좋아야 한다고 정한 차이.
 
 작은 예측 잡음 때문에 행동이 자주 뒤집히는 것을 줄인다.
 
@@ -599,7 +599,7 @@ Imagination이 아무리 많은 미래를 계산해도 실제로는 root action 
 
 **쉬운 뜻:** 모델이 학습할 때 충분히 보지 못한 종류의 상태나 행동 영역.
 
-신경망은 OOD에서도 숫자를 내지만 그 숫자가 믿을 만하다는 보장은 없다.
+신경망은 [학습 분포 밖(OOD)](Critic-Support-and-OOD)에서도 숫자를 내지만 그 숫자가 믿을 만하다는 보장은 없다.
 
 관련: [Critic Support와 OOD](Critic-Support-and-OOD)
 
@@ -611,15 +611,15 @@ Imagination이 아무리 많은 미래를 계산해도 실제로는 root action 
 
 ## Critic 준비 상태 — Critic readiness
 
-**쉬운 뜻:** Critic이 전체적으로 최소한 사용할 만큼 학습됐는지 보는 조건.
+**쉬운 뜻:** [Critic(미래 가치 평가기)](Critic)이 전체적으로 최소한 사용할 만큼 학습됐는지 보는 조건.
 
-전체적으로 준비됐다는 것과 특정 OOD 상태에서 믿을 만하다는 것은 다르다.
+전체적으로 준비됐다는 것과 특정 [OOD](Critic-Support-and-OOD) 상태에서 믿을 만하다는 것은 다르다.
 
 ## 보수적 실패 — fail closed
 
 **쉬운 뜻:** 신뢰할 근거가 부족할 때 공격적으로 새 결정을 하지 않고 더 안전한 기본 경로로 돌아가는 설계.
 
-AASSR의 local support gate는 근거가 부족하면 Policy를 유지한다.
+AASSR의 [국소 데이터 근거(local support)](Critic-Support-and-OOD) gate는 근거가 부족하면 [Policy](Policy)를 유지한다.
 
 ---
 
@@ -673,7 +673,7 @@ AASSR의 local support gate는 근거가 부족하면 Policy를 유지한다.
 
 **쉬운 뜻:** 모델 초기화와 난수 효과를 여러 번 반복해 보기 위해 사용하는 난수 시작값.
 
-한 seed 결과만으로 일반적인 결론을 내리지 않기 위해 여러 seed를 쓴다.
+한 [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility) 결과만으로 일반적인 결론을 내리지 않기 위해 여러 난수 시드를 쓴다.
 
 ## 최종 비공개 평가 — final blind
 
@@ -683,7 +683,7 @@ AASSR의 local support gate는 근거가 부족하면 Policy를 유지한다.
 
 ## 재현성 — reproducibility
 
-**쉬운 뜻:** 다른 사람이 같은 코드·설정·seed로 비슷한 실험 결과를 다시 만들 수 있는 성질.
+**쉬운 뜻:** 다른 사람이 같은 코드·설정·난수 시드로 비슷한 실험 결과를 다시 만들 수 있는 성질.
 
 관련: [재현 방법](Reproduction)
 
@@ -699,7 +699,7 @@ AASSR의 local support gate는 근거가 부족하면 Policy를 유지한다.
 
 **쉬운 뜻:** 두 조건이 서로 다른 학습 결과를 쓰지 않고 동일한 학습 모델을 공유한 채 한 기능만 켜고 끄는 비교.
 
-AASSR에서는 Imagination 자체의 추가 효과를 보려 할 때 중요하다.
+AASSR에서는 [Imagination](Imagination) 자체의 추가 효과를 보려 할 때 중요하다.
 
 ---
 
@@ -726,7 +726,7 @@ AASSR에서는 증거 수준을 구분한다.
 
 **쉬운 뜻:** 특정 기능이 의도한 현상을 실제로 만들었다는 증거.
 
-예를 들어 ASEQ가 제자리 반복을 줄였다는 결과는 ASEQ의 메커니즘 증거가 될 수 있다.
+예를 들어 [ASEQ](ASEQ)가 제자리 반복을 줄였다는 결과는 [ASEQ](ASEQ)의 메커니즘 증거가 될 수 있다.
 
 ## 성능 증거 — performance evidence
 
@@ -850,7 +850,7 @@ AASSR의 `current_manifest.py`가 이에 해당한다.
 
 ## 외부 제한 종료 — truncation
 
-**쉬운 뜻:** 목표상 성공/실패가 결정된 것이 아니라 시간 제한, 요청 제한, transition budget 같은 외부 이유로 에피소드가 끊긴 경우.
+**쉬운 뜻:** 목표상 성공/실패가 결정된 것이 아니라 시간 제한, 요청 제한, 상태 전이 budget 같은 외부 이유로 에피소드가 끊긴 경우.
 
 ## 요청 제한 — rate limit
 

@@ -1,13 +1,13 @@
-# Current Status
+# 현재 연구 상태 (Current Status)
 
 > **문서 기준:** `main`의 현재 runtime contract  
 > **Current generation:** `aassr-current-generation-v2`  
-> **Executable source of truth:** `src/aassr_v2/current_manifest.py`
+> **Executable [최종 기준(source of truth)](Current-Status):** `src/aassr_v2/current_manifest.py`
 
 이 페이지는 AASSR의 “지금 상태”를 설명한다. 가장 중요한 원칙은 **현재 코드**, **과거 diagnostic**, **현재 성능 evidence**, **앞으로 검증할 claim**을 한 문장에 섞지 않는 것이다.
 
 > [!IMPORTANT]
-> 연구 브랜치에서 진행 중인 변경은 `main`에 합쳐지기 전까지 이 페이지의 current architecture로 취급하지 않는다. 위키가 특정 실험 브랜치 이름을 current source of truth로 사용하지 않는다.
+> 연구 브랜치에서 진행 중인 변경은 `main`에 합쳐지기 전까지 이 페이지의 [현재 구조(current architecture)](Current-Status)로 취급하지 않는다. 위키가 특정 실험 브랜치 이름을 current 최종 기준로 사용하지 않는다.
 
 ---
 
@@ -52,9 +52,9 @@ flowchart LR
 
 핵심은 다음 세 문장이다.
 
-1. **학습의 사실 근거는 real transition이다.**
-2. **Imagination은 현재 protocol에서 planning에 사용한다.**
-3. **prediction reliability와 Critic support가 부족하면 planner override는 fail-closed한다.**
+1. **학습의 사실 근거는 real [상태 전이(transition)](MDP-and-POMDP)이다.**
+2. **[Imagination(가상 미래 탐색)](Imagination)은 현재 protocol에서 planning에 사용한다.**
+3. **[예측 신뢰도(prediction reliability)](Calibration)와 [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD)가 부족하면 planner override는 fail-closed한다.**
 
 관련 페이지: [Research Architecture](Research-Architecture), [Imagination](Imagination), [Causality, Leakage & Fair Evaluation](Causality-Leakage-and-Evaluation)
 
@@ -66,20 +66,20 @@ flowchart LR
 
 | Layer | Current contract | 의미 |
 |---|---|---|
-| Observation | `response-causal-relational-public-state-v3+latest-http-status` | 실제 response에서 인과적으로 볼 수 있는 public 정보만 사용 |
-| ASEQ | `semantic-self-loop-empirical-v3` | 실제 `(S,A,S')` 중 semantic self-loop evidence 관리 |
-| Policy | `relational-invariant-dqn+information-residual-v1` | external sparse-return Q와 information residual 분리 |
-| Policy state | `relational-public-structural-v3+latest-http-status` | rename-invariant 구조 + public status |
-| Policy action | `relational-role-features-v1` | concrete ID보다 action role 중심 |
-| Prophecy | `relational-conditional-mixture-ensemble-v5-status-balanced` | multimodal stochastic relational world model |
-| Prophecy status objective | `class-balanced-categorical-public-http-status-v2` | rare public status를 categorical objective로 학습 |
-| Calibration | `semantic-probability-holdout-calibration-v3-status-aware` | outcome probability와 reliability를 분리하고 status-aware holdout 평가 |
-| Knowledge | `episode-local-response-knowledge-context-v1` | real response에서 이미 알아낸 episode-local 사실과 provenance |
-| Imagination | root concrete execution + structural compute dedup + probability chance / max decision planning | counterfactual planning |
-| Critic | relational GRU discounted sparse-return + zero-memory suffix training | imagined future의 external return 추정 |
-| Critic support | `local-real-training-support-fail-closed-v1` | 현재 value estimate 주변의 real support 확인 |
-| Skills | `relational-aseq-template-v1` | 반복 성공 ASeq의 relational template 재사용 |
-| Training Imagination | `disabled-same-checkpoint` | OFF/ON causal comparison을 위해 persistent training intervention 비활성 |
+| [관측(Observation)](MDP-and-POMDP) | `response-causal-relational-public-state-v3+latest-http-status` | 실제 response에서 인과적으로 볼 수 있는 public 정보만 사용 |
+| [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ) | `semantic-self-loop-empirical-v3` | 실제 `(S,A,S')` 중 semantic [제자리 반복(self-loop)](ASEQ) evidence 관리 |
+| [Policy(정책 모델)](Policy) | `relational-invariant-dqn+information-residual-v1` | external sparse-[누적 보상(return)](Value-Functions-and-Bellman-Equation) Q와 [정보 가치 잔차(information residual)](Policy) 분리 |
+| [Policy](Policy) state | `relational-public-structural-v3+latest-http-status` | rename-invariant 구조 + public status |
+| [Policy](Policy) [행동(action)](Reinforcement-Learning) | `relational-role-features-v1` | concrete ID보다 행동 role 중심 |
+| [Prophecy(미래 예측 모델)](Prophecy) | `relational-conditional-mixture-ensemble-v5-status-balanced` | multimodal stochastic relational [세계 모델(world model)](Model-Based-RL-and-World-Models) |
+| [Prophecy](Prophecy) status objective | `class-balanced-categorical-public-http-status-v2` | rare public status를 categorical objective로 학습 |
+| [Calibration(예측 신뢰도 보정)](Calibration) | `semantic-probability-holdout-calibration-v3-status-aware` | [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability)와 reliability를 분리하고 [상태 코드까지 고려하는(status-aware)](Calibration) [검증용 분리 데이터(holdout)](Calibration) 평가 |
+| [Knowledge(에피소드 지식)](Knowledge) | `episode-local-response-knowledge-context-v1` | real response에서 이미 알아낸 episode-local 사실과 provenance |
+| [Imagination](Imagination) | root concrete execution + structural compute dedup + probability chance / max decision planning | [반사실적 계획(counterfactual planning)](Counterfactual-Planning-and-Search) |
+| [Critic(미래 가치 평가기)](Critic) | relational [GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) discounted sparse-누적 보상 + zero-memory suffix training | imagined future의 external 누적 보상 추정 |
+| 가치 평가 데이터 근거 | `local-real-training-support-fail-closed-v1` | 현재 value estimate 주변의 real support 확인 |
+| [Skills(성공 절차 재사용)](Skills) | `relational-aseq-template-v1` | 반복 성공 ASeq의 relational template 재사용 |
+| Training [Imagination](Imagination) | `disabled-same-checkpoint` | OFF/ON causal comparison을 위해 persistent training [실제 행동 개입(intervention)](Imagination) 비활성 |
 | Chance objective | `expected-external-sparse-return` | stochastic outcome은 probability expectation으로 backup |
 
 각 용어가 낯설면 [Concept Index](Concept-Index) 또는 [Glossary](Glossary)에서 내려가면 된다.
@@ -146,7 +146,7 @@ hidden lockout count = 1     -> learner input으로 직접 사용 금지
 
 ## 4.3 ASEQ에는 self-loop mechanism evidence가 있다
 
-과거 L1 unseen diagnostic에서:
+과거 L1 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) diagnostic에서:
 
 ```text
 raw greedy stalled       24 / 24
@@ -155,7 +155,7 @@ exact ASEQ stalled        0 / 24
 
 가 관측됐다.
 
-이것은 **ASEQ가 전체 AASSR 성능을 증명한다**는 뜻이 아니라, 관측된 semantic self-loop를 억제하는 좁은 mechanism evidence다.
+이것은 **[ASEQ](ASEQ)가 전체 AASSR 성능을 증명한다**는 뜻이 아니라, 관측된 semantic 제자리 반복를 억제하는 좁은 mechanism evidence다.
 
 관련: [ASEQ](ASEQ), [Evidence Matrix](Evidence-Matrix#rq3-aseq가-진전-없는-self-loop를-줄이는가)
 
@@ -169,7 +169,7 @@ relational-conditional-mixture-ensemble-v5-status-balanced
 
 이다.
 
-즉 현재 Prophecy는 단일 평균 future가 아니라 [mixture](Mixture-Ensemble-and-Calibration) outcome과 status-balanced supervision을 포함하는 stochastic relational world model이다.
+즉 현재 [Prophecy](Prophecy)는 단일 평균 future가 아니라 [mixture](Mixture-Ensemble-and-Calibration) outcome과 [상태 코드 데이터 불균형을 보정한(status-balanced)](Prophecy) supervision을 포함하는 stochastic relational 세계 모델이다.
 
 ## 4.5 Chance와 Decision backup은 의도적으로 다르다
 
@@ -231,7 +231,7 @@ current multi-seed performance가 개선됨
 
 # 6. 2026-08-11 diagnostic은 어디에 위치하는가
 
-과거 2k same-checkpoint diagnostic에서:
+과거 2k [같은 체크포인트(same-checkpoint)](Experiments) diagnostic에서:
 
 ```text
 no-Imagination : 4 / 20
@@ -246,7 +246,7 @@ bad-status errors        58 / 86
 
 이 결과는 **current performance scoreboard가 아니다.**
 
-당시 architecture의 잘못된 intervention을 분석해 다음 repair를 설계한 historical evidence다.
+당시 architecture의 잘못된 실제 행동 개입을 분석해 다음 repair를 설계한 historical evidence다.
 
 ```text
 Relational State v2에서 status 소실
@@ -283,7 +283,7 @@ imagined transition
 → real replay fact로 자동 승격하지 않음
 ```
 
-Current comparison에서는 training-time Imagination intervention을 끈다.
+Current comparison에서는 training-time [Imagination](Imagination) 실제 행동 개입을 끈다.
 
 ## 7.2 Root action identity
 
@@ -295,11 +295,11 @@ Current comparison에서는 training-time Imagination intervention을 끈다.
 = relational legal slot
 ```
 
-그래서 concrete alias는 구분해 실행하지만 구조적으로 같은 root의 model/Critic 계산은 deduplicate할 수 있다.
+그래서 concrete alias는 구분해 실행하지만 구조적으로 같은 root의 model/[Critic](Critic) 계산은 deduplicate할 수 있다.
 
 ## 7.3 Reliability gate
 
-Prediction reliability는 value bonus가 아니다.
+[예측 신뢰도(Prediction reliability)](Calibration)는 value bonus가 아니다.
 
 ```text
 높은 reliability
@@ -308,7 +308,7 @@ Prediction reliability는 value bonus가 아니다.
 
 ## 7.4 Local support gate
 
-Critic의 global readiness만으로 override하지 않는다.
+[Critic](Critic)의 global readiness만으로 override하지 않는다.
 
 ```text
 unsupported imagined state/action
@@ -318,7 +318,7 @@ unsupported imagined state/action
 
 ## 7.5 Advantage margin
 
-Planner가 Policy를 바꾸려면 candidate value가 Policy root보다 fixed margin을 넘어야 한다.
+Planner가 [Policy](Policy)를 바꾸려면 candidate value가 [Policy](Policy) root보다 fixed margin을 넘어야 한다.
 
 이 margin은 evaluation 전에 고정하고 결과를 보고 사후 조정하지 않는다.
 
@@ -330,11 +330,11 @@ Planner가 Policy를 바꾸려면 candidate value가 Policy root보다 fixed mar
 
 | Condition | 분리하려는 효과 |
 |---|---|
-| `dqn_raw` | 가장 단순한 corrected model-free baseline |
-| `dqn_relational` | relational representation 효과 |
-| `dreamerv3_relational` | external model-based imagination baseline |
-| `aassr_current_no_imagination` | AASSR stack beyond representation |
-| `aassr_current_full` | Imagination marginal effect |
+| `dqn_raw` | 가장 단순한 corrected model-free [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility) |
+| `dqn_relational` | [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization) 효과 |
+| `dreamerv3_relational` | external model-based imagination 비교 기준 |
+| `aassr_current_no_imagination` | AASSR stack beyond [표현(representation)](Relational-Representation-and-Generalization) |
+| `aassr_current_full` | [Imagination](Imagination) marginal effect |
 
 AASSR OFF/ON은 반드시:
 
@@ -354,7 +354,7 @@ one AASSR checkpoint
 
 # 9. 다음 validation gate
 
-current architecture의 성능 claim을 올리기 전에 순서를 지킨다.
+현재 구조의 성능 claim을 올리기 전에 순서를 지킨다.
 
 ```text
 [1] current unit / regression contract
@@ -384,7 +384,7 @@ current architecture의 성능 claim을 올리기 전에 순서를 지킨다.
 
 # 10. 현재 연구를 한 문장으로
 
-> **AASSR current-generation은 sparse-reward·partial-observation 환경에서 relational DQN, empirical ASEQ, episode-local Knowledge, stochastic conditional-mixture Prophecy, status-aware Calibration, sparse-return GRU Critic, local real-training support, multi-step counterfactual Imagination, relational Skill을 하나의 response-causal runtime으로 통합한 상태이며, 현재 연구의 핵심은 이 구조가 same-checkpoint 및 multi-seed 평가에서 실제 장기 문제 해결 성능을 높이는지 분리 검증하는 것이다.**
+> **AASSR current-generation은 sparse-[보상(reward)](Sparse-Reward-and-Credit-Assignment)·partial-[관측(observation)](MDP-and-POMDP) 환경에서 relational [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD), empirical [ASEQ](ASEQ), episode-local [Knowledge](Knowledge), stochastic [조건부 혼합(conditional-mixture)](Prophecy) [Prophecy](Prophecy), 상태 코드까지 고려하는 [Calibration](Calibration), sparse-누적 보상 [GRU](GRU-and-Sequence-Models) [Critic](Critic), local real-training support, multi-step counterfactual [Imagination](Imagination), relational [Skill(성공 절차 재사용)](Skills)을 하나의 response-causal runtime으로 통합한 상태이며, 현재 연구의 핵심은 이 구조가 같은 체크포인트 및 multi-[난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility) 평가에서 실제 장기 문제 해결 성능을 높이는지 분리 검증하는 것이다.**
 
 이 문장보다 강한 성능 주장은 [Evidence Matrix](Evidence-Matrix)의 evidence level이 올라간 뒤 갱신한다.
 

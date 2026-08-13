@@ -3,7 +3,7 @@
 이 페이지는 **현재 AASSR current-generation runtime의 실제 구조**를 설명한다.
 
 > [!WARNING]
-> 저장소에는 과거 실험 재현을 위한 `OnlineGRUProphecy`, `SemanticContextualPolicy`, old effect-composition, AASSR v0.4 경로가 남아 있다. 현재 runtime의 source of truth는 `src/aassr_v2/current_manifest.py`이며, `LEGACY_COMPONENTS_ACTIVE`는 비어 있어야 한다.
+> 저장소에는 과거 실험 재현을 위한 `OnlineGRUProphecy`, `SemanticContextualPolicy`, old effect-composition, AASSR v0.4 경로가 남아 있다. 현재 runtime의 [최종 기준(source of truth)](Current-Status)는 `src/aassr_v2/current_manifest.py`이며, `LEGACY_COMPONENTS_ACTIVE`는 비어 있어야 한다.
 
 ## 1. Current-generation component map
 
@@ -17,19 +17,19 @@ aassr-current-generation-v2
 
 | Layer | Current contract | 역할 |
 |---|---|---|
-| Observation | `response_causal_observation_v3` | agent가 실제로 볼 수 있는 정보만 노출 |
-| ASEQ | `semantic-self-loop-empirical-v3` | 경험적으로 확인된 self-loop 억제 |
-| Policy | `relational-invariant-dqn+information-residual-v1` | 현재 행동 가치 + 정보 가치 |
-| Policy state | `relational-public-structural-v3+latest-http-status` | rename-invariant public state |
-| Policy action | `relational-role-features-v1` | concrete ID 대신 역할 관계 |
-| Prophecy | `relational-stochastic-world-model-v3-status-supervised` | 확률적 다음 상태 예측 |
-| Calibration | `semantic-probability-holdout-calibration-v3-status-aware` | 예측 신뢰도 측정 |
-| Knowledge | `episode-local-response-knowledge-context-v1` | 현재 episode에서 얻은 응답 지식 |
-| Critic | `relational-gru-discounted-sparse-return` 계열 | 미래 sparse return 평가 |
-| Critic support | `local-real-training-support-fail-closed-v1` | OOD override 방지 |
-| Imagination | `root-preserving-parallel-universe-tree-v6` 계열 | chance/decision 분리 미래 탐색 |
-| Skills | `relational-aseq-template-v1` | 반복 성공 ASeq의 재사용 |
-| Training Imagination | `disabled-same-checkpoint` | 학습 중 개입 없음, 평가에서만 OFF/ON 비교 |
+| [관측(Observation)](MDP-and-POMDP) | `response_causal_observation_v3` | [에이전트(agent)](Reinforcement-Learning)가 실제로 볼 수 있는 정보만 노출 |
+| [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ) | `semantic-self-loop-empirical-v3` | 경험적으로 확인된 [제자리 반복(self-loop)](ASEQ) 억제 |
+| [Policy(정책 모델)](Policy) | `relational-invariant-dqn+information-residual-v1` | 현재 행동 가치 + 정보 가치 |
+| [Policy](Policy) state | `relational-public-structural-v3+latest-http-status` | rename-invariant public state |
+| [Policy](Policy) [행동(action)](Reinforcement-Learning) | `relational-role-features-v1` | concrete ID 대신 역할 관계 |
+| [Prophecy(미래 예측 모델)](Prophecy) | `relational-stochastic-world-model-v3-status-supervised` | 확률적 다음 상태 예측 |
+| [Calibration(예측 신뢰도 보정)](Calibration) | `semantic-probability-holdout-calibration-v3-status-aware` | 예측 신뢰도 측정 |
+| [Knowledge(에피소드 지식)](Knowledge) | `episode-local-response-knowledge-context-v1` | 현재 episode에서 얻은 응답 지식 |
+| [Critic(미래 가치 평가기)](Critic) | `relational-gru-discounted-sparse-return` 계열 | 미래 sparse [누적 보상(return)](Value-Functions-and-Bellman-Equation) 평가 |
+| [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD) | `local-real-training-support-fail-closed-v1` | [학습 분포 밖(OOD)](Critic-Support-and-OOD) override 방지 |
+| [Imagination(가상 미래 탐색)](Imagination) | `root-preserving-parallel-universe-tree-v6` 계열 | chance/decision 분리 미래 탐색 |
+| [Skills(성공 절차 재사용)](Skills) | `relational-aseq-template-v1` | 반복 성공 ASeq의 재사용 |
+| Training [Imagination](Imagination) | `disabled-same-checkpoint` | 학습 중 개입 없음, 평가에서만 OFF/ON 비교 |
 
 ---
 
@@ -71,7 +71,7 @@ flowchart TD
     REAL --> KNOW
 ```
 
-핵심 원칙은 **상상은 계획에만 쓰이고, 학습의 사실 근거는 real transition**이라는 것이다.
+핵심 원칙은 **상상은 계획에만 쓰이고, 학습의 사실 근거는 real [상태 전이(transition)](MDP-and-POMDP)**이라는 것이다.
 
 ---
 
@@ -85,8 +85,8 @@ flowchart TD
 
 - 실제 응답에서 관측 가능한 public facts
 - discovered route/profile/object 관계
-- 현재 available action surface
-- session/CSRF의 존재 여부처럼 agent가 직접 확인한 상태
+- 현재 available 행동 surface
+- session/CSRF의 존재 여부처럼 에이전트가 직접 확인한 상태
 - self-counted request usage
 - self-observed workflow progress
 - **latest public HTTP status**
@@ -102,12 +102,12 @@ flowchart TD
 - 정확한 hidden audit pressure
 - 정확한 hidden session countdown
 - hidden workflow depth
-- scenario 내부 정답 action
+- scenario 내부 정답 행동
 - target 정답 label
 - future state
-- hidden curriculum metadata를 통한 shortcut
+- hidden [난이도 조절 학습(curriculum)](Curriculum-Learning) metadata를 통한 shortcut
 
-즉 world model이 예측해야 할 것을 observation에서 몰래 제공하지 않는다.
+즉 [세계 모델(world model)](Model-Based-RL-and-World-Models)이 예측해야 할 것을 [관측(observation)](MDP-and-POMDP)에서 몰래 제공하지 않는다.
 
 ---
 
@@ -119,7 +119,7 @@ flowchart TD
 
 사용처:
 
-- ASEQ
+- [ASEQ](ASEQ)
 - episode-local exact repetition 판단
 - concrete cycle detection
 
@@ -129,18 +129,18 @@ flowchart TD
 route-12 != route-31
 ```
 
-이 구분이 없으면 서로 다른 대상을 같은 self-loop로 잘못 막을 수 있다.
+이 구분이 없으면 서로 다른 대상을 같은 제자리 반복로 잘못 막을 수 있다.
 
 ## 4.2 Relational transfer identity
 
 사용처:
 
-- Policy
-- Prophecy
-- Critic
-- Skill
-- relational DQN baseline
-- DreamerV3 adapter
+- [Policy](Policy)
+- [Prophecy](Prophecy)
+- [Critic](Critic)
+- [Skill(성공 절차 재사용)](Skills)
+- relational [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility)
+- [DreamerV3(외부 세계 모델 강화학습 비교군)](Experiments) adapter
 
 여기서는 concrete 이름보다 관측된 관계를 본다.
 
@@ -151,13 +151,13 @@ Scenario B: route-31 = catalog-like route
 => same relational role
 ```
 
-이 덕분에 seed가 바뀌어 ID가 전부 rename되어도 구조가 같으면 transfer할 수 있다.
+이 덕분에 [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)가 바뀌어 ID가 전부 rename되어도 구조가 같으면 [전이(transfer)](Relational-Representation-and-Generalization)할 수 있다.
 
 ---
 
 # 5. Policy
 
-현재 Policy는 **relational DQN + separate information-value residual**이다.
+현재 [Policy](Policy)는 **relational [DQN](Q-Learning-DQN-and-TD) + separate [정보 가치 잔차(information-value residual)](Policy)**이다.
 
 개념적으로:
 
@@ -167,7 +167,7 @@ Q_total(S,A)
  + information_residual(S,A)
 ```
 
-단, information residual은 외부 reward를 바꾸는 reward shaping이 아니다. 외부 task reward는 끝까지 다음 그대로 유지한다.
+단, [정보 가치 잔차(information residual)](Policy)은 외부 [보상(reward)](Sparse-Reward-and-Credit-Assignment)를 바꾸는 보상 shaping이 아니다. 외부 task 보상는 끝까지 다음 그대로 유지한다.
 
 ```text
 success       +1
@@ -175,11 +175,11 @@ true failure  -1
 otherwise      0
 ```
 
-Policy state/action input 모두 relational representation을 사용한다.
+[Policy](Policy) state/행동 input 모두 [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)을 사용한다.
 
 ## 왜 raw DQN baseline도 따로 두는가?
 
-최종 비교에서 representation 자체의 효과와 AASSR 구조의 효과를 분리하기 위해서다.
+최종 비교에서 [표현(representation)](Relational-Representation-and-Generalization) 자체의 효과와 AASSR 구조의 효과를 분리하기 위해서다.
 
 ```text
 dqn_raw
@@ -201,7 +201,7 @@ aassr_current_full
 
 # 6. Knowledge
 
-Knowledge는 **episode-local response knowledge**다.
+[Knowledge](Knowledge)는 **episode-local response knowledge**다.
 
 중요한 방법론 경계:
 
@@ -218,15 +218,15 @@ real response
 새 Knowledge 획득
 ```
 
-방금 transition 결과에서 얻은 정보를 다시 그 transition의 행동 전 예측에 넣으면 hindsight leak이 된다. 현재 구조는 이를 허용하지 않는다.
+방금 상태 전이 결과에서 얻은 정보를 다시 그 상태 전이의 행동 전 예측에 넣으면 hindsight leak이 된다. 현재 구조는 이를 허용하지 않는다.
 
-Evaluation 중 response에서 얻는 episode-local Knowledge는 사용할 수 있지만 persistent learning state를 바꾸면 안 된다.
+Evaluation 중 response에서 얻는 episode-local [Knowledge](Knowledge)는 사용할 수 있지만 persistent learning state를 바꾸면 안 된다.
 
 ---
 
 # 7. Prophecy: stochastic relational world model
 
-현재 Prophecy는 과거 deterministic concrete delta model이 아니다.
+현재 [Prophecy](Prophecy)는 과거 deterministic concrete delta model이 아니다.
 
 입력:
 
@@ -250,7 +250,7 @@ latest HTTP status
 terminal class
 ```
 
-terminal class는 네 종류로 분리한다.
+[에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) class는 네 종류로 분리한다.
 
 1. `active`
 2. `success`
@@ -259,7 +259,7 @@ terminal class는 네 종류로 분리한다.
 
 ## 왜 mixture가 필요한가?
 
-같은 public state/action에서도 hidden seed condition 때문에 여러 결과가 나올 수 있다.
+같은 public state/행동에서도 hidden 난수 시드 condition 때문에 여러 결과가 나올 수 있다.
 
 결정론적 평균 하나만 예측하면:
 
@@ -295,15 +295,15 @@ Planner의 chance backup은 전자를 사용하고, gate는 후자를 신뢰도 
 
 # 8. Semantic calibration
 
-Calibration은 holdout real transition에서 Prophecy가 얼마나 맞는지 측정한다.
+[Calibration](Calibration)은 [검증용 분리 데이터(holdout)](Calibration) real 상태 전이에서 [Prophecy](Prophecy)가 얼마나 맞는지 측정한다.
 
-현재 status-aware calibration은 단순 vector distance만 보지 않는다.
+현재 [상태 코드까지 고려하는(status-aware)](Calibration) calibration은 단순 vector distance만 보지 않는다.
 
 평가 대상에는 다음이 포함된다.
 
 - relational semantic next-state quality
-- legal-action mask accuracy
-- terminal class accuracy
+- [가능 행동 마스크(legal-action mask)](Prophecy) accuracy
+- 에피소드 종료 class accuracy
 - public HTTP status correctness
 - probability-weighted semantic quality
 
@@ -313,7 +313,7 @@ Calibration은 holdout real transition에서 Prophecy가 얼마나 맞는지 측
 
 # 9. Critic
 
-현재 Critic은 relational GRU 기반이며 **실제 sparse task return**을 학습한다.
+현재 [Critic](Critic)은 relational [GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) 기반이며 **실제 sparse task 누적 보상**을 학습한다.
 
 ```text
 success       +1
@@ -321,13 +321,13 @@ truncation     0
 true failure  -1
 ```
 
-예전처럼 non-success를 전부 `0`으로 두면 실제 실패와 단순 budget truncation을 구분할 수 없다.
+예전처럼 non-success를 전부 `0`으로 두면 실제 실패와 단순 budget [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries)을 구분할 수 없다.
 
 ## Zero-memory decision suffix training
 
-Imagination은 임의의 현재 real decision point에서 planning을 시작할 수 있다.
+[Imagination](Imagination)은 임의의 현재 real decision point에서 planning을 시작할 수 있다.
 
-따라서 Critic도 trajectory 시작점에서만 학습하면 계약이 맞지 않는다.
+따라서 [Critic](Critic)도 trajectory 시작점에서만 학습하면 계약이 맞지 않는다.
 
 현재 학습은 trajectory의 여러 suffix를 학습해 다음 형태를 맞춘다.
 
@@ -346,7 +346,7 @@ S3
 
 ## Local Critic support gate
 
-`critic_ready=True`는 “Critic이 학습을 한 적 있다”는 뜻이지, 모든 상태를 잘 안다는 뜻은 아니다.
+`critic_ready=True`는 “[Critic](Critic)이 학습을 한 적 있다”는 뜻이지, 모든 상태를 잘 안다는 뜻은 아니다.
 
 그래서 현재 gate는 다음을 추가로 묻는다.
 
@@ -355,7 +355,7 @@ S3
 실제 Critic training data에서 지원되는가?
 ```
 
-지원되지 않으면 **fail closed**하고 Policy override를 허용하지 않는다.
+지원되지 않으면 **fail closed**하고 [Policy](Policy) override를 허용하지 않는다.
 
 이 support는 value bonus가 아니다.
 
@@ -383,13 +383,13 @@ V_decision = max_a V(a)
 
 ## Root preservation
 
-실제로 실행 가능한 root action은 평가 중 사라지면 안 된다.
+실제로 실행 가능한 root 행동은 평가 중 사라지면 안 된다.
 
-깊은 branch가 pruning되더라도 root 자체는 남고 이미 계산한 Critic value로 fallback한다.
+깊은 branch가 pruning되더라도 root 자체는 남고 이미 계산한 [Critic](Critic) value로 fallback한다.
 
 ## Structural root deduplication
 
-현재 pentest action surface에는 이름만 다른 concrete alias가 매우 많을 수 있다.
+현재 pentest 행동 surface에는 이름만 다른 concrete alias가 매우 많을 수 있다.
 
 예:
 
@@ -402,13 +402,13 @@ V_decision = max_a V(a)
 
 현재 planner는 같은 relational structure의 root를 한 번만 계산하고 값을 concrete aliases에 fan-out한다.
 
-실제 concrete identity는 최종 행동 실행 직전에만 bind한다.
+실제 [실제 개체 구분(concrete identity)](State-Representation)는 최종 행동 실행 직전에만 bind한다.
 
 ---
 
 # 11. Skills
 
-Skill은 정답 macro를 사람이 넣는 기능이 아니다.
+[Skill](Skills)은 정답 macro를 사람이 넣는 기능이 아니다.
 
 반복적으로 성공한 ASeq가 동일한 relational goal/structure에서 다시 나타날 때 template 후보로 승격될 수 있다.
 
@@ -422,9 +422,9 @@ repeated successful pattern
 relational Skill template
 ```
 
-새 scenario에서는 concrete ID가 달라질 수 있으므로 template를 현재 concrete action surface에 다시 bind한다.
+새 scenario에서는 concrete ID가 달라질 수 있으므로 template를 현재 [실제 실행 행동(concrete action)](State-Representation) surface에 다시 bind한다.
 
-Skill rollout도 stochastic outcome mass와 reliability를 분리해서 다룬다.
+[Skill](Skills) rollout도 stochastic outcome mass와 reliability를 분리해서 다룬다.
 
 ---
 
@@ -443,7 +443,7 @@ Evaluation B:
 same frozen checkpoint + Imagination ON
 ```
 
-따라서 no-Imagination vs Full 비교에서 차이는 planner 사용 여부 하나여야 한다.
+따라서 no-[Imagination](Imagination) vs Full 비교에서 차이는 planner 사용 여부 하나여야 한다.
 
 Evaluation 전후 persistent learning fingerprint가 바뀌면 methodology violation이다.
 
@@ -453,19 +453,19 @@ Evaluation 전후 persistent learning fingerprint가 바뀌면 methodology viola
 
 현재 CUDA device는 다음 모듈이 공유한다.
 
-- DQN Policy
-- stochastic relational world model
-- GRU Critic
+- [DQN](Q-Learning-DQN-and-TD) [Policy](Policy)
+- stochastic relational 세계 모델
+- [GRU](GRU-and-Sequence-Models) [Critic](Critic)
 
 주요 batch 최적화:
 
-- 한 Imagination depth의 Policy frontier를 한 batch로 평가
+- 한 [Imagination](Imagination) depth의 [Policy](Policy) frontier를 한 batch로 평가
 - primitive world-model branches를 depth 단위 batch 처리
-- predicted outputs bulk host transfer
-- Critic children batch scoring
-- padded/masked episode-batched Critic training
-- DQN Bellman next-action max를 device-side `scatter_reduce(amax)`로 계산
-- frozen holdout calibration batch refresh
+- predicted outputs bulk host 전이
+- [Critic](Critic) children batch scoring
+- padded/masked episode-batched [Critic](Critic) training
+- [DQN](Q-Learning-DQN-and-TD) Bellman next-행동 max를 device-side `scatter_reduce(amax)`로 계산
+- frozen 검증용 분리 데이터 calibration batch refresh
 - structural root deduplication
 
 이 최적화는 알고리즘 의미를 바꾸는 것이 아니라 같은 계산을 accelerator-friendly하게 묶는 것이 목표다.

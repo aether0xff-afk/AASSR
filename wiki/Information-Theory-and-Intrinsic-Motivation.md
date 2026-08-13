@@ -1,6 +1,6 @@
 # Information Theory and Intrinsic Motivation
 
-AASSR의 [Policy](Policy)는 외부 sparse task return과 별도로 **information-value residual**을 유지한다. 이 페이지는 그 배경을 이해하는 데 필요한 정보이론과 intrinsic motivation 개념을 정리한다.
+AASSR의 [Policy](Policy)는 외부 sparse task [누적 보상(return)](Value-Functions-and-Bellman-Equation)과 별도로 **[정보 가치 잔차(information-value residual)](Policy)**을 유지한다. 이 페이지는 그 배경을 이해하는 데 필요한 정보이론과 [내재 동기(intrinsic motivation)](Information-Theory-and-Intrinsic-Motivation) 개념을 정리한다.
 
 AASSR의 current residual이 아래 모든 이론을 그대로 구현한다는 뜻은 아니다. **관련 개념을 구분하기 위한 배경 문서**다.
 
@@ -8,7 +8,7 @@ AASSR의 current residual이 아래 모든 이론을 그대로 구현한다는 �
 
 # 1. 정보란 무엇인가?
 
-직관적으로 어떤 observation이 우리가 모르던 것을 줄여주면 정보를 얻었다고 말할 수 있다.
+직관적으로 어떤 [관측(observation)](MDP-and-POMDP)이 우리가 모르던 것을 줄여주면 정보를 얻었다고 말할 수 있다.
 
 예:
 
@@ -20,7 +20,7 @@ response 관측 후:
 새 route의 역할을 알게 됨
 ```
 
-Task reward는 즉시 `0`이어도 이후 action choice는 크게 달라질 수 있다.
+Task [보상(reward)](Sparse-Reward-and-Credit-Assignment)는 즉시 `0`이어도 이후 [행동(action)](Reinforcement-Learning) choice는 크게 달라질 수 있다.
 
 ---
 
@@ -70,7 +70,7 @@ H(X|Y)
 
 이다.
 
-Observation을 얻은 뒤 hidden situation에 대한 uncertainty가 얼마나 줄었는지 생각할 때 연결된다.
+[관측(Observation)](MDP-and-POMDP)을 얻은 뒤 hidden situation에 대한 uncertainty가 얼마나 줄었는지 생각할 때 연결된다.
 
 ---
 
@@ -111,7 +111,7 @@ Bayesian information gain에서는 행동 전 belief와 행동 후 posterior 사
 
 # 7. Information gain
 
-행동 전 belief `p(z)`와 observation 후 posterior `p(z|o)`의 변화:
+행동 전 belief `p(z)`와 관측 후 posterior `p(z|o)`의 변화:
 
 ```math
 IG=D_{KL}(p(z|o)\|p(z))
@@ -130,7 +130,7 @@ IG=D_{KL}(p(z|o)\|p(z))
 
 # 8. Task information과 Novelty는 다르다
 
-처음 보는 observation이라고 모두 유용한 것은 아니다.
+처음 보는 관측이라고 모두 유용한 것은 아니다.
 
 ```text
 새로운 랜덤 문자열
@@ -140,19 +140,19 @@ IG=D_{KL}(p(z|o)\|p(z))
 
 좋은 information signal은 단순 novelty보다 **future decision quality와 연결**되어야 한다.
 
-AASSR가 information residual을 이해할 때 이 차이가 중요하다.
+AASSR가 [정보 가치 잔차(information residual)](Policy)을 이해할 때 이 차이가 중요하다.
 
 ---
 
 # 9. Intrinsic motivation
 
-환경의 외부 task reward와 별개로 agent 내부에서 exploration을 유도하는 signal을 만든다.
+환경의 외부 task 보상와 별개로 [에이전트(agent)](Reinforcement-Learning) 내부에서 [탐색(exploration)](Exploration-and-Exploitation)을 유도하는 signal을 만든다.
 
 대표적인 계열:
 
 - curiosity
 - novelty
-- count-based exploration
+- count-based 탐색
 - information gain
 - empowerment
 
@@ -186,7 +186,7 @@ Information residual
 
 # 11. Curiosity by prediction error
 
-한 방법은 world model prediction error가 큰 observation을 흥미롭다고 보는 것이다.
+한 방법은 [세계 모델(world model)](Model-Based-RL-and-World-Models) prediction error가 큰 관측을 흥미롭다고 보는 것이다.
 
 ```math
 r_{int}\propto\|\hat s'-s'\|
@@ -194,13 +194,13 @@ r_{int}\propto\|\hat s'-s'\|
 
 처음 보는 dynamics를 탐색하는 데 도움이 될 수 있다.
 
-하지만 environment noise가 본질적으로 예측 불가능하면 계속 큰 reward가 생길 수 있다.
+하지만 [환경(environment)](Reinforcement-Learning) noise가 본질적으로 예측 불가능하면 계속 큰 보상가 생길 수 있다.
 
 ---
 
 # 12. Noisy-TV problem
 
-Agent가 예측하기 어려운 랜덤 noise source만 계속 바라보는 failure mode다.
+[에이전트(Agent)](Reinforcement-Learning)가 예측하기 어려운 랜덤 noise source만 계속 바라보는 failure mode다.
 
 ```text
 랜덤 noise
@@ -221,25 +221,25 @@ Agent가 예측하기 어려운 랜덤 noise source만 계속 바라보는 failu
 B(s)\propto\frac1{\sqrt{N(s)}}
 ```
 
-큰/continuous state space에서는 exact state count가 어렵기 때문에 pseudo-count나 representation-based count를 사용할 수 있다.
+큰/continuous state space에서는 exact state count가 어렵기 때문에 pseudo-count나 [표현(representation)](Relational-Representation-and-Generalization)-based count를 사용할 수 있다.
 
-AASSR에서는 relational state를 쓰므로 structural novelty를 정의할 가능성도 있지만 current main external reward에 count bonus를 넣는 구조는 아니다.
+AASSR에서는 relational state를 쓰므로 structural novelty를 정의할 가능성도 있지만 current main external 보상에 count bonus를 넣는 구조는 아니다.
 
 ---
 
 # 14. Empowerment
 
-Agent의 action이 미래 state를 얼마나 다양하게 제어할 수 있는지와 관련된 intrinsic objective다.
+에이전트의 행동이 미래 state를 얼마나 다양하게 제어할 수 있는지와 관련된 intrinsic objective다.
 
-대략 action과 future state 사이 mutual information을 최대화하는 관점과 연결된다.
+대략 행동과 future state 사이 mutual information을 최대화하는 관점과 연결된다.
 
-AASSR current information residual과 동일한 개념은 아니지만 **정보/통제 가능성에 내부 가치를 줄 수 있다**는 관련 연구 배경이다.
+AASSR current 정보 가치 잔차과 동일한 개념은 아니지만 **정보/통제 가능성에 내부 가치를 줄 수 있다**는 관련 연구 배경이다.
 
 ---
 
 # 15. Information value와 Expected task return
 
-어떤 정보 행동은 지금 task return 추정치가 낮아도 미래 선택을 개선할 수 있다.
+어떤 정보 행동은 지금 task 누적 보상 추정치가 낮아도 미래 선택을 개선할 수 있다.
 
 ```text
 Action A
@@ -249,9 +249,9 @@ Action A
 → 몇 단계 뒤 success
 ```
 
-Information value를 완전히 external return 안에서만 학습하려면 성공 sample을 통해 긴 credit assignment가 필요하다.
+Information value를 완전히 external 누적 보상 안에서만 학습하려면 성공 sample을 통해 긴 [보상 책임 배분(credit assignment)](Sparse-Reward-and-Credit-Assignment)가 필요하다.
 
-AASSR Policy는 별도 residual로 이 내부 값을 추적한다.
+AASSR [Policy(정책 모델)](Policy)는 별도 residual로 이 내부 값을 추적한다.
 
 ---
 
@@ -263,7 +263,7 @@ r'=r_{task}+\beta r_{info}
 
 처럼 합치면 learner objective 자체가 바뀐다.
 
-AASSR의 연구 질문은 sparse external reward를 유지하는 것이므로:
+AASSR의 연구 질문은 sparse external 보상를 유지하는 것이므로:
 
 ```text
 DQN external Q
@@ -290,15 +290,15 @@ AASSR 개념식:
 score(S,A)=Q_{task}(S,A)+I(S,A)
 ```
 
-여기서 `I`가 information residual이다.
+여기서 `I`가 정보 가치 잔차이다.
 
-하지만 `I`는 task reward 자체가 아니다.
+하지만 `I`는 task 보상 자체가 아니다.
 
 ---
 
 # 18. Information residual dominance
 
-Internal signal이 너무 크면 agent가 목표를 끝내기보다 계속 정보를 모으는 행동만 선호할 수 있다.
+Internal signal이 너무 크면 에이전트가 목표를 끝내기보다 계속 정보를 모으는 행동만 선호할 수 있다.
 
 ```text
 탐색 → 정보
@@ -331,7 +331,7 @@ Knowledge
 
 # 20. Information과 Uncertainty
 
-Uncertainty가 높은 action이 항상 informative한 것은 아니다.
+Uncertainty가 높은 행동이 항상 informative한 것은 아니다.
 
 ```text
 높은 uncertainty
@@ -339,23 +339,23 @@ Uncertainty가 높은 action이 항상 informative한 것은 아니다.
 → information gain은 낮을 수 있음
 ```
 
-반대로 현재 outcome은 거의 deterministic하지만 중요한 hidden fact를 공개하는 action은 매우 informative할 수 있다.
+반대로 현재 outcome은 거의 deterministic하지만 중요한 hidden fact를 공개하는 행동은 매우 informative할 수 있다.
 
 ---
 
 # 21. Information와 Prophecy
 
-World model은 action outcome을 예측한다.
+World model은 행동 outcome을 예측한다.
 
-Information-seeking planner라면 "이 action이 model uncertainty를 얼마나 줄일까?"까지 계획할 수 있다.
+Information-seeking planner라면 "이 행동이 model uncertainty를 얼마나 줄일까?"까지 계획할 수 있다.
 
-AASSR current Imagination의 주요 objective는 external sparse-return planning이며, uncertainty 자체를 positive task value로 사용하지 않는다.
+AASSR current [Imagination(가상 미래 탐색)](Imagination)의 주요 objective는 external sparse-누적 보상 planning이며, uncertainty 자체를 positive task value로 사용하지 않는다.
 
 ---
 
 # 22. Information signal의 공정성
 
-Internal information signal이 benchmark의 hidden correct structure를 직접 참조하면 사실상 shaping/oracle이 된다.
+Internal information signal이 [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)의 hidden correct structure를 직접 참조하면 사실상 shaping/oracle이 된다.
 
 허용 가능한 방향:
 

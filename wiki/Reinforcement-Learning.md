@@ -1,6 +1,6 @@
-# Reinforcement Learning
+# 강화학습 (Reinforcement Learning)
 
-[강화학습(Reinforcement Learning, RL)](Reinforcement-Learning)은 **에이전트(agent)가 환경(environment)과 상호작용하면서 장기적인 누적 보상을 최대화하는 행동 규칙을 학습하는 문제**다.
+[강화학습(Reinforcement Learning, RL)](Reinforcement-Learning)은 **에이전트([에이전트(agent)](Reinforcement-Learning))가 환경([환경(environment)](Reinforcement-Learning))과 상호작용하면서 장기적인 누적 보상을 최대화하는 행동 규칙을 학습하는 문제**다.
 
 AASSR을 이해하려면 먼저 강화학습의 기본 언어를 정확히 구분해야 한다. 특히 `state`, `observation`, `reward`, `return`, `policy`, `value`, `world model`은 서로 다른 개념이다.
 
@@ -34,7 +34,7 @@ A_t \sim \pi(\cdot\mid O_t)
 S_{t+1} \sim P(\cdot\mid S_t,A_t)
 ```
 
-그리고 reward:
+그리고 [보상(reward)](Sparse-Reward-and-Credit-Assignment):
 
 ```math
 R_{t+1} = R(S_t,A_t,S_{t+1})
@@ -42,7 +42,7 @@ R_{t+1} = R(S_t,A_t,S_{t+1})
 
 을 내놓는 식으로 생각할 수 있다.
 
-완전 관측 환경에서는 agent가 `S_t` 자체를 볼 수 있지만, [부분 관측(POMDP)](MDP-and-POMDP#5-pomdp-partially-observable-markov-decision-process)에서는 실제 내부 상태 `S_t` 대신 observation `O_t`만 볼 수 있다.
+완전 관측 환경에서는 에이전트가 `S_t` 자체를 볼 수 있지만, [부분 관측(POMDP)](MDP-and-POMDP#5-pomdp-partially-observable-markov-decision-process)에서는 실제 내부 상태 `S_t` 대신 [관측(observation)](MDP-and-POMDP) `O_t`만 볼 수 있다.
 
 AASSR은 후자에 더 가까운 문제를 다룬다.
 
@@ -50,9 +50,9 @@ AASSR은 후자에 더 가까운 문제를 다룬다.
 
 # 2. Agent
 
-**Agent**는 행동을 선택하는 주체다.
+**[에이전트(Agent)](Reinforcement-Learning)**는 행동을 선택하는 주체다.
 
-AASSR에서는 하나의 신경망만 agent인 것이 아니다. 실제 decision은 여러 구성요소의 조합으로 만들어진다.
+AASSR에서는 하나의 신경망만 에이전트인 것이 아니다. 실제 decision은 여러 구성요소의 조합으로 만들어진다.
 
 ```text
 Relational State
@@ -68,7 +68,7 @@ Prophecy + Imagination + Critic
 실제 concrete action 실행
 ```
 
-즉 AASSR 전체가 agent이며, `Policy`는 그 안의 기본 행동 선택기다.
+즉 AASSR 전체가 에이전트이며, `Policy`는 그 안의 기본 행동 선택기다.
 
 관련 페이지:
 
@@ -80,9 +80,9 @@ Prophecy + Imagination + Critic
 
 # 3. Environment
 
-**Environment**는 agent의 행동을 받아 상태를 변화시키고 observation과 reward를 돌려주는 외부 세계다.
+**[환경(Environment)](Reinforcement-Learning)**는 에이전트의 행동을 받아 상태를 변화시키고 관측과 보상를 돌려주는 외부 세계다.
 
-AASSR 실험에서는 실제 외부 시스템 대신 안전한 in-process benchmark 환경을 사용한다.
+AASSR 실험에서는 실제 외부 시스템 대신 안전한 in-process [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility) 환경을 사용한다.
 
 중요한 구분:
 
@@ -114,9 +114,9 @@ P(S_{t+1}\mid S_t,A_t)
 
 가 성립한다.
 
-하지만 실제 agent가 이 완전한 상태를 항상 볼 수 있는 것은 아니다.
+하지만 실제 에이전트가 이 완전한 상태를 항상 볼 수 있는 것은 아니다.
 
-AASSR에서는 **환경의 hidden true state**와 **agent가 가진 public relational representation**을 의도적으로 구분한다.
+AASSR에서는 **환경의 hidden true state**와 **에이전트가 가진 public [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)**을 의도적으로 구분한다.
 
 관련 페이지:
 
@@ -127,7 +127,7 @@ AASSR에서는 **환경의 hidden true state**와 **agent가 가진 public relat
 
 # 5. Observation
 
-**Observation**은 agent가 실제로 관측할 수 있는 정보다.
+**[관측(Observation)](MDP-and-POMDP)**은 에이전트가 실제로 관측할 수 있는 정보다.
 
 완전 관측이면:
 
@@ -153,22 +153,22 @@ AASSR의 `response-causal public observation contract`는 learner가 실제 resp
 
 - 실제로 발견한 route 관계
 - 실제로 관측한 HTTP status
-- 실제 legal action surface
+- 실제 legal [행동(action)](Reinforcement-Learning) surface
 
-반면 다음은 직접 observation으로 주지 않는다.
+반면 다음은 직접 관측으로 주지 않는다.
 
 - 정답 route
 - hidden countdown
-- hidden curriculum level
+- hidden [난이도 조절 학습(curriculum)](Curriculum-Learning) level
 - 미래 결과
 
 ---
 
 # 6. Action
 
-**Action**은 agent가 환경에 가하는 선택이다.
+**[행동(Action)](Reinforcement-Learning)**은 에이전트가 환경에 가하는 선택이다.
 
-AASSR에서는 두 수준의 action identity를 구분한다.
+AASSR에서는 두 수준의 행동 identity를 구분한다.
 
 ```text
 Concrete action
@@ -190,7 +190,7 @@ GET /route-12
 catalog-like route를 request
 ```
 
-는 같은 action을 서로 다른 abstraction level에서 본 것이다.
+는 같은 행동을 서로 다른 abstr행동 level에서 본 것이다.
 
 관련 페이지:
 
@@ -201,15 +201,15 @@ catalog-like route를 request
 
 # 7. Reward
 
-**Reward**는 환경이 한 transition에 대해 주는 즉각적인 scalar 학습 신호다.
+**[보상(Reward)](Sparse-Reward-and-Credit-Assignment)**는 환경이 한 [상태 전이(transition)](MDP-and-POMDP)에 대해 주는 즉각적인 scalar 학습 신호다.
 
 ```math
 r_t \in \mathbb{R}
 ```
 
-AASSR의 핵심은 reward를 자주 주지 않는다는 것이다.
+AASSR의 핵심은 보상를 자주 주지 않는다는 것이다.
 
-대표 외부 reward contract:
+대표 외부 보상 contract:
 
 ```text
 success       +1
@@ -229,7 +229,7 @@ otherwise      0
 
 ## Reward
 
-현재 transition에서 바로 받은 값:
+현재 상태 전이에서 바로 받은 값:
 
 ```math
 R_{t+1}
@@ -237,15 +237,15 @@ R_{t+1}
 
 ## Return
 
-현재 시점부터 미래에 받을 reward들의 누적값:
+현재 시점부터 미래에 받을 보상들의 누적값:
 
 ```math
 G_t = R_{t+1} + \gamma R_{t+2} + \gamma^2R_{t+3}+\cdots
 ```
 
-즉 희소 보상에서는 현재 reward가 `0`이어도 현재 행동의 **장기 return**은 매우 클 수 있다.
+즉 희소 보상에서는 현재 보상가 `0`이어도 현재 행동의 **장기 [누적 보상(return)](Value-Functions-and-Bellman-Equation)**은 매우 클 수 있다.
 
-AASSR Critic이 학습하려는 것은 바로 이 sparse-return 구조다.
+AASSR [Critic(미래 가치 평가기)](Critic)이 학습하려는 것은 바로 이 sparse-누적 보상 구조다.
 
 관련 페이지:
 
@@ -256,15 +256,15 @@ AASSR Critic이 학습하려는 것은 바로 이 sparse-return 구조다.
 
 # 9. Discount factor γ
 
-`γ`는 먼 미래 reward를 얼마나 할인할지 정하는 값이다.
+`γ`는 먼 미래 보상를 얼마나 할인할지 정하는 값이다.
 
 ```math
 0 \le \gamma \le 1
 ```
 
-`γ`가 작으면 가까운 reward를 더 중요하게 보고, `γ`가 1에 가까우면 먼 미래도 강하게 고려한다.
+`γ`가 작으면 가까운 보상를 더 중요하게 보고, `γ`가 1에 가까우면 먼 미래도 강하게 고려한다.
 
-예를 들어 성공 `+1`이 4단계 뒤에 있고 다른 reward가 없다면 return은 대략:
+예를 들어 성공 `+1`이 4단계 뒤에 있고 다른 보상가 없다면 누적 보상은 대략:
 
 ```math
 \gamma^3
@@ -272,13 +272,13 @@ AASSR Critic이 학습하려는 것은 바로 이 sparse-return 구조다.
 
 가 된다.
 
-AASSR Critic의 discounted sparse-return target을 이해하려면 이 개념이 필요하다.
+AASSR [Critic](Critic)의 discounted sparse-누적 보상 target을 이해하려면 이 개념이 필요하다.
 
 ---
 
 # 10. Policy
 
-**Policy `π`**는 주어진 정보에서 어떤 행동을 선택할지 정의하는 규칙이다.
+**[Policy(정책 모델)](Policy) `π`**는 주어진 정보에서 어떤 행동을 선택할지 정의하는 규칙이다.
 
 확률적 policy:
 
@@ -292,13 +292,13 @@ AASSR Critic의 discounted sparse-return target을 이해하려면 이 개념이
 a=\pi(s)
 ```
 
-AASSR의 [Policy](Policy)는 relational DQN 기반 행동 점수와 별도 information residual을 이용해 기본 행동을 정한다.
+AASSR의 [Policy](Policy)는 relational [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) 기반 행동 점수와 별도 [정보 가치 잔차(information residual)](Policy)을 이용해 기본 행동을 정한다.
 
 중요한 점:
 
-> AASSR의 Imagination은 Policy 자체와 동일한 개념이 아니다.
+> AASSR의 [Imagination(가상 미래 탐색)](Imagination)은 [Policy](Policy) 자체와 동일한 개념이 아니다.
 
-Policy가 기본 행동을 제안하고, Imagination은 충분한 근거가 있을 때 그 행동을 바꿀 수 있다.
+[Policy](Policy)가 기본 행동을 제안하고, [Imagination](Imagination)은 충분한 근거가 있을 때 그 행동을 바꿀 수 있다.
 
 ---
 
@@ -318,9 +318,9 @@ V^\pi(s)=\mathbb{E}_\pi[G_t\mid S_t=s]
 Q^\pi(s,a)=\mathbb{E}_\pi[G_t\mid S_t=s,A_t=a]
 ```
 
-DQN은 `Q(s,a)`를 근사한다.
+[DQN](Q-Learning-DQN-and-TD)은 `Q(s,a)`를 근사한다.
 
-AASSR Critic도 넓은 의미에서는 미래 return을 근사하는 value estimator지만, 입력과 학습 계약이 Policy DQN과 다르다.
+AASSR [Critic](Critic)도 넓은 의미에서는 미래 누적 보상을 근사하는 value estimator지만, 입력과 학습 계약이 [Policy](Policy) [DQN](Q-Learning-DQN-and-TD)과 다르다.
 
 관련 페이지:
 
@@ -338,7 +338,7 @@ AASSR Critic도 넓은 의미에서는 미래 return을 근사하는 value estim
 S0, A0, R1, S1, A1, R2, S2, ...
 ```
 
-또는 transition 중심으로:
+또는 상태 전이 중심으로:
 
 ```text
 (S0,A0,S1)
@@ -346,7 +346,7 @@ S0, A0, R1, S1, A1, R2, S2, ...
 (S2,A2,S3)
 ```
 
-AASSR의 ASEQ는 실제 `(S,A,S')` transition을 핵심 경험 단위로 본다.
+AASSR의 [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ)는 실제 `(S,A,S')` 상태 전이을 핵심 경험 단위로 본다.
 
 관련 페이지:
 
@@ -369,7 +369,7 @@ stalled reset
 transition cap
 ```
 
-특히 RL 구현에서는 **환경 의미의 실패**와 **학습상 bootstrap을 끊어야 하는 boundary**를 구분할 필요가 있다.
+특히 RL 구현에서는 **환경 의미의 실패**와 **학습상 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)을 끊어야 하는 boundary**를 구분할 필요가 있다.
 
 AASSR의 stalled/rate-limit/reset 관련 설계는 [Replay Buffer and Episode Boundaries](Replay-Buffer-and-Episode-Boundaries)에서 자세히 설명한다.
 
@@ -382,10 +382,10 @@ AASSR의 stalled/rate-limit/reset 관련 설계는 [Replay Buffer and Episode Bo
 대표 예:
 
 - Q-learning
-- DQN
+- [DQN](Q-Learning-DQN-and-TD)
 - 많은 actor-critic 방법
 
-AASSR의 기본 Policy DQN은 model-free component다.
+AASSR의 기본 [Policy](Policy) [DQN](Q-Learning-DQN-and-TD)은 model-free component다.
 
 ```text
 State → Q-values → Action
@@ -393,19 +393,19 @@ State → Q-values → Action
 
 장점:
 
-- world model 오류를 직접 겪지 않음
+- [세계 모델(world model)](Model-Based-RL-and-World-Models) 오류를 직접 겪지 않음
 - 구조가 상대적으로 단순함
 
 단점:
 
 - 실제 경험 없이 미래를 명시적으로 전개하기 어려움
-- sparse reward에서 긴 credit assignment가 힘들 수 있음
+- [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment)에서 긴 [보상 책임 배분(credit assignment)](Sparse-Reward-and-Credit-Assignment)가 힘들 수 있음
 
 ---
 
 # 15. Model-Based RL
 
-**Model-based RL**은 환경의 transition이나 reward를 모델링하고 그 모델을 이용해 planning을 수행한다.
+**[모델 기반 강화학습(Model-based RL)](Model-Based-RL-and-World-Models)**은 환경의 상태 전이이나 보상를 모델링하고 그 모델을 이용해 planning을 수행한다.
 
 ```text
 현재 state
@@ -445,21 +445,21 @@ Critic = long-horizon value estimator
 
 다른 behavior policy에서 나온 과거 경험도 현재 learner가 재사용할 수 있다.
 
-Q-learning/DQN은 대표적인 off-policy 계열이다.
+Q-learning/[DQN](Q-Learning-DQN-and-TD)은 대표적인 off-policy 계열이다.
 
 그래서 [Replay Buffer](Replay-Buffer-and-Episode-Boundaries)가 자연스럽게 사용된다.
 
-AASSR에서도 실제 transition을 replay해 Policy, Prophecy, Critic의 학습 근거로 사용한다.
+AASSR에서도 실제 상태 전이을 replay해 [Policy](Policy), [Prophecy(미래 예측 모델)](Prophecy), [Critic](Critic)의 학습 근거로 사용한다.
 
 ---
 
 # 17. Exploration과 Exploitation
 
-Agent가 이미 좋다고 아는 행동만 고르면 **exploitation**이다.
+에이전트가 이미 좋다고 아는 행동만 고르면 **[활용(exploitation)](Exploration-and-Exploitation)**이다.
 
-새 행동을 시도해 정보를 얻는 것은 **exploration**이다.
+새 행동을 시도해 정보를 얻는 것은 **[탐색(exploration)](Exploration-and-Exploitation)**이다.
 
-희소 보상에서는 exploration이 특히 어렵다.
+희소 보상에서는 탐색이 특히 어렵다.
 
 ```text
 성공이 매우 드묾
@@ -476,7 +476,7 @@ Agent가 이미 좋다고 아는 행동만 고르면 **exploitation**이다.
 
 # 18. 학습과 Planning은 다르다
 
-**Learning**은 경험을 이용해 model/Policy/Critic의 파라미터나 통계를 바꾸는 과정이다.
+**Learning**은 경험을 이용해 model/[Policy](Policy)/[Critic](Critic)의 파라미터나 통계를 바꾸는 과정이다.
 
 **Planning**은 현재 가진 모델을 이용해 행동 전에 미래를 계산하는 과정이다.
 

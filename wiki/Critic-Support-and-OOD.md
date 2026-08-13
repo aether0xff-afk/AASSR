@@ -1,16 +1,16 @@
 # Critic, Support and Out-of-Distribution
 
-이 페이지는 **Critic**, **function approximation**, **in-distribution / out-of-distribution(OOD)**, **support**, **interpolation / extrapolation**, **fail-closed gating**을 설명한다.
+이 페이지는 **[Critic(미래 가치 평가기)](Critic)**, **function approximation**, **in-distribution / out-of-distribution([학습 분포 밖(OOD)](Critic-Support-and-OOD))**, **support**, **interpolation / extrapolation**, **fail-closed gating**을 설명한다.
 
-AASSR에서 "Critic이 학습되었다"와 "지금 이 state/action에서 Critic 값을 믿을 수 있다"를 왜 분리하는지 이해하는 핵심 페이지다.
+AASSR에서 "[Critic](Critic)이 학습되었다"와 "지금 이 state/[행동(action)](Reinforcement-Learning)에서 [Critic](Critic) 값을 믿을 수 있다"를 왜 분리하는지 이해하는 핵심 페이지다.
 
 ---
 
 # 1. Critic이란?
 
-넓은 강화학습 용어에서 Critic은 state/action/trajectory의 미래 return을 평가하는 value estimator다.
+넓은 강화학습 용어에서 [Critic](Critic)은 state/행동/trajectory의 미래 [누적 보상(return)](Value-Functions-and-Bellman-Equation)을 평가하는 value estimator다.
 
-Actor-Critic에서는:
+Actor-[Critic](Critic)에서는:
 
 ```text
 Actor
@@ -20,13 +20,13 @@ Critic
 → 그 행동/상태의 value 평가
 ```
 
-AASSR에서는 [Policy](Policy)가 기본 action을 만들고, 별도의 [Critic](Critic)이 Imagination branch의 sparse-return value를 평가한다.
+AASSR에서는 [Policy](Policy)가 기본 행동을 만들고, 별도의 [Critic](Critic)이 [Imagination(가상 미래 탐색)](Imagination) branch의 sparse-누적 보상 value를 평가한다.
 
 ---
 
 # 2. Function approximation
 
-Critic이 모든 가능한 state/action을 table로 기억하는 대신 neural network를 쓸 수 있다.
+[Critic](Critic)이 모든 가능한 state/행동을 table로 기억하는 대신 neural network를 쓸 수 있다.
 
 ```math
 \hat V_\theta(x)
@@ -38,9 +38,9 @@ Critic이 모든 가능한 state/action을 table로 기억하는 대신 neural n
 \hat V_\theta(x_{0:t})
 ```
 
-AASSR current Critic은 relational transition sequence를 처리하는 GRU 계열이다.
+AASSR current [Critic](Critic)은 relational [상태 전이(transition)](MDP-and-POMDP) sequence를 처리하는 [GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) 계열이다.
 
-Function approximation의 장점은 비슷한 input 사이에 generalization할 수 있다는 것이다.
+Function approximation의 장점은 비슷한 input 사이에 [일반화(generalization)](Relational-Representation-and-Generalization)할 수 있다는 것이다.
 
 하지만 training data 밖에서도 항상 어떤 숫자를 출력한다는 위험이 있다.
 
@@ -48,7 +48,7 @@ Function approximation의 장점은 비슷한 input 사이에 generalization할 
 
 # 3. Training distribution
 
-Critic은 실제 training samples가 분포하는 영역에서 학습된다.
+[Critic](Critic)은 실제 training samples가 분포하는 영역에서 학습된다.
 
 ```text
 많이 본 region
@@ -83,9 +83,9 @@ train region █████
 
 Neural network는 `X`에서도 숫자를 출력한다.
 
-하지만 그 숫자가 실제 return과 맞다는 보장은 없다.
+하지만 그 숫자가 실제 누적 보상과 맞다는 보장은 없다.
 
-이것이 OOD value extrapolation 문제다.
+이것이 [OOD](Critic-Support-and-OOD) value extrapolation 문제다.
 
 ---
 
@@ -107,7 +107,7 @@ training에서 Level 0/1 state를 주로 봄
 새 status/action pattern
 ```
 
-이런 영역에서 Critic은 근거 없는 high value를 낼 수 있다.
+이런 영역에서 [Critic](Critic)은 근거 없는 high value를 낼 수 있다.
 
 ---
 
@@ -134,7 +134,7 @@ Optimization은 우연히 큰 오류를 적극적으로 선택할 수 있다.
 
 # 8. Global readiness
 
-Critic이 충분한 gradient update를 했거나 training sample 수가 일정 기준을 넘으면:
+[Critic](Critic)이 충분한 gradient update를 했거나 training sample 수가 일정 기준을 넘으면:
 
 ```text
 critic_ready = true
@@ -144,11 +144,11 @@ critic_ready = true
 
 하지만 이것은:
 
-> Critic이 전체적으로 어느 정도 학습되었다.
+> [Critic](Critic)이 전체적으로 어느 정도 학습되었다.
 
 는 뜻이지:
 
-> 현재 query state/action이 training support 안에 있다.
+> 현재 query state/행동이 training support 안에 있다.
 
 는 뜻은 아니다.
 
@@ -156,7 +156,7 @@ critic_ready = true
 
 # 9. Local support
 
-Local support는 현재 query 주변에 **실제 training evidence가 얼마나 있는가**를 묻는다.
+[국소 데이터 근거(Local support)](Critic-Support-and-OOD)는 현재 query 주변에 **실제 training evidence가 얼마나 있는가**를 묻는다.
 
 ```text
 Query state/action
@@ -166,7 +166,7 @@ Query state/action
 충분하면 supported
 ```
 
-AASSR current-generation은 Imagination override 전에 Policy root와 candidate root의 local support를 확인한다.
+AASSR current-generation은 [Imagination](Imagination) override 전에 [Policy(정책 모델)](Policy) root와 candidate root의 [국소 데이터 근거(local support)](Critic-Support-and-OOD)를 확인한다.
 
 ---
 
@@ -182,7 +182,7 @@ support 높음
 
 Support가 높다는 것은:
 
-> 이 Critic prediction이 training data와 가까운 영역에서 나온다.
+> 이 [Critic](Critic) prediction이 training data와 가까운 영역에서 나온다.
 
 라는 evidence다.
 
@@ -192,7 +192,7 @@ Support가 높다는 것은:
 
 # 11. Nearest-neighbor intuition
 
-가장 단순한 local support 방법은 현재 input과 가까운 training sample을 찾는 것이다.
+가장 단순한 국소 데이터 근거 방법은 현재 input과 가까운 training sample을 찾는 것이다.
 
 ```math
 d_{nearest}=\min_i d(x,x_i)
@@ -200,7 +200,7 @@ d_{nearest}=\min_i d(x,x_i)
 
 거리가 작으면 더 familiar한 region이라고 볼 수 있다.
 
-하지만 거리 metric 자체가 의미 있어야 한다.
+하지만 거리 [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility) 자체가 의미 있어야 한다.
 
 Raw high-dimensional Euclidean distance가 항상 좋은 것은 아니다.
 
@@ -228,7 +228,7 @@ AASSR support confidence는 nearest distance와 sample count를 함께 반영하
 
 # 13. Density estimation과의 관계
 
-Local support는 넓게 보면 training density/support estimation 문제와 연결된다.
+국소 데이터 근거는 넓게 보면 training density/support estimation 문제와 연결된다.
 
 가능한 방법:
 
@@ -244,7 +244,7 @@ AASSR current 구현은 복잡한 density model보다 auditable한 real-training
 
 # 14. Support와 Epistemic uncertainty
 
-Training support가 부족하면 epistemic uncertainty가 높을 가능성이 있다.
+Training support가 부족하면 [지식 부족에서 오는 불확실성(epistemic uncertainty)](Stochasticity-Uncertainty-and-Probability)가 높을 가능성이 있다.
 
 ```text
 많이 본 region
@@ -254,7 +254,7 @@ Training support가 부족하면 epistemic uncertainty가 높을 가능성이 �
 → epistemic uncertainty 높을 가능성
 ```
 
-하지만 support와 epistemic uncertainty가 수학적으로 동일한 것은 아니다.
+하지만 support와 지식 부족에서 오는 불확실성가 수학적으로 동일한 것은 아니다.
 
 Support는 **경험 데이터의 존재 여부에 기반한 operational proxy/gate**다.
 
@@ -288,10 +288,10 @@ Critic local support
 
 | 질문 | 담당 |
 |---|---|
-| 이 transition prediction을 믿을 수 있나? | Calibration |
-| 이 value prediction을 믿을 real data가 있나? | Critic Support |
-| 이 outcome이 일어날 확률은? | Prophecy probability |
-| 그 outcome의 task return은? | Critic value |
+| 이 상태 전이 prediction을 믿을 수 있나? | [Calibration(예측 신뢰도 보정)](Calibration) |
+| 이 value prediction을 믿을 real data가 있나? | [가치 평가 데이터 근거(Critic Support)](Critic-Support-and-OOD) |
+| 이 outcome이 일어날 확률은? | [Prophecy(미래 예측 모델)](Prophecy) probability |
+| 그 outcome의 task 누적 보상은? | [Critic](Critic) value |
 
 이 네 값은 다른 의미다.
 
@@ -299,7 +299,7 @@ Critic local support
 
 # 17. Fail-closed
 
-Evidence가 충분하지 않을 때 공격적으로 새 action을 실행하지 않고 기본 Policy를 유지하는 방식을 **fail-closed**라고 표현한다.
+Evidence가 충분하지 않을 때 공격적으로 새 행동을 실행하지 않고 기본 [Policy](Policy)를 유지하는 방식을 **fail-closed**라고 표현한다.
 
 ```text
 candidate value 높음
@@ -314,9 +314,9 @@ BUT support 부족
 
 단점:
 
-- 너무 보수적이면 실제로 좋은 novel action도 못 선택함
+- 너무 보수적이면 실제로 좋은 novel 행동도 못 선택함
 
-따라서 threshold 자체가 hyperparameter/ablation 대상이다.
+따라서 threshold 자체가 hyperparameter/[구성요소 제거 비교(ablation)](Ablation-Benchmarking-and-Reproducibility) 대상이다.
 
 ---
 
@@ -336,23 +336,23 @@ Fail-closed:
 → 안전한 baseline/fallback 유지
 ```
 
-AASSR current Imagination은 planning override에 대해 후자에 가깝다.
+AASSR current [Imagination](Imagination)은 planning override에 대해 후자에 가깝다.
 
 ---
 
 # 19. Conservative RL과의 개념적 연결
 
-Offline RL/Conservative RL에서도 dataset support 밖의 action value overestimation이 큰 문제다.
+Offline RL/Conservative RL에서도 dataset support 밖의 행동 value overestimation이 큰 문제다.
 
-그래서 data support 밖 action을 보수적으로 다루는 다양한 방법이 연구되어 왔다.
+그래서 data support 밖 행동을 보수적으로 다루는 다양한 방법이 연구되어 왔다.
 
-AASSR current local support gate가 특정 conservative offline RL 알고리즘과 동일하다는 뜻은 아니지만, **OOD action-value extrapolation을 경계한다는 문제의식**은 연결된다.
+AASSR current 국소 데이터 근거 gate가 특정 conservative offline RL 알고리즘과 동일하다는 뜻은 아니지만, **[OOD](Critic-Support-and-OOD) 행동-value extrapolation을 경계한다는 문제의식**은 연결된다.
 
 ---
 
 # 20. Critic value clipping만으로 충분한가?
 
-Value를 `[-1,1]`로 clamp해도 OOD ranking 오류는 남을 수 있다.
+Value를 `[-1,1]`로 clamp해도 [OOD](Critic-Support-and-OOD) ranking 오류는 남을 수 있다.
 
 예:
 
@@ -392,7 +392,7 @@ reliability/support gate
 
 # 22. 2k diagnostic과 연결
 
-AASSR의 과거 repaired Imagination diagnostic에서:
+AASSR의 과거 repaired [Imagination](Imagination) diagnostic에서:
 
 ```text
 Critic은 global ready
@@ -402,7 +402,7 @@ Imagination은 행동을 실제로 변경
 
 이라는 문제가 관찰됐다.
 
-이후 local support gate가 들어간 이유다.
+이후 국소 데이터 근거 gate가 들어간 이유다.
 
 핵심 교훈:
 
@@ -431,9 +431,9 @@ useful novel override도 차단
 따라서 최종 평가에서는:
 
 - gate pass rate
-- suppressed intervention count
-- intervention error rate
-- success-producing intervention
+- suppressed [실제 행동 개입(intervention)](Imagination) count
+- 실제 행동 개입 error rate
+- success-producing 실제 행동 개입
 
 을 함께 봐야 한다.
 
@@ -441,11 +441,11 @@ useful novel override도 차단
 
 # 24. Support와 generalization의 긴장
 
-Generalization은 training sample과 완전히 같은 input이 아니어도 learned structure를 적용하는 능력이다.
+[일반화(Generalization)](Relational-Representation-and-Generalization)은 training sample과 완전히 같은 input이 아니어도 learned structure를 적용하는 능력이다.
 
-Support gate가 너무 strict하면 generalization 자체를 막을 수 있다.
+Support gate가 너무 strict하면 일반화 자체를 막을 수 있다.
 
-따라서 좋은 support metric은:
+따라서 좋은 support 평가지표은:
 
 ```text
 exact memorization만 허용 X
