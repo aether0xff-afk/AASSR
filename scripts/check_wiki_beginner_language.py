@@ -8,10 +8,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from koreanize_wiki_prose import TERMS  # noqa: E402
 from koreanize_wiki_common_jargon import COMMON_TERMS  # noqa: E402
 from koreanize_wiki_remaining_jargon import EXTRA_TERMS  # noqa: E402
+from koreanize_wiki_high_frequency_jargon import TERMS as HIGH_FREQUENCY_TERMS  # noqa: E402
 
 WIKI = Path("wiki")
 PROTECTED = re.compile(r"(`[^`]*`|!?\[[^\]]*\]\([^\n)]*\))")
-ALL_TERMS = {**EXTRA_TERMS, **COMMON_TERMS, **TERMS}
+ALL_TERMS = {**HIGH_FREQUENCY_TERMS, **EXTRA_TERMS, **COMMON_TERMS, **TERMS}
 TERMS_RE = re.compile(
     r"(?<![A-Za-z0-9_-])(?:"
     + "|".join(
@@ -30,6 +31,7 @@ def visible_plain_text(path: Path) -> list[tuple[int, str]]:
         if stripped.startswith("```") or stripped.startswith("~~~"):
             in_fence = not in_fence
             continue
+        # Headings may intentionally show English originals next to Korean meanings.
         if in_fence or stripped.startswith("#"):
             continue
         parts = PROTECTED.split(line)
@@ -57,10 +59,10 @@ def main() -> int:
         print("Beginner-language wiki lint failed.")
         print("Bare technical English remains in visible prose. Use Korean-first prose,")
         print("or make the English term an explicit Markdown link/inline-code identifier.")
-        for item in failures[:400]:
+        for item in failures[:500]:
             print(item)
-        if len(failures) > 400:
-            print(f"... and {len(failures) - 400} more")
+        if len(failures) > 500:
+            print(f"... and {len(failures) - 500} more")
         return 1
 
     print(
