@@ -12,6 +12,7 @@ from koreanize_wiki_high_frequency_jargon import TERMS as HIGH_FREQUENCY_TERMS  
 
 WIKI = Path("wiki")
 PROTECTED = re.compile(r"(`[^`]*`|!?\[[^\]]*\]\([^\n)]*\))")
+LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 ALL_TERMS = {**HIGH_FREQUENCY_TERMS, **EXTRA_TERMS, **COMMON_TERMS, **TERMS}
 TERMS_RE = re.compile(
     r"(?<![A-Za-z0-9_-])(?:"
@@ -22,6 +23,33 @@ TERMS_RE = re.compile(
     + r")(?![A-Za-z0-9_-])"
 )
 
+DEFINED_BY_PAGE_LINK = {
+    "Policy": "Policy",
+    "Knowledge": "Knowledge",
+    "Prophecy": "Prophecy",
+    "Calibration": "Calibration",
+    "Critic": "Critic",
+    "Imagination": "Imagination",
+    "Skills": "Skills",
+    "Skill": "Skills",
+    "ASEQ": "ASEQ",
+    "DQN": "Q-Learning-DQN-and-TD",
+    "GRU": "GRU-and-Sequence-Models",
+    "OOD": "Critic-Support-and-OOD",
+    "DreamerV3": "Experiments",
+}
+
+
+def normalized_link_targets(text: str) -> set[str]:
+    targets: set[str] = set()
+    for href in LINK.findall(text):
+        target = href.split("#", 1)[0].split("?", 1)[0].strip()
+        if target.endswith(".md"):
+            target = target[:-3]
+        if target:
+            targets.add(target)
+    return targets
+
 
 def visible_plain_text(path: Path) -> list[tuple[int, str]]:
     rows: list[tuple[int, str]] = []
@@ -31,7 +59,6 @@ def visible_plain_text(path: Path) -> list[tuple[int, str]]:
         if stripped.startswith("```") or stripped.startswith("~~~"):
             in_fence = not in_fence
             continue
-        # Headings may intentionally show English originals next to Korean meanings.
         if in_fence or stripped.startswith("#"):
             continue
         parts = PROTECTED.split(line)
@@ -47,8 +74,17 @@ def main() -> int:
         if path.name == "README.md":
             continue
         checked += 1
+        full_text = path.read_text(encoding="utf-8")
+        link_targets = normalized_link_targets(full_text)
+        page_defined_terms = {
+            term
+            for term, target in DEFINED_BY_PAGE_LINK.items()
+            if target in link_targets
+        }
+
         for lineno, text in visible_plain_text(path):
             matches = sorted(set(m.group(0) for m in TERMS_RE.finditer(text)))
+            matches = [term for term in matches if term not in page_defined_terms]
             if matches:
                 failures.append(
                     f"{path}:{lineno}: unexplained/unlinked English jargon: "
@@ -58,7 +94,7 @@ def main() -> int:
     if failures:
         print("Beginner-language wiki lint failed.")
         print("Bare technical English remains in visible prose. Use Korean-first prose,")
-        print("or make the English term an explicit Markdown link/inline-code identifier.")
+        print("or explain/link the term at least once on the page.")
         for item in failures[:500]:
             print(item)
         if len(failures) > 500:
