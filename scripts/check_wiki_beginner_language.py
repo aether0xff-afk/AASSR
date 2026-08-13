@@ -7,10 +7,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from koreanize_wiki_prose import TERMS  # noqa: E402
 from koreanize_wiki_common_jargon import COMMON_TERMS  # noqa: E402
+from koreanize_wiki_remaining_jargon import EXTRA_TERMS  # noqa: E402
 
 WIKI = Path("wiki")
 PROTECTED = re.compile(r"(`[^`]*`|!?\[[^\]]*\]\([^\n)]*\))")
-ALL_TERMS = {**COMMON_TERMS, **TERMS}
+ALL_TERMS = {**EXTRA_TERMS, **COMMON_TERMS, **TERMS}
 TERMS_RE = re.compile(
     r"(?<![A-Za-z0-9_-])(?:"
     + "|".join(
@@ -56,10 +57,10 @@ def main() -> int:
         print("Beginner-language wiki lint failed.")
         print("Bare technical English remains in visible prose. Use Korean-first prose,")
         print("or make the English term an explicit Markdown link/inline-code identifier.")
-        for item in failures[:300]:
+        for item in failures[:400]:
             print(item)
-        if len(failures) > 300:
-            print(f"... and {len(failures) - 300} more")
+        if len(failures) > 400:
+            print(f"... and {len(failures) - 400} more")
         return 1
 
     print(
