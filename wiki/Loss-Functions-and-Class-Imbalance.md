@@ -101,7 +101,7 @@ AASSR은 상태 코드를 [범주형(categorical)](Loss-Functions-and-Class-Imba
 
 # 6. Softmax
 
-Logit `z_c`를 category probability로 바꾼다.
+Logit `z_c`를 category [확률(probability)](Stochasticity-Uncertainty-and-Probability)로 바꾼다.
 
 ```math
 p_c=\frac{e^{z_c}}{\sum_j e^{z_j}}
@@ -113,7 +113,7 @@ p_c=\frac{e^{z_c}}{\sum_j e^{z_j}}
 
 # 7. Cross-Entropy Loss
 
-정답 category의 predicted probability가 높아지도록 학습한다.
+정답 category의 predicted 확률가 높아지도록 학습한다.
 
 One-hot target `y`에 대해:
 
@@ -177,7 +177,7 @@ Prediction target의 구조에 맞는 학습 손실를 써야 한다.
 
 항상 200이라고 예측해도 accuracy가 90%가 된다.
 
-하지만 [드문(rare)](Loss-Functions-and-Class-Imbalance) `429` 같은 outcome이 [계획기(planner)](Counterfactual-Planning-and-Search)에 매우 중요할 수 있다.
+하지만 [드문(rare)](Loss-Functions-and-Class-Imbalance) `429` 같은 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)이 [계획기(planner)](Counterfactual-Planning-and-Search)에 매우 중요할 수 있다.
 
 ---
 
@@ -308,7 +308,7 @@ Status reward +0.2/-0.2
 → agent의 task objective 자체를 바꿈
 ```
 
-AASSR 현재 repair는 의사결정에 중요한 상태 코드를 **예측 target/[검증(validation)](Ablation-Benchmarking-and-Reproducibility) 평가지표에서 강화**하지만 sparse external 보상를 status-based shaping으로 바꾸지 않는다.
+AASSR 현재 repair는 의사결정에 중요한 상태 코드를 **예측 target/[검증(validation)](Ablation-Benchmarking-and-Reproducibility) 평가지표에서 강화**하지만 sparse [환경이 주는 외부(external)](Terminology-Guide) 보상를 status-based shaping으로 바꾸지 않는다.
 
 ---
 
@@ -348,7 +348,7 @@ Predicted [가능 행동 마스크(legal action mask)](Prophecy)와 actual mask�
 
 같은 방법을 사용할 수 있다.
 
-AASSR semantic [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)에서는 legal 행동 structure가 의사결정에 중요한하므로 mask quality를 별도 요소로 본다.
+AASSR [의미 기준(semantic)](State-Representation) [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)에서는 legal 행동 structure가 의사결정에 중요한하므로 mask quality를 별도 요소로 본다.
 
 ---
 
@@ -368,7 +368,7 @@ Legal 행동 set 비교에 자연스럽다.
 
 # 21. Calibration loss와 accuracy
 
-Classification accuracy가 높아도 probability가 잘 calibrated되어 있지 않을 수 있다.
+Classification accuracy가 높아도 확률가 잘 calibrated되어 있지 않을 수 있다.
 
 ```text
 항상 99.9% confidence
@@ -377,7 +377,7 @@ Classification accuracy가 높아도 probability가 잘 calibrated되어 있지 
 
 이면 overconfident하다.
 
-AASSR에서는 raw softmax confidence 대신 real [검증용 분리 데이터(holdout)](Calibration) semantic [신뢰도(reliability)](Calibration)를 별도로 본다.
+AASSR에서는 raw softmax [예측 신뢰 정도(confidence)](Calibration) 대신 [실제 환경에서 관측된(real)](Research-Jargon-Guide) [검증용 분리 데이터(holdout)](Calibration) 의미 기준 [신뢰도(reliability)](Calibration)를 별도로 본다.
 
 관련 페이지:
 
@@ -400,7 +400,7 @@ Mixture 학습 모델 학습에서도 likelihood-based 학습 목표가 자연�
 
 # 23. Mixture likelihood
 
-Mixture distribution:
+Mixture [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability):
 
 ```math
 p(y|x)=\sum_m\pi_m(x)p_m(y|x)
@@ -408,7 +408,7 @@ p(y|x)=\sum_m\pi_m(x)p_m(y|x)
 
 의 likelihood를 최대화한다.
 
-여러 [구성요소(component)](Research-Architecture)가 같은 mode로 collapse하거나 한 구성요소만 모든 mass를 가져가는 [실패(failure)](Replay-Buffer-and-Episode-Boundaries)가 생길 수 있어 [진단 실험(diagnostic)](Evidence-Matrix)이 필요하다.
+여러 [구성요소(component)](Research-Architecture)가 같은 [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration)로 collapse하거나 한 구성요소만 모든 mass를 가져가는 [실패(failure)](Replay-Buffer-and-Episode-Boundaries)가 생길 수 있어 [진단 실험(diagnostic)](Evidence-Matrix)이 필요하다.
 
 관련 페이지:
 
@@ -500,7 +500,7 @@ sequence → predicted return
 
 Sparse target이 대부분 0이면 class imbalance와 비슷한 **target starvation** 문제가 생길 수 있다.
 
-성공/실패 trajectory가 너무 적으면 [Critic](Critic)이 branch를 구분하기 어렵다.
+성공/실패 trajectory가 너무 적으면 [Critic](Critic)이 [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)를 구분하기 어렵다.
 
 ---
 

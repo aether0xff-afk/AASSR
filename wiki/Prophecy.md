@@ -20,9 +20,9 @@
 
 - [MDP and POMDP](MDP-and-POMDP) — [상태(state)](State-Representation), [관측(observation)](MDP-and-POMDP), [숨은 환경 상태(hidden state)](MDP-and-POMDP), [부분 관측(partial observability)](MDP-and-POMDP)
 - [Model-Based RL & World Models](Model-Based-RL-and-World-Models) — learned [환경의 상태 변화 규칙(dynamics)](Model-Based-RL-and-World-Models)와 [계획(planning)](Counterfactual-Planning-and-Search)
-- [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability) — probability, aleatoric/[지식 부족에서 오는 불확실성(epistemic uncertainty)](Stochasticity-Uncertainty-and-Probability)
+- [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability) — [확률(probability)](Stochasticity-Uncertainty-and-Probability), aleatoric/[지식 부족에서 오는 불확실성(epistemic uncertainty)](Stochasticity-Uncertainty-and-Probability)
 - [Mixture, Ensemble & Calibration](Mixture-Ensemble-and-Calibration) — [여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) [예측(prediction)](Terminology-Guide), mixture weight, ensemble
-- [Relational Representation & Generalization](Relational-Representation-and-Generalization) — concrete ID 대신 구조를 학습하는 이유
+- [Relational Representation & Generalization](Relational-Representation-and-Generalization) — [실제 개체를 구분하는(concrete)](State-Representation) ID 대신 구조를 학습하는 이유
 - [Loss Functions & Class Imbalance](Loss-Functions-and-Class-Imbalance) — [범주형(categorical)](Loss-Functions-and-Class-Imbalance) 상태 코드, BCE/CE, [드문(rare)](Loss-Functions-and-Class-Imbalance) class
 - [Causality, Leakage & Fair Evaluation](Causality-Leakage-and-Evaluation) — [Knowledge(에피소드 지식)](Knowledge) anti-hindsight boundary
 
@@ -30,7 +30,7 @@
 
 # 1. 연구 질문
 
-> **미래의 공개된 outcome 분포를 학습하면 [희소 보상](Sparse-Reward-and-Credit-Assignment) 환경에서 실제 행동 전에 더 나은 의사결정을 할 수 있는가?**
+> **미래의 공개된 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability) 분포를 학습하면 [희소 보상](Sparse-Reward-and-Credit-Assignment) 환경에서 실제 행동 전에 더 나은 의사결정을 할 수 있는가?**
 
 [Prophecy](Prophecy) 자체의 목표는 행동을 직접 선택하는 것이 아니다.
 
@@ -119,7 +119,7 @@ X_t = [R_t, A_t, K_t]
 - `A_t`: [relational action representation](Relational-Representation-and-Generalization)
 - `K_t`: 행동 전에 이미 획득한 [현재 에피소드 안에서만 유지되는(episode-local)](Knowledge) [Knowledge](Knowledge)
 
-중요한 점은 concrete identifier 자체를 [전이(transfer)](Relational-Representation-and-Generalization) 학습 주체의 주요 [식별 방식(identity)](State-Representation)로 쓰지 않는다는 것이다.
+중요한 점은 실제 개체를 구분하는 identifier 자체를 [전이(transfer)](Relational-Representation-and-Generalization) 학습 주체의 주요 [식별 방식(identity)](State-Representation)로 쓰지 않는다는 것이다.
 
 ```text
 route-12
@@ -151,7 +151,7 @@ object-like role
 
 현재 decision에 그 fact가 필요하다면 explicit memory가 필요하다.
 
-AASSR의 [Knowledge](Knowledge)는 이런 **과거 real [응답(response)](State-Representation)에서 이미 알게 된 사실**을 보존한다.
+AASSR의 [Knowledge](Knowledge)는 이런 **과거 [실제 환경에서 관측된(real)](Research-Jargon-Guide) [응답(response)](State-Representation)에서 이미 알게 된 사실**을 보존한다.
 
 단, 시간 순서는 엄격하다.
 
@@ -175,7 +175,7 @@ K_{t+1}
 
 현재 [Prophecy](Prophecy)는 다음 상태 vector 하나만 내지 않는다.
 
-각 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) outcome branch는 개념적으로 다음을 포함한다.
+각 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) 환경 결과 [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)는 개념적으로 다음을 포함한다.
 
 ```text
 next relational descriptor
@@ -197,12 +197,12 @@ prediction reliability는 별도 calibration 계층
 Concrete ID를 그대로 생성하는 대신:
 
 - known route/profile/object structure
-- role distribution
+- [역할(role)](Relational-Representation-and-Generalization) [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability)
 - 공개된 workflow-related relations
 - available 행동 structure
 - latest observed 상태 코드
 
-같은 전이 가능한 descriptor를 중심으로 한다.
+같은 전이 가능한 [상태를 요약한 표현(descriptor)](State-Representation)를 중심으로 한다.
 
 왜 이런 abstr행동을 쓰는지는 [Relational Representation & Generalization](Relational-Representation-and-Generalization)에서 다룬다.
 
@@ -218,7 +218,7 @@ Concrete ID를 그대로 생성하는 대신:
 
 은 하나의 future만 출력한다.
 
-하지만 [부분 관측](MDP-and-POMDP)이나 실제 [stochasticity](Stochasticity-Uncertainty-and-Probability)가 있으면 같은 공개된 `(S,A)`에서도 여러 outcome이 가능하다.
+하지만 [부분 관측](MDP-and-POMDP)이나 실제 [stochasticity](Stochasticity-Uncertainty-and-Probability)가 있으면 같은 공개된 `(S,A)`에서도 여러 환경 결과이 가능하다.
 
 ```text
 (S,A)
@@ -244,7 +244,7 @@ Concrete ID를 그대로 생성하는 대신:
 
 # 9. Mixture formulation
 
-개념적으로 다음과 같은 distribution을 근사한다.
+개념적으로 다음과 같은 분포을 근사한다.
 
 ```math
 p(S_{t+1}|S_t,A_t,K_t)
@@ -256,7 +256,7 @@ p(S_{t+1}|S_t,A_t,K_t)
 
 - `M`: mixture [구성요소(component)](Research-Architecture) 수
 - `π_m(X_t)`: 구성요소 `m`의 [outcome probability mass](Stochasticity-Uncertainty-and-Probability)
-- `p_m`: 해당 mode의 next-state distribution
+- `p_m`: 해당 [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration)의 next-state 분포
 
 중요한 점:
 
@@ -322,7 +322,7 @@ Ensemble disagreement
 
 > **이 world-model 예측 자체를 얼마나 믿을 수 있는가?**
 
-이 값은 [Calibration](Calibration)이 real [검증용 분리 데이터(holdout)](Calibration) [증거(evidence)](Evidence-Matrix)로 판단한다.
+이 값은 [Calibration](Calibration)이 실제 [검증용 분리 데이터(holdout)](Calibration) [증거(evidence)](Evidence-Matrix)로 판단한다.
 
 따라서:
 
@@ -340,9 +340,9 @@ high value != high support
 
 # 12. HTTP status를 왜 명시적으로 예측하는가?
 
-과거 repaired [Imagination](Imagination) 2k [진단 실험(diagnostic)](Evidence-Matrix)에서는 전체 semantic 예측이 그럴듯해도 실제 계획기 [실제 행동 개입(intervention)](Imagination)이 `403/404/429` 같은 공개된 outcome으로 이어지는 문제가 드러났다.
+과거 repaired [Imagination](Imagination) 2k [진단 실험(diagnostic)](Evidence-Matrix)에서는 전체 [의미 기준(semantic)](State-Representation) 예측이 그럴듯해도 실제 계획기 [실제 행동 개입(intervention)](Imagination)이 `403/404/429` 같은 공개된 환경 결과으로 이어지는 문제가 드러났다.
 
-그 결과 **[의사결정에 중요한(decision-critical)](Calibration) 공개된 variable을 abstr행동 과정에서 잃으면 전체 semantic similarity만으로는 부족하다**는 점이 중요해졌다.
+그 결과 **[의사결정에 중요한(decision-critical)](Calibration) 공개된 variable을 abstr행동 과정에서 잃으면 전체 의미 기준 similarity만으로는 부족하다**는 점이 중요해졌다.
 
 그래서 Relational [상태(State)](State-Representation) v3는 latest 공개된 HTTP 상태 코드를 명시적으로 보존하고 [Prophecy](Prophecy)도 이를 예측한다.
 
@@ -393,7 +393,7 @@ L_{status}=-\sum_c w_cy_c\log \hat p_c
 Rare 429 sample에 training weight를 더 줌
 ```
 
-은 **예측 학습 모델이 드문 class를 무시하지 않도록 [학습 손실(loss)](Loss-Functions-and-Class-Imbalance)/sample distribution을 조정하는 것**이다.
+은 **예측 학습 모델이 드문 class를 무시하지 않도록 [학습 손실(loss)](Loss-Functions-and-Class-Imbalance)/sample 분포을 조정하는 것**이다.
 
 반면:
 
@@ -429,7 +429,7 @@ Legal 행동 mask는 여러 행동이 동시에 가능할 수 있으므로 [mult
 
 # 16. Terminal class prediction
 
-다음 공개된 outcome이:
+다음 공개된 환경 결과이:
 
 ```text
 active
@@ -496,15 +496,15 @@ Planner가 필요한 것은:
 
 다.
 
-현재 [Calibration](Calibration)은 real 검증용 분리 데이터 [상태 전이(transition)](MDP-and-POMDP)을 기준으로 semantic 신뢰도를 평가한다.
+현재 [Calibration](Calibration)은 실제 검증용 분리 데이터 [상태 전이(transition)](MDP-and-POMDP)을 기준으로 의미 기준 신뢰도를 평가한다.
 
 평가 요소에는 다음이 포함될 수 있다.
 
-- 관계 기반 semantic next-state quality
+- 관계 기반 의미 기준 next-state quality
 - legal-행동-mask correctness
 - 에피소드 종료-class correctness
 - HTTP-status correctness
-- probability-weighted semantic quality
+- probability-weighted 의미 기준 quality
 
 [Calibration(예측 신뢰도 보정)](Calibration)은 가치 bonus가 아니다.
 
@@ -520,16 +520,16 @@ reliability 부족
 
 # 19. 왜 probability-weighted calibration이 필요한가?
 
-Stochastic 학습 모델이 여러 branch를 냈다고 하자.
+Stochastic 학습 모델이 여러 결과 경로를 냈다고 하자.
 
 ```text
 1% branch  → actual과 정확히 일치
 99% branch → 크게 틀림
 ```
 
-"하나라도 맞는 branch가 있다"만 보면 모델이 좋아 보인다.
+"하나라도 맞는 결과 경로가 있다"만 보면 모델이 좋아 보인다.
 
-하지만 distribution 전체는 사실상 틀렸다.
+하지만 분포 전체는 사실상 틀렸다.
 
 그래서:
 
@@ -537,7 +537,7 @@ Stochastic 학습 모델이 여러 branch를 냈다고 하자.
 C=\sum_i p_i\,score(\hat s_i',s')
 ```
 
-같은 probability-weighted semantic score가 더 적절할 수 있다.
+같은 probability-weighted 의미 기준 [평가 점수(score)](Terminology-Guide)가 더 적절할 수 있다.
 
 관련 페이지: [Mixture, Ensemble & Calibration](Mixture-Ensemble-and-Calibration)
 
@@ -575,7 +575,7 @@ Model 3 → C
 
 # 21. Real transition만 factual target인가?
 
-현재 research 원칙에서는 [Prophecy](Prophecy) 학습의 사실 근거는 **real 환경 상태 전이**이다.
+현재 research 원칙에서는 [Prophecy](Prophecy) 학습의 사실 근거는 **실제 환경 상태 전이**이다.
 
 ```text
 real S_t
@@ -600,7 +600,7 @@ model error
 
 # 22. One-step prediction과 multi-step planning
 
-[Prophecy](Prophecy)는 기본적으로 다음 상태 전이 distribution을 학습한다.
+[Prophecy](Prophecy)는 기본적으로 다음 상태 전이 분포을 학습한다.
 
 ```text
 (S_t,A_t) → distribution over S_{t+1}
@@ -666,7 +666,7 @@ Critic
 → 그 trajectory/state의 future sparse return은 얼마일까?
 ```
 
-예를 들어 [Prophecy](Prophecy)는 403 outcome을 정확하게 예측할 수 있다.
+예를 들어 [Prophecy](Prophecy)는 403 환경 결과을 정확하게 예측할 수 있다.
 
 그 403이 task 학습 목표에서 얼마나 나쁜지는 [Critic](Critic)/[누적 보상(return)](Value-Functions-and-Bellman-Equation) semantics가 평가한다.
 
@@ -708,8 +708,8 @@ Critic local support
 
 ## Model-level metric
 
-- 관계 기반 semantic quality
-- probability-weighted semantic quality
+- 관계 기반 의미 기준 quality
+- probability-weighted 의미 기준 quality
 - HTTP 상태 코드 accuracy / per-class recall
 - legal-mask quality
 - 에피소드 종료 accuracy
@@ -720,10 +720,10 @@ Critic local support
 
 ## Planner-level metric
 
-- reliable 탐색의 첫 행동 coverage
-- wrong-status branch rate
-- branch pruning rate
-- predicted vs actual outcome agreement
+- reliable 탐색의 첫 행동 [데이터가 어느 영역까지 포함하는지(coverage)](Critic-Support-and-OOD)
+- wrong-status 결과 경로 rate
+- 결과 경로 pruning rate
+- predicted vs actual 환경 결과 agreement
 
 ## Agent-level metric
 
@@ -745,7 +745,7 @@ Critic local support
 
 - latest HTTP 상태 코드를 Relational 상태 v3에 보존
 - 범주형 상태 코드 supervision
-- 상태 코드까지 고려하는 semantic calibration
+- 상태 코드까지 고려하는 의미 기준 calibration
 
 ## 27.2 Higher-level OOD
 
@@ -753,9 +753,9 @@ Critic local support
 
 **대응:**
 
-- real 검증용 분리 데이터 신뢰도
+- 실제 검증용 분리 데이터 신뢰도
 - [Curriculum transfer](Curriculum-Learning) 분석
-- larger real 상태 전이 budget
+- larger 실제 상태 전이 budget
 - [근거가 부족하면 보수적으로 거부하는(fail-closed)](Critic-Support-and-OOD) [조건부 통과 판단(gating)](Terminology-Guide)
 
 ## 27.3 Multimodal collapse
@@ -776,7 +776,7 @@ Imbalanced data 때문에 majority 상태 코드만 잘 맞힘.
 
 - [class-balanced training](Loss-Functions-and-Class-Imbalance)
 - per-status 평가지표
-- semantic calibration
+- 의미 기준 calibration
 
 ## 27.5 Long rollout compounding error
 
@@ -786,7 +786,7 @@ Imbalanced data 때문에 majority 상태 코드만 잘 맞힘.
 
 - shallow/root-preserving 계획
 - calibration 판정 관문
-- re-plan after every real 행동
+- re-plan after every 실제 행동
 
 ---
 

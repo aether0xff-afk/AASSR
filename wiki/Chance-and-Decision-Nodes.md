@@ -49,7 +49,7 @@ V_{decision}(S)=\max_aV(S,a)
 
 # 3. Chance node
 
-환경 결과 노드에서는 이미 행동을 선택했고, 그 뒤 환경 outcome이 확률적으로 갈린다.
+환경 결과 노드에서는 이미 행동을 선택했고, 그 뒤 환경 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)이 확률적으로 갈린다.
 
 ```text
 Action A 실행
@@ -85,7 +85,7 @@ V_{chance}(A)=\sum_i p_iV_i
 100% → +0.2
 ```
 
-A에서 좋은 outcome만 max하면:
+A에서 좋은 환경 결과만 max하면:
 
 ```text
 A value = +1
@@ -93,7 +93,7 @@ A value = +1
 
 처럼 보인다.
 
-하지만 expectation은:
+하지만 [확률 기댓값(expectation)](Chance-and-Decision-Nodes)은:
 
 ```math
 0.1(1)+0.9(-1)=-0.8
@@ -113,7 +113,7 @@ B의 가치는:
 
 # 5. Optimistic stochastic backup
 
-환경 outcome에:
+환경 환경 결과에:
 
 ```math
 \max_iV_i
@@ -121,7 +121,7 @@ B의 가치는:
 
 를 쓰면 에이전트가 실제로 통제할 수 없는 randomness를 선택할 수 있는 것처럼 취급한다.
 
-이를 여기서는 **optimistic [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) backup**이라고 부른다.
+이를 여기서는 **optimistic [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) [미래 가치를 앞 단계로 되돌려 계산하는 과정(backup)](Value-Functions-and-Bellman-Equation)**이라고 부른다.
 
 ```text
 위험한 action
@@ -138,18 +138,18 @@ AASSR [현재(current)](Current-Status) [계획기(planner)](Counterfactual-Plan
 
 Expected 가치만 최적화하는 것은 기본적으로 risk-neutral한 관점이다.
 
-두 행동이 같은 expectation을 가져도 variance는 다를 수 있다.
+두 행동이 같은 확률 기댓값을 가져도 variance는 다를 수 있다.
 
 ```text
 A: 항상 0
 B: 50% +1, 50% -1
 ```
 
-둘의 expectation은 0이다.
+둘의 확률 기댓값은 0이다.
 
 Risk-sensitive [학습 목표(objective)](Terminology-Guide)라면 variance, CVaR 같은 다른 기준을 사용할 수도 있다.
 
-AASSR 현재 main 계획기는 기본 sparse-누적 보상 expectation semantics를 유지한다.
+AASSR 현재 main 계획기는 기본 sparse-누적 보상 확률 기댓값 semantics를 유지한다.
 
 관련 페이지:
 
@@ -159,7 +159,7 @@ AASSR 현재 main 계획기는 기본 sparse-누적 보상 expectation semantics
 
 # 7. Probability mass가 왜 중요한가?
 
-Chance backup에 probability가 없다면 여러 outcome을 공정하게 합칠 수 없다.
+Chance 가치 되돌림 계산에 [확률(probability)](Stochasticity-Uncertainty-and-Probability)가 없다면 여러 환경 결과을 공정하게 합칠 수 없다.
 
 예:
 
@@ -174,9 +174,9 @@ Y value  0, probability 0.99
 (1+0)/2=0.5
 ```
 
-는 실제 distribution을 반영하지 못한다.
+는 실제 [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability)을 반영하지 못한다.
 
-올바른 expectation:
+올바른 확률 기댓값:
 
 ```math
 0.01(1)+0.99(0)=0.01
@@ -190,13 +190,13 @@ Y value  0, probability 0.99
 
 # 8. Reliability는 probability weight가 아니다
 
-어떤 branch가 [신뢰도(reliability)](Calibration) `0.2`라고 해서:
+어떤 [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)가 [신뢰도(reliability)](Calibration) `0.2`라고 해서:
 
 ```math
 0.2\times V
 ```
 
-로 chance probability처럼 처리하면 의미가 바뀐다.
+로 chance 확률처럼 처리하면 의미가 바뀐다.
 
 AASSR 현재 design:
 
@@ -225,7 +225,7 @@ Planner는 미래 [상태(state)](State-Representation)에서 available 행동s�
 
 이것은 model-based lookahead의 기본 가정이다.
 
-실제 [환경(environment)](Reinforcement-Learning)에서는 첫 행동만 실행하고 다시 관측해 [계획(planning)](Counterfactual-Planning-and-Search)하므로 future imagined decisions는 **counterfactual [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)용**이다.
+실제 [환경(environment)](Reinforcement-Learning)에서는 첫 행동만 실행하고 다시 관측해 [계획(planning)](Counterfactual-Planning-and-Search)하므로 future [모델이 상상한(imagined)](Research-Jargon-Guide) decisions는 **counterfactual [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)용**이다.
 
 ---
 
@@ -263,7 +263,7 @@ V(s')
 
 # 11. Terminal outcome
 
-Chance branch가 [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) [성공(success)](Terminology-Guide)/[실패(failure)](Replay-Buffer-and-Episode-Boundaries)로 끝나면 continuation decision이 없다.
+Chance 결과 경로가 [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) [성공(success)](Terminology-Guide)/[실패(failure)](Replay-Buffer-and-Episode-Boundaries)로 끝나면 continuation decision이 없다.
 
 ```text
 Action A
@@ -293,13 +293,13 @@ AASSR 외부 [보상(reward)](Sparse-Reward-and-Credit-Assignment)에서는 admi
 
 # 13. Chance branch pruning
 
-Probability가 매우 낮은 branch를 모두 버리면 [드문(rare)](Loss-Functions-and-Class-Imbalance) catastrophic outcome을 잃을 수 있다.
+Probability가 매우 낮은 결과 경로를 모두 버리면 [드문(rare)](Loss-Functions-and-Class-Imbalance) catastrophic 환경 결과을 잃을 수 있다.
 
-반대로 모든 tiny branch를 유지하면 계산량이 폭발한다.
+반대로 모든 tiny 결과 경로를 유지하면 계산량이 폭발한다.
 
 따라서 확률적 계획기에는:
 
-- outcome sample count
+- 환경 결과 sample count
 - beam width
 - [확률 질량(probability mass)](Stochasticity-Uncertainty-and-Probability) preservation
 
@@ -316,23 +316,23 @@ AASSR [Skill(성공 절차 재사용)](Skills) [Prophecy](Prophecy)에서도 bea
 
 # 14. Expected value와 sampled rollout
 
-모든 outcome distribution을 완전히 열거하지 않고 sample을 뽑아 expectation을 근사할 수 있다.
+모든 환경 결과 분포을 완전히 열거하지 않고 sample을 뽑아 확률 기댓값을 근사할 수 있다.
 
 ```math
 \mathbb{E}[V]\approx\frac1N\sum_{j=1}^{N}V^{(j)}
 ```
 
-하지만 드문 outcome을 sample하지 못할 수 있다.
+하지만 드문 환경 결과을 sample하지 못할 수 있다.
 
-AASSR [Prophecy](Prophecy)는 mixture branches와 outcome probabilities를 명시적으로 다루는 방향을 사용한다.
+AASSR [Prophecy](Prophecy)는 mixture [갈라진 결과 경로(branches)](Chance-and-Decision-Nodes)와 환경 결과 probabilities를 명시적으로 다루는 방향을 사용한다.
 
 ---
 
 # 15. Decision branch pruning
 
-행동 선택 노드에서는 모든 행동을 확장하기 비싸므로 candidate ranking/beam/dedup을 사용할 수 있다.
+행동 선택 노드에서는 모든 행동을 확장하기 비싸므로 [선택 후보(candidate)](Terminology-Guide) [후보 순위(ranking)](Policy)/beam/dedup을 사용할 수 있다.
 
-하지만 이는 chance outcome을 버리는 것과 의미가 다르다.
+하지만 이는 chance 환경 결과을 버리는 것과 의미가 다르다.
 
 ```text
 Decision pruning
@@ -358,7 +358,7 @@ concrete A3 ─┘
 
 하지만 최종 실제 행동은 [실제 개체 구분(concrete identity)](State-Representation)로 다시 bind한다.
 
-이것은 행동 probability를 합치는 chance operation이 아니라 **decision compute deduplication**이다.
+이것은 행동 확률를 합치는 chance operation이 아니라 **decision compute deduplication**이다.
 
 관련 페이지:
 
@@ -388,13 +388,13 @@ Root 행동 expected 가치:
 0.25(0.8)+0.75(-0.2)=0.05
 ```
 
-[Critic](Critic) 가치가 큰 branch 하나만 고르면 안 된다.
+[Critic](Critic) 가치가 큰 결과 경로 하나만 고르면 안 된다.
 
 ---
 
 # 18. Model reliability와 chance tree
 
-[예측 신뢰도(Prediction reliability)](Calibration)가 낮은 outcome distribution은 정확한 expectation 계산 자체가 의미 없을 수 있다.
+[예측 신뢰도(Prediction reliability)](Calibration)가 낮은 환경 결과 분포은 정확한 확률 기댓값 계산 자체가 의미 없을 수 있다.
 
 그래서:
 
@@ -424,7 +424,7 @@ B is argmax
 AASSR 현재 flow에는:
 
 - [Policy](Policy) 탐색의 첫 행동 [예측 신뢰도(prediction reliability)](Calibration)
-- candidate 신뢰도
+- 선택 후보 신뢰도
 - local [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD)
 - [실제 행동 개입(intervention)](Imagination) [최소 차이 기준(margin)](Imagination)
 

@@ -35,7 +35,7 @@ Planner가 바꾼 action이 실제로 더 좋은가?
 
 - 날짜: `2026-08-11`
 - research [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility): `7`
-- real [학습(training)](Terminology-Guide) [상태 전이(transition)](MDP-and-POMDP)s: `2,048`
+- [실제 환경에서 관측된(real)](Research-Jargon-Guide) [학습(training)](Terminology-Guide) [상태 전이(transition)](MDP-and-POMDP)s: `2,048`
 - 하나의 AASSR [체크포인트(checkpoint)](Reproduction)만 학습
 - 같은 [학습을 멈춘(frozen)](Ablation-Benchmarking-and-Reproducibility) 체크포인트에서 [계획기(planner)](Counterfactual-Planning-and-Search) OFF / ON 비교
 - [실제 행동 개입(intervention)](Imagination) [최소 차이 기준(margin)](Imagination): `0.05`
@@ -118,7 +118,7 @@ Policy original    -> error
 이 결과는 당시 잘못된 [기본 행동 덮어쓰기(override)](Imagination)가 단순 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) bad luck만으로 설명되기 어렵다는 [증거(evidence)](Evidence-Matrix)였다.
 
 > [!NOTE]
-> 이 matched-state audit 역시 최종 causal theorem이 아니라 **root-cause 진단 실험 증거**다. [한 번의 문제 풀이 구간(episode)](Terminology-Guide) trajectory coupling과 limited sample size를 고려해야 한다.
+> 이 matched-state audit 역시 최종 [인과적으로 공정한(causal)](Causality-Leakage-and-Evaluation) theorem이 아니라 **root-cause 진단 실험 증거**다. [한 번의 문제 풀이 구간(episode)](Terminology-Guide) trajectory coupling과 limited sample size를 고려해야 한다.
 
 ---
 
@@ -135,7 +135,7 @@ relational abstraction
 status distinction 약화
 ```
 
-문제는 `403`과 `200`이 단순한 작은 feature 차이가 아니라 다음 행동에 큰 영향을 주는 **[의사결정에 중요한(decision-critical)](Calibration) 공개된 signal**이라는 점이다.
+문제는 `403`과 `200`이 단순한 작은 [학습에 사용하는 특징(feature)](Terminology-Guide) 차이가 아니라 다음 행동에 큰 영향을 주는 **[의사결정에 중요한(decision-critical)](Calibration) 공개된 signal**이라는 점이다.
 
 이 사건은 일반적인 [state aliasing](MDP-and-POMDP) 사례로 볼 수 있다.
 
@@ -157,7 +157,7 @@ probability-weighted semantic quality ≈ 0.916
 terminal match                       ≈ 0.991
 ```
 
-처럼 전체 semantic [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility)은 높게 보였다.
+처럼 전체 [의미 기준(semantic)](State-Representation) [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility)은 높게 보였다.
 
 하지만 실제 계획기 실제 행동 개입은 나빴다.
 
@@ -171,7 +171,7 @@ decision-critical channel 정확함
 
 이었다.
 
-그래서 [Calibration](Calibration)은 단순 global semantic similarity가 아니라 공개된 HTTP-status 같은 핵심 channel을 명시적으로 평가하는 방향으로 수정됐다.
+그래서 [Calibration](Calibration)은 단순 global 의미 기준 similarity가 아니라 공개된 HTTP-status 같은 핵심 channel을 명시적으로 평가하는 방향으로 수정됐다.
 
 ---
 
@@ -269,7 +269,7 @@ root-concrete-execution
 + structural-compute-dedup
 ```
 
-즉 이 과거 기록 진단 실험의 실패 mode를 그대로 둔 모델이 [현재 실행 구조(current runtime)](Current-Status)은 아니다.
+즉 이 과거 기록 진단 실험의 실패 [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration)를 그대로 둔 모델이 [현재 실행 구조(current runtime)](Current-Status)은 아니다.
 
 ---
 
@@ -277,7 +277,7 @@ root-concrete-execution
 
 ## 올바른 표현
 
-> 2026-08-11 진단 실험에서 [Imagination](Imagination)은 86회 실제 행동을 변경했지만 성공률 향상은 없었고, 58회의 bad-status 실제 행동 개입이 발생했다. 이 분석은 [상태 코드까지 고려하는(status-aware)](Calibration) [표현(representation)](Relational-Representation-and-Generalization)/calibration, local [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD), structural 탐색의 첫 행동 dedup을 도입하는 근거가 되었다.
+> 2026-08-11 진단 실험에서 [Imagination](Imagination)은 86회 실제 행동을 변경했지만 성공률 향상은 없었고, 58회의 bad-status 실제 행동 개입이 발생했다. 이 분석은 [상태 코드까지 고려하는(status-aware)](Calibration) [표현(representation)](Relational-Representation-and-Generalization)/calibration, local [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD), [구조 기반(structural)](Relational-Representation-and-Generalization) 탐색의 첫 행동 dedup을 도입하는 근거가 되었다.
 
 ## 잘못된 표현
 

@@ -20,7 +20,7 @@ prediction reliability
 
 # 0. 먼저 알아두면 좋은 개념
 
-- [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability) — probability, [신뢰도(reliability)](Calibration), [지식 부족에서 오는 불확실성(epistemic uncertainty)](Stochasticity-Uncertainty-and-Probability), [가치(value)](Value-Functions-and-Bellman-Equation)의 차이
+- [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability) — [확률(probability)](Stochasticity-Uncertainty-and-Probability), [신뢰도(reliability)](Calibration), [지식 부족에서 오는 불확실성(epistemic uncertainty)](Stochasticity-Uncertainty-and-Probability), [가치(value)](Value-Functions-and-Bellman-Equation)의 차이
 - [Mixture, Ensemble & Calibration](Mixture-Ensemble-and-Calibration) — [검증용 분리 데이터(holdout)](Calibration) calibration, ensemble, probability-weighted correctness
 - [Model-Based RL & World Models](Model-Based-RL-and-World-Models) — [학습 모델(model)](Terminology-Guide) error와 [모델 오류 악용(model exploitation)](Model-Based-RL-and-World-Models)
 - [Critic, Support & OOD](Critic-Support-and-OOD) — [상태 전이(transition)](MDP-and-POMDP) 신뢰도와 가치 [데이터 근거(support)](Critic-Support-and-OOD)가 왜 다른가?
@@ -31,7 +31,7 @@ prediction reliability
 
 # 1. 연구 질문
 
-> **[world model](Model-Based-RL-and-World-Models)의 평균 성능이 높아 보여도 실제 행동 결정에 중요한 오류가 숨어 있을 수 있는데, 어떤 예측을 [계획기(planner)](Counterfactual-Planning-and-Search)가 믿어도 되는지 real 검증용 분리 데이터 경험으로 판단할 수 있는가?**
+> **[world model](Model-Based-RL-and-World-Models)의 평균 성능이 높아 보여도 실제 행동 결정에 중요한 오류가 숨어 있을 수 있는데, 어떤 예측을 [계획기(planner)](Counterfactual-Planning-and-Search)가 믿어도 되는지 [실제 환경에서 관측된(real)](Research-Jargon-Guide) 검증용 분리 데이터 경험으로 판단할 수 있는가?**
 
 AASSR의 [Imagination](Imagination)은 학습 모델 error에 직접 노출된다.
 
@@ -51,7 +51,7 @@ AASSR의 [Imagination](Imagination)은 학습 모델 error에 직접 노출된�
 
 # 2. 왜 단순 confidence 하나로 부족한가?
 
-[Prophecy(미래 예측 모델)](Prophecy)가 다음 outcome을 낸다고 하자.
+[Prophecy(미래 예측 모델)](Prophecy)가 다음 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)을 낸다고 하자.
 
 ```text
 200 : probability 0.7
@@ -61,7 +61,7 @@ AASSR의 [Imagination](Imagination)은 학습 모델 error에 직접 노출된�
 
 이 숫자는 **[환경(environment)](Reinforcement-Learning) [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability) mass**다.
 
-하지만 학습 모델이 이 [상태(state)](State-Representation)/[행동(action)](Reinforcement-Learning) region을 거의 학습하지 않았다면 이 distribution 자체를 신뢰하기 어렵다.
+하지만 학습 모델이 이 [상태(state)](State-Representation)/[행동(action)](Reinforcement-Learning) region을 거의 학습하지 않았다면 이 [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability) 자체를 신뢰하기 어렵다.
 
 예:
 
@@ -134,7 +134,7 @@ train data에서 정확
 
 는 자동으로 성립하지 않는다.
 
-그래서 학습에 직접 사용하지 않은 real 상태 전이으로 신뢰도를 추정한다.
+그래서 학습에 직접 사용하지 않은 실제 상태 전이으로 신뢰도를 추정한다.
 
 이는 일반적인 [train/validation/test 분리](Neural-Networks-and-Optimization)와 같은 문제의식이다.
 
@@ -142,9 +142,9 @@ train data에서 정확
 
 # 5. Probability-weighted semantic score
 
-Stochastic [Prophecy](Prophecy)는 여러 outcome을 낸다.
+Stochastic [Prophecy](Prophecy)는 여러 환경 결과을 낸다.
 
-실제 다음 상태와의 correctness를 계산할 때 branch를 동일 가중치로 보면 학습 모델이 assign한 distribution을 무시하게 된다.
+실제 다음 상태와의 correctness를 계산할 때 [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)를 동일 가중치로 보면 학습 모델이 assign한 분포을 무시하게 된다.
 
 개념적으로:
 
@@ -219,7 +219,7 @@ frozen reliability 기준으로 OFF/ON evaluation
 
 # 8. 왜 status-aware calibration이 필요한가?
 
-과거 2k [진단 실험(diagnostic)](Evidence-Matrix)에서는 전체 semantic [예측(prediction)](Terminology-Guide) quality가 그럴듯해도 [Imagination(가상 미래 탐색)](Imagination) [실제 행동 개입(intervention)](Imagination)이 `403/404/429`로 이어지는 문제가 있었다.
+과거 2k [진단 실험(diagnostic)](Evidence-Matrix)에서는 전체 [의미 기준(semantic)](State-Representation) [예측(prediction)](Terminology-Guide) quality가 그럴듯해도 [Imagination(가상 미래 탐색)](Imagination) [실제 행동 개입(intervention)](Imagination)이 `403/404/429`로 이어지는 문제가 있었다.
 
 즉:
 
@@ -250,7 +250,7 @@ decision-critical outcome을 충분히 잘 예측함
 
 - [class-balanced training](Loss-Functions-and-Class-Imbalance)
 - per-class accuracy/recall
-- [상태 코드까지 고려하는(status-aware)](Calibration) semantic 신뢰도
+- [상태 코드까지 고려하는(status-aware)](Calibration) 의미 기준 신뢰도
 
 가 중요하다.
 
@@ -268,7 +268,7 @@ confidence   0.9
 → 0.4 + 0.9 bonus
 ```
 
-이렇게 하면 high-confidence branch가 task [누적 보상(return)](Value-Functions-and-Bellman-Equation)과 무관하게 좋은 행동처럼 보일 수 있다.
+이렇게 하면 high-confidence 결과 경로가 task [누적 보상(return)](Value-Functions-and-Bellman-Equation)과 무관하게 좋은 행동처럼 보일 수 있다.
 
 올바른 의미 분리:
 
@@ -284,9 +284,9 @@ reliability 충분?
 
 # 11. 왜 Critic에서도 confidence를 제거하는가?
 
-[Critic](Critic) [입력(input)](Terminology-Guide)에 [Prophecy](Prophecy) confidence가 직접 들어가면 neural [신경망(network)](Neural-Networks-and-Optimization)가 confidence를 누적 보상 signal처럼 사용할 수 있다.
+[Critic](Critic) [입력(input)](Terminology-Guide)에 [Prophecy](Prophecy) [예측 신뢰 정도(confidence)](Calibration)가 직접 들어가면 neural [신경망(network)](Neural-Networks-and-Optimization)가 예측 신뢰 정도를 누적 보상 signal처럼 사용할 수 있다.
 
-[현재(current)](Current-Status) confidence 판정 관문는 기존 입력 shape를 유지하면서 해당 scalar slot을 상수로 중립화한다.
+[현재(current)](Current-Status) 예측 신뢰 정도 판정 관문는 기존 입력 shape를 유지하면서 해당 scalar slot을 상수로 중립화한다.
 
 ```text
 network shape 유지
@@ -294,7 +294,7 @@ network shape 유지
 confidence feature → constant
 ```
 
-따라서 branch ranking은 sparse-누적 보상 [Critic](Critic) 가치로 이루어지고 confidence는 신뢰도 판정 관문에만 쓰인다.
+따라서 결과 경로 [후보 순위(ranking)](Policy)은 sparse-누적 보상 [Critic](Critic) 가치로 이루어지고 예측 신뢰 정도는 신뢰도 판정 관문에만 쓰인다.
 
 이것은:
 
@@ -326,7 +326,7 @@ coverage < threshold
 
 # 13. Per-root reliability gate
 
-Global coverage가 충분해도 특정 [탐색의 첫 행동(root)](Imagination) 행동 예측은 unreliable할 수 있다.
+Global [데이터가 어느 영역까지 포함하는지(coverage)](Critic-Support-and-OOD)가 충분해도 특정 [탐색의 첫 행동(root)](Imagination) 행동 예측은 unreliable할 수 있다.
 
 그래서 각 탐색의 첫 행동에도 신뢰도를 확인한다.
 
@@ -342,7 +342,7 @@ unreliable roots
 
 # 14. 왜 Policy branch reliability도 필요한가?
 
-대안 candidate만 reliable하고 [Policy(정책 모델)](Policy) [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility)의 예측이 unreliable하면:
+대안 [선택 후보(candidate)](Terminology-Guide)만 reliable하고 [Policy(정책 모델)](Policy) [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility)의 예측이 unreliable하면:
 
 ```math
 advantage=V_{alt}-V_{policy}
@@ -360,10 +360,10 @@ advantage=V_{alt}-V_{policy}
 
 | 질문 | 담당 계층 |
 |---|---|
-| 이 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) outcome이 일어날 확률은? | [Prophecy](Prophecy) 결과 확률 |
+| 이 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) 환경 결과이 일어날 확률은? | [Prophecy](Prophecy) 결과 확률 |
 | 이 상태 전이 예측을 믿을 수 있나? | [Calibration](Calibration) |
 | predicted future의 sparse 누적 보상은? | [Critic](Critic) |
-| 그 [Critic](Critic) 가치를 뒷받침하는 real [학습(training)](Terminology-Guide) [증거(evidence)](Evidence-Matrix)가 있나? | Local [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD) |
+| 그 [Critic](Critic) 가치를 뒷받침하는 실제 [학습(training)](Terminology-Guide) [증거(evidence)](Evidence-Matrix)가 있나? | Local [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD) |
 
 두 판정 관문 중 하나만 통과하면 충분하지 않다.
 
@@ -393,9 +393,9 @@ Critic OOD
 → 모른다고 말함
 ```
 
-이라는 명확한 [실패(failure)](Replay-Buffer-and-Episode-Boundaries) mode다.
+이라는 명확한 [실패(failure)](Replay-Buffer-and-Episode-Boundaries) [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration)다.
 
-반대로 근거가 없는데 높은 confidence를 주는 것은 [OOD overconfidence](Critic-Support-and-OOD)와 같은 종류의 위험을 만든다.
+반대로 근거가 없는데 높은 예측 신뢰 정도를 주는 것은 [OOD overconfidence](Critic-Support-and-OOD)와 같은 종류의 위험을 만든다.
 
 ---
 
@@ -425,10 +425,10 @@ Critic OOD
 
 다음을 직접 해결하지 않는다.
 
-- [Policy](Policy) 자체의 [학습 분포 밖(OOD)](Critic-Support-and-OOD) ranking
+- [Policy](Policy) 자체의 [학습 분포 밖(OOD)](Critic-Support-and-OOD) 후보 순위
 - [Critic](Critic) 자체의 [OOD](Critic-Support-and-OOD) 가치
 - 상태 [표현(representation)](Relational-Representation-and-Generalization)에서 이미 지운 정보
-- 아주 희귀한 outcome의 data shortage
+- 아주 희귀한 환경 결과의 data shortage
 - 긴 rollout의 [compounding model error](Model-Based-RL-and-World-Models)
 - 잘못된 [보상(reward)](Sparse-Reward-and-Credit-Assignment)/[학습 목표(objective)](Terminology-Guide)
 
@@ -440,7 +440,7 @@ Critic OOD
 
 ## 19.1 평균 metric blind spot
 
-전체 semantic score는 높지만 중요한 상태 코드/행동 channel이 틀림.
+전체 의미 기준 [평가 점수(score)](Terminology-Guide)는 높지만 중요한 상태 코드/행동 channel이 틀림.
 
 **대응:** 상태 코드까지 고려하는 평가지표 + downstream 실제 행동 개입 audit.
 
@@ -448,7 +448,7 @@ Critic OOD
 
 특정 행동 region의 검증용 분리 데이터이 부족.
 
-**대응:** [근거가 부족하면 보수적으로 거부하는(fail-closed)](Critic-Support-and-OOD) + real 상태 전이 coverage 확대.
+**대응:** [근거가 부족하면 보수적으로 거부하는(fail-closed)](Critic-Support-and-OOD) + 실제 상태 전이 데이터 포함 범위 확대.
 
 ## 19.3 Confidence as value leakage
 
@@ -464,23 +464,23 @@ Model이 크게 update됐는데 cache가 너무 오래 유지됨.
 
 ## 19.5 Over-conservative gate
 
-모든 novel branch를 막아 [Imagination](Imagination)이 inert해짐.
+모든 novel 결과 경로를 막아 [Imagination](Imagination)이 inert해짐.
 
-**대응:** 판정 관문 pass rate와 bad-실제 행동 개입 rate를 함께 보고 threshold를 [ablation](Ablation-Benchmarking-and-Reproducibility)으로 검증.
+**대응:** 판정 관문 pass rate와 bad-실제 행동 개입 rate를 함께 보고 [판정 기준값(threshold)](Terminology-Guide)를 [ablation](Ablation-Benchmarking-and-Reproducibility)으로 검증.
 
 ---
 
 # 20. Calibration 평가에서 봐야 할 metric
 
-- 검증용 분리 데이터 semantic score
+- 검증용 분리 데이터 의미 기준 평가 점수
 - 상태 코드까지 고려하는 correctness
-- 신뢰도 coverage
+- 신뢰도 데이터 포함 범위
 - insufficient-evidence rate
 - reliable-root fr행동
 - calibration refresh/cache diagnostics
 - low-reliability suppressed 실제 행동 개입 count
 - suppression 후 bad 실제 행동 개입 rate
-- suppression 때문에 놓친 successful candidate 여부
+- suppression 때문에 놓친 successful 선택 후보 여부
 
 마지막 두 개가 특히 중요하다.
 

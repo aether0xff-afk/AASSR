@@ -38,7 +38,7 @@ AASSR의 현재 실행 구조는 [현재 연구 상태](Current-Status)에서 �
 
 단순히 최신 파일이라는 뜻보다 조금 더 강하다.
 
-AASSR에서 **현재 세대(current-generation)**는 지금 연구의 기준이 되는 한 묶음의 설계 세대를 뜻한다.
+AASSR에서 **현재 세대([현재 세대(current-generation)](Current-Status))**는 지금 연구의 기준이 되는 한 묶음의 설계 세대를 뜻한다.
 
 예:
 
@@ -56,7 +56,7 @@ aassr-current-generation-v2
 
 `runtime`은 문서에 적힌 아이디어가 아니라 **프로그램을 실제로 실행했을 때 사용되는 코드 구조**를 뜻한다.
 
-예를 들어 문서에 오래된 Prophecy 설명이 남아 있어도 실제 실행 코드가 다른 모델을 사용한다면 현재 연구를 판단할 때는 실행 구조가 더 중요하다.
+예를 들어 문서에 오래된 [Prophecy(미래 예측 모델)](Prophecy) 설명이 남아 있어도 실제 실행 코드가 다른 모델을 사용한다면 현재 연구를 판단할 때는 실행 구조가 더 중요하다.
 
 AASSR에서는 현재 실행 구조의 최종 기준을 다음 파일에 둔다.
 
@@ -132,7 +132,7 @@ Imagination
 
 `active`는 **실제 현재 실행 경로에 연결되어 사용 중**이라는 뜻이다.
 
-반대로 과거 코드가 저장소에 남아 있어도 현재 실행 경로에서 호출되지 않는다면 active가 아니다.
+반대로 과거 코드가 저장소에 남아 있어도 현재 실행 경로에서 호출되지 않는다면 [현재 활성(active)](Current-Status)가 아니다.
 
 ---
 
@@ -270,7 +270,7 @@ AASSR에서 `real`은 매우 중요하다.
 = 실제 행동을 실행하고 실제 응답을 관측
 ```
 
-반대로 Imagination이 만든 미래는 가상 정보다.
+반대로 [Imagination(가상 미래 탐색)](Imagination)이 만든 미래는 가상 정보다.
 
 ```text
 실제 경험
@@ -287,7 +287,7 @@ AASSR에서 `real`은 매우 중요하다.
 
 가상 미래는 행동 계획에 사용할 수 있다.
 
-하지만 실제로 일어난 사실처럼 Knowledge나 실제 학습 증거에 자동으로 넣으면 안 된다.
+하지만 실제로 일어난 사실처럼 [Knowledge(에피소드 지식)](Knowledge)나 실제 학습 증거에 자동으로 넣으면 안 된다.
 
 관련: [Imagination](Imagination)
 
@@ -338,7 +338,7 @@ AASSR에서 `real`은 매우 중요하다.
 
 `frozen`은 **평가 중 모델 파라미터나 지속적인 학습 상태를 바꾸지 않는 것**을 뜻한다.
 
-AASSR의 Imagination 효과를 비교할 때 특히 중요하다.
+AASSR의 [Imagination](Imagination) 효과를 비교할 때 특히 중요하다.
 
 ```text
 동일한 학습 체크포인트
@@ -346,7 +346,7 @@ AASSR의 Imagination 효과를 비교할 때 특히 중요하다.
 └─ Imagination 켬
 ```
 
-두 조건 사이에서 다시 학습하면 Imagination의 효과인지 학습 차이인지 알 수 없기 때문이다.
+두 조건 사이에서 다시 학습하면 [Imagination](Imagination)의 효과인지 학습 차이인지 알 수 없기 때문이다.
 
 ---
 
@@ -408,9 +408,9 @@ Prophecy 출력
 
 예:
 
-- Policy의 DQN
-- Prophecy의 미래 예측 모델
-- Critic의 가치 평가 모델
+- [Policy(정책 모델)](Policy)의 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD)
+- [Prophecy](Prophecy)의 미래 예측 모델
+- [Critic(미래 가치 평가기)](Critic)의 가치 평가 모델
 
 `world model`처럼 특별한 의미를 가질 때는 별도로 설명한다.
 
@@ -474,7 +474,7 @@ AASSR에서:
 
 계획 트리에서 `root`는 가장 처음에 있는 선택 지점을 뜻한다.
 
-AASSR의 Imagination이 여러 단계 미래를 계산하더라도 현실에서 가장 먼저 필요한 것은:
+AASSR의 [Imagination](Imagination)이 여러 단계 미래를 계산하더라도 현실에서 가장 먼저 필요한 것은:
 
 > **그래서 지금 무슨 행동을 할 것인가?**
 
@@ -488,9 +488,9 @@ AASSR의 Imagination이 여러 단계 미래를 계산하더라도 현실에서 
 
 # 29. override — 기본 선택을 바꾸기
 
-`override`는 **기본 Policy가 고른 행동 대신 다른 행동을 실제로 사용하도록 바꾸는 것**이다.
+`override`는 **기본 [Policy](Policy)가 고른 행동 대신 다른 행동을 실제로 사용하도록 바꾸는 것**이다.
 
-AASSR에서 Imagination은 미래를 계산했다는 이유만으로 무조건 행동을 바꾸지 않는다.
+AASSR에서 [Imagination](Imagination)은 미래를 계산했다는 이유만으로 무조건 행동을 바꾸지 않는다.
 
 신뢰도·가치 차이·실제 데이터 근거 등의 조건을 통과해야 한다.
 
@@ -518,7 +518,7 @@ Critic의 실제 데이터 근거가 충분한가?
 
 `fallback`은 새 방법을 믿기 어려울 때 **더 기본적인 안전한 선택 방식으로 돌아가는 것**이다.
 
-현재 AASSR에서는 Imagination의 근거가 부족하면 Policy의 기본 행동을 유지하는 방식이 대표적이다.
+현재 AASSR에서는 [Imagination](Imagination)의 근거가 부족하면 [Policy](Policy)의 기본 행동을 유지하는 방식이 대표적이다.
 
 ---
 
@@ -561,7 +561,7 @@ Critic의 실제 데이터 근거가 충분한가?
 
 `legal`은 법률적 의미가 아니라 **현재 환경 규칙상 실행 가능한 행동**이라는 뜻이다.
 
-Prophecy는 가상 미래에서도 어떤 행동이 가능한지 예측해야 한다.
+[Prophecy](Prophecy)는 가상 미래에서도 어떤 행동이 가능한지 예측해야 한다.
 
 ---
 
@@ -573,7 +573,7 @@ Prophecy는 가상 미래에서도 어떤 행동이 가능한지 예측해야 �
 
 를 나타내는 환경의 변화 규칙이다.
 
-Prophecy는 이 변화를 학습하는 세계 모델 역할을 한다.
+[Prophecy](Prophecy)는 이 변화를 학습하는 세계 모델 역할을 한다.
 
 ---
 
@@ -636,9 +636,9 @@ route-17이라는 이름
 
 AASSR에서 `support`는 “지원 기능”이라는 일반 영어 뜻이 아니라 **현재 판단 주변에 실제 학습 데이터가 얼마나 존재하는가**라는 뜻으로 자주 사용한다.
 
-Critic이 높은 값을 예측해도 실제 비슷한 경험이 없다면 데이터 근거가 부족한 것이다.
+[Critic](Critic)이 높은 값을 예측해도 실제 비슷한 경험이 없다면 데이터 근거가 부족한 것이다.
 
-관련: [Critic 데이터 근거와 OOD](Critic-Support-and-OOD)
+관련: [가치 평가 데이터 근거와 OOD](Critic-Support-and-OOD)
 
 ---
 
@@ -646,7 +646,7 @@ Critic이 높은 값을 예측해도 실제 비슷한 경험이 없다면 데이
 
 `fail closed`는 판단 근거가 부족하거나 검증에 실패했을 때 **공격적으로 새 행동을 허용하기보다 기본 행동을 유지하는 설계**다.
 
-AASSR에서는 불확실한 Imagination이 Policy를 함부로 덮어쓰지 못하게 하는 데 사용한다.
+AASSR에서는 불확실한 [Imagination](Imagination)이 [Policy](Policy)를 함부로 덮어쓰지 못하게 하는 데 사용한다.
 
 ---
 
@@ -654,32 +654,32 @@ AASSR에서는 불확실한 Imagination이 Policy를 함부로 덮어쓰지 못�
 
 | 영어 | 먼저 떠올릴 한국어 | 핵심 의미 |
 |---|---|---|
-| current | 현재 | 지금 기준으로 사용 중 |
-| runtime | 실제 실행 구조 | 프로그램이 실제로 실행하는 경로 |
-| contract | 명세 | 반드시 지켜야 하는 의미·조건 |
-| historical | 과거 기록 | 재현·분석을 위해 보존한 이전 결과 |
-| diagnostic | 진단 실험 | 원인을 좁히는 실험 |
-| evidence | 증거 | 주장을 뒷받침하는 결과 |
-| claim | 연구 주장 | 현재 증거로 사실이라고 말하려는 문장 |
-| public | 에이전트에게 공개된 | 정상 상호작용으로 볼 수 있음 |
-| hidden | 에이전트에게 숨겨진 | 환경 내부에는 있지만 직접 볼 수 없음 |
-| real | 실제 환경에서 관측된 | 상상이 아니라 실제 경험 |
-| imagined | 모델이 상상한 | 세계 모델이 만든 가상 미래 |
-| training | 학습 | 모델 파라미터를 바꿈 |
-| validation | 검증 | 개발 과정에서 상태 확인 |
-| evaluation | 평가 | 학습된 모델 성능 측정 |
-| frozen | 학습 중지 | 평가 중 모델을 바꾸지 않음 |
-| protocol | 실험 규칙 | 결과 보기 전에 정한 비교 방법 |
-| proxy | 대리 지표 | 최종 목표 대신 원인을 보기 위한 값 |
-| root | 지금 실행할 첫 행동 | 계획 결과 중 현실에서 첫 번째로 쓸 행동 |
-| override | 기본 행동 변경 | Policy 선택을 다른 행동으로 바꿈 |
-| fallback | 기본 경로 복귀 | 근거가 부족하면 기본 선택 유지 |
-| gate | 판정 관문 | 특정 조건을 통과해야 기능 사용 |
-| margin | 최소 차이 기준 | 행동을 바꾸기 위해 요구하는 최소 우위 |
-| stochastic | 확률적 | 같은 입력에도 여러 결과 가능 |
-| relational | 관계 기반 | 이름보다 역할과 관계를 봄 |
-| multimodal | 여러 결과 형태 | 하나의 평균으로 설명하기 어려운 여러 결과 |
-| support | 실제 데이터 근거 | 판단 주변에 실제 경험이 있는 정도 |
+| [현재(current)](Current-Status) | 현재 | 지금 기준으로 사용 중 |
+| [실행 구조(runtime)](Current-Status) | 실제 실행 구조 | 프로그램이 실제로 실행하는 경로 |
+| [명세(contract)](Current-Status) | 명세 | 반드시 지켜야 하는 의미·조건 |
+| [과거 기록(historical)](Development-History) | 과거 기록 | 재현·분석을 위해 보존한 이전 결과 |
+| [진단 실험(diagnostic)](Evidence-Matrix) | 진단 실험 | 원인을 좁히는 실험 |
+| [증거(evidence)](Evidence-Matrix) | 증거 | 주장을 뒷받침하는 결과 |
+| [연구 주장(claim)](Evidence-Matrix) | 연구 주장 | 현재 증거로 사실이라고 말하려는 문장 |
+| [공개된(public)](State-Representation) | 에이전트에게 공개된 | 정상 상호작용으로 볼 수 있음 |
+| [숨겨진(hidden)](MDP-and-POMDP) | 에이전트에게 숨겨진 | 환경 내부에는 있지만 직접 볼 수 없음 |
+| [실제 환경에서 관측된(real)](Research-Jargon-Guide) | 실제 환경에서 관측된 | 상상이 아니라 실제 경험 |
+| [모델이 상상한(imagined)](Research-Jargon-Guide) | 모델이 상상한 | 세계 모델이 만든 가상 미래 |
+| [학습(training)](Terminology-Guide) | 학습 | 모델 파라미터를 바꿈 |
+| [검증(validation)](Ablation-Benchmarking-and-Reproducibility) | 검증 | 개발 과정에서 상태 확인 |
+| [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility) | 평가 | 학습된 모델 성능 측정 |
+| [학습을 멈춘(frozen)](Ablation-Benchmarking-and-Reproducibility) | 학습 중지 | 평가 중 모델을 바꾸지 않음 |
+| [실험 규칙(protocol)](Ablation-Benchmarking-and-Reproducibility) | 실험 규칙 | 결과 보기 전에 정한 비교 방법 |
+| [대리 지표(proxy)](Ablation-Benchmarking-and-Reproducibility) | 대리 지표 | 최종 목표 대신 원인을 보기 위한 값 |
+| [탐색의 첫 행동(root)](Imagination) | 지금 실행할 첫 행동 | 계획 결과 중 현실에서 첫 번째로 쓸 행동 |
+| [기본 행동 덮어쓰기(override)](Imagination) | 기본 행동 변경 | [Policy](Policy) 선택을 다른 행동으로 바꿈 |
+| [기본 경로로 돌아가기(fallback)](Imagination) | 기본 경로 복귀 | 근거가 부족하면 기본 선택 유지 |
+| [판정 관문(gate)](Terminology-Guide) | 판정 관문 | 특정 조건을 통과해야 기능 사용 |
+| [최소 차이 기준(margin)](Imagination) | 최소 차이 기준 | 행동을 바꾸기 위해 요구하는 최소 우위 |
+| [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) | 확률적 | 같은 입력에도 여러 결과 가능 |
+| [관계 기반(relational)](Relational-Representation-and-Generalization) | 관계 기반 | 이름보다 역할과 관계를 봄 |
+| [여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) | 여러 결과 형태 | 하나의 평균으로 설명하기 어려운 여러 결과 |
+| [데이터 근거(support)](Critic-Support-and-OOD) | 실제 데이터 근거 | 판단 주변에 실제 경험이 있는 정도 |
 
 ---
 

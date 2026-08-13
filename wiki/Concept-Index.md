@@ -168,9 +168,9 @@ AASSR에서 최초 성공 discovery와 higher-level 전이가 왜 별개의 문�
 - 상태 가치 `V(s)`
 - 행동 가치 `Q(s,a)`
 - advantage
-- Bellman expectation equation
+- Bellman [확률 기댓값(expectation)](Chance-and-Decision-Nodes) equation
 - Bellman optimality equation
-- backup
+- [미래 가치를 앞 단계로 되돌려 계산하는 과정(backup)](Value-Functions-and-Bellman-Equation)
 - [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)ping
 
 AASSR의 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) [Policy](Policy)와 sparse-누적 보상 [Critic(미래 가치 평가기)](Critic)의 수학적 기반이다.
@@ -203,7 +203,7 @@ AASSR의 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) [Policy](Policy)와 sp
 - [상태 전이(transition)](MDP-and-POMDP) cap
 - 보상 boundary vs 다음 상태 가치 이어받기 boundary
 - replay vs [Knowledge(에피소드 지식)](Knowledge)
-- real 상태 전이 vs imagined 상태 전이
+- [실제 환경에서 관측된(real)](Research-Jargon-Guide) 상태 전이 vs [모델이 상상한(imagined)](Research-Jargon-Guide) 상태 전이
 
 AASSR에서 **보상가 0이어도 TD 다음 상태 가치 이어받기은 끊어야 할 수 있다**는 수정의 이론적 배경이다.
 
@@ -268,7 +268,7 @@ AASSR의 [Prophecy](Prophecy)와 [Imagination(가상 미래 탐색)](Imagination
 
 ## [Stochasticity, Uncertainty and Probability](Stochasticity-Uncertainty-and-Probability)
 
-- probability
+- [확률(probability)](Stochasticity-Uncertainty-and-Probability)
 - random variable
 - expected 가치
 - variance
@@ -293,13 +293,13 @@ outcome probability
 
 ## [Mixture Models, Ensembles and Calibration](Mixture-Ensemble-and-Calibration)
 
-- [여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) distribution
+- [여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability)
 - mixture 학습 모델 / [구성요소(component)](Research-Architecture) / weight
 - mixture collapse
 - ensemble / disagreement
 - aleatoric vs epistemic 관점
 - [검증용 분리 데이터(holdout)](Calibration) calibration
-- probability-weighted semantic score
+- probability-weighted [의미 기준(semantic)](State-Representation) [평가 점수(score)](Terminology-Guide)
 - [학습을 멈춘(frozen)](Ablation-Benchmarking-and-Reproducibility) 검증용 분리 데이터
 - 신뢰도 diagram / ECE 개념
 
@@ -321,7 +321,7 @@ AASSR 확률적 [Prophecy](Prophecy)와 [Calibration(예측 신뢰도 보정)](C
 - beam search
 - pruning
 - [탐색의 첫 행동(root)](Imagination) preservation
-- structural deduplication
+- [구조 기반(structural)](Relational-Representation-and-Generalization) deduplication
 - MPC / receding horizon과의 개념적 연결
 - [실제 행동 개입(intervention)](Imagination) [최소 차이 기준(margin)](Imagination)
 
@@ -339,10 +339,10 @@ V_{chance}=\sum_i p_iV_i
 V_{decision}=\max_aV(a)
 ```
 
-- 왜 환경 randomness에는 expectation을 쓰는가?
+- 왜 환경 randomness에는 확률 기댓값을 쓰는가?
 - 왜 에이전트 choice에는 max를 쓸 수 있는가?
-- optimistic 확률적 backup은 왜 틀리는가?
-- probability와 신뢰도는 왜 다른가?
+- optimistic 확률적 가치 되돌림 계산은 왜 틀리는가?
+- 확률와 신뢰도는 왜 다른가?
 
 AASSR [Imagination](Imagination)의 핵심 수학적 semantics다.
 
@@ -359,9 +359,9 @@ AASSR [Imagination](Imagination)의 핵심 수학적 semantics다.
 - [관계 기반(relational)](Relational-Representation-and-Generalization) inductive bias
 - abstr행동
 - 상태 aliasing
-- concrete vs 관계 기반 [식별 방식(identity)](State-Representation)
+- [실제 개체를 구분하는(concrete)](State-Representation) vs 관계 기반 [식별 방식(identity)](State-Representation)
 - 전이 learning
-- structural 탐색의 첫 행동 dedup
+- 구조 기반 탐색의 첫 행동 dedup
 - 표현 leakage
 
 AASSR `Relational State v3`, 행동 key, [Skill(성공 절차 재사용)](Skills) 전이의 기반이다.
@@ -427,9 +427,9 @@ AASSR의 [Skill](Skills)이 사람이 넣은 정답 macro와 어떻게 다른지
 - privileged information
 - [공개된(public)](State-Representation) 관측 명세
 - cross-episode leakage
-- imagined fact vs real fact
+- 가상 fact vs 실제 fact
 - train/test contamination
-- [같은 체크포인트(same-checkpoint)](Experiments) comparison
+- [같은 체크포인트(same-checkpoint)](Experiments) [비교(comparison)](Ablation-Benchmarking-and-Reproducibility)
 - Oracle / guided trajectory
 
 AASSR의 anti-hindsight, hidden-state 금지, 같은 체크포인트 [실험 규칙(protocol)](Ablation-Benchmarking-and-Reproducibility)과 연결된다.
@@ -447,8 +447,8 @@ AASSR의 anti-hindsight, hidden-state 금지, 같은 체크포인트 [실험 규
 - 학습 budget
 - hyperparameter tuning
 - 평가지표 / [대리 지표(proxy)](Ablation-Benchmarking-and-Reproducibility) 평가지표
-- mean / standard deviation / confidence interval
-- paired comparison
+- mean / standard deviation / [예측 신뢰 정도(confidence)](Calibration) interval
+- paired 비교
 - [진단 실험(diagnostic)](Evidence-Matrix) vs final 표준 비교 실험
 - reproducibility
 - artifact [정보의 출처 기록(provenance)](Knowledge)
@@ -518,16 +518,16 @@ dqn_raw
 | neural 신경망, gradient, optimizer, GPU batch | [Neural Networks and Optimization](Neural-Networks-and-Optimization) |
 | MSE, cross entropy, Smooth L1, class imbalance | [Loss Functions and Class Imbalance](Loss-Functions-and-Class-Imbalance) |
 | 세계 모델, 학습 모델 bias, 모델 오류 악용 | [Model-Based RL and World Models](Model-Based-RL-and-World-Models) |
-| probability, uncertainty, aleatoric, epistemic | [Stochasticity, Uncertainty and Probability](Stochasticity-Uncertainty-and-Probability) |
+| 확률, uncertainty, aleatoric, epistemic | [Stochasticity, Uncertainty and Probability](Stochasticity-Uncertainty-and-Probability) |
 | mixture, ensemble, calibration | [Mixture, Ensemble and Calibration](Mixture-Ensemble-and-Calibration) |
 | rollout, lookahead, beam, pruning | [Counterfactual Planning and Search](Counterfactual-Planning-and-Search) |
-| [환경 결과 노드(chance node)](Chance-and-Decision-Nodes), [행동 선택 노드(decision node)](Chance-and-Decision-Nodes), expectation | [Chance and Decision Nodes](Chance-and-Decision-Nodes) |
+| [환경 결과 노드(chance node)](Chance-and-Decision-Nodes), [행동 선택 노드(decision node)](Chance-and-Decision-Nodes), 확률 기댓값 | [Chance and Decision Nodes](Chance-and-Decision-Nodes) |
 | 관계 기반, permutation, invariance, 전이 | [Relational Representation and Generalization](Relational-Representation-and-Generalization) |
 | [OOD](Critic-Support-and-OOD), extrapolation, 데이터 근거, 근거가 부족하면 보수적으로 거부하는 | [Critic, Support and OOD](Critic-Support-and-OOD) |
 | [GRU](GRU-and-Sequence-Models), recurrent, 숨은 환경 상태 | [GRU and Sequence Models](GRU-and-Sequence-Models) |
 | skill, macro, option, temporal abstr행동 | [Hierarchical RL and Skills](Hierarchical-RL-and-Skills) |
 | leakage, hindsight, privileged information | [Causality, Leakage and Evaluation](Causality-Leakage-and-Evaluation) |
-| 구성요소 제거 비교, 비교 기준, 난수 시드, confidence interval | [Ablation, Benchmarking and Reproducibility](Ablation-Benchmarking-and-Reproducibility) |
+| 구성요소 제거 비교, 비교 기준, 난수 시드, 예측 신뢰 정도 interval | [Ablation, Benchmarking and Reproducibility](Ablation-Benchmarking-and-Reproducibility) |
 
 ---
 

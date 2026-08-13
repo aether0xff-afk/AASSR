@@ -1,6 +1,6 @@
 # Skills — 성공 절차 재사용
 
-[Skill(성공 절차 재사용)](Skills)은 AASSR에서 **반복해서 성공한 실제 ASeq 구조를 [관계 기반(relational)](Relational-Representation-and-Generalization) template로 승격해 다시 사용할 수 있게 하는 메커니즘**이다.
+[Skill(성공 절차 재사용)](Skills)은 AASSR에서 **반복해서 성공한 실제 ASeq 구조를 [관계 기반(relational)](Relational-Representation-and-Generalization) [재사용 가능한 틀(template)](Skills)로 승격해 다시 사용할 수 있게 하는 메커니즘**이다.
 
 사람이 정답 macro를 미리 넣어주는 기능이 아니다.
 
@@ -16,14 +16,14 @@ Skill template 승격
 
 > [!IMPORTANT]
 > 현재 manifest 계약: `relational-aseq-template-v1`  
-> template promotion: `RelationalSkillLibrary` in `current_generation.py`  
+> 재사용 가능한 틀 promotion: `RelationalSkillLibrary` in `current_generation.py`  
 > [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) rollout: `src/aassr_v2/current_relational_skill_prophecy.py`
 
 ---
 
 # 1. 연구 질문
 
-> **한 번 배운 성공 행동 구조를 concrete identifier가 바뀐 새로운 상황에서도 재사용 가능한 고수준 행동 단위로 만들 수 있는가?**
+> **한 번 배운 성공 행동 구조를 [실제 개체를 구분하는(concrete)](State-Representation) identifier가 바뀐 새로운 상황에서도 재사용 가능한 고수준 행동 단위로 만들 수 있는가?**
 
 희소 보상 장기 문제에서 매번 primitive [행동(action)](Reinforcement-Learning)부터 다시 탐색하면 sample efficiency가 낮다.
 
@@ -70,11 +70,11 @@ LOGIN profile-9
 REQUEST object-2
 ```
 
-구조는 같아도 concrete ID가 다르다.
+구조는 같아도 실제 개체를 구분하는 ID가 다르다.
 
 Raw signature sequence를 그대로 재생하면 [전이(transfer)](Relational-Representation-and-Generalization)가 실패한다.
 
-그래서 [현재(current)](Current-Status) [Skill](Skills)은 각 primitive를 **관계 기반 행동 template**로 저장한다.
+그래서 [현재(current)](Current-Status) [Skill](Skills)은 각 primitive를 **관계 기반 행동 재사용 가능한 틀**로 저장한다.
 
 ---
 
@@ -94,7 +94,7 @@ trace action A2 -> relational template T2
 Skill = (T0, T1, T2, ...)
 ```
 
-새 [상태(state)](State-Representation)에서는 `T_i`와 같은 관계 기반 role을 가진 현재 legal [실제 실행 행동(concrete action)](State-Representation)을 찾아 다시 bind한다.
+새 [상태(state)](State-Representation)에서는 `T_i`와 같은 관계 기반 [역할(role)](Relational-Representation-and-Generalization)을 가진 현재 legal [실제 실행 행동(concrete action)](State-Representation)을 찾아 다시 bind한다.
 
 ---
 
@@ -127,7 +127,7 @@ matching concrete candidates
 
 # 6. Promotion
 
-현재 관계 기반 library는 goal completion에서 최근 ASeq를 관측해 동일 template가 반복 성공했는지 센다.
+현재 관계 기반 library는 goal completion에서 최근 ASeq를 관측해 동일 재사용 가능한 틀가 반복 성공했는지 센다.
 
 기본적인 아이디어:
 
@@ -142,7 +142,7 @@ promotion threshold 충족
 -> Skill 생성
 ```
 
-현재 기본 promotion은 매우 적은 횟수에서도 가능하도록 설계되어 있지만, 최종 연구에서는 promotion threshold 자체도 명시적으로 보고해야 한다.
+현재 기본 promotion은 매우 적은 횟수에서도 가능하도록 설계되어 있지만, 최종 연구에서는 promotion [판정 기준값(threshold)](Terminology-Guide) 자체도 명시적으로 보고해야 한다.
 
 ---
 
@@ -165,7 +165,7 @@ skill-0001
 
 # 8. Skill과 Policy
 
-Primitive 행동의 external [가치(value)](Value-Functions-and-Bellman-Equation)는 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD)이 담당한다.
+Primitive 행동의 [환경이 주는 외부(external)](Terminology-Guide) [가치(value)](Value-Functions-and-Bellman-Equation)는 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD)이 담당한다.
 
 [Skill](Skills)은 별도 식별 방식를 가지기 때문에 [Policy](Policy)에서 [Skill](Skills) 가치를 별도로 관리할 수 있다.
 
@@ -190,15 +190,15 @@ Prophecy(T1)
 Prophecy(T2)
 ```
 
-초기 구현에서 매 primitive마다 가장 높은 probability outcome 하나만 선택하면 확률적 future가 collapse된다.
+초기 구현에서 매 primitive마다 가장 높은 [확률(probability)](Stochasticity-Uncertainty-and-Probability) [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability) 하나만 선택하면 확률적 future가 collapse된다.
 
-[현재 세대(current-generation)](Current-Status)은 이 문제를 수리해 [Skill](Skills) rollout에서도 여러 outcome branch를 작은 beam으로 유지한다.
+[현재 세대(current-generation)](Current-Status)은 이 문제를 수리해 [Skill](Skills) rollout에서도 여러 환경 결과 [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)를 작은 beam으로 유지한다.
 
 ---
 
 # 10. Skill에서도 probability와 reliability를 분리한다
 
-[Skill](Skills) rollout의 branch는 두 누적량을 따로 가진다.
+[Skill](Skills) rollout의 결과 경로는 두 누적량을 따로 가진다.
 
 ```text
 outcome mass
@@ -210,15 +210,15 @@ reliability
 
 이 둘을 곱해 하나의 의미로 섞어버리면 [계획기(planner)](Counterfactual-Planning-and-Search) semantics가 흐려진다.
 
-현재 확률적 [Skill](Skills) [Prophecy(미래 예측 모델)](Prophecy)는 여러 outcome의 mass를 유지하면서 [신뢰도(reliability)](Calibration)도 별도로 누적한다.
+현재 확률적 [Skill](Skills) [Prophecy(미래 예측 모델)](Prophecy)는 여러 환경 결과의 mass를 유지하면서 [신뢰도(reliability)](Calibration)도 별도로 누적한다.
 
 ---
 
 # 11. Beam을 쓰는 이유
 
-[Skill](Skills) 길이가 `L`이고 각 primitive가 `M`개의 가능한 outcome을 낸다면 모든 branch를 보존할 경우 대략 `M^L`로 증가할 수 있다.
+[Skill](Skills) 길이가 `L`이고 각 primitive가 `M`개의 가능한 환경 결과을 낸다면 모든 결과 경로를 보존할 경우 대략 `M^L`로 증가할 수 있다.
 
-그래서 현재 [Skill](Skills) [Prophecy](Prophecy)는 제한된 outcome beam을 유지한다.
+그래서 현재 [Skill](Skills) [Prophecy](Prophecy)는 제한된 환경 결과 beam을 유지한다.
 
 ```text
 각 step에서 stochastic candidates 생성
@@ -236,7 +236,7 @@ mass renormalization
 
 # 12. Skill 실패가 왜 중요한가?
 
-훈련에서 성공했던 관계 기반 template라도 새 scenario에서는 중간 primitive가 legal하지 않을 수 있다.
+훈련에서 성공했던 관계 기반 재사용 가능한 틀라도 새 scenario에서는 중간 primitive가 legal하지 않을 수 있다.
 
 ```text
 T0 resolve 성공
@@ -246,7 +246,7 @@ T2 matching concrete action 없음
 
 이 경우 [Skill](Skills)을 억지로 실행하면 안 된다.
 
-현재 path는 unavailable 상태를 표시하거나 confidence를 낮춰 계획기가 이를 신뢰하지 않도록 한다.
+현재 path는 unavailable 상태를 표시하거나 [예측 신뢰 정도(confidence)](Calibration)를 낮춰 계획기가 이를 신뢰하지 않도록 한다.
 
 ---
 
@@ -286,7 +286,7 @@ Skill
 
 raw ID sequence를 저장하면 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) 난수 시드 전이 실패.
 
-대응: 관계 기반 template + 현재 concrete rebinding.
+대응: 관계 기반 재사용 가능한 틀 + 현재 실제 개체를 구분하는 rebinding.
 
 ## 15.2 Premature promotion
 
@@ -296,13 +296,13 @@ raw ID sequence를 저장하면 [학습 중 보지 못한(unseen)](Relational-Re
 
 ## 15.3 Stochastic collapse
 
-[Skill](Skills) rollout에서 매 step 가장 높은 outcome만 남기면 위험한 확률적 branch를 잃는다.
+[Skill](Skills) rollout에서 매 step 가장 높은 환경 결과만 남기면 위험한 확률적 결과 경로를 잃는다.
 
-대응: 확률적 outcome beam.
+대응: 확률적 환경 결과 beam.
 
 ## 15.4 Unavailable primitive
 
-새 상태에서 template에 맞는 legal 실제 실행 행동이 없음.
+새 상태에서 재사용 가능한 틀에 맞는 legal 실제 실행 행동이 없음.
 
 대응: unavailable / low-confidence 처리.
 

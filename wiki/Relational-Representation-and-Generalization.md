@@ -1,6 +1,6 @@
 # Relational Representation and Generalization
 
-AASSR은 concrete identifier 자체를 외우는 대신 **역할, 관계, 구조를 표현하는 [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)**을 사용한다.
+AASSR은 [실제 개체를 구분하는(concrete)](State-Representation) identifier 자체를 외우는 대신 **역할, 관계, 구조를 표현하는 [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)**을 사용한다.
 
 이 페이지는 다음 개념을 연결한다.
 
@@ -19,7 +19,7 @@ state aliasing
 
 # 1. Representation이란?
 
-Machine learning [학습 모델(model)](Terminology-Guide)은 현실의 상태를 그대로 이해하는 것이 아니라 **입력 feature [표현(representation)](Relational-Representation-and-Generalization)**을 받는다.
+Machine learning [학습 모델(model)](Terminology-Guide)은 현실의 상태를 그대로 이해하는 것이 아니라 **입력 [학습에 사용하는 특징(feature)](Terminology-Guide) [표현(representation)](Relational-Representation-and-Generalization)**을 받는다.
 
 ```text
 Environment situation
@@ -35,7 +35,7 @@ Learner
 
 # 2. Raw representation
 
-Raw 표현은 concrete identifier나 원래 입력 위치를 강하게 보존할 수 있다.
+Raw 표현은 실제 개체를 구분하는 identifier나 원래 입력 위치를 강하게 보존할 수 있다.
 
 예:
 
@@ -45,7 +45,7 @@ profile-7
 object-3
 ```
 
-이런 값이 그대로 feature [식별 방식(identity)](State-Representation)가 되면 학습 모델은 특정 ID와 [가치(value)](Value-Functions-and-Bellman-Equation)를 연결해 외울 수 있다.
+이런 값이 그대로 학습 특징 [식별 방식(identity)](State-Representation)가 되면 학습 모델은 특정 ID와 [가치(value)](Value-Functions-and-Bellman-Equation)를 연결해 외울 수 있다.
 
 훈련/평가에서 ID가 그대로 유지되면 성능이 높게 보일 수 있다.
 
@@ -73,7 +73,7 @@ object-9
 
 AASSR [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)에서 중요한 질문:
 
-> [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)가 바뀌어 concrete name이 permutation되어도 같은 문제 구조를 알아볼 수 있는가?
+> [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)가 바뀌어 실제 개체를 구분하는 name이 permutation되어도 같은 문제 구조를 알아볼 수 있는가?
 
 이다.
 
@@ -105,7 +105,7 @@ Learner가 ID 자체에 의존하면 성능이 무너질 수 있다.
 
 어떤 변환을 해도 표현/[출력(output)](Terminology-Guide)이 본질적으로 같게 유지되면 invariance라고 한다.
 
-예를 들어 identifier permutation에 대해 invariant한 표현은:
+예를 들어 identifier permutation에 대해 [수정해도 유지되어야 하는 성질(invariant)](Research-Jargon-Guide)한 표현은:
 
 ```text
 route-12가 catalog-like role
@@ -127,9 +127,9 @@ Invariance와 함께 자주 나오는 개념이다.
 
 Graph neural [신경망(network)](Neural-Networks-and-Optimization)나 set 학습 모델에서 중요한 개념이다.
 
-AASSR [현재(current)](Current-Status) [관계 기반(relational)](Relational-Representation-and-Generalization) descriptor는 explicit role/count/[행동(action)](Reinforcement-Learning)-feature 기반 구조이며, 모든 부분을 formal equivariant 신경망로 구현한다고 주장하는 것은 아니다.
+AASSR [현재(current)](Current-Status) [관계 기반(relational)](Relational-Representation-and-Generalization) [상태를 요약한 표현(descriptor)](State-Representation)는 explicit [역할(role)](Relational-Representation-and-Generalization)/count/[행동(action)](Reinforcement-Learning)-feature 기반 구조이며, 모든 부분을 formal equivariant 신경망로 구현한다고 주장하는 것은 아니다.
 
-하지만 **concrete naming permutation에 덜 민감한 inductive bias**를 만드는 것이 핵심이다.
+하지만 **실제 개체를 구분하는 naming permutation에 덜 민감한 inductive bias**를 만드는 것이 핵심이다.
 
 ---
 
@@ -155,7 +155,7 @@ target-object role
 
 처럼 표현할 수 있다.
 
-AASSR의 현재 descriptor는 [공개된(public)](State-Representation) facts와 role distributions, known entity counts, 행동 structure, latest [상태 코드(status)](Terminology-Guide) 등을 조합한다.
+AASSR의 현재 상태 요약 표현는 [공개된(public)](State-Representation) facts와 역할 distributions, known entity counts, 행동 structure, latest [상태 코드(status)](Terminology-Guide) 등을 조합한다.
 
 관련 페이지:
 
@@ -248,13 +248,13 @@ execution identity        = concrete
 
 # 12. ASEQ는 왜 concrete semantic identity를 쓰는가?
 
-[제자리 반복(Self-loop)](ASEQ) 판정에서는 서로 다른 concrete entity를 같은 것으로 합치면 위험하다.
+[제자리 반복(Self-loop)](ASEQ) 판정에서는 서로 다른 실제 개체를 구분하는 entity를 같은 것으로 합치면 위험하다.
 
 ```text
 S(route-12) → action → S(route-31)
 ```
 
-이 실제 진행인데 관계 기반 role만 같다고:
+이 실제 진행인데 관계 기반 역할만 같다고:
 
 ```text
 S → A → S
@@ -262,7 +262,7 @@ S → A → S
 
 로 오인할 수 있다.
 
-그래서 [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ) exact repetition은 concrete semantic 식별 방식를 유지한다.
+그래서 [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ) exact repetition은 실제 개체를 구분하는 [의미 기준(semantic)](State-Representation) 식별 방식를 유지한다.
 
 관련 페이지:
 
@@ -282,7 +282,7 @@ request route-12
 request route-31
 ```
 
-을 concrete signature로만 보면 다르다.
+을 실제 개체를 구분하는 signature로만 보면 다르다.
 
 하지만:
 
@@ -290,7 +290,7 @@ request route-31
 request + catalog-like-target
 ```
 
-같은 feature로 encode하면 structural similarity를 공유할 수 있다.
+같은 학습 특징로 encode하면 [구조 기반(structural)](Relational-Representation-and-Generalization) similarity를 공유할 수 있다.
 
 AASSR의 [Policy(정책 모델)](Policy), [Prophecy(미래 예측 모델)](Prophecy), [Critic(미래 가치 평가기)](Critic), [Skill(성공 절차 재사용)](Skills)이 관계 기반 행동 key를 활용한다.
 
@@ -298,7 +298,7 @@ AASSR의 [Policy(정책 모델)](Policy), [Prophecy(미래 예측 모델)](Proph
 
 # 14. Structural root deduplication
 
-Planning에서는 같은 관계 기반 행동 structure를 가진 concrete aliases가 많을 수 있다.
+Planning에서는 같은 관계 기반 행동 structure를 가진 실제 개체를 구분하는 aliases가 많을 수 있다.
 
 ```text
 A1 ─┐
@@ -319,7 +319,7 @@ Expensive [Prophecy](Prophecy)/[Critic](Critic) computation을 한 번만 하고
 
 # 15. Transfer learning
 
-Transfer learning은 한 task/distribution에서 배운 지식을 다른 관련 task/distribution에 재사용하는 것이다.
+Transfer learning은 한 task/[확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability)에서 배운 지식을 다른 관련 task/분포에 재사용하는 것이다.
 
 AASSR에서는:
 
@@ -331,7 +331,7 @@ Training seeds
 
 의 전이가 핵심이다.
 
-같은 표준 비교 실험 template에서 opaque identifiers를 바꾸어 concrete memorization을 어렵게 한다.
+같은 표준 비교 실험 [재사용 가능한 틀(template)](Skills)에서 opaque identifiers를 바꾸어 실제 개체를 구분하는 memorization을 어렵게 한다.
 
 ---
 
@@ -383,7 +383,7 @@ AASSR은 공개된 latest 상태 코드 같은 의사결정에 중요한 channel
 
 # 18. Relational representation과 World Model
 
-[Prophecy](Prophecy)가 관계 기반 상태를 예측하면 future concrete ID를 정확히 생성하지 않아도 **역할 구조의 변화**를 예측할 수 있다.
+[Prophecy](Prophecy)가 관계 기반 상태를 예측하면 future 실제 개체를 구분하는 ID를 정확히 생성하지 않아도 **역할 구조의 변화**를 예측할 수 있다.
 
 장점:
 
@@ -401,9 +401,9 @@ AASSR은 공개된 latest 상태 코드 같은 의사결정에 중요한 channel
 
 # 19. Relational representation과 Critic
 
-[Critic](Critic)도 concrete ID를 암기하면 학습 중 보지 못한 branch 가치 전이가 약해질 수 있다.
+[Critic](Critic)도 실제 개체를 구분하는 ID를 암기하면 학습 중 보지 못한 [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes) 가치 전이가 약해질 수 있다.
 
-Relational [상태 전이(transition)](MDP-and-POMDP) features를 사용하면:
+Relational [상태 전이(transition)](MDP-and-POMDP) [학습에 사용하는 특징(features)](Terminology-Guide)를 사용하면:
 
 ```text
 구체적 이름은 다름
@@ -471,7 +471,7 @@ dqn_relational
 
 # 22. Representation leakage
 
-Relational feature를 만들 때 [숨겨진(hidden)](MDP-and-POMDP) simulator truth를 사용하면 안 된다.
+Relational 학습 특징를 만들 때 [숨겨진(hidden)](MDP-and-POMDP) simulator truth를 사용하면 안 된다.
 
 예:
 

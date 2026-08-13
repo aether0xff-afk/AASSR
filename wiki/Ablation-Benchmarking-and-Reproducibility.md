@@ -247,12 +247,12 @@ Agent B
 → Imagination ON으로 training
 ```
 
-을 비교하면 두 [에이전트(agent)](Reinforcement-Learning)가 경험한 상태/행동 distribution부터 달라진다.
+을 비교하면 두 [에이전트(agent)](Reinforcement-Learning)가 경험한 상태/행동 [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability)부터 달라진다.
 
 성능 차이가:
 
 - 계획기 때문인지
-- [학습 데이터(training data)](Terminology-Guide) distribution 때문인지
+- [학습 데이터(training data)](Terminology-Guide) 분포 때문인지
 - random 탐색 차이 때문인지
 
 분리하기 어렵다.
@@ -270,7 +270,7 @@ Neural [신경망(network)](Neural-Networks-and-Optimization) 학습과 환경�
 - parameter initialization
 - epsilon-greedy 행동
 - replay sampling
-- [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) 환경 outcome
+- [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) 환경 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)
 - mixture 학습 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)
 
 따라서 난수 시드 하나의 결과는 우연일 수 있다.
@@ -305,7 +305,7 @@ Training scenarios
 Unseen evaluation scenarios
 ```
 
-특히 concrete identifier permutation이 있는 표준 비교 실험에서는 같은 난수 시드를 반복하면 memorization shortcut이 생길 수 있다.
+특히 [실제 개체를 구분하는(concrete)](State-Representation) identifier permutation이 있는 표준 비교 실험에서는 같은 난수 시드를 반복하면 memorization shortcut이 생길 수 있다.
 
 관련 페이지:
 
@@ -325,13 +325,13 @@ RL에서 중요한 compute/data budget 중 하나가 환경 상태 전이 수다
 
 모델마다 상태 전이 budget이 다르면 sample efficiency 비교가 어렵다.
 
-그래서 AASSR 표준 비교 실험는 가능한 한 condition별 real 상태 전이 budget을 명시한다.
+그래서 AASSR 표준 비교 실험는 가능한 한 condition별 [실제 환경에서 관측된(real)](Research-Jargon-Guide) 상태 전이 budget을 명시한다.
 
 ---
 
 # 15. Real transition과 Model compute를 분리
 
-Model-based method는 같은 real 상태 전이 수에서도 훨씬 많은 내부 compute를 사용할 수 있다.
+Model-based method는 같은 실제 상태 전이 수에서도 훨씬 많은 내부 compute를 사용할 수 있다.
 
 ```text
 Real environment interaction = 10k
@@ -356,7 +356,7 @@ AASSR은 둘 다 보고하는 것이 좋다.
 
 같은 상태 전이 budget이라도 [실행 구조(runtime)](Current-Status)이 100배 다르면 실제 사용성에 큰 차이가 있다.
 
-AASSR [현재 세대(current-generation)](Current-Status)에서는 [Prophecy](Prophecy)/[Critic](Critic) [묶음 처리(batching)](Reproduction), structural [탐색의 첫 행동(root)](Imagination) dedup 같은 최적화가 중요한 이유다.
+AASSR [현재 세대(current-generation)](Current-Status)에서는 [Prophecy](Prophecy)/[Critic](Critic) [묶음 처리(batching)](Reproduction), [구조 기반(structural)](Relational-Representation-and-Generalization) [탐색의 첫 행동(root)](Imagination) dedup 같은 최적화가 중요한 이유다.
 
 Wall time은 성능 평가지표은 아니지만 engineering feasibility를 판단하는 중요한 보조 지표다.
 
@@ -370,10 +370,10 @@ Hyperparameter 예:
 - gamma
 - epsilon schedule
 - [Imagination](Imagination) depth
-- branch/beam width
-- calibration threshold
+- [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)/beam width
+- calibration [판정 기준값(threshold)](Terminology-Guide)
 - 실제 행동 개입 [최소 차이 기준(margin)](Imagination)
-- [데이터 근거(support)](Critic-Support-and-OOD) threshold
+- [데이터 근거(support)](Critic-Support-and-OOD) 판정 기준값
 
 이 값을 평가 결과를 계속 보면서 맞추면 test overfitting이 생길 수 있다.
 
@@ -432,7 +432,7 @@ AASSR에서 중요한 평가지표은 하나가 아니다.
 
 ## World-model
 
-- semantic [예측(prediction)](Terminology-Guide) quality
+- [의미 기준(semantic)](State-Representation) [예측(prediction)](Terminology-Guide) quality
 - [상태 코드(status)](Terminology-Guide) accuracy
 - legal-mask accuracy
 - [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) accuracy
@@ -442,7 +442,7 @@ AASSR에서 중요한 평가지표은 하나가 아니다.
 ## Imagination
 
 - plan count
-- switch candidate count
+- switch [선택 후보(candidate)](Terminology-Guide) count
 - suppressed switch count
 - executed 실제 행동 개입 count
 - changed-행동 count
@@ -600,8 +600,8 @@ Scenario 3: OFF success / ON fail
 
 예:
 
-- [환경 결과 노드(chance node)](Chance-and-Decision-Nodes)가 expectation을 쓰는가?
-- confidence가 [Critic](Critic) [가치(value)](Value-Functions-and-Bellman-Equation)에 들어가지 않는가?
+- [환경 결과 노드(chance node)](Chance-and-Decision-Nodes)가 [확률 기댓값(expectation)](Chance-and-Decision-Nodes)을 쓰는가?
+- [예측 신뢰 정도(confidence)](Calibration)가 [Critic](Critic) [가치(value)](Value-Functions-and-Bellman-Equation)에 들어가지 않는가?
 - [숨은 환경 상태(hidden state)](MDP-and-POMDP) leakage가 없는가?
 
 ## Performance benchmark
@@ -698,7 +698,7 @@ Random policy가 너무 잘하면 표준 비교 실험가 너무 쉽거나 행�
 
 새 RL [구조(architecture)](Research-Architecture)를 제안한다면 오래된 tabular/Q-learning만 비교하기보다 강한 현대 비교 기준이 필요하다.
 
-AASSR에서는 official pinned [DreamerV3](Experiments) 관계 기반 adapter를 model-based comparison으로 둔다.
+AASSR에서는 official pinned [DreamerV3](Experiments) 관계 기반 adapter를 model-based [비교(comparison)](Ablation-Benchmarking-and-Reproducibility)으로 둔다.
 
 중요한 점은 비교 기준을 약하게 만드는 것이 아니라 **가능한 한 공정하게 같은 관측/행동/보상 [명세(contract)](Current-Status)를 적용하는 것**이다.
 

@@ -233,7 +233,7 @@ route-17
 
 ## 의미 기반 — semantic
 
-**영어:** semantic
+**영어:** [의미 기준(semantic)](State-Representation)
 
 **쉬운 뜻:** 단순한 숫자나 문자열이 아니라 문제 해결에서 실제로 같은 의미인지 기준으로 보는 것.
 
@@ -375,7 +375,7 @@ S → A → S
 
 ## 행동 순위 — ranking
 
-**영어:** ranking
+**영어:** [후보 순위(ranking)](Policy)
 
 **쉬운 뜻:** 여러 행동 후보를 좋은 순서대로 정렬하는 것.
 

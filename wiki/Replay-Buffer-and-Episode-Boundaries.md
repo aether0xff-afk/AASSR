@@ -58,7 +58,7 @@ Knowledge Store
 = 현재 episode에서 실제 response를 통해 지금 알고 있는 explicit facts
 ```
 
-과거 replay에 어떤 route가 있었다고 해서 새 한 번의 문제 풀이 구간의 [에이전트(agent)](Reinforcement-Learning)가 그 concrete route를 현재 알고 있다고 취급하면 안 된다.
+과거 replay에 어떤 route가 있었다고 해서 새 한 번의 문제 풀이 구간의 [에이전트(agent)](Reinforcement-Learning)가 그 [실제 개체를 구분하는(concrete)](State-Representation) route를 현재 알고 있다고 취급하면 안 된다.
 
 관련 페이지:
 
@@ -199,7 +199,7 @@ y=0+\gamma\max_{a'}Q(T,a')
 
 즉 **새 한 번의 문제 풀이 구간 B의 가치가 한 번의 문제 풀이 구간 A의 마지막 행동에 보상처럼 연결된다.**
 
-이것은 causal trajectory가 아니다.
+이것은 [인과적으로 공정한(causal)](Causality-Leakage-and-Evaluation) trajectory가 아니다.
 
 ---
 
@@ -317,7 +317,7 @@ AASSR [현재(current)](Current-Status) [표현(representation)](Relational-Repr
 
 # 17. Replay sampling bias
 
-Replay dataset이 특정 [행동(action)](Reinforcement-Learning)/outcome에 과도하게 치우치면 학습 주체도 그 분포에 크게 영향을 받는다.
+Replay dataset이 특정 [행동(action)](Reinforcement-Learning)/[환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)에 과도하게 치우치면 학습 주체도 그 분포에 크게 영향을 받는다.
 
 예:
 
@@ -369,7 +369,7 @@ Replay factual data
 
 [Imagination(가상 미래 탐색)](Imagination)이 만든 predicted 상태 전이을 실제 replay와 같은 truth로 저장해 학습 주체를 업데이트하면 학습 모델 error가 자기증폭될 수 있다.
 
-따라서 현재 핵심 비교에서는 imagined experience와 real [증거(evidence)](Evidence-Matrix)를 분리한다.
+따라서 현재 핵심 비교에서는 [모델이 상상한(imagined)](Research-Jargon-Guide) experience와 [실제 환경에서 관측된(real)](Research-Jargon-Guide) [증거(evidence)](Evidence-Matrix)를 분리한다.
 
 관련 페이지:
 
@@ -407,8 +407,8 @@ S3...
 - 상태
 - 행동
 - next 상태
-- external 보상
-- 성공/실패 outcome
+- [환경이 주는 외부(external)](Terminology-Guide) 보상
+- 성공/실패 환경 결과
 - 에피소드 종료 여부
 - 외부 제한 종료 여부
 - reset reason
@@ -431,7 +431,7 @@ S3...
 
 ## "Terminal은 reward가 -1 또는 +1일 때만 true다"
 
-구현 계약에 따라 다르다. 중요한 것은 future 다음 상태 가치 이어받기이 causal하게 이어질 수 있는지다.
+구현 계약에 따라 다르다. 중요한 것은 future 다음 상태 가치 이어받기이 인과적으로 공정한하게 이어질 수 있는지다.
 
 ## "Replay에 있으면 agent가 그 사실을 현재 알고 있다"
 

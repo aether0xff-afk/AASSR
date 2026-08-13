@@ -2,7 +2,7 @@
 
 **Hierarchical [강화학습(Reinforcement Learning)](Reinforcement-Learning)(HRL)** 은 긴 문제를 여러 시간 규모의 행동 단위로 나누는 강화학습 연구 방향이다.
 
-AASSR의 [Skills](Skills)는 이 문제와 연결되지만, 사람이 정답 macro를 미리 제공하는 방식이 아니라 **반복 성공한 실제 ASeq를 [관계 기반(relational)](Relational-Representation-and-Generalization) template로 승격**한다.
+AASSR의 [Skills](Skills)는 이 문제와 연결되지만, 사람이 정답 macro를 미리 제공하는 방식이 아니라 **반복 성공한 실제 ASeq를 [관계 기반(relational)](Relational-Representation-and-Generalization) [재사용 가능한 틀(template)](Skills)로 승격**한다.
 
 ---
 
@@ -52,9 +52,9 @@ Macro M = [A1,A2,A3]
 - 긴 sequence 재사용
 - [계획(planning)](Counterfactual-Planning-and-Search) horizon 축소
 
-하지만 concrete ID를 그대로 macro에 넣으면 [전이(transfer)](Relational-Representation-and-Generalization)가 약하다.
+하지만 [실제 개체를 구분하는(concrete)](State-Representation) ID를 그대로 macro에 넣으면 [전이(transfer)](Relational-Representation-and-Generalization)가 약하다.
 
-AASSR은 raw macro보다 관계 기반 template를 사용한다.
+AASSR은 raw macro보다 관계 기반 재사용 가능한 틀를 사용한다.
 
 ---
 
@@ -169,7 +169,7 @@ AASSR은 그중 **goal completion에 실제로 반복 기여한 관계 기반 AS
 → 더 강한 evidence
 ```
 
-그래서 promotion threshold가 필요하다.
+그래서 promotion [판정 기준값(threshold)](Terminology-Guide)가 필요하다.
 
 Threshold가 낮으면 빠르게 skill이 생기지만 false promotion 위험이 커진다.
 
@@ -189,7 +189,7 @@ request object-7
 
 를 그대로 저장하면 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)에서 ID가 바뀌었을 때 쓸 수 없다.
 
-Relational template:
+Relational 재사용 가능한 틀:
 
 ```text
 request [catalog-like route]
@@ -209,7 +209,7 @@ request [target-like object role]
 
 고전 option의 initiation set처럼, AASSR [Skill](Skills)도 모든 상태에서 실행 가능한 것은 아니다.
 
-각 template step에 맞는 concrete legal 행동이 현재 행동 surface에 있어야 한다.
+각 재사용 가능한 틀 step에 맞는 실제 개체를 구분하는 legal 행동이 현재 행동 surface에 있어야 한다.
 
 ```text
 현재 state
@@ -225,7 +225,7 @@ request [target-like object role]
 
 # 12. Open-loop macro의 위험
 
-고정 sequence를 실제 outcome을 확인하지 않고 끝까지 실행하면 위험하다.
+고정 sequence를 실제 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)을 확인하지 않고 끝까지 실행하면 위험하다.
 
 ```text
 A1 실행
@@ -233,13 +233,13 @@ A1 실행
 → 그래도 A2,A3 강제 실행
 ```
 
-AASSR [Skill](Skills) execution/[예측(prediction)](Terminology-Guide)은 현재 상태에 맞는 concrete primitive를 step마다 resolve하는 구조를 가져, 단순 raw script replay와 차이가 있다.
+AASSR [Skill](Skills) execution/[예측(prediction)](Terminology-Guide)은 현재 상태에 맞는 실제 개체를 구분하는 primitive를 step마다 resolve하는 구조를 가져, 단순 raw script replay와 차이가 있다.
 
 ---
 
 # 13. Skill과 stochasticity
 
-[Skill](Skills) 내부 행동 하나마다 여러 outcome이 가능하면 전체 [Skill](Skills) 결과도 여러 branch가 된다.
+[Skill](Skills) 내부 행동 하나마다 여러 환경 결과이 가능하면 전체 [Skill](Skills) 결과도 여러 [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)가 된다.
 
 ```text
 Skill = A1,A2
@@ -251,15 +251,15 @@ A1
       └→ A2 → ...
 ```
 
-각 step에서 best outcome 하나만 선택하면 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) risk를 잃을 수 있다.
+각 step에서 best 환경 결과 하나만 선택하면 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) risk를 잃을 수 있다.
 
-AASSR 현재 [Skill](Skills) [Prophecy(미래 예측 모델)](Prophecy)는 여러 outcome을 작은 beam으로 유지한다.
+AASSR 현재 [Skill](Skills) [Prophecy(미래 예측 모델)](Prophecy)는 여러 환경 결과을 작은 beam으로 유지한다.
 
 ---
 
 # 14. Outcome mass와 Skill reliability
 
-[Skill](Skills) branch에서도:
+[Skill](Skills) 결과 경로에서도:
 
 ```text
 outcome mass
@@ -269,9 +269,9 @@ prediction reliability
 
 다.
 
-Sequence가 길어질수록 primitive [예측 신뢰도(prediction reliability)](Calibration)가 누적되어 전체 [Skill](Skills) confidence가 낮아질 수 있다.
+Sequence가 길어질수록 primitive [예측 신뢰도(prediction reliability)](Calibration)가 누적되어 전체 [Skill](Skills) [예측 신뢰 정도(confidence)](Calibration)가 낮아질 수 있다.
 
-동시에 확률적 outcome mass도 branch별로 별도로 추적해야 한다.
+동시에 확률적 환경 결과 mass도 결과 경로별로 별도로 추적해야 한다.
 
 관련 페이지:
 
@@ -281,9 +281,9 @@ Sequence가 길어질수록 primitive [예측 신뢰도(prediction reliability)]
 
 # 15. Skill beam
 
-Primitive마다 `M`개의 확률적 outcome이 있고 [Skill](Skills) 길이가 `L`이면 naive branch 수는 `M^L`로 늘어날 수 있다.
+Primitive마다 `M`개의 확률적 환경 결과이 있고 [Skill](Skills) 길이가 `L`이면 naive 결과 경로 수는 `M^L`로 늘어날 수 있다.
 
-그래서 일부 branch만 유지한다.
+그래서 일부 결과 경로만 유지한다.
 
 ```text
 candidate branches 생성
@@ -300,7 +300,7 @@ candidate branches 생성
 - 긴 horizon 압축
 - 반복되는 해결 구조 재사용
 - higher-level 계획 가능
-- 학습 중 보지 못한 concrete ID에 관계 기반 전이 가능
+- 학습 중 보지 못한 실제 개체를 구분하는 ID에 관계 기반 전이 가능
 
 ---
 

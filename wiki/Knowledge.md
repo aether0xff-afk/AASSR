@@ -22,9 +22,9 @@
 - [MDP and POMDP](MDP-and-POMDP) — [상태(state)](State-Representation)와 [관측(observation)](MDP-and-POMDP), history/memory가 필요한 이유
 - [Causality, Leakage & Fair Evaluation](Causality-Leakage-and-Evaluation) — hindsight leakage, privileged information, time order
 - [Replay Buffer & Episode Boundaries](Replay-Buffer-and-Episode-Boundaries) — replay와 현재 explicit knowledge의 차이
-- [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability) — [Knowledge](Knowledge) confidence와 [학습 모델(model)](Terminology-Guide) [신뢰도(reliability)](Calibration)의 차이
+- [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability) — [Knowledge](Knowledge) [예측 신뢰 정도(confidence)](Calibration)와 [학습 모델(model)](Terminology-Guide) [신뢰도(reliability)](Calibration)의 차이
 - [Relational Representation & Generalization](Relational-Representation-and-Generalization) — [실제 개체 구분(concrete identity)](State-Representation)를 한 번의 문제 풀이 구간 간 정답처럼 들고 가면 안 되는 이유
-- [Model-Based RL & World Models](Model-Based-RL-and-World-Models) — imagined fact와 real fact를 구분해야 하는 이유
+- [Model-Based RL & World Models](Model-Based-RL-and-World-Models) — [모델이 상상한(imagined)](Research-Jargon-Guide) fact와 [실제 환경에서 관측된(real)](Research-Jargon-Guide) fact를 구분해야 하는 이유
 
 ---
 
@@ -63,7 +63,7 @@ Knowledge
 = 지금까지 real response를 통해 이미 획득한 explicit facts의 context
 ```
 
-Current [Relational State v3](State-Representation)가 이미 많은 [공개된(public)](State-Representation) 응답 fact를 포함하기 때문에 최근 [Prophecy](Prophecy) repair에서는 concrete [Knowledge](Knowledge)를 무조건 다시 주입하지 않는다.
+Current [Relational State v3](State-Representation)가 이미 많은 [공개된(public)](State-Representation) 응답 fact를 포함하기 때문에 최근 [Prophecy](Prophecy) repair에서는 [실제 개체를 구분하는(concrete)](State-Representation) [Knowledge](Knowledge)를 무조건 다시 주입하지 않는다.
 
 그러나 [Skill(성공 절차 재사용)](Skills)이나 explicit context path처럼 **언제 정보를 알았는지**가 필요한 경로에서는 [Knowledge](Knowledge) boundary가 여전히 중요하다.
 
@@ -109,7 +109,7 @@ enabled_action_signatures
 "token": true
 ```
 
-만 저장하는 것이 아니라 **어느 real trace에서 나온 정보인지 정보의 출처 기록**를 함께 유지할 수 있다.
+만 저장하는 것이 아니라 **어느 실제 trace에서 나온 정보인지 정보의 출처 기록**를 함께 유지할 수 있다.
 
 이는 debugging뿐 아니라 [causality audit](Causality-Leakage-and-Evaluation)에 중요하다.
 
@@ -135,7 +135,7 @@ source_trace_id: transition-00427
 행동 전에 이미 알고 있었나?
 ```
 
-즉 정보의 출처 기록는 **[Knowledge](Knowledge)의 causal history를 검증할 수 있게 만드는 metadata**다.
+즉 정보의 출처 기록는 **[Knowledge](Knowledge)의 [인과적으로 공정한(causal)](Causality-Leakage-and-Evaluation) history를 검증할 수 있게 만드는 metadata**다.
 
 ---
 
@@ -157,7 +157,7 @@ Knowledge accumulates
 Episode ends
 ```
 
-환경 [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)가 달라졌는데 이전 한 번의 문제 풀이 구간의 concrete 정답 identifier를 그대로 들고 가는 구조는 [unseen transfer](Relational-Representation-and-Generalization)를 오염시킬 수 있다.
+환경 [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)가 달라졌는데 이전 한 번의 문제 풀이 구간의 실제 개체를 구분하는 정답 identifier를 그대로 들고 가는 구조는 [unseen transfer](Relational-Representation-and-Generalization)를 오염시킬 수 있다.
 
 ---
 
@@ -177,9 +177,9 @@ Evaluation 난수 시드에서 같은 역할이:
 route-31
 ```
 
-로 permutation되었다면 이전 concrete fact를 그대로 유지하는 것은 도움이 되지 않을 뿐 아니라 [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility) shortcut이 될 수 있다.
+로 permutation되었다면 이전 실제 개체를 구분하는 fact를 그대로 유지하는 것은 도움이 되지 않을 뿐 아니라 [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility) shortcut이 될 수 있다.
 
-AASSR은 reusable knowledge를 **구조적 학습 parameter/[관계 기반(relational)](Relational-Representation-and-Generalization) pattern**으로 [전이(transfer)](Relational-Representation-and-Generalization)하고, 현재 한 번의 문제 풀이 구간의 concrete known facts는 현재 에피소드 안에서만 유지되는로 다루는 방향을 택한다.
+AASSR은 reusable knowledge를 **구조적 학습 parameter/[관계 기반(relational)](Relational-Representation-and-Generalization) pattern**으로 [전이(transfer)](Relational-Representation-and-Generalization)하고, 현재 한 번의 문제 풀이 구간의 실제 개체를 구분하는 known facts는 현재 에피소드 안에서만 유지되는로 다루는 방향을 택한다.
 
 ---
 
@@ -242,7 +242,7 @@ K_{t+1} = K_t + new response knowledge
 
 Future 관측은 현재 [행동(action)](Reinforcement-Learning)의 원인보다 뒤에 있다.
 
-Future information을 현재 decision feature로 사용하면 예측 relation이 실제 online causal graph와 달라진다.
+Future information을 현재 decision [학습에 사용하는 특징(feature)](Terminology-Guide)로 사용하면 예측 relation이 실제 online 인과적으로 공정한 graph와 달라진다.
 
 AASSR의 [response-causal observation contract](State-Representation)도 같은 원칙을 따른다.
 
@@ -304,7 +304,7 @@ Knowledge context
 
 를 결합할 때 같은 fact를 두 번 과도하게 강조하지 않는 것이 중요하다.
 
-이것이 현재 관계 기반 [Prophecy](Prophecy)에서 concrete [Knowledge](Knowledge) reinjection을 보수적으로 다루는 이유 중 하나다.
+이것이 현재 관계 기반 [Prophecy](Prophecy)에서 실제 개체를 구분하는 [Knowledge](Knowledge) reinjection을 보수적으로 다루는 이유 중 하나다.
 
 ---
 
@@ -380,7 +380,7 @@ Replay에 `route-12`가 나온 적 있다고 해서 새 한 번의 문제 풀이
 
 # 17. Branch-local Knowledge
 
-일반적인 [Imagination(가상 미래 탐색)](Imagination) 설계에서는 imagined branch마다 [Knowledge](Knowledge)가 달라질 수 있다.
+일반적인 [Imagination(가상 미래 탐색)](Imagination) 설계에서는 가상 [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)마다 [Knowledge](Knowledge)가 달라질 수 있다.
 
 ```text
 root
@@ -390,7 +390,7 @@ root
 
 따라서 `KnowledgeStore.clone()`처럼 branch-local copy를 만들 수 있는 구조가 유용하다.
 
-그러나 imagined branch의 fact는 **그 branch 안의 counterfactual context**이지 real 한 번의 문제 풀이 구간 factual truth가 아니다.
+그러나 가상 결과 경로의 fact는 **그 결과 경로 안의 counterfactual context**이지 실제 한 번의 문제 풀이 구간 factual truth가 아니다.
 
 ---
 
@@ -412,9 +412,9 @@ Prophecy가 "아마 token을 얻을 것"이라고 예측
 
 AASSR 원칙:
 
-> **상상은 [planning](Counterfactual-Planning-and-Search)에 사용하지만, persistent factual knowledge의 근거는 real 상태 전이이다.**
+> **상상은 [planning](Counterfactual-Planning-and-Search)에 사용하지만, persistent factual knowledge의 근거는 실제 상태 전이이다.**
 
-Imagined fact를 real [Knowledge](Knowledge)에 확정 저장하면 [world-model hallucination](Model-Based-RL-and-World-Models)이 factual memory로 굳을 수 있다.
+Imagined fact를 실제 [Knowledge](Knowledge)에 확정 저장하면 [world-model hallucination](Model-Based-RL-and-World-Models)이 factual memory로 굳을 수 있다.
 
 ---
 
@@ -448,7 +448,7 @@ episode를 넘겨도 되는가?
 
 # 20. Knowledge confidence
 
-`KnowledgeEntry` 자체에도 confidence가 있을 수 있다.
+`KnowledgeEntry` 자체에도 예측 신뢰 정도가 있을 수 있다.
 
 이 값은 [Prophecy reliability](Stochasticity-Uncertainty-and-Probability)와 같은 개념이 아니다.
 
@@ -506,7 +506,7 @@ real online reproducibility ↓
 
 # 23. Failure mode: Cross-episode concrete leakage
 
-이전 난수 시드의 concrete identifier를 새 한 번의 문제 풀이 구간에서 정답처럼 유지.
+이전 난수 시드의 실제 개체를 구분하는 identifier를 새 한 번의 문제 풀이 구간에서 정답처럼 유지.
 
 결과:
 
@@ -516,7 +516,7 @@ real online reproducibility ↓
 대응:
 
 - 현재 에피소드 안에서만 유지되는 [Knowledge](Knowledge)
-- structural learning과 concrete factual memory 분리
+- [구조 기반(structural)](Relational-Representation-and-Generalization) learning과 실제 개체를 구분하는 factual memory 분리
 
 ---
 
@@ -536,7 +536,7 @@ model hallucination
 대응:
 
 - branch-local counterfactual context
-- real 관측에서만 factual commit
+- 실제 관측에서만 factual commit
 
 ---
 
@@ -634,7 +634,7 @@ src/aassr_v2/current_agent.py
 
 # 31. 한 문장 요약
 
-> **[Knowledge](Knowledge)는 '무엇을 기억하느냐'보다 '그 사실을 언제, 어떤 real 응답에서 알았으며 어느 decision부터 사용할 수 있느냐'를 명시하는 현재 에피소드 안에서만 유지되는 causal memory 계층이다.**
+> **[Knowledge](Knowledge)는 '무엇을 기억하느냐'보다 '그 사실을 언제, 어떤 실제 응답에서 알았으며 어느 decision부터 사용할 수 있느냐'를 명시하는 현재 에피소드 안에서만 유지되는 인과적으로 공정한 memory 계층이다.**
 
 ---
 

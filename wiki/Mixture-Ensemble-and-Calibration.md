@@ -14,7 +14,7 @@ Calibration
 
 # 1. 왜 하나의 예측만으로 부족한가?
 
-같은 [공개 관측 상태(public state)](State-Representation)/[행동(action)](Reinforcement-Learning)에서 여러 다음 outcome이 실제로 가능할 수 있다.
+같은 [공개 관측 상태(public state)](State-Representation)/[행동(action)](Reinforcement-Learning)에서 여러 다음 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)이 실제로 가능할 수 있다.
 
 ```text
 (S,A)
@@ -23,15 +23,15 @@ Calibration
  `-- 0.1 → S3'
 ```
 
-이런 distribution을 한 벡터로 평균내면 실제로 존재하지 않는 [상태(state)](State-Representation)가 생길 수 있다.
+이런 [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability)을 한 벡터로 평균내면 실제로 존재하지 않는 [상태(state)](State-Representation)가 생길 수 있다.
 
-따라서 여러 **mode**를 표현할 필요가 있다.
+따라서 여러 **[서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration)**를 표현할 필요가 있다.
 
 ---
 
 # 2. Multimodal distribution
 
-Distribution이 여러 개의 뚜렷한 mode를 가지면 [여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration)이라고 한다.
+Distribution이 여러 개의 뚜렷한 결과 유형를 가지면 [여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration)이라고 한다.
 
 예:
 
@@ -44,13 +44,13 @@ HTTP outcome
 
 이들을 단일 Gaussian/평균으로 표현하는 것은 부적절할 수 있다.
 
-AASSR의 conditional mixture는 이런 여러 outcome mode를 명시적으로 보존하려는 설계다.
+AASSR의 conditional mixture는 이런 여러 환경 결과 결과 유형를 명시적으로 보존하려는 설계다.
 
 ---
 
 # 3. Mixture model
 
-Mixture [학습 모델(model)](Terminology-Guide)은 여러 [구성요소(component)](Research-Architecture) distribution의 가중합이다.
+Mixture [학습 모델(model)](Terminology-Guide)은 여러 [구성요소(component)](Research-Architecture) 분포의 가중합이다.
 
 ```math
 p(y\mid x)=\sum_{m=1}^{M}\pi_m(x)p_m(y\mid x)
@@ -60,7 +60,7 @@ p(y\mid x)=\sum_{m=1}^{M}\pi_m(x)p_m(y\mid x)
 
 - `M`: 구성요소 수
 - `π_m(x)`: 구성요소 weight
-- `p_m`: 각 구성요소 distribution
+- `p_m`: 각 구성요소 분포
 
 조건 `x`에 따라 mixture weight가 달라지면 **conditional mixture**다.
 
@@ -70,7 +70,7 @@ AASSR에서는 `x`가 [관계 기반(relational)](Relational-Representation-and-
 
 # 4. Mixture weight
 
-`π_m`은 각 mode의 [확률 질량(probability mass)](Stochasticity-Uncertainty-and-Probability)다.
+`π_m`은 각 결과 유형의 [확률 질량(probability mass)](Stochasticity-Uncertainty-and-Probability)다.
 
 ```math
 \pi_m\ge0,
@@ -88,13 +88,13 @@ mixture weight
 model reliability
 ```
 
-어떤 mode에 90% mass를 줬더라도 모델이 해당 region을 거의 학습하지 않았다면 그 [예측(prediction)](Terminology-Guide) 전체는 신뢰하기 어려울 수 있다.
+어떤 결과 유형에 90% mass를 줬더라도 모델이 해당 region을 거의 학습하지 않았다면 그 [예측(prediction)](Terminology-Guide) 전체는 신뢰하기 어려울 수 있다.
 
 ---
 
 # 5. Mixture collapse
 
-학습이 잘못되면 여러 구성요소가 사실상 같은 [출력(output)](Terminology-Guide)을 내며 하나의 mode로 붕괴할 수 있다.
+학습이 잘못되면 여러 구성요소가 사실상 같은 [출력(output)](Terminology-Guide)을 내며 하나의 결과 유형로 붕괴할 수 있다.
 
 ```text
 component 1 → A
@@ -102,7 +102,7 @@ component 2 → A
 component 3 → A
 ```
 
-실제 [환경(environment)](Reinforcement-Learning)가 여러 결과 형태를 가진인데 학습 모델이 한 mode만 남기면 위험 outcome이나 [드문(rare)](Loss-Functions-and-Class-Imbalance) outcome을 잃을 수 있다.
+실제 [환경(environment)](Reinforcement-Learning)가 여러 결과 형태를 가진인데 학습 모델이 한 결과 유형만 남기면 위험 환경 결과이나 [드문(rare)](Loss-Functions-and-Class-Imbalance) 환경 결과을 잃을 수 있다.
 
 AASSR에서는 multimodality preservation 자체를 [회귀 테스트(regression test)](Ablation-Benchmarking-and-Reproducibility)/[진단 실험(diagnostic)](Evidence-Matrix) 대상으로 둘 가치가 있다.
 
@@ -110,7 +110,7 @@ AASSR에서는 multimodality preservation 자체를 [회귀 테스트(regression
 
 # 6. Mode averaging
 
-반대 [실패(failure)](Replay-Buffer-and-Episode-Boundaries)는 여러 outcome을 하나의 평균으로 합치는 것이다.
+반대 [실패(failure)](Replay-Buffer-and-Episode-Boundaries)는 여러 환경 결과을 하나의 평균으로 합치는 것이다.
 
 ```text
 실제 outcomes:
@@ -129,9 +129,9 @@ Conditional mixture가 필요한 핵심 이유다.
 
 # 7. Mixture와 categorical prediction
 
-모든 feature를 continuous mixture로 예측해야 하는 것은 아니다.
+모든 [학습에 사용하는 특징(feature)](Terminology-Guide)를 continuous mixture로 예측해야 하는 것은 아니다.
 
-HTTP [상태 코드(status)](Terminology-Guide)처럼 서로 배타적인 category는 [범주형(categorical)](Loss-Functions-and-Class-Imbalance) distribution이 자연스럽다.
+HTTP [상태 코드(status)](Terminology-Guide)처럼 서로 배타적인 category는 [범주형(categorical)](Loss-Functions-and-Class-Imbalance) 분포이 자연스럽다.
 
 ```math
 p(c\mid x)=softmax(z)_c
@@ -216,7 +216,7 @@ M3 → C
 
 ## Mixture
 
-하나의 입력에서 **환경에 여러 실제 outcome mode가 존재함**을 표현한다.
+하나의 입력에서 **환경에 여러 실제 환경 결과 결과 유형가 존재함**을 표현한다.
 
 ## Ensemble
 
@@ -255,11 +255,11 @@ Ensemble disagreement
 
 # 13. Calibration이란?
 
-[Calibration(예측 신뢰도 보정)](Calibration)은 학습 모델이 내는 confidence/probability와 실제 correctness의 관계를 맞추는 개념이다.
+[Calibration(예측 신뢰도 보정)](Calibration)은 학습 모델이 내는 [예측 신뢰 정도(confidence)](Calibration)/[확률(probability)](Stochasticity-Uncertainty-and-Probability)와 실제 correctness의 관계를 맞추는 개념이다.
 
 Binary classification에서 이상적으로:
 
-> confidence 0.8이라고 예측한 sample들의 약 80%가 실제로 맞는다.
+> 예측 신뢰 정도 0.8이라고 예측한 sample들의 약 80%가 실제로 맞는다.
 
 와 같은 성질을 생각할 수 있다.
 
@@ -269,7 +269,7 @@ Binary classification에서 이상적으로:
 
 # 14. Holdout calibration
 
-Training에 직접 사용하지 않은 real [상태 전이(transition)](MDP-and-POMDP)을 이용해 학습 모델 예측 quality를 평가한다.
+Training에 직접 사용하지 않은 [실제 환경에서 관측된(real)](Research-Jargon-Guide) [상태 전이(transition)](MDP-and-POMDP)을 이용해 학습 모델 예측 quality를 평가한다.
 
 ```text
 Training set
@@ -279,7 +279,7 @@ Holdout set
 → reliability evaluation
 ```
 
-AASSR에서는 관계 기반 행동 region별로 충분한 [검증용 분리 데이터(holdout)](Calibration) sample이 있는지 확인하고 semantic 예측 correctness를 계산한다.
+AASSR에서는 관계 기반 행동 region별로 충분한 [검증용 분리 데이터(holdout)](Calibration) sample이 있는지 확인하고 [의미 기준(semantic)](State-Representation) 예측 correctness를 계산한다.
 
 관련 페이지:
 
@@ -292,7 +292,7 @@ AASSR에서는 관계 기반 행동 region별로 충분한 [검증용 분리 데
 
 World 학습 모델의 correctness를 단순 vector MSE 하나로만 측정하면 의사결정에 중요한 error를 놓칠 수 있다.
 
-AASSR semantic [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)은 개념적으로 다음을 함께 본다.
+AASSR 의미 기준 [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)은 개념적으로 다음을 함께 본다.
 
 - 관계 기반 상태 semantics
 - [가능 행동 마스크(legal action mask)](Prophecy)
@@ -317,7 +317,7 @@ AASSR semantic [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)�
 
 # 16. Probability-weighted semantic score
 
-Stochastic 학습 모델이 여러 outcome을 냈다면 단순히 "하나라도 actual과 비슷함"으로 평가하면 지나치게 낙관적일 수 있다.
+Stochastic 학습 모델이 여러 환경 결과을 냈다면 단순히 "하나라도 actual과 비슷함"으로 평가하면 지나치게 낙관적일 수 있다.
 
 예:
 
@@ -326,9 +326,9 @@ prediction 1: actual과 정확히 같음, probability 0.01
 prediction 2: 크게 틀림, probability 0.99
 ```
 
-Top-1 matching branch만 보면 좋아 보이지만 학습 모델 distribution은 사실상 틀렸다.
+Top-1 matching [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)만 보면 좋아 보이지만 학습 모델 분포은 사실상 틀렸다.
 
-그래서 probability-weighted score:
+그래서 probability-weighted [평가 점수(score)](Terminology-Guide):
 
 ```math
 C=\sum_i p_i\,score(\hat s_i',s')
@@ -385,7 +385,7 @@ insufficient evidence
 Reliability = 0.95
 ```
 
-그 예측이 실패 outcome일 수 있다.
+그 예측이 실패 환경 결과일 수 있다.
 
 따라서:
 
@@ -395,7 +395,7 @@ high reliability
 high task value
 ```
 
-AASSR 현재 design은 confidence를 [Critic](Critic) 가치 bonus로 넣지 않는다.
+AASSR 현재 design은 예측 신뢰 정도를 [Critic](Critic) 가치 bonus로 넣지 않는다.
 
 ---
 
@@ -433,7 +433,7 @@ Critic OOD
 
 - development 검증
 - [학습을 멈춘(frozen)](Ablation-Benchmarking-and-Reproducibility) 평가
-- blind/[학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)
+- [결과를 미리 보지 않는 비공개 평가(blind)](Ablation-Benchmarking-and-Reproducibility)/[학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)
 
 같은 단계 분리가 중요하다.
 
@@ -445,7 +445,7 @@ Critic OOD
 
 # 22. Reliability diagram 개념
 
-분류 probability calibration을 볼 때 예측 confidence bin과 empirical accuracy를 비교하는 신뢰도 diagram을 사용할 수 있다.
+분류 확률 calibration을 볼 때 예측 예측 신뢰 정도 bin과 empirical accuracy를 비교하는 신뢰도 diagram을 사용할 수 있다.
 
 ```text
 0.1 confidence bin → 실제 10% 맞음?
@@ -453,13 +453,13 @@ Critic OOD
 0.9 confidence bin → 실제 90% 맞음?
 ```
 
-AASSR의 semantic 세계 모델에는 그대로 적용하기 어렵지만, **confidence가 실제 correctness를 반영해야 한다**는 기본 철학은 같다.
+AASSR의 의미 기준 세계 모델에는 그대로 적용하기 어렵지만, **예측 신뢰 정도가 실제 correctness를 반영해야 한다**는 기본 철학은 같다.
 
 ---
 
 # 23. Expected Calibration Error 개념
 
-일반 classification에서 ECE는 confidence bin별 confidence와 accuracy 차이를 가중 평균한다.
+일반 classification에서 ECE는 예측 신뢰 정도 bin별 예측 신뢰 정도와 accuracy 차이를 가중 평균한다.
 
 개념적으로:
 
@@ -467,7 +467,7 @@ AASSR의 semantic 세계 모델에는 그대로 적용하기 어렵지만, **con
 ECE=\sum_b\frac{|B_b|}{N}|acc(B_b)-conf(B_b)|
 ```
 
-AASSR 현재 semantic calibration은 ECE 하나로 정의되는 구조는 아니지만, 관련 연구 배경으로 알아두면 좋다.
+AASSR 현재 의미 기준 calibration은 ECE 하나로 정의되는 구조는 아니지만, 관련 연구 배경으로 알아두면 좋다.
 
 ---
 

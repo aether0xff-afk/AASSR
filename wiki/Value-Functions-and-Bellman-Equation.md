@@ -150,7 +150,7 @@ Q^*(s,a)=
 
 # 8. Backup이란?
 
-강화학습에서 **backup**은 미래/다음 상태의 정보를 현재 가치로 가져오는 연산을 말한다.
+강화학습에서 **[미래 가치를 앞 단계로 되돌려 계산하는 과정(backup)](Value-Functions-and-Bellman-Equation)**은 미래/다음 상태의 정보를 현재 가치로 가져오는 연산을 말한다.
 
 ```text
 S_t
@@ -160,15 +160,15 @@ S_{t+1}
 현재 Q target 계산
 ```
 
-Bellman backup:
+Bellman 가치 되돌림 계산:
 
 ```math
 y=r+\gamma\max_{a'}Q(s',a')
 ```
 
-AASSR [Imagination](Imagination)에서도 tree의 자식 node 가치를 부모로 올리는 **[계획(planning)](Counterfactual-Planning-and-Search) backup**이 존재한다.
+AASSR [Imagination](Imagination)에서도 tree의 자식 node 가치를 부모로 올리는 **[계획(planning)](Counterfactual-Planning-and-Search) 가치 되돌림 계산**이 존재한다.
 
-하지만 [환경 결과 노드(chance node)](Chance-and-Decision-Nodes)와 [행동 선택 노드(decision node)](Chance-and-Decision-Nodes)의 backup rule은 다르다.
+하지만 [환경 결과 노드(chance node)](Chance-and-Decision-Nodes)와 [행동 선택 노드(decision node)](Chance-and-Decision-Nodes)의 가치 되돌림 계산 rule은 다르다.
 
 관련 페이지:
 
@@ -179,7 +179,7 @@ AASSR [Imagination](Imagination)에서도 tree의 자식 node 가치를 부모�
 
 # 9. Bootstrapping
 
-현재 target을 계산할 때 **이미 학습 중인 가치 estimate를 다시 사용하는 것**을 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)ping이라고 한다.
+현재 target을 계산할 때 **이미 학습 중인 가치 [추정값(estimate)](Value-Functions-and-Bellman-Equation)를 다시 사용하는 것**을 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)ping이라고 한다.
 
 ```math
 target=r+\gamma V_{estimate}(s')
@@ -223,7 +223,7 @@ G_t=R_{t+1}+\gamma R_{t+2}+\cdots
 
 ## TD
 
-한 단계 뒤 estimate를 사용한다.
+한 단계 뒤 추정값를 사용한다.
 
 ```math
 r+\gamma V(s')
@@ -235,7 +235,7 @@ r+\gamma V(s')
 
 단점:
 
-- estimate error가 target에 들어감
+- 추정값 error가 target에 들어감
 
 ---
 
@@ -327,9 +327,9 @@ bootstrap boundary semantics
 
 Bellman optimality에서는 **[에이전트(agent)](Reinforcement-Learning)가 선택할 수 있는 다음 행동**에 대해 `max`를 쓴다.
 
-하지만 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) [환경(environment)](Reinforcement-Learning) outcome은 에이전트가 선택할 수 없다.
+하지만 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) [환경(environment)](Reinforcement-Learning) [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)은 에이전트가 선택할 수 없다.
 
-따라서 환경 outcome을 backup할 때는 확률적 expectation이 필요하다.
+따라서 환경 환경 결과을 가치 되돌림 계산할 때는 확률적 [확률 기댓값(expectation)](Chance-and-Decision-Nodes)이 필요하다.
 
 ```math
 \mathbb{E}[V]=\sum_i p_iV_i
@@ -373,7 +373,7 @@ Function approximation은 [일반화(generalization)](Relational-Representation-
 
 # 16. Critic이란?
 
-넓은 의미에서 [Critic](Critic)은 상태/행동/trajectory의 미래 누적 보상을 평가하는 가치 estimator다.
+넓은 의미에서 [Critic](Critic)은 상태/행동/trajectory의 미래 누적 보상을 평가하는 가치 [값을 추정하는 모델(estimator)](Terminology-Guide)다.
 
 Actor-critic에서는 actor가 policy를 만들고 critic이 그 policy의 가치/advantage를 평가한다.
 
@@ -387,7 +387,7 @@ GRU sparse-return Critic
 branch long-term value
 ```
 
-즉 AASSR [Critic](Critic)은 계획기의 leaf/branch 평가기로 사용된다.
+즉 AASSR [Critic](Critic)은 계획기의 leaf/[갈라진 결과 경로(branch)](Chance-and-Decision-Nodes) 평가기로 사용된다.
 
 관련 페이지:
 
@@ -398,14 +398,14 @@ branch long-term value
 
 # 17. Value와 probability는 다르다
 
-어떤 outcome이 자주 일어난다고 좋은 것은 아니다.
+어떤 환경 결과이 자주 일어난다고 좋은 것은 아니다.
 
 ```text
 Outcome A: probability 0.9, value -1
 Outcome B: probability 0.1, value +1
 ```
 
-Chance expectation:
+Chance 확률 기댓값:
 
 ```math
 0.9(-1)+0.1(+1)=-0.8

@@ -67,7 +67,7 @@ A0 -> A1 -> A2 -> A3 -> A4 -> success
 
 특히 이름만 다른 [실제 실행 행동(concrete action)](State-Representation)이 많이 존재할 수 있다.
 
-그래서 AASSR은 [실제 개체 구분(concrete identity)](State-Representation)와 [관계 기반(relational)](Relational-Representation-and-Generalization) role을 분리한다.
+그래서 AASSR은 [실제 개체 구분(concrete identity)](State-Representation)와 [관계 기반(relational)](Relational-Representation-and-Generalization) [역할(role)](Relational-Representation-and-Generalization)을 분리한다.
 
 ---
 
@@ -124,7 +124,7 @@ AASSR은 [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ)를 사용해 �
 
 훈련 중 `route-12`가 중요했다고 해서 평가에서도 같은 이름이 등장한다는 보장은 없다.
 
-따라서 concrete ID 암기는 [전이(transfer)](Relational-Representation-and-Generalization)를 방해할 수 있다.
+따라서 [실제 개체를 구분하는(concrete)](State-Representation) ID 암기는 [전이(transfer)](Relational-Representation-and-Generalization)를 방해할 수 있다.
 
 AASSR은 다음처럼 관계 구조를 사용한다.
 

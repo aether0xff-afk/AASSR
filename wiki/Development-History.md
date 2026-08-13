@@ -186,7 +186,7 @@ L2  1/8
 
 - train-only 행동 suppression
 - stall/rate-limit reset 뒤 TD [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries) continuation
-- [숨겨진(hidden)](MDP-and-POMDP) simulator 상태가 semantic fingerprint에 섞일 위험
+- [숨겨진(hidden)](MDP-and-POMDP) simulator 상태가 [의미 기준(semantic)](State-Representation) fingerprint에 섞일 위험
 - 난이도 조절 학습 metadata leakage
 - exact audit pressure/session countdown leakage
 - target rank shortcut
@@ -286,7 +286,7 @@ aassr_current_full
 
 ## 단계 A: confidence가 value처럼 사용됨
 
-예측 confidence가 높은 행동이 미래 가치와 무관하게 선택되는 문제가 있었다.
+예측 [예측 신뢰 정도(confidence)](Calibration)가 높은 행동이 미래 가치와 무관하게 선택되는 문제가 있었다.
 
 이를 제거하자 반대 문제가 생겼다.
 
@@ -304,15 +304,15 @@ interventions = 0
 
 주요 수리:
 
-- concrete ID target 제거
+- [실제 개체를 구분하는(concrete)](State-Representation) ID target 제거
 - [관계 기반(relational)](Relational-Representation-and-Generalization) next-state 예측
 - [가능 행동 마스크(legal-action mask)](Prophecy) 예측
 - [여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) future mixture
-- probability vs [신뢰도(reliability)](Calibration) 분리
-- chance expectation / decision max 분리
+- [확률(probability)](Stochasticity-Uncertainty-and-Probability) vs [신뢰도(reliability)](Calibration) 분리
+- chance [확률 기댓값(expectation)](Chance-and-Decision-Nodes) / decision max 분리
 - signed sparse-[누적 보상(return)](Value-Functions-and-Bellman-Equation) [Critic](Critic)
 - [탐색의 첫 행동(root)](Imagination) preservation
-- structural branching
+- [구조 기반(structural)](Relational-Representation-and-Generalization) branching
 
 ---
 
@@ -355,7 +355,7 @@ Imagination acts in unsupported/wrong regions
 2k trace에서 세 가지 큰 원인이 드러났다.
 
 1. latest [공개된(public)](State-Representation) HTTP [상태 코드(status)](Terminology-Guide) 누락
-2. semantic calibration의 response-risk blind spot
+2. 의미 기준 calibration의 response-risk [결과를 미리 보지 않는 비공개 평가(blind)](Ablation-Benchmarking-and-Reproducibility) spot
 3. global [Critic](Critic) readiness만으로 학습 중 보지 못한 L3 [기본 행동 덮어쓰기(override)](Imagination) 허용
 
 현재 manifest에는 이를 반영한 다음 명세가 들어가 있다.

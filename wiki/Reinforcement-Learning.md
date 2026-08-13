@@ -320,7 +320,7 @@ Q^\pi(s,a)=\mathbb{E}_\pi[G_t\mid S_t=s,A_t=a]
 
 [DQN](Q-Learning-DQN-and-TD)은 `Q(s,a)`를 근사한다.
 
-AASSR [Critic](Critic)도 넓은 의미에서는 미래 누적 보상을 근사하는 [가치(value)](Value-Functions-and-Bellman-Equation) estimator지만, 입력과 학습 계약이 [Policy](Policy) [DQN](Q-Learning-DQN-and-TD)과 다르다.
+AASSR [Critic](Critic)도 넓은 의미에서는 미래 누적 보상을 근사하는 [가치(value)](Value-Functions-and-Bellman-Equation) [값을 추정하는 모델(estimator)](Terminology-Guide)지만, 입력과 학습 계약이 [Policy](Policy) [DQN](Q-Learning-DQN-and-TD)과 다르다.
 
 관련 페이지:
 

@@ -40,7 +40,7 @@ P(S_{t+1}\mid S_t,A_t)
 
 - `S`: 상태 space
 - `A`: [행동(action)](Reinforcement-Learning) space
-- `P`: [상태 전이(transition)](MDP-and-POMDP) probability
+- `P`: [상태 전이(transition)](MDP-and-POMDP) [확률(probability)](Stochasticity-Uncertainty-and-Probability)
 - `R`: [보상(reward)](Sparse-Reward-and-Credit-Assignment) function
 - `γ`: discount factor
 
@@ -71,7 +71,7 @@ P(s'\mid s,a)
  `-- 0.1 → S3'
 ```
 
-AASSR의 [Prophecy](Prophecy)는 이 상태 전이 distribution을 [공개된(public)](State-Representation) [관계 기반(relational)](Relational-Representation-and-Generalization) space에서 학습하려 한다.
+AASSR의 [Prophecy](Prophecy)는 이 상태 전이 [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability)을 [공개된(public)](State-Representation) [관계 기반(relational)](Relational-Representation-and-Generalization) space에서 학습하려 한다.
 
 ---
 
@@ -150,7 +150,7 @@ O + action A
 
 처럼 여러 미래가 가능하다.
 
-이것이 AASSR의 [Prophecy](Prophecy)가 단일 deterministic `S'`보다 **[여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) 확률적 distribution**을 표현해야 하는 이유 중 하나다.
+이것이 AASSR의 [Prophecy](Prophecy)가 단일 deterministic `S'`보다 **[여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) 확률적 분포**을 표현해야 하는 이유 중 하나다.
 
 관련 페이지:
 
@@ -235,7 +235,7 @@ AASSR이 explicit Bayesian belief-state solver라고 주장하는 것은 아니�
 - 확률적 [Prophecy](Prophecy)
 - recurrent [Critic](Critic)
 
-이들은 숨은 환경 상태를 직접 알려주는 것이 아니라 **관측 가능한 history와 future distribution을 이용해 의사결정에 필요한 구조를 복원하려는 장치**다.
+이들은 숨은 환경 상태를 직접 알려주는 것이 아니라 **관측 가능한 history와 future 분포을 이용해 의사결정에 필요한 구조를 복원하려는 장치**다.
 
 ---
 
@@ -284,7 +284,7 @@ AASSR에서는 [Knowledge](Knowledge)와 [GRU Critic](GRU-and-Sequence-Models)�
   └─ 환경 자체가 랜덤해서
 ```
 
-AASSR 세계 모델은 둘을 공개된 outcome distribution에서 함께 다뤄야 할 수 있다.
+AASSR 세계 모델은 둘을 공개된 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability) 분포에서 함께 다뤄야 할 수 있다.
 
 더 자세히:
 
@@ -302,7 +302,7 @@ B. hidden state를 못 봄
 C. 모델이 충분히 학습하지 못함
 ```
 
-A와 B 때문에 여러 outcome이 실제로 가능할 수 있다.
+A와 B 때문에 여러 환경 결과이 실제로 가능할 수 있다.
 
 C는 세계 모델 자체의 무지다.
 
@@ -448,7 +448,7 @@ Knowledge / learned memory
 P(R_{t+1}\mid R_t,A_t,K_t)
 ```
 
-에 가까운 공개된 future distribution을 근사한다.
+에 가까운 공개된 future 분포을 근사한다.
 
 여기서 `R_t`는 true 숨은 환경 상태가 아니라 관계 기반 공개된 표현이다.
 

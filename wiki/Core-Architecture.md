@@ -21,7 +21,7 @@ aassr-current-generation-v2
 | [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ) | `semantic-self-loop-empirical-v3` | 경험적으로 확인된 [제자리 반복(self-loop)](ASEQ) 억제 |
 | [Policy(정책 모델)](Policy) | `relational-invariant-dqn+information-residual-v1` | 현재 행동 가치 + 정보 가치 |
 | [Policy](Policy) [상태(state)](State-Representation) | `relational-public-structural-v3+latest-http-status` | rename-invariant [공개 관측 상태(public state)](State-Representation) |
-| [Policy](Policy) [행동(action)](Reinforcement-Learning) | `relational-role-features-v1` | concrete ID 대신 역할 관계 |
+| [Policy](Policy) [행동(action)](Reinforcement-Learning) | `relational-role-features-v1` | [실제 개체를 구분하는(concrete)](State-Representation) ID 대신 역할 관계 |
 | [Prophecy(미래 예측 모델)](Prophecy) | `relational-stochastic-world-model-v3-status-supervised` | 확률적 다음 상태 예측 |
 | [Calibration(예측 신뢰도 보정)](Calibration) | `semantic-probability-holdout-calibration-v3-status-aware` | 예측 신뢰도 측정 |
 | [Knowledge(에피소드 지식)](Knowledge) | `episode-local-response-knowledge-context-v1` | 현재 [한 번의 문제 풀이 구간(episode)](Terminology-Guide)에서 얻은 응답 지식 |
@@ -71,7 +71,7 @@ flowchart TD
     REAL --> KNOW
 ```
 
-핵심 원칙은 **상상은 계획에만 쓰이고, 학습의 사실 근거는 real [상태 전이(transition)](MDP-and-POMDP)**이라는 것이다.
+핵심 원칙은 **상상은 계획에만 쓰이고, 학습의 사실 근거는 [실제 환경에서 관측된(real)](Research-Jargon-Guide) [상태 전이(transition)](MDP-and-POMDP)**이라는 것이다.
 
 ---
 
@@ -121,7 +121,7 @@ flowchart TD
 
 - [ASEQ](ASEQ)
 - [현재 에피소드 안에서만 유지되는(episode-local)](Knowledge) exact repetition 판단
-- concrete cycle detection
+- 실제 개체를 구분하는 cycle detection
 
 예를 들어 같은 역할을 가진 두 route라도 실제 한 번의 문제 풀이 구간에서 서로 다른 route라면 구분한다.
 
@@ -142,7 +142,7 @@ route-12 != route-31
 - 관계 기반 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility)
 - [DreamerV3(외부 세계 모델 강화학습 비교군)](Experiments) adapter
 
-여기서는 concrete 이름보다 관측된 관계를 본다.
+여기서는 실제 개체를 구분하는 이름보다 관측된 관계를 본다.
 
 ```text
 Scenario A: route-12 = catalog-like route
@@ -226,7 +226,7 @@ Evaluation 중 응답에서 얻는 현재 에피소드 안에서만 유지되는
 
 # 7. Prophecy: stochastic relational world model
 
-현재 [Prophecy](Prophecy)는 과거 deterministic concrete delta [학습 모델(model)](Terminology-Guide)이 아니다.
+현재 [Prophecy](Prophecy)는 과거 deterministic 실제 개체를 구분하는 delta [학습 모델(model)](Terminology-Guide)이 아니다.
 
 입력:
 
@@ -277,7 +277,7 @@ terminal class
 
 ## Probability와 reliability 분리
 
-각 예측 branch에는 최소 두 의미가 있다.
+각 예측 [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)에는 최소 두 의미가 있다.
 
 ```text
 outcome_probability
@@ -287,7 +287,7 @@ prediction reliability
     = world model 예측을 얼마나 신뢰하는가
 ```
 
-Planner의 chance backup은 전자를 사용하고, [판정 관문(gate)](Terminology-Guide)는 후자를 신뢰도 조건으로 사용한다.
+Planner의 chance [미래 가치를 앞 단계로 되돌려 계산하는 과정(backup)](Value-Functions-and-Bellman-Equation)은 전자를 사용하고, [판정 관문(gate)](Terminology-Guide)는 후자를 신뢰도 조건으로 사용한다.
 
 신뢰도를 미래 가치에 보너스로 더하지 않는다.
 
@@ -295,19 +295,19 @@ Planner의 chance backup은 전자를 사용하고, [판정 관문(gate)](Termin
 
 # 8. Semantic calibration
 
-[Calibration](Calibration)은 [검증용 분리 데이터(holdout)](Calibration) real 상태 전이에서 [Prophecy](Prophecy)가 얼마나 맞는지 측정한다.
+[Calibration](Calibration)은 [검증용 분리 데이터(holdout)](Calibration) 실제 상태 전이에서 [Prophecy](Prophecy)가 얼마나 맞는지 측정한다.
 
 현재 [상태 코드까지 고려하는(status-aware)](Calibration) calibration은 단순 vector distance만 보지 않는다.
 
 평가 대상에는 다음이 포함된다.
 
-- 관계 기반 semantic next-state quality
+- 관계 기반 [의미 기준(semantic)](State-Representation) next-state quality
 - [가능 행동 마스크(legal-action mask)](Prophecy) accuracy
 - 에피소드 종료 class accuracy
 - 공개된 HTTP 상태 코드 correctness
-- probability-weighted semantic quality
+- probability-weighted 의미 기준 quality
 
-이 설계가 들어간 이유는 2026-08-11 2k run에서 semantic quality가 높게 보였는데도 `403/404` 같은 [의사결정에 중요한(decision-critical)](Calibration) error를 제대로 반영하지 못한 문제가 발견됐기 때문이다.
+이 설계가 들어간 이유는 2026-08-11 2k run에서 의미 기준 quality가 높게 보였는데도 `403/404` 같은 [의사결정에 중요한(decision-critical)](Calibration) error를 제대로 반영하지 못한 문제가 발견됐기 때문이다.
 
 ---
 
@@ -325,7 +325,7 @@ true failure  -1
 
 ## Zero-memory decision suffix training
 
-[Imagination](Imagination)은 임의의 현재 real decision point에서 [계획(planning)](Counterfactual-Planning-and-Search)을 시작할 수 있다.
+[Imagination](Imagination)은 임의의 현재 실제 decision point에서 [계획(planning)](Counterfactual-Planning-and-Search)을 시작할 수 있다.
 
 따라서 [Critic](Critic)도 trajectory 시작점에서만 학습하면 계약이 맞지 않는다.
 
@@ -367,7 +367,7 @@ S3
 
 ## Chance node
 
-환경 outcome은 선택할 수 없다.
+환경 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)은 선택할 수 없다.
 
 ```text
 V_chance = sum_i p_i * V_i
@@ -385,11 +385,11 @@ V_decision = max_a V(a)
 
 실제로 실행 가능한 탐색의 첫 행동 행동은 평가 중 사라지면 안 된다.
 
-깊은 branch가 pruning되더라도 탐색의 첫 행동 자체는 남고 이미 계산한 [Critic](Critic) 가치로 [기본 경로로 돌아가기(fallback)](Imagination)한다.
+깊은 결과 경로가 pruning되더라도 탐색의 첫 행동 자체는 남고 이미 계산한 [Critic](Critic) 가치로 [기본 경로로 돌아가기(fallback)](Imagination)한다.
 
 ## Structural root deduplication
 
-현재 pentest 행동 surface에는 이름만 다른 concrete alias가 매우 많을 수 있다.
+현재 pentest 행동 surface에는 이름만 다른 실제 개체를 구분하는 alias가 매우 많을 수 있다.
 
 예:
 
@@ -400,7 +400,7 @@ V_decision = max_a V(a)
 ~17 relational root structures
 ```
 
-현재 계획기는 같은 관계 기반 structure의 탐색의 첫 행동를 한 번만 계산하고 값을 concrete aliases에 fan-out한다.
+현재 계획기는 같은 관계 기반 structure의 탐색의 첫 행동를 한 번만 계산하고 값을 실제 개체를 구분하는 aliases에 fan-out한다.
 
 실제 [실제 개체 구분(concrete identity)](State-Representation)는 최종 행동 실행 직전에만 bind한다.
 
@@ -410,7 +410,7 @@ V_decision = max_a V(a)
 
 [Skill](Skills)은 정답 macro를 사람이 넣는 기능이 아니다.
 
-반복적으로 성공한 ASeq가 동일한 관계 기반 goal/structure에서 다시 나타날 때 template 후보로 승격될 수 있다.
+반복적으로 성공한 ASeq가 동일한 관계 기반 goal/structure에서 다시 나타날 때 [재사용 가능한 틀(template)](Skills) 후보로 승격될 수 있다.
 
 ```text
 primitive ASeq
@@ -422,9 +422,9 @@ repeated successful pattern
 relational Skill template
 ```
 
-새 scenario에서는 concrete ID가 달라질 수 있으므로 template를 현재 [실제 실행 행동(concrete action)](State-Representation) surface에 다시 bind한다.
+새 scenario에서는 실제 개체를 구분하는 ID가 달라질 수 있으므로 재사용 가능한 틀를 현재 [실제 실행 행동(concrete action)](State-Representation) surface에 다시 bind한다.
 
-[Skill](Skills) rollout도 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) outcome mass와 [신뢰도(reliability)](Calibration)를 분리해서 다룬다.
+[Skill](Skills) rollout도 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) 환경 결과 mass와 [신뢰도(reliability)](Calibration)를 분리해서 다룬다.
 
 ---
 
@@ -460,13 +460,13 @@ Evaluation 전후 persistent learning fingerprint가 바뀌면 methodology viola
 주요 batch 최적화:
 
 - 한 [Imagination](Imagination) depth의 [Policy](Policy) frontier를 한 batch로 평가
-- primitive world-model branches를 depth 단위 batch 처리
+- primitive world-model [갈라진 결과 경로(branches)](Chance-and-Decision-Nodes)를 depth 단위 batch 처리
 - predicted outputs bulk host 전이
 - [Critic](Critic) children batch scoring
 - padded/masked episode-batched [Critic](Critic) [학습(training)](Terminology-Guide)
 - [DQN](Q-Learning-DQN-and-TD) Bellman next-행동 max를 device-side `scatter_reduce(amax)`로 계산
 - [학습을 멈춘(frozen)](Ablation-Benchmarking-and-Reproducibility) 검증용 분리 데이터 calibration batch refresh
-- structural 탐색의 첫 행동 deduplication
+- [구조 기반(structural)](Relational-Representation-and-Generalization) 탐색의 첫 행동 deduplication
 
 이 최적화는 알고리즘 의미를 바꾸는 것이 아니라 같은 계산을 accelerator-friendly하게 묶는 것이 목표다.
 

@@ -134,7 +134,7 @@ route-12 != route-31
 - Relational [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility)
 - [DreamerV3(외부 세계 모델 강화학습 비교군)](Experiments) adapter
 
-여기서는 concrete 이름보다 역할과 관계를 본다.
+여기서는 [실제 개체를 구분하는(concrete)](State-Representation) 이름보다 역할과 관계를 본다.
 
 ```text
 route-12 = catalog-like role
@@ -163,7 +163,7 @@ Relational만 쓰면:
 -> self-loop / 실행 identity 오류
 ```
 
-그래서 AASSR은 **실행과 반복 판정에는 concrete semantic 식별 방식**, **학습과 [전이(transfer)](Relational-Representation-and-Generalization)에는 [관계 기반(relational)](Relational-Representation-and-Generalization) 식별 방식**를 쓴다.
+그래서 AASSR은 **실행과 반복 판정에는 실제 개체를 구분하는 [의미 기준(semantic)](State-Representation) 식별 방식**, **학습과 [전이(transfer)](Relational-Representation-and-Generalization)에는 [관계 기반(relational)](Relational-Representation-and-Generalization) 식별 방식**를 쓴다.
 
 ---
 
@@ -262,7 +262,7 @@ otherwise      0
 
 ## 연구 질문
 
-> **현재 상태와 행동으로부터 가능한 다음 공개된 outcome들을 학습할 수 있는가?**
+> **현재 상태와 행동으로부터 가능한 다음 공개된 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)들을 학습할 수 있는가?**
 
 현재 [Prophecy](Prophecy)는 `relational conditional-mixture ensemble v5, status-balanced`다.
 
@@ -301,7 +301,7 @@ actual future B
 nonexistent average C
 ```
 
-이 문제를 피하기 위해 mixture distribution을 사용한다.
+이 문제를 피하기 위해 mixture [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability)을 사용한다.
 
 자세한 내용: **[Prophecy](Prophecy)**
 
@@ -315,7 +315,7 @@ nonexistent average C
 
 > **이 world-model [예측(prediction)](Terminology-Guide)은 현재 상태에서 얼마나 신뢰할 수 있는가?**
 
-현재 calibration은 semantic + probability + 상태 코드 aware [검증용 분리 데이터(holdout)](Calibration) calibration이다.
+현재 calibration은 의미 기준 + [확률(probability)](Stochasticity-Uncertainty-and-Probability) + 상태 코드 aware [검증용 분리 데이터(holdout)](Calibration) calibration이다.
 
 중요한 구분:
 
@@ -345,7 +345,7 @@ prediction reliability
 
 ## Chance node
 
-환경 outcome은 [에이전트(agent)](Reinforcement-Learning)가 선택할 수 없다.
+환경 환경 결과은 [에이전트(agent)](Reinforcement-Learning)가 선택할 수 없다.
 
 ```text
 V_chance = sum_i p_i * V_i
@@ -359,7 +359,7 @@ V_chance = sum_i p_i * V_i
 V_decision = max_a V(a)
 ```
 
-이 차이를 섞으면 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) outcome 중 좋은 결과만 골라잡는 비현실적인 optimistic 계획기가 될 수 있다.
+이 차이를 섞으면 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) 환경 결과 중 좋은 결과만 골라잡는 비현실적인 optimistic 계획기가 될 수 있다.
 
 자세한 내용: **[Imagination](Imagination)**
 
@@ -377,7 +377,7 @@ true failure  -1
 truncation     0
 ```
 
-[Critic](Critic)은 predicted branch의 끝이나 중간 상태를 평가해 계획기가 horizon 밖의 장기 가치를 추정할 수 있게 한다.
+[Critic](Critic)은 predicted [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)의 끝이나 중간 상태를 평가해 계획기가 horizon 밖의 장기 가치를 추정할 수 있게 한다.
 
 ## Zero-memory decision suffix
 
@@ -426,7 +426,7 @@ value 비교 허용      fail closed
 
 이 데이터 근거는 보상도 아니고 숨겨진 simulator 정보도 아니다.
 
-실제 [학습 데이터(training data)](Terminology-Guide) coverage를 검사하는 안전장치다.
+실제 [학습 데이터(training data)](Terminology-Guide) [데이터가 어느 영역까지 포함하는지(coverage)](Critic-Support-and-OOD)를 검사하는 안전장치다.
 
 ---
 
@@ -456,7 +456,7 @@ Policy action override
 
 # 13. Structural compute deduplication
 
-현재 행동 surface에는 이름만 다른 concrete alias가 많을 수 있다.
+현재 행동 surface에는 이름만 다른 실제 개체를 구분하는 alias가 많을 수 있다.
 
 예:
 
@@ -507,16 +507,16 @@ same frozen checkpoint + Imagination ON
 | Layer | Current implementation |
 |---|---|
 | [관측(Observation)](MDP-and-POMDP) | response-causal 관계 기반 [공개 관측 상태(public state)](State-Representation) v3 + latest HTTP 상태 코드 |
-| [ASEQ](ASEQ) | semantic 제자리 반복 empirical v3 |
+| [ASEQ](ASEQ) | 의미 기준 제자리 반복 empirical v3 |
 | [Policy](Policy) | relational-invariant [DQN](Q-Learning-DQN-and-TD) + 정보 가치 잔차 |
 | [Prophecy](Prophecy) | 관계 기반 [조건부 혼합(conditional-mixture)](Prophecy) ensemble v5, [상태 코드 데이터 불균형을 보정한(status-balanced)](Prophecy) |
-| [Calibration](Calibration) | semantic probability 검증용 분리 데이터 calibration v3, [상태 코드까지 고려하는(status-aware)](Calibration) |
+| [Calibration](Calibration) | 의미 기준 확률 검증용 분리 데이터 calibration v3, [상태 코드까지 고려하는(status-aware)](Calibration) |
 | [Knowledge](Knowledge) | 현재 에피소드 안에서만 유지되는 응답 knowledge context |
-| [Imagination](Imagination) | structural compute dedup + probability chance / decision tree |
+| [Imagination](Imagination) | [구조 기반(structural)](Relational-Representation-and-Generalization) compute dedup + 확률 chance / decision tree |
 | [Critic](Critic) | 관계 기반 [GRU](GRU-and-Sequence-Models) discounted sparse-누적 보상 |
 | [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD) | local real-training 데이터 근거, [근거가 부족하면 보수적으로 거부하는(fail-closed)](Critic-Support-and-OOD) |
-| [Skill](Skills) | 관계 기반 [ASEQ](ASEQ) template |
-| Training [Imagination](Imagination) | disabled for [같은 체크포인트(same-checkpoint)](Experiments) comparison |
+| [Skill](Skills) | 관계 기반 [ASEQ](ASEQ) [재사용 가능한 틀(template)](Skills) |
+| Training [Imagination](Imagination) | disabled for [같은 체크포인트(same-checkpoint)](Experiments) [비교(comparison)](Ablation-Benchmarking-and-Reproducibility) |
 
 ---
 

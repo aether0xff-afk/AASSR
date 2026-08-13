@@ -106,7 +106,7 @@ h_t=(1-z_t)\odot h_{t-1}+z_t\odot\tilde h_t
 
 # 6. Update gate
 
-Update 판정 관문는 기존 숨은 환경 상태와 새 candidate 상태를 얼마나 섞을지 조절한다.
+Update 판정 관문는 기존 숨은 환경 상태와 새 [선택 후보(candidate)](Terminology-Guide) 상태를 얼마나 섞을지 조절한다.
 
 직관적으로:
 
@@ -121,7 +121,7 @@ z 큼   → 새 정보로 더 많이 갱신
 
 # 7. Reset gate
 
-Reset 판정 관문는 새 candidate를 계산할 때 과거 숨은 환경 상태의 어느 부분을 얼마나 사용할지 조절한다.
+Reset 판정 관문는 새 선택 후보를 계산할 때 과거 숨은 환경 상태의 어느 부분을 얼마나 사용할지 조절한다.
 
 과거 정보 중 현재 입력 처리에 불필요한 부분을 줄일 수 있다.
 
@@ -277,13 +277,13 @@ seq B: y1 y2 PAD PAD
 
 실제 학습 모델은 sequence length/mask를 이용해 padding이 숨겨진 update에 의미 있는 data처럼 들어가지 않도록 해야 한다.
 
-AASSR 현재 hardware path는 [Critic](Critic)의 많은 branch 평가을 batch 처리해 GPU 효율을 높인다.
+AASSR 현재 hardware path는 [Critic](Critic)의 많은 [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes) 평가을 batch 처리해 GPU 효율을 높인다.
 
 ---
 
 # 16. Batched inference
 
-[Imagination](Imagination) tree에서는 여러 branch [Critic](Critic) score가 한꺼번에 필요하다.
+[Imagination](Imagination) tree에서는 여러 결과 경로 [Critic](Critic) [평가 점수(score)](Terminology-Guide)가 한꺼번에 필요하다.
 
 Scalar 호출:
 
@@ -328,7 +328,7 @@ POMDP 완전 해결
 
 # 18. GRU와 relational representation
 
-AASSR [Critic](Critic)의 입력은 concrete identifiers보다 관계 기반 상태 전이 features를 사용한다.
+AASSR [Critic](Critic)의 입력은 [실제 개체를 구분하는(concrete)](State-Representation) identifiers보다 관계 기반 상태 전이 [학습에 사용하는 특징(features)](Terminology-Guide)를 사용한다.
 
 따라서 recurrent memory도:
 

@@ -124,7 +124,7 @@ Q_{total}(S,A)
 여기서:
 
 - `Q_task`: 실제 환경 sparse 누적 보상을 학습하는 [DQN](Q-Learning-DQN-and-TD) 값
-- `I`: 내부 information-value estimate
+- `I`: 내부 information-value [추정값(estimate)](Value-Functions-and-Bellman-Equation)
 
 핵심은 다음이다.
 
@@ -182,7 +182,7 @@ Primitive 행동에 대해서는 [relational state key와 relational action key]
     -> running information value
 ```
 
-따라서 concrete ID가 바뀌어도 관계 구조가 같으면 residual을 재사용할 수 있다.
+따라서 [실제 개체를 구분하는(concrete)](State-Representation) ID가 바뀌어도 관계 구조가 같으면 residual을 재사용할 수 있다.
 
 [Skill](Skills)은 primitive와 다른 식별 방식를 사용하므로 별도의 skill 가치 table을 가진다.
 
@@ -235,7 +235,7 @@ A_imagined 실행               A_policy 실행
 
 - `reliable`: [Prophecy prediction reliability](Stochasticity-Uncertainty-and-Probability)
 - `supported`: [Critic local support](Critic-Support-and-OOD)
-- `advantage`: [계획기(planner)](Counterfactual-Planning-and-Search) candidate와 [Policy](Policy) [탐색의 첫 행동(root)](Imagination)의 가치 차이
+- `advantage`: [계획기(planner)](Counterfactual-Planning-and-Search) [선택 후보(candidate)](Terminology-Guide)와 [Policy](Policy) [탐색의 첫 행동(root)](Imagination)의 가치 차이
 
 즉 [Imagination](Imagination)이 실패하거나 불확실하더라도 에이전트는 행동할 수 있다.
 
@@ -245,13 +245,13 @@ A_imagined 실행               A_policy 실행
 
 # 9. 왜 Imagination으로 Policy를 학습시키지 않는가?
 
-현재 [실험 규칙(protocol)](Ablation-Benchmarking-and-Reproducibility)에서는 imagined experience가 real [Policy](Policy)를 직접 강화하지 않는다.
+현재 [실험 규칙(protocol)](Ablation-Benchmarking-and-Reproducibility)에서는 [모델이 상상한(imagined)](Research-Jargon-Guide) experience가 [실제 환경에서 관측된(real)](Research-Jargon-Guide) [Policy](Policy)를 직접 강화하지 않는다.
 
 이유는 두 가지다.
 
 ## 9.1 Model error self-amplification 방지
 
-잘못된 [world model](Model-Based-RL-and-World-Models)이 만든 imagined 상태 전이을 [Policy](Policy) 학습 데이터로 쓰면:
+잘못된 [world model](Model-Based-RL-and-World-Models)이 만든 가상 상태 전이을 [Policy](Policy) 학습 데이터로 쓰면:
 
 ```text
 world-model error
@@ -341,7 +341,7 @@ ID 자체에 과도하게 의존하면 학습 중 보지 못한 난수 시드 �
 
 특정 행동 Q가 조금 높게 고정되면 같은 상태에서 무한 반복할 수 있다.
 
-대응: exact semantic [ASEQ](ASEQ) guard.
+대응: exact [의미 기준(semantic)](State-Representation) [ASEQ](ASEQ) guard.
 
 ## 12.3 Information residual dominance
 
@@ -349,7 +349,7 @@ ID 자체에 과도하게 의존하면 학습 중 보지 못한 난수 시드 �
 
 그래서 외부 [DQN](Q-Learning-DQN-and-TD)과 residual을 별도 신호로 관리하고 [진단 실험(diagnostic)](Evidence-Matrix)을 분리해야 한다.
 
-관련 일반 [실패(failure)](Replay-Buffer-and-Episode-Boundaries) mode는 [Intrinsic Motivation](Information-Theory-and-Intrinsic-Motivation)에서 본다.
+관련 일반 [실패(failure)](Replay-Buffer-and-Episode-Boundaries) [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration)는 [Intrinsic Motivation](Information-Theory-and-Intrinsic-Motivation)에서 본다.
 
 ## 12.4 OOD action ranking
 

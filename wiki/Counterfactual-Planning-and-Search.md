@@ -92,7 +92,7 @@ AASSR의 imagination depth는 이 trade-off 안에 있다.
 
 # 5. Search tree
 
-여러 행동과 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) outcome을 전개하면 tree가 된다.
+여러 행동과 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)을 전개하면 tree가 된다.
 
 ```text
 S0
@@ -110,8 +110,8 @@ S0
 
 하지만 이 tree에는 서로 다른 종류의 branching이 섞여 있다.
 
-- [에이전트(agent)](Reinforcement-Learning)가 고르는 행동 branch
-- [환경(environment)](Reinforcement-Learning)가 만드는 확률적 outcome branch
+- [에이전트(agent)](Reinforcement-Learning)가 고르는 행동 [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)
+- [환경(environment)](Reinforcement-Learning)가 만드는 확률적 환경 결과 결과 경로
 
 AASSR은 이를 [Decision node와 Chance node](Chance-and-Decision-Nodes)로 분리한다.
 
@@ -127,7 +127,7 @@ AASSR은 이를 [Decision node와 Chance node](Chance-and-Decision-Nodes)로 분
 O(b^d)
 ```
 
-실제로 확률적 outcome branch까지 있으면 더 커질 수 있다.
+실제로 확률적 환경 결과 결과 경로까지 있으면 더 커질 수 있다.
 
 따라서 [계획기(planner)](Counterfactual-Planning-and-Search)에는 pruning, beam search, dedup, [묶음 처리(batching)](Reproduction) 같은 계산 전략이 필요하다.
 
@@ -135,7 +135,7 @@ O(b^d)
 
 # 7. Beam search
 
-각 depth에서 모든 branch를 유지하지 않고 일부 높은 priority branch만 유지한다.
+각 depth에서 모든 결과 경로를 유지하지 않고 일부 높은 priority 결과 경로만 유지한다.
 
 ```text
 Depth 1: 100 branches
@@ -151,7 +151,7 @@ Depth 2: 확장
 
 단점:
 
-- 초기에 낮게 평가된 중요한 branch가 잘릴 수 있음
+- 초기에 낮게 평가된 중요한 결과 경로가 잘릴 수 있음
 
 AASSR의 계획기/[Skill(성공 절차 재사용)](Skills) rollout에서도 제한된 branching을 관리하는 아이디어가 사용된다.
 
@@ -159,7 +159,7 @@ AASSR의 계획기/[Skill(성공 절차 재사용)](Skills) rollout에서도 제
 
 # 8. Pruning
 
-명백히 쓸모없거나 unreliable한 branch를 더 이상 확장하지 않는 것이다.
+명백히 쓸모없거나 unreliable한 결과 경로를 더 이상 확장하지 않는 것이다.
 
 예:
 
@@ -206,7 +206,7 @@ depth 2 expansion 중단
 
 # 10. Structural deduplication
 
-실제 행동 surface에는 concrete name만 다른 행동이 많을 수 있다.
+실제 행동 surface에는 [실제 개체를 구분하는(concrete)](State-Representation) name만 다른 행동이 많을 수 있다.
 
 ```text
 route-12 request
@@ -214,7 +214,7 @@ route-31 request
 route-44 request
 ```
 
-Relational role이 같다면 세계 모델/[Critic(미래 가치 평가기)](Critic) 계산도 같은 구조일 수 있다.
+Relational [역할(role)](Relational-Representation-and-Generalization)이 같다면 세계 모델/[Critic(미래 가치 평가기)](Critic) 계산도 같은 구조일 수 있다.
 
 ```text
 많은 concrete aliases
@@ -291,7 +291,7 @@ Leaf value estimate
 V_{decision}=\max_aV(a)
 ```
 
-환경 outcome node:
+환경 환경 결과 node:
 
 ```math
 V_{chance}=\sum_ip_iV_i
@@ -307,7 +307,7 @@ V_{chance}=\sum_ip_iV_i
 
 # 15. Expected planning vs Optimistic planning
 
-환경 outcome에서 가장 좋은 결과만 고르면:
+환경 환경 결과에서 가장 좋은 결과만 고르면:
 
 ```math
 V=\max_iV_i
@@ -315,9 +315,9 @@ V=\max_iV_i
 
 가 된다.
 
-하지만 에이전트가 outcome `i`를 선택할 수 없다면 이것은 지나치게 optimistic하다.
+하지만 에이전트가 환경 결과 `i`를 선택할 수 없다면 이것은 지나치게 optimistic하다.
 
-AASSR은 확률적 outcome을 probability-weighted expectation으로 backup한다.
+AASSR은 확률적 환경 결과을 probability-weighted [확률 기댓값(expectation)](Chance-and-Decision-Nodes)으로 [미래 가치를 앞 단계로 되돌려 계산하는 과정(backup)](Value-Functions-and-Bellman-Equation)한다.
 
 ---
 
@@ -351,7 +351,7 @@ Plan A0,A1,A2,A3
 
 장점:
 
-- 학습 모델 예측과 실제 outcome 차이를 다음 decision에서 즉시 반영
+- 학습 모델 예측과 실제 환경 결과 차이를 다음 decision에서 즉시 반영
 - open-loop error 누적 감소
 
 AASSR은 실제 행동 하나 실행 후 다시 [공개된(public)](State-Representation) [응답(response)](State-Representation)를 읽는 구조다.
@@ -362,7 +362,7 @@ AASSR은 실제 행동 하나 실행 후 다시 [공개된(public)](State-Repres
 
 ## Open-loop
 
-미리 만든 행동 sequence를 실제 outcome에 관계없이 계속 실행.
+미리 만든 행동 sequence를 실제 환경 결과에 관계없이 계속 실행.
 
 ## Closed-loop
 
@@ -380,7 +380,7 @@ AASSR [Imagination](Imagination)은 내부적으로 미래 sequence를 상상하
 
 # 19. Planning with uncertainty
 
-World 학습 모델 예측이 unreliable한 branch까지 강하게 최적화하면 학습 모델 error [활용(exploitation)](Exploration-and-Exploitation)이 생길 수 있다.
+World 학습 모델 예측이 unreliable한 결과 경로까지 강하게 최적화하면 학습 모델 error [활용(exploitation)](Exploration-and-Exploitation)이 생길 수 있다.
 
 그래서 계획기는:
 
@@ -410,7 +410,7 @@ V_{candidate}-V_{policy}\ge m
 
 AASSR 현재 [Imagination](Imagination)은 fixed [실제 행동 개입(intervention)](Imagination) 최소 차이 기준을 사용한다.
 
-중요한 점은 최소 차이 기준이 [보상(reward)](Sparse-Reward-and-Credit-Assignment)가 아니라 **행동 switch decision threshold**라는 것이다.
+중요한 점은 최소 차이 기준이 [보상(reward)](Sparse-Reward-and-Credit-Assignment)가 아니라 **행동 switch decision [판정 기준값(threshold)](Terminology-Guide)**라는 것이다.
 
 ---
 
@@ -456,7 +456,7 @@ AASSR의 과거 [진단 실험(diagnostic)](Evidence-Matrix)은 1, 2는 성립�
 
 ## Branch explosion
 
-행동 × outcome × depth로 계산량 증가.
+행동 × 환경 결과 × depth로 계산량 증가.
 
 ## Model exploitation
 
@@ -472,7 +472,7 @@ Model이 틀리는 방향을 계획기가 선택.
 
 ## Optimistic chance backup
 
-환경 outcome에 max를 사용.
+환경 환경 결과에 max를 사용.
 
 ## Inert planner
 

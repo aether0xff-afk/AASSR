@@ -34,7 +34,7 @@ v
 ...
 ```
 
-상태가 그대로이므로 [Policy(정책 모델)](Policy) ranking도 그대로 유지되고 같은 행동을 계속 고를 수 있다.
+상태가 그대로이므로 [Policy(정책 모델)](Policy) [후보 순위(ranking)](Policy)도 그대로 유지되고 같은 행동을 계속 고를 수 있다.
 
 2026-08-07 [전이(transfer)](Relational-Representation-and-Generalization) 진단에서 실제 [DQN](Q-Learning-DQN-and-TD) [체크포인트(checkpoint)](Reproduction)가 L1 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) 평가에서 이런 형태로 정체했다. 일부 체크포인트에서는 raw greedy 평가의 마지막 12개 행동이 동일 행동 `12/12` 반복이었다.
 
@@ -114,7 +114,7 @@ raw S1 != raw S2
 
 그러면 인간이 보기에는 같은 제자리 반복인데 exact raw vector 비교에서는 매번 다른 상태가 된다.
 
-따라서 [ASEQ](ASEQ)의 `S`는 task-relevant **concrete semantic [식별 방식(identity)](State-Representation)**를 사용한다.
+따라서 [ASEQ](ASEQ)의 `S`는 task-relevant **[실제 개체를 구분하는(concrete)](State-Representation) [의미 기준(semantic)](State-Representation) [식별 방식(identity)](State-Representation)**를 사용한다.
 
 하지만 여기서 또 중요한 점이 있다.
 
@@ -124,13 +124,13 @@ raw S1 != raw S2
 route-A와 route-B가 둘 다 catalog 역할
 ```
 
-이라고 해도 같은 [한 번의 문제 풀이 구간(episode)](Terminology-Guide)에서 서로 다른 concrete route라면 [ASEQ](ASEQ)에서는 구분해야 한다. 그렇지 않으면 route-A에서 실패한 행동 때문에 route-B까지 막을 수 있다.
+이라고 해도 같은 [한 번의 문제 풀이 구간(episode)](Terminology-Guide)에서 서로 다른 실제 개체를 구분하는 route라면 [ASEQ](ASEQ)에서는 구분해야 한다. 그렇지 않으면 route-A에서 실패한 행동 때문에 route-B까지 막을 수 있다.
 
 정리하면:
 
 | 목적 | 식별 방식 |
 |---|---|
-| exact 제자리 반복 detection | concrete semantic |
+| exact 제자리 반복 detection | 실제 개체를 구분하는 의미 기준 |
 | [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility) 간 일반화 | 관계 기반 |
 
 ---
@@ -170,7 +170,7 @@ route-A와 route-B가 둘 다 catalog 역할
 
 #### 학습 중 성공
 
-| [학습(training)](Terminology-Guide) mode | episodes | successes | L0 | L1 | L2 |
+| [학습(training)](Terminology-Guide) [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration) | episodes | successes | L0 | L1 | L2 |
 |---|---:|---:|---:|---:|---:|
 | legacy filter | 94 | 29 | 15 | 14 | 0 |
 | exact [ASEQ](ASEQ) | 109 | **50** | **30** | **19** | **1** |

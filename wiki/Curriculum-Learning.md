@@ -140,7 +140,7 @@ subgoal → +0.2
 
 ## Curriculum
 
-External 보상는 그대로 두고 **task distribution의 난도**를 조절한다.
+External 보상는 그대로 두고 **task [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability)의 난도**를 조절한다.
 
 ```text
 쉬운 task → 어려운 task
@@ -218,7 +218,7 @@ AASSR에서는 쉬운 난도 경험을 replay에 유지하는지 여부가 난�
 
 # 13. Distribution shift
 
-Level이 올라가면 [상태(state)](State-Representation)/행동 distribution이 바뀐다.
+Level이 올라가면 [상태(state)](State-Representation)/행동 분포이 바뀐다.
 
 ```text
 L0 distribution
@@ -256,7 +256,7 @@ L0 distribution
 
 # 15. Curriculum과 Critic
 
-[Critic](Critic)도 쉬운 level 성공/실패 [누적 보상(return)](Value-Functions-and-Bellman-Equation)에만 학습되어 higher-level imagined 상태에서 extrapolate할 수 있다.
+[Critic](Critic)도 쉬운 level 성공/실패 [누적 보상(return)](Value-Functions-and-Bellman-Equation)에만 학습되어 higher-level [모델이 상상한(imagined)](Research-Jargon-Guide) 상태에서 extrapolate할 수 있다.
 
 이것이 [국소 데이터 근거(local support)](Critic-Support-and-OOD) [판정 관문(gate)](Terminology-Guide)와 연결된다.
 
@@ -283,7 +283,7 @@ Higher-level current state supported
 
 # 17. Curriculum leakage
 
-난도 level 자체가 [숨겨진(hidden)](MDP-and-POMDP) task structure를 직접 알려주는 feature가 되면 문제가 될 수 있다.
+난도 level 자체가 [숨겨진(hidden)](MDP-and-POMDP) task structure를 직접 알려주는 [학습에 사용하는 특징(feature)](Terminology-Guide)가 되면 문제가 될 수 있다.
 
 예:
 

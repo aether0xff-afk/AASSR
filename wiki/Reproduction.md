@@ -3,7 +3,7 @@
 이 페이지는 **현재 `main`의 AASSR [현재 세대(current-generation)](Current-Status)을 재현하고, 결과를 연구 [증거(evidence)](Evidence-Matrix)로 사용할 수 있는지 확인하는 최소 절차**를 설명한다.
 
 > [!IMPORTANT]
-> Current [구조(architecture)](Research-Architecture)의 [최종 기준(source of truth)](Current-Status)는 특정 연구 브랜치가 아니라 `main`의 `src/aassr_v2/current_manifest.py`다. 과거 실험을 재현할 때만 해당 [과거 기록(historical)](Development-History) commit/branch를 명시적으로 checkout한다.
+> Current [구조(architecture)](Research-Architecture)의 [최종 기준(source of truth)](Current-Status)는 특정 연구 브랜치가 아니라 `main`의 `src/aassr_v2/current_manifest.py`다. 과거 실험을 재현할 때만 해당 [과거 기록(historical)](Development-History) commit/[갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)를 명시적으로 checkout한다.
 
 관련 페이지:
 - [Current Status](Current-Status)
@@ -161,14 +161,14 @@ pytest -q
 - [State Representation v3](State-Representation)
 - [공개된(public)](State-Representation) HTTP [상태 코드(status)](Terminology-Guide) preservation
 - [행동(action)](Reinforcement-Learning)-surface reconstruction
-- [Prophecy](Prophecy) [여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) outcome preservation
+- [Prophecy](Prophecy) [여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability) preservation
 - [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability) normalization
 - 상태 코드 [범주형(categorical)](Loss-Functions-and-Class-Imbalance) supervision
 - [Calibration](Calibration)
-- [Chance vs Decision](Chance-and-Decision-Nodes) backup
+- [Chance vs Decision](Chance-and-Decision-Nodes) [미래 가치를 앞 단계로 되돌려 계산하는 과정(backup)](Value-Functions-and-Bellman-Equation)
 - [Critic](Critic) sparse-[누적 보상(return)](Value-Functions-and-Bellman-Equation) 명세
 - [Local Critic Support](Critic-Support-and-OOD)
-- structural [탐색의 첫 행동(root)](Imagination) deduplication
+- [구조 기반(structural)](Relational-Representation-and-Generalization) [탐색의 첫 행동(root)](Imagination) deduplication
 - [같은 체크포인트(same-checkpoint)](Experiments) freeze
 
 Regression pass는 **성능 향상 증거가 아니라 구현 명세 증거**다.
@@ -236,15 +236,15 @@ Policy       Imagination
 
 - OFF/ON을 따로 재학습하지 않았는가?
 - [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility) 중 persistent [학습 주체(learner)](Terminology-Guide) [상태(state)](State-Representation)가 변하지 않았는가?
-- external [보상(reward)](Sparse-Reward-and-Credit-Assignment) 명세가 동일한가?
+- [환경이 주는 외부(external)](Terminology-Guide) [보상(reward)](Sparse-Reward-and-Credit-Assignment) 명세가 동일한가?
 - [실제 행동 개입(intervention)](Imagination) [최소 차이 기준(margin)](Imagination)을 결과 보기 전에 고정했는가?
-- [상태 전이(transition)](MDP-and-POMDP) budget이 real primitive 행동 기준인가?
+- [상태 전이(transition)](MDP-and-POMDP) budget이 [실제 환경에서 관측된(real)](Research-Jargon-Guide) primitive 행동 기준인가?
 
 ---
 
 # 7. Current local comparison
 
-PyTorch 현재 세대 local comparison entrypoint:
+PyTorch 현재 세대 local [비교(comparison)](Ablation-Benchmarking-and-Reproducibility) entrypoint:
 
 ```text
 scripts/run_pentest_current_generation_main.py
@@ -392,7 +392,7 @@ Assembler 또는 사람이 확인해야 하는 주요 mismatch:
 2026-08-11 historical Imagination diagnostic
 ```
 
-을 재현하려면 해당 당시 commit/branch와 당시 표현/[Prophecy(미래 예측 모델)](Prophecy) 명세를 사용해야 한다.
+을 재현하려면 해당 당시 commit/결과 경로와 당시 표현/[Prophecy(미래 예측 모델)](Prophecy) 명세를 사용해야 한다.
 
 그 결과를 현재 performance와 분리해 저장한다.
 

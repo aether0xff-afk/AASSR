@@ -91,7 +91,7 @@ layer 2
 output
 ```
 
-[DQN](Q-Learning-DQN-and-TD)에서는 [Q값(Q-value)](Value-Functions-and-Bellman-Equation)가 나오고, [Prophecy](Prophecy)에서는 future [예측(prediction)](Terminology-Guide) parameter가 나오며, [Critic](Critic)에서는 [누적 보상(return)](Value-Functions-and-Bellman-Equation) estimate가 나올 수 있다.
+[DQN](Q-Learning-DQN-and-TD)에서는 [Q값(Q-value)](Value-Functions-and-Bellman-Equation)가 나오고, [Prophecy](Prophecy)에서는 future [예측(prediction)](Terminology-Guide) parameter가 나오며, [Critic](Critic)에서는 [누적 보상(return)](Value-Functions-and-Bellman-Equation) [추정값(estimate)](Value-Functions-and-Bellman-Equation)가 나올 수 있다.
 
 ---
 
@@ -212,7 +212,7 @@ train error ↓
 test error ↑
 ```
 
-AASSR에서는 특히 concrete ID memorization과 [검증(validation)](Ablation-Benchmarking-and-Reproducibility)/test 반복 tuning이 overfitting을 만들 수 있다.
+AASSR에서는 특히 [실제 개체를 구분하는(concrete)](State-Representation) ID memorization과 [검증(validation)](Ablation-Benchmarking-and-Reproducibility)/test 반복 tuning이 overfitting을 만들 수 있다.
 
 관련 페이지:
 
@@ -225,7 +225,7 @@ AASSR에서는 특히 concrete ID memorization과 [검증(validation)](Ablation-
 
 Model capacity가 부족하거나 학습이 충분하지 않아 [학습 데이터(training data)](Terminology-Guide)조차 잘 설명하지 못하는 상태다.
 
-[Prophecy](Prophecy)가 미래 outcome mode를 제대로 분리하지 못하거나 [Critic](Critic)이 모든 branch에 비슷한 값을 내는 경우 capacity/학습 부족 가능성을 생각할 수 있다.
+[Prophecy](Prophecy)가 미래 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability) [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration)를 제대로 분리하지 못하거나 [Critic](Critic)이 모든 [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)에 비슷한 값을 내는 경우 capacity/학습 부족 가능성을 생각할 수 있다.
 
 ---
 
@@ -257,7 +257,7 @@ Test
 → 최종 성능 평가
 ```
 
-AASSR에서는 real replay [검증용 분리 데이터(holdout)](Calibration), development [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility), final 학습 중 보지 못한 표준 비교 실험를 목적에 따라 분리한다.
+AASSR에서는 [실제 환경에서 관측된(real)](Research-Jargon-Guide) replay [검증용 분리 데이터(holdout)](Calibration), development [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility), final 학습 중 보지 못한 표준 비교 실험를 목적에 따라 분리한다.
 
 ---
 
@@ -272,7 +272,7 @@ feature A: 0~1
 feature B: 0~100000
 ```
 
-Relational descriptor에서 count를 일정 범위로 normalize하는 것도 같은 일반적 문제와 연결된다.
+Relational [상태를 요약한 표현(descriptor)](State-Representation)에서 count를 일정 범위로 normalize하는 것도 같은 일반적 문제와 연결된다.
 
 ---
 
@@ -306,7 +306,7 @@ ID/category
 vector
 ```
 
-AASSR [현재(current)](Current-Status) [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)은 concrete ID embedding 암기보다 role/relationship features를 강조한다.
+AASSR [현재(current)](Current-Status) [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)은 실제 개체를 구분하는 ID embedding 암기보다 [역할(role)](Relational-Representation-and-Generalization)/relationship [학습에 사용하는 특징(features)](Terminology-Guide)를 강조한다.
 
 ---
 

@@ -63,7 +63,7 @@ AASSR의 [Prophecy(미래 예측 모델)](Prophecy) + [Imagination(가상 미래
 \hat R(s,a,s')
 ```
 
-하지만 AASSR [현재(current)](Current-Status) [Prophecy](Prophecy)의 핵심은 **[공개된(public)](State-Representation) next-state distribution**과 legal [행동(action)](Reinforcement-Learning)/[상태 코드(status)](Terminology-Guide)/[에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) structure를 예측하는 데 있다.
+하지만 AASSR [현재(current)](Current-Status) [Prophecy](Prophecy)의 핵심은 **[공개된(public)](State-Representation) next-state [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability)**과 legal [행동(action)](Reinforcement-Learning)/[상태 코드(status)](Terminology-Guide)/[에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) structure를 예측하는 데 있다.
 
 외부 task [보상(reward)](Sparse-Reward-and-Credit-Assignment) 자체를 임의의 learned shaping signal로 바꾸지 않는다.
 
@@ -259,7 +259,7 @@ p_\theta(s'\mid s,a)
 
 AASSR [Prophecy](Prophecy)는 이 방향이다.
 
-같은 공개된 `(S,A)`에서 여러 outcome이 가능하므로 단일 평균 상태보다 [여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) 예측이 필요하다.
+같은 공개된 `(S,A)`에서 여러 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)이 가능하므로 단일 평균 상태보다 [여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) 예측이 필요하다.
 
 관련 페이지:
 
@@ -270,7 +270,7 @@ AASSR [Prophecy](Prophecy)는 이 방향이다.
 
 # 12. Mean prediction의 위험
 
-두 실제 outcome이:
+두 실제 환경 결과이:
 
 ```text
 A = [1,0]
@@ -289,7 +289,7 @@ C = [0.5,0.5]
 
 그런데 `C`가 실제로 존재하지 않는 상태일 수 있다.
 
-특히 [범주형(categorical)](Loss-Functions-and-Class-Imbalance)/structural 상태에서는 이런 평균 상태가 계획기를 심각하게 오도할 수 있다.
+특히 [범주형(categorical)](Loss-Functions-and-Class-Imbalance)/[구조 기반(structural)](Relational-Representation-and-Generalization) 상태에서는 이런 평균 상태가 계획기를 심각하게 오도할 수 있다.
 
 AASSR이 conditional mixture를 사용하는 이유다.
 
@@ -314,9 +314,9 @@ Latent z_{t+1}
 장점:
 
 - 고차원 raw 관측 압축
-- task-relevant feature에 집중 가능
+- task-relevant [학습에 사용하는 특징(feature)](Terminology-Guide)에 집중 가능
 
-AASSR 현재 [Prophecy](Prophecy)는 일반적인 pixel latent 세계 모델과 달리 **명시적 관계 기반 공개된 descriptor**를 중심으로 한다.
+AASSR 현재 [Prophecy](Prophecy)는 일반적인 pixel latent 세계 모델과 달리 **명시적 관계 기반 공개된 [상태를 요약한 표현(descriptor)](State-Representation)**를 중심으로 한다.
 
 Dreamer 계열과 비교할 때 이 차이가 중요하다.
 
@@ -324,7 +324,7 @@ Dreamer 계열과 비교할 때 이 차이가 중요하다.
 
 # 14. Dreamer와 개념적 비교
 
-Dreamer류 알고리즘은 learned latent 세계 모델 안에서 imagined trajectories를 만들고 actor/critic을 학습하는 대표적인 모델 기반 강화학습 계열이다.
+Dreamer류 알고리즘은 learned latent 세계 모델 안에서 [모델이 상상한(imagined)](Research-Jargon-Guide) trajectories를 만들고 actor/critic을 학습하는 대표적인 모델 기반 강화학습 계열이다.
 
 AASSR은 "세계 모델 + imagination"이라는 큰 틀에서는 유사한 문제를 다루지만 현재 연구 계약은 다르다.
 
@@ -354,7 +354,7 @@ real next state
 
 AASSR 원칙:
 
-> 상상은 계획에 사용하지만 사실 학습의 기준은 real 상태 전이이다.
+> 상상은 계획에 사용하지만 사실 학습의 기준은 [실제 환경에서 관측된(real)](Research-Jargon-Guide) 상태 전이이다.
 
 Imagined 상태를 다시 세계 모델의 정답으로 학습시키면:
 
@@ -371,7 +371,7 @@ model error
 
 # 16. Model uncertainty
 
-World 학습 모델이 출력 probability를 낸다고 해서 모델 자체가 그 예측을 잘 알고 있다는 뜻은 아니다.
+World 학습 모델이 출력 [확률(probability)](Stochasticity-Uncertainty-and-Probability)를 낸다고 해서 모델 자체가 그 예측을 잘 알고 있다는 뜻은 아니다.
 
 예:
 
@@ -402,9 +402,9 @@ prediction reliability
 
 # 17. Calibration
 
-[Calibration](Calibration)은 학습 모델이 **언제 맞고 언제 틀리는지에 대한 [신뢰도(reliability)](Calibration)**를 real [검증용 분리 데이터(holdout)](Calibration)으로 점검한다.
+[Calibration](Calibration)은 학습 모델이 **언제 맞고 언제 틀리는지에 대한 [신뢰도(reliability)](Calibration)**를 실제 [검증용 분리 데이터(holdout)](Calibration)으로 점검한다.
 
-AASSR에서는 confidence를 좋은 미래에 대한 bonus로 쓰지 않는다.
+AASSR에서는 [예측 신뢰 정도(confidence)](Calibration)를 좋은 미래에 대한 bonus로 쓰지 않는다.
 
 ```text
 reliability 충분
@@ -450,7 +450,7 @@ truncation
 
 중 무엇인지 알아야 한다.
 
-Terminal semantics를 틀리면 가치 backup이 크게 왜곡될 수 있다.
+Terminal semantics를 틀리면 가치 [미래 가치를 앞 단계로 되돌려 계산하는 과정(backup)](Value-Functions-and-Bellman-Equation)이 크게 왜곡될 수 있다.
 
 AASSR [Prophecy](Prophecy)는 에피소드 종료 class를 별도로 예측한다.
 
@@ -469,7 +469,7 @@ AASSR [환경(environment)](Reinforcement-Learning)의 공개된 HTTP-like 상�
 429
 ```
 
-과거 표현에서는 전체 semantic similarity가 높아도 상태 코드를 놓쳐 계획기가 실제로 bad 행동을 고를 수 있었다.
+과거 표현에서는 전체 [의미 기준(semantic)](State-Representation) similarity가 높아도 상태 코드를 놓쳐 계획기가 실제로 bad 행동을 고를 수 있었다.
 
 그래서 현재 Relational [상태(State)](State-Representation) v3와 [Prophecy](Prophecy)는 latest 공개된 상태 코드를 명시적으로 보존/예측한다.
 

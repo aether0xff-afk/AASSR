@@ -202,7 +202,7 @@ AASSR의 핵심 질문이 "중간 목표를 사람이 정해주지 않아도 되
 
 반면 AASSR 연구 질문은:
 
-> sparse external 보상에서도 경험 구조와 계획이 도움이 되는가?
+> sparse [환경이 주는 외부(external)](Terminology-Guide) 보상에서도 경험 구조와 계획이 도움이 되는가?
 
 이므로 강한 hand-crafted shaping을 넣으면 원래 질문을 흐릴 수 있다.
 
@@ -300,7 +300,7 @@ AASSR [Critic(미래 가치 평가기)](Critic)은 실제 sparse-누적 보상�
 
 # 13. Temporal Difference credit assignment
 
-TD는 실제 final 누적 보상을 전부 기다리지 않고 다음 가치 estimate를 이용해 현재 가치를 업데이트한다.
+TD는 실제 final 누적 보상을 전부 기다리지 않고 다음 가치 [추정값(estimate)](Value-Functions-and-Bellman-Equation)를 이용해 현재 가치를 업데이트한다.
 
 ```math
 y_t=r_t+\gamma V(s_{t+1})
@@ -321,7 +321,7 @@ y_t=r_t+\gamma\max_{a'}Q(s_{t+1},a')
 
 단점:
 
-- 잘못된 가치 estimate가 target에 다시 들어감
+- 잘못된 가치 추정값가 target에 다시 들어감
 - boundary 처리 오류가 큰 문제를 만들 수 있음
 
 관련 페이지:
@@ -398,7 +398,7 @@ S → A → S
 
 단순 TD만으로도 이 관계를 장기적으로 학습할 수 있지만 성공 sample이 매우 적으면 느릴 수 있다.
 
-AASSR [Policy(정책 모델)](Policy)는 external [Q값(Q-value)](Value-Functions-and-Bellman-Equation)와 별도로 delayed 정보 가치 잔차을 관리한다.
+AASSR [Policy(정책 모델)](Policy)는 환경이 주는 외부 [Q값(Q-value)](Value-Functions-and-Bellman-Equation)와 별도로 delayed 정보 가치 잔차을 관리한다.
 
 중요한 점은 **그 residual을 외부 보상로 위장하지 않는 것**이다.
 
@@ -467,7 +467,7 @@ Sparse reward
 
 ## "정보를 얻으면 reward를 주면 되지 않나?"
 
-가능하지만 그 순간 연구 학습 목표가 바뀔 수 있다. AASSR은 information signal과 external task 보상를 분리해 분석한다.
+가능하지만 그 순간 연구 학습 목표가 바뀔 수 있다. AASSR은 information signal과 환경이 주는 외부 task 보상를 분리해 분석한다.
 
 ---
 

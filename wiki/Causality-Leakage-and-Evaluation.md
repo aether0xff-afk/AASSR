@@ -40,7 +40,7 @@ same-checkpoint comparison
 
 예:
 
-- test label의 일부가 feature에 포함
+- test label의 일부가 [학습에 사용하는 특징(feature)](Terminology-Guide)에 포함
 - 평가 [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility) 정답을 학습에 사용
 - future [관측(observation)](MDP-and-POMDP)이 [현재(current)](Current-Status) 입력에 포함
 
@@ -50,7 +50,7 @@ Leakage가 있으면 높은 성능이 실제 [일반화(generalization)](Relatio
 
 # 3. Target leakage
 
-Prediction target과 직접적으로 연결된 미래/정답 정보가 feature에 들어가는 경우다.
+Prediction target과 직접적으로 연결된 미래/정답 정보가 학습 특징에 들어가는 경우다.
 
 예:
 
@@ -172,13 +172,13 @@ Learner observation
 
 과는 분리해야 한다.
 
-로그에 존재한다는 이유만으로 학습 모델 feature로 사용하면 leakage가 된다.
+로그에 존재한다는 이유만으로 학습 모델 학습 특징로 사용하면 leakage가 된다.
 
 ---
 
 # 9. Cross-episode leakage
 
-이전 [한 번의 문제 풀이 구간(episode)](Terminology-Guide)에서 알게 된 concrete 정답을 새 한 번의 문제 풀이 구간에 그대로 들고 가면 난수 시드 [전이(transfer)](Relational-Representation-and-Generalization)가 오염될 수 있다.
+이전 [한 번의 문제 풀이 구간(episode)](Terminology-Guide)에서 알게 된 [실제 개체를 구분하는(concrete)](State-Representation) 정답을 새 한 번의 문제 풀이 구간에 그대로 들고 가면 난수 시드 [전이(transfer)](Relational-Representation-and-Generalization)가 오염될 수 있다.
 
 ```text
 Episode A에서 route-12가 target임을 앎
@@ -196,7 +196,7 @@ Replay buffer는 과거 학습 experience를 저장한다.
 
 Learner가 replay에서 statistical pattern을 학습하는 것은 정상이다.
 
-하지만 replay에 있는 concrete fact를 현재 한 번의 문제 풀이 구간의 explicit known fact처럼 행동 surface에 직접 주입하면 다른 의미가 된다.
+하지만 replay에 있는 실제 개체를 구분하는 fact를 현재 한 번의 문제 풀이 구간의 explicit known fact처럼 행동 surface에 직접 주입하면 다른 의미가 된다.
 
 ```text
 Replay
@@ -229,17 +229,17 @@ Real response: token 획득
 
 은 구분해야 한다.
 
-Imagined fact를 persistent factual memory에 real truth로 기록하면 학습 모델 hallucination이 knowledge가 된다.
+Imagined fact를 persistent factual memory에 [실제 환경에서 관측된(real)](Research-Jargon-Guide) truth로 기록하면 학습 모델 hallucination이 knowledge가 된다.
 
 AASSR 원칙:
 
-> 상상은 [계획(planning)](Counterfactual-Planning-and-Search)에 사용하고, factual learning의 근거는 real [상태 전이(transition)](MDP-and-POMDP)으로 유지한다.
+> 상상은 [계획(planning)](Counterfactual-Planning-and-Search)에 사용하고, factual learning의 근거는 실제 [상태 전이(transition)](MDP-and-POMDP)으로 유지한다.
 
 ---
 
 # 12. Model-generated training data의 위험
 
-[모델 기반 강화학습(Model-based RL)](Model-Based-RL-and-World-Models)에서는 imagined rollout을 policy/[가치(value)](Value-Functions-and-Bellman-Equation) 학습에 사용할 수도 있다.
+[모델 기반 강화학습(Model-based RL)](Model-Based-RL-and-World-Models)에서는 [모델이 상상한(imagined)](Research-Jargon-Guide) rollout을 policy/[가치(value)](Value-Functions-and-Bellman-Equation) 학습에 사용할 수도 있다.
 
 그 자체가 잘못은 아니다.
 
@@ -253,7 +253,7 @@ model error
 
 이 생길 수 있다.
 
-AASSR 현재 main comparison은 [Imagination(가상 미래 탐색)](Imagination)의 **계획 marginal effect**를 보기 위해 학습 [실제 행동 개입(intervention)](Imagination)/imagined [Policy(정책 모델)](Policy) update를 제한한다.
+AASSR 현재 main [비교(comparison)](Ablation-Benchmarking-and-Reproducibility)은 [Imagination(가상 미래 탐색)](Imagination)의 **계획 marginal effect**를 보기 위해 학습 [실제 행동 개입(intervention)](Imagination)/가상 [Policy(정책 모델)](Policy) update를 제한한다.
 
 ---
 
@@ -270,7 +270,7 @@ Test 결과 확인
 
 이 과정을 반복하면 final 일반화 성능이라고 부르기 어렵다.
 
-그래서 development, 검증, blind 평가의 구분이 필요하다.
+그래서 development, 검증, [결과를 미리 보지 않는 비공개 평가(blind)](Ablation-Benchmarking-and-Reproducibility) 평가의 구분이 필요하다.
 
 ---
 
@@ -329,13 +329,13 @@ OFF 평가 후 ON 평가 사이에:
 
 등이 일어나면 같은 [체크포인트(checkpoint)](Reproduction) 비교가 아니다.
 
-따라서 평가 mode에서 어떤 stateful update가 가능한지 audit해야 한다.
+따라서 평가 [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration)에서 어떤 stateful update가 가능한지 audit해야 한다.
 
 ---
 
 # 17. Calibration leakage
 
-[Calibration(예측 신뢰도 보정)](Calibration) [검증용 분리 데이터(holdout)](Calibration)을 [세계 모델(world model)](Model-Based-RL-and-World-Models) 학습에 다시 사용하면 [신뢰도(reliability)](Calibration) estimate가 낙관적으로 변할 수 있다.
+[Calibration(예측 신뢰도 보정)](Calibration) [검증용 분리 데이터(holdout)](Calibration)을 [세계 모델(world model)](Model-Based-RL-and-World-Models) 학습에 다시 사용하면 [신뢰도(reliability)](Calibration) [추정값(estimate)](Value-Functions-and-Bellman-Equation)가 낙관적으로 변할 수 있다.
 
 또 live 한 번의 문제 풀이 구간 [Knowledge](Knowledge)를 과거 검증용 분리 데이터 상태 전이에 넣으면 hindsight context leakage가 생길 수 있다.
 
@@ -387,7 +387,7 @@ hidden stage 2 진입 → +0.3
 
 Learner가 숨겨진 stage를 직접 보지 않아도 보상가 그 정보를 알려준다.
 
-AASSR이 sparse external 보상를 좁게 유지하는 이유다.
+AASSR이 sparse [환경이 주는 외부(external)](Terminology-Guide) 보상를 좁게 유지하는 이유다.
 
 관련 페이지:
 
@@ -407,7 +407,7 @@ observed status one-hot
 
 는 공개된 information을 유용하게 표현한 것이다.
 
-문제는 feature를 만들 때 숨겨진 truth를 사용했는가다.
+문제는 학습 특징를 만들 때 숨겨진 truth를 사용했는가다.
 
 ```text
 observed public relation → relational feature  O
@@ -424,8 +424,8 @@ hidden target role       → feature             X
 | 이전 응답에서 발견한 route | O |
 | 현재 행동 후 나올 상태 코드 | X |
 | 숨겨진 session countdown | X |
-| 현재 한 번의 문제 풀이 구간의 real [Knowledge](Knowledge) | O |
-| imagined branch에서만 생긴 fact | real 행동 입력으로 확정 사용 X |
+| 현재 한 번의 문제 풀이 구간의 실제 [Knowledge](Knowledge) | O |
+| 가상 [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)에서만 생긴 fact | 실제 행동 입력으로 확정 사용 X |
 
 ---
 

@@ -70,7 +70,7 @@ aassr_current_no_imagination
 aassr_current_full
 ```
 
-그리고 외부 model-based family comparison:
+그리고 외부 model-based family [비교(comparison)](Ablation-Benchmarking-and-Reproducibility):
 
 ```text
 dreamerv3_relational
@@ -99,7 +99,7 @@ ordinary transition  0
 
 다음은 task 보상로 사용하지 않는다.
 
-- guided progress score
+- guided progress [평가 점수(score)](Terminology-Guide)
 - oracle route proximity
 - [숨겨진(hidden)](MDP-and-POMDP) target proximity
 - intermediate proof hint
@@ -109,7 +109,7 @@ ordinary transition  0
 
 ## 2.2 Internal information signal
 
-[Policy](Policy)의 [정보 가치 잔차(information residual)](Policy)은 external 보상와 별도다.
+[Policy](Policy)의 [정보 가치 잔차(information residual)](Policy)은 [환경이 주는 외부(external)](Terminology-Guide) 보상와 별도다.
 
 ```text
 external task reward
@@ -135,7 +135,7 @@ Learner는 [response-causal](Causality-Leakage-and-Evaluation) [공개된(public
 - 숨겨진 target [식별 방식(identity)](State-Representation)
 - exact 숨겨진 audit pressure
 - exact 숨겨진 session countdown
-- future outcome
+- future [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)
 - 숨겨진 [난이도 조절 학습(curriculum)](Curriculum-Learning) label을 [학습 주체(learner)](Terminology-Guide) [상태(state)](State-Representation)로 직접 주입
 
 ---
@@ -168,7 +168,7 @@ flowchart LR
 - decoy routes
 - 난수 시드마다 바뀌는 opaque identifiers
 
-실제 [신경망(network)](Neural-Networks-and-Optimization) socket, shell, external target은 사용하지 않는다.
+실제 [신경망(network)](Neural-Networks-and-Optimization) socket, shell, 환경이 주는 외부 target은 사용하지 않는다.
 
 ## 3.1 난도 validation
 
@@ -193,7 +193,7 @@ Response-guided degradation
 → 난도 차이가 존재
 ```
 
-이 결과는 **AASSR 우위 증거가 아니다.** [표준 비교 실험(Benchmark)](Ablation-Benchmarking-and-Reproducibility)가 [에이전트(agent)](Reinforcement-Learning) comparison에 사용할 수 있는지 검증한 것이다.
+이 결과는 **AASSR 우위 증거가 아니다.** [표준 비교 실험(Benchmark)](Ablation-Benchmarking-and-Reproducibility)가 [에이전트(agent)](Reinforcement-Learning) 비교에 사용할 수 있는지 검증한 것이다.
 
 ---
 
@@ -201,7 +201,7 @@ Response-guided degradation
 
 질문:
 
-> guided trajectory와 shaping 보상 없이 real 성공 experience가 발생하는가?
+> guided trajectory와 shaping 보상 없이 [실제 환경에서 관측된(real)](Research-Jargon-Guide) 성공 experience가 발생하는가?
 
 관련: [Research Questions — RQ1](Research-Questions#rq1--희소-보상만으로-최초-성공을-발견할-수-있는가)
 
@@ -248,7 +248,7 @@ Easy → Medium → Hard exposure
 
 질문:
 
-> [Relational Representation](Relational-Representation-and-Generalization)이 concrete ID 중심 [표현(representation)](Relational-Representation-and-Generalization)보다 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) [전이(transfer)](Relational-Representation-and-Generalization)를 개선하는가?
+> [Relational Representation](Relational-Representation-and-Generalization)이 [실제 개체를 구분하는(concrete)](State-Representation) ID 중심 [표현(representation)](Relational-Representation-and-Generalization)보다 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) [전이(transfer)](Relational-Representation-and-Generalization)를 개선하는가?
 
 ## 핵심 control
 
@@ -291,7 +291,7 @@ dqn_relational
 
 질문:
 
-> semantic `S → A → S` 증거를 사용하면 stalled behavior를 줄일 수 있는가?
+> [의미 기준(semantic)](State-Representation) `S → A → S` 증거를 사용하면 stalled behavior를 줄일 수 있는가?
 
 ## 6.1 No-retraining diagnostic
 
@@ -316,7 +316,7 @@ exact ASEQ stalled        0 / 24
 
 학습과 평가 모두 exact [ASEQ](ASEQ) rule을 사용한 focused run:
 
-| 학습 mode | 학습 successes | L0 | L1 | L2 |
+| 학습 [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration) | 학습 successes | L0 | L1 | L2 |
 |---|---:|---:|---:|---:|
 | legacy filter | 29 | 15 | 14 | 0 |
 | exact [ASEQ](ASEQ) | **50** | **30** | **19** | **1** |
@@ -358,8 +358,8 @@ semantic-probability-holdout-calibration-v3-status-aware
 ## 7.1 Prophecy prediction metrics
 
 ### State structure
-- semantic descriptor error / similarity
-- top-k outcome semantic quality
+- 의미 기준 [상태를 요약한 표현(descriptor)](State-Representation) error / similarity
+- top-k 환경 결과 의미 기준 quality
 
 ### Action surface
 - legal-mask accuracy
@@ -376,8 +376,8 @@ semantic-probability-holdout-calibration-v3-status-aware
 
 ### Multimodality
 - mixture [구성요소(component)](Research-Architecture) usage
-- outcome mass normalization
-- multiple empirical outcome preservation
+- 환경 결과 mass normalization
+- multiple empirical 환경 결과 preservation
 
 ## 7.2 Calibration metrics
 
@@ -403,7 +403,7 @@ reliability bucket
 
 ## 7.3 왜 이게 필요해졌나?
 
-2026-08-11 진단 실험에서 전체 semantic quality는 높게 보였지만 [계획기(planner)](Counterfactual-Planning-and-Search) [실제 행동 개입(intervention)](Imagination)은 많은 `403/404/429` 오류를 만들었다.
+2026-08-11 진단 실험에서 전체 의미 기준 quality는 높게 보였지만 [계획기(planner)](Counterfactual-Planning-and-Search) [실제 행동 개입(intervention)](Imagination)은 많은 `403/404/429` 오류를 만들었다.
 
 전체 [탐색의 첫 행동(root)](Imagination) cause는 별도 보관한다.
 
@@ -413,7 +413,7 @@ reliability bucket
 
 # 8. RQ6 — Critic local support
 
-[Critic](Critic)은 real sparse [누적 보상(return)](Value-Functions-and-Bellman-Equation)을 학습한다.
+[Critic](Critic)은 실제 sparse [누적 보상(return)](Value-Functions-and-Bellman-Equation)을 학습한다.
 
 하지만 다음은 다르다.
 
@@ -442,7 +442,7 @@ B: local support gate ON
 
 - [데이터 근거(support)](Critic-Support-and-OOD) pass rate
 - 데이터 근거 reject rate
-- unsupported high-value candidate count
+- unsupported high-value [선택 후보(candidate)](Terminology-Guide) count
 - 실제 행동 개입 error rate
 - successful 실제 행동 개입 rate
 - 계획기 activity after 판정 관문
@@ -470,7 +470,7 @@ OOD value extrapolation
 
 # 9. RQ7 — Imagination same-checkpoint
 
-가장 중요한 causal experiment 중 하나다.
+가장 중요한 [인과적으로 공정한(causal)](Causality-Leakage-and-Evaluation) experiment 중 하나다.
 
 ## 9.1 Rule
 
@@ -483,11 +483,11 @@ OFF                   ON
 Policy-only       Imagination
 ```
 
-OFF와 ON을 따로 재학습하면 hard comparison 실패다.
+OFF와 ON을 따로 재학습하면 hard 비교 실패다.
 
 ## 9.2 왜 training-time Imagination을 끄는가?
 
-현재 primary marginal-effect comparison에서 training-time 계획기가 replay distribution까지 바꾸면:
+현재 primary marginal-effect 비교에서 training-time 계획기가 replay [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability)까지 바꾸면:
 
 ```text
 planner effect
@@ -510,7 +510,7 @@ training_imagination = disabled-same-checkpoint
 ### Opportunity
 - plan count
 - 탐색의 첫 행동 count
-- structural 탐색의 첫 행동 count
+- [구조 기반(structural)](Relational-Representation-and-Generalization) 탐색의 첫 행동 count
 
 ### Gate
 - unreliable suppressions
@@ -518,7 +518,7 @@ training_imagination = disabled-same-checkpoint
 - insufficient-advantage suppressions
 
 ### Intervention
-- switch candidates
+- switch [선택 후보(candidates)](Terminology-Guide)
 - final 실제 행동 개입s
 - changed 행동s
 - direct success-producing 실제 행동 개입s
@@ -556,13 +556,13 @@ bad-status     58/86
 
 # 10. RQ8 — Five-condition final suite
 
-최종 현재 세대 comparison row:
+최종 현재 세대 비교 row:
 
 | Condition | [표현(Representation)](Relational-Representation-and-Generalization) | Model-based 구성요소 | 역할 |
 |---|---|---|---|
 | `dqn_raw` | raw 현재 | none | corrected model-free 비교 기준 |
 | `dqn_relational` | 관계 기반 현재 | none | 표현 [구성요소 제거 비교(ablation)](Ablation-Benchmarking-and-Reproducibility) |
-| `dreamerv3_relational` | 관계 기반 현재 | official [DreamerV3(외부 세계 모델 강화학습 비교군)](Experiments) | external model-based 비교 기준 |
+| `dreamerv3_relational` | 관계 기반 현재 | official [DreamerV3(외부 세계 모델 강화학습 비교군)](Experiments) | 환경이 주는 외부 model-based 비교 기준 |
 | `aassr_current_no_imagination` | 관계 기반 현재 | AASSR models, 계획기 OFF | non-[Imagination(가상 미래 탐색)](Imagination) AASSR stack |
 | `aassr_current_full` | 관계 기반 현재 | AASSR 계획기 ON | [Imagination](Imagination) marginal effect |
 
@@ -577,11 +577,11 @@ DreamerV3 checkpoint
 AASSR checkpoint
 ```
 
-그 AASSR 체크포인트를 OFF/ON 두 평가 mode로 사용한다.
+그 AASSR 체크포인트를 OFF/ON 두 평가 결과 유형로 사용한다.
 
 ## 10.2 Fair sample budget
 
-과학적 sample budget은 **real primitive 환경 행동**으로 센다.
+과학적 sample budget은 **실제 primitive 환경 행동**으로 센다.
 
 Imagined rollout step은 환경 sample로 세지 않는다.
 
@@ -610,7 +610,7 @@ Imagined rollout step은 환경 sample로 세지 않는다.
 
 질문:
 
-> repeated successful real ASeq를 관계 기반 template로 승격하면 학습 중 보지 못한 난수 시드에서 primitive-only보다 재사용 효율이 좋아지는가?
+> repeated successful 실제 ASeq를 관계 기반 [재사용 가능한 틀(template)](Skills)로 승격하면 학습 중 보지 못한 난수 시드에서 primitive-only보다 재사용 효율이 좋아지는가?
 
 ## 비교 후보
 
@@ -626,11 +626,11 @@ relational Skill
 
 - [Skill(성공 절차 재사용)](Skills) promotion count
 - promotion precision
-- concrete rebinding 성공
+- 실제 개체를 구분하는 rebinding 성공
 - unavailable primitive rate
 - [Skill](Skills) completion 성공
 - 상태 전이s saved
-- [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) rollout branch survival
+- [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) rollout [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes) survival
 - primitive [탐색(exploration)](Exploration-and-Exploitation) suppression
 
 [Skill](Skills)이 잘 작동해도 그것이 곧 “창의성”은 아니다.
@@ -671,7 +671,7 @@ condition
 - mean across research 난수 시드s
 - standard deviation
 - 난수 시드-level raw values
-- binomial 성공 uncertainty 또는 적절한 confidence interval
+- binomial 성공 uncertainty 또는 적절한 [예측 신뢰 정도(confidence)](Calibration) interval
 
 을 함께 보고한다.
 

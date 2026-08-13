@@ -8,7 +8,7 @@ AASSR에서 "[Critic](Critic)이 학습되었다"와 "지금 이 [상태(state)]
 
 # 1. Critic이란?
 
-넓은 강화학습 용어에서 [Critic](Critic)은 상태/행동/trajectory의 미래 [누적 보상(return)](Value-Functions-and-Bellman-Equation)을 평가하는 [가치(value)](Value-Functions-and-Bellman-Equation) estimator다.
+넓은 강화학습 용어에서 [Critic](Critic)은 상태/행동/trajectory의 미래 [누적 보상(return)](Value-Functions-and-Bellman-Equation)을 평가하는 [가치(value)](Value-Functions-and-Bellman-Equation) [값을 추정하는 모델(estimator)](Terminology-Guide)다.
 
 Actor-[Critic](Critic)에서는:
 
@@ -20,7 +20,7 @@ Critic
 → 그 행동/상태의 value 평가
 ```
 
-AASSR에서는 [Policy](Policy)가 기본 행동을 만들고, 별도의 [Critic](Critic)이 [Imagination(가상 미래 탐색)](Imagination) branch의 sparse-누적 보상 가치를 평가한다.
+AASSR에서는 [Policy](Policy)가 기본 행동을 만들고, 별도의 [Critic](Critic)이 [Imagination(가상 미래 탐색)](Imagination) [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)의 sparse-누적 보상 가치를 평가한다.
 
 ---
 
@@ -91,7 +91,7 @@ Neural 신경망는 `X`에서도 숫자를 출력한다.
 
 # 6. OOD: Out-of-Distribution
 
-**Out-of-Distribution**은 현재 입력이 학습 distribution과 의미 있게 다른 경우를 말한다.
+**Out-of-Distribution**은 현재 입력이 학습 [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability)과 의미 있게 다른 경우를 말한다.
 
 AASSR 예:
 
@@ -166,7 +166,7 @@ Query state/action
 충분하면 supported
 ```
 
-AASSR [현재 세대(current-generation)](Current-Status)은 [Imagination](Imagination) [기본 행동 덮어쓰기(override)](Imagination) 전에 [Policy(정책 모델)](Policy) [탐색의 첫 행동(root)](Imagination)와 candidate 탐색의 첫 행동의 [국소 데이터 근거(local support)](Critic-Support-and-OOD)를 확인한다.
+AASSR [현재 세대(current-generation)](Current-Status)은 [Imagination](Imagination) [기본 행동 덮어쓰기(override)](Imagination) 전에 [Policy(정책 모델)](Policy) [탐색의 첫 행동(root)](Imagination)와 [선택 후보(candidate)](Terminology-Guide) 탐색의 첫 행동의 [국소 데이터 근거(local support)](Critic-Support-and-OOD)를 확인한다.
 
 ---
 
@@ -204,7 +204,7 @@ d_{nearest}=\min_i d(x,x_i)
 
 Raw high-dimensional Euclidean distance가 항상 좋은 것은 아니다.
 
-AASSR 현재 데이터 근거는 관계 기반/[공개된(public)](State-Representation) structural features를 중심으로 semantic distance를 구성한다.
+AASSR 현재 데이터 근거는 관계 기반/[공개된(public)](State-Representation) [구조 기반(structural)](Relational-Representation-and-Generalization) [학습에 사용하는 특징(features)](Terminology-Guide)를 중심으로 [의미 기준(semantic)](State-Representation) distance를 구성한다.
 
 ---
 
@@ -222,7 +222,7 @@ Case B:
 
 B가 더 강한 empirical 데이터 근거를 제공할 수 있다.
 
-AASSR 데이터 근거 confidence는 nearest distance와 sample count를 함께 반영하는 형태다.
+AASSR 데이터 근거 [예측 신뢰 정도(confidence)](Calibration)는 nearest distance와 sample count를 함께 반영하는 형태다.
 
 ---
 
@@ -290,8 +290,8 @@ Critic local support
 |---|---|
 | 이 상태 전이 예측을 믿을 수 있나? | [Calibration(예측 신뢰도 보정)](Calibration) |
 | 이 가치 예측을 믿을 [실제 데이터(real data)](Causality-Leakage-and-Evaluation)가 있나? | [가치 평가 데이터 근거(Critic Support)](Critic-Support-and-OOD) |
-| 이 outcome이 일어날 확률은? | [Prophecy(미래 예측 모델)](Prophecy) probability |
-| 그 outcome의 task 누적 보상은? | [Critic](Critic) 가치 |
+| 이 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)이 일어날 확률은? | [Prophecy(미래 예측 모델)](Prophecy) [확률(probability)](Stochasticity-Uncertainty-and-Probability) |
+| 그 환경 결과의 task 누적 보상은? | [Critic](Critic) 가치 |
 
 이 네 값은 다른 의미다.
 
@@ -316,7 +316,7 @@ BUT support 부족
 
 - 너무 보수적이면 실제로 좋은 novel 행동도 못 선택함
 
-따라서 threshold 자체가 hyperparameter/[구성요소 제거 비교(ablation)](Ablation-Benchmarking-and-Reproducibility) 대상이다.
+따라서 [판정 기준값(threshold)](Terminology-Guide) 자체가 hyperparameter/[구성요소 제거 비교(ablation)](Ablation-Benchmarking-and-Reproducibility) 대상이다.
 
 ---
 
@@ -352,7 +352,7 @@ AASSR 현재 국소 데이터 근거 판정 관문가 특정 conservative offlin
 
 # 20. Critic value clipping만으로 충분한가?
 
-Value를 `[-1,1]`로 clamp해도 [OOD](Critic-Support-and-OOD) ranking 오류는 남을 수 있다.
+Value를 `[-1,1]`로 clamp해도 [OOD](Critic-Support-and-OOD) [후보 순위(ranking)](Policy) 오류는 남을 수 있다.
 
 예:
 
@@ -377,7 +377,7 @@ V'=V-\lambda U
 
 를 넣을 수도 있다.
 
-하지만 uncertainty estimator 자체가 불안정할 수 있고, task 가치와 [신뢰도(reliability)](Calibration) 의미가 섞인다.
+하지만 uncertainty 값을 추정하는 모델 자체가 불안정할 수 있고, task 가치와 [신뢰도(reliability)](Calibration) 의미가 섞인다.
 
 AASSR 현재 design은:
 

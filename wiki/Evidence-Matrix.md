@@ -51,7 +51,7 @@ Imagination이 성공률을 높임
 
 ## 가설
 
-**H1:** [Curriculum Learning](Curriculum-Learning), [exploration](Exploration-and-Exploitation), [Policy](Policy), [ASEQ](ASEQ)를 이용하면 sparse external [보상(reward)](Sparse-Reward-and-Credit-Assignment)만으로 최초 proof가 발생할 수 있다.
+**H1:** [Curriculum Learning](Curriculum-Learning), [exploration](Exploration-and-Exploitation), [Policy](Policy), [ASEQ](ASEQ)를 이용하면 sparse [환경이 주는 외부(external)](Terminology-Guide) [보상(reward)](Sparse-Reward-and-Credit-Assignment)만으로 최초 proof가 발생할 수 있다.
 
 **H0:** 성공 trajectory를 직접 주입하지 않으면 학습 예산 안에서 성공 experience가 발생하지 않는다.
 
@@ -70,8 +70,8 @@ Imagination이 성공률을 높임
 
 ## 통제해야 할 것
 
-- external 보상 [명세(contract)](Current-Status)
-- real 상태 전이 budget
+- 환경이 주는 외부 보상 [명세(contract)](Current-Status)
+- [실제 환경에서 관측된(real)](Research-Jargon-Guide) 상태 전이 budget
 - scenario [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility) pool
 - [숨겨진(hidden)](MDP-and-POMDP) information access
 
@@ -97,7 +97,7 @@ Imagination이 성공률을 높임
 
 ## 질문
 
-> concrete identifier를 외우는 대신 역할과 관계를 표현하면 이름이 바뀐 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) scenario에서 더 잘 일반화하는가?
+> [실제 개체를 구분하는(concrete)](State-Representation) identifier를 외우는 대신 역할과 관계를 표현하면 이름이 바뀐 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) scenario에서 더 잘 일반화하는가?
 
 관련 개념: [Relational Representation & Generalization](Relational-Representation-and-Generalization), [State Representation](State-Representation)
 
@@ -149,7 +149,7 @@ Relational 표현 자체는 [현재 실행 구조(current runtime)](Current-Stat
 
 ## 질문
 
-> 실제 [ASEQ](ASEQ) `(S,A,S')` 중 `S → A → S`로 반복되는 semantic [제자리 반복(self-loop)](ASEQ)만 억제하면 탐색 정체가 줄어드는가?
+> 실제 [ASEQ](ASEQ) `(S,A,S')` 중 `S → A → S`로 반복되는 [의미 기준(semantic)](State-Representation) [제자리 반복(self-loop)](ASEQ)만 억제하면 탐색 정체가 줄어드는가?
 
 ## 가설
 
@@ -177,7 +177,7 @@ exact ASEQ stalled        0 / 24
 
 ## 지금 주장 가능한 것
 
-> 관측된 semantic `S → A → S` 반복을 이용하는 exact [ASEQ](ASEQ) guard가 특정 학습 중 보지 못한 진단 실험에서 deterministic stall을 제거했다.
+> 관측된 의미 기준 `S → A → S` 반복을 이용하는 exact [ASEQ](ASEQ) guard가 특정 학습 중 보지 못한 진단 실험에서 deterministic stall을 제거했다.
 
 ## 아직 주장하면 안 되는 것
 
@@ -189,7 +189,7 @@ exact ASEQ stalled        0 / 24
 
 ## 질문
 
-> 현재 [공개 관측 상태(public state)](State-Representation), 행동, causal [Knowledge(에피소드 지식)](Knowledge)로부터 [계획기(planner)](Counterfactual-Planning-and-Search)가 사용할 수 있는 next-outcome distribution을 학습하는가?
+> 현재 [공개 관측 상태(public state)](State-Representation), 행동, [인과적으로 공정한(causal)](Causality-Leakage-and-Evaluation) [Knowledge(에피소드 지식)](Knowledge)로부터 [계획기(planner)](Counterfactual-Planning-and-Search)가 사용할 수 있는 next-outcome [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability)을 학습하는가?
 
 관련 페이지: [Prophecy](Prophecy), [Model-Based RL & World Models](Model-Based-RL-and-World-Models), [Mixture, Ensemble & Calibration](Mixture-Ensemble-and-Calibration)
 
@@ -203,26 +203,26 @@ relational-conditional-mixture-ensemble-v5-status-balanced
 
 이며 다음을 예측하는 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) [세계 모델(world model)](Model-Based-RL-and-World-Models) 계열이다.
 
-- [관계 기반(relational)](Relational-Representation-and-Generalization) next descriptor
+- [관계 기반(relational)](Relational-Representation-and-Generalization) next [상태를 요약한 표현(descriptor)](State-Representation)
 - latest [공개된(public)](State-Representation) HTTP [상태 코드(status)](Terminology-Guide)
 - [가능 행동 마스크(legal-action mask)](Prophecy)
-- [현재 활성(active)](Current-Status) / 성공 / [실패(failure)](Replay-Buffer-and-Episode-Boundaries) / [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries) outcome
+- [현재 활성(active)](Current-Status) / 성공 / [실패(failure)](Replay-Buffer-and-Episode-Boundaries) / [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries) [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)
 - mixture [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability)
 
 ## 가설
 
-**H1:** [검증용 분리 데이터(holdout)](Calibration) real 상태 전이s에서 [Prophecy](Prophecy)가 decision-relevant next-state structure와 outcome distribution을 충분히 보존한다.
+**H1:** [검증용 분리 데이터(holdout)](Calibration) 실제 상태 전이s에서 [Prophecy](Prophecy)가 decision-relevant next-state structure와 환경 결과 분포을 충분히 보존한다.
 
-**H0:** [예측(prediction)](Terminology-Guide) error 또는 mode collapse 때문에 [계획(planning)](Counterfactual-Planning-and-Search)에 사용할 수 없다.
+**H0:** [예측(prediction)](Terminology-Guide) error 또는 [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration) collapse 때문에 [계획(planning)](Counterfactual-Planning-and-Search)에 사용할 수 없다.
 
 ## 핵심 지표
 
-- probability-weighted semantic quality
-- top-k semantic quality
+- probability-weighted 의미 기준 quality
+- top-k 의미 기준 quality
 - legal-mask accuracy
 - 에피소드 종료-class accuracy
 - 공개된 HTTP-status [범주형(categorical)](Loss-Functions-and-Class-Imbalance) accuracy
-- mixture mode coverage
+- mixture 결과 유형 [데이터가 어느 영역까지 포함하는지(coverage)](Critic-Support-and-OOD)
 - rare-status recall
 - calibration quality
 
@@ -264,13 +264,13 @@ Prediction reliability
 
 - 판정 관문 pass rate
 - 판정 관문 reject rate
-- accepted vs rejected branch error
+- accepted vs rejected [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes) error
 - 신뢰도 bucket별 observed 예측 quality
 - 실제 행동 개입 error rate
 
 ## 현재 상태
 
-현재 실행 구조은 `semantic-probability-holdout-calibration-v3-status-aware` 계약을 사용한다. 이것은 구현 명세이며, 최종 causal performance effect는 [현재(current)](Current-Status) reduced/final 구성요소 제거 비교으로 검증해야 한다.
+현재 실행 구조은 `semantic-probability-holdout-calibration-v3-status-aware` 계약을 사용한다. 이것은 구현 명세이며, 최종 인과적으로 공정한 performance effect는 [현재(current)](Current-Status) reduced/final 구성요소 제거 비교으로 검증해야 한다.
 
 ---
 
@@ -278,7 +278,7 @@ Prediction reliability
 
 ## 질문
 
-> [Critic](Critic)이 global 학습을 받았더라도 현재 imagined 상태/행동이 학습 distribution 밖이라면 그 [가치(value)](Value-Functions-and-Bellman-Equation)를 믿어도 되는가?
+> [Critic](Critic)이 global 학습을 받았더라도 현재 [모델이 상상한(imagined)](Research-Jargon-Guide) 상태/행동이 학습 분포 밖이라면 그 [가치(value)](Value-Functions-and-Bellman-Equation)를 믿어도 되는가?
 
 답해야 하는 두 질문은 다르다.
 
@@ -301,9 +301,9 @@ Locally supported?
 ## 지표
 
 - 국소 데이터 근거 pass/fail
-- 데이터 근거 distance distribution
+- 데이터 근거 distance 분포
 - unsupported 실제 행동 개입 count
-- supported 실제 행동 개입 outcome quality
+- supported 실제 행동 개입 환경 결과 quality
 - 계획기 실제 행동 개입 count
 - false-closed rate
 
@@ -331,7 +331,7 @@ frozen checkpoint
 planner OFF      planner ON
 ```
 
-OFF/ON을 따로 학습하면 [Imagination](Imagination)의 causal marginal effect를 분리할 수 없다.
+OFF/ON을 따로 학습하면 [Imagination](Imagination)의 인과적으로 공정한 marginal effect를 분리할 수 없다.
 
 ## H1
 
@@ -352,7 +352,7 @@ OFF/ON을 따로 학습하면 [Imagination](Imagination)의 causal marginal effe
 
 ### Planner mechanism
 - plans
-- switch candidates
+- switch [선택 후보(candidates)](Terminology-Guide)
 - 신뢰도 rejects
 - 데이터 근거 rejects
 - final 실제 행동 개입s
@@ -364,7 +364,7 @@ OFF/ON을 따로 학습하면 [Imagination](Imagination)의 causal marginal effe
 - wall time
 - [Prophecy](Prophecy) calls
 - [Critic(미래 가치 평가기)](Critic) calls
-- structural [탐색의 첫 행동(root)](Imagination) dedup ratio
+- [구조 기반(structural)](Relational-Representation-and-Generalization) [탐색의 첫 행동(root)](Imagination) dedup ratio
 
 ## historical warning
 
@@ -400,9 +400,9 @@ aassr_current_full
 
 ## 핵심 조건
 
-- 같은 real 상태 전이 budget
+- 같은 실제 상태 전이 budget
 - 같은 train/eval 난수 시드 실험 규칙
-- 같은 external [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment)
+- 같은 환경이 주는 외부 [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment)
 - 숨겨진 information 없음
 - [최종 비공개 평가(final blind)](Ablation-Benchmarking-and-Reproducibility) set 사전 미사용
 - AASSR OFF/ON [같은 체크포인트(same checkpoint)](Experiments)
@@ -427,13 +427,13 @@ aassr_current_full
 
 ## 질문
 
-> 반복 성공한 real ASeq를 [relational template](Relational-Representation-and-Generalization)로 승격하면 concrete ID가 달라진 학습 중 보지 못한 scenario에서도 재사용할 수 있는가?
+> 반복 성공한 실제 ASeq를 [relational template](Relational-Representation-and-Generalization)로 승격하면 실제 개체를 구분하는 ID가 달라진 학습 중 보지 못한 scenario에서도 재사용할 수 있는가?
 
 관련 페이지: [Skills](Skills), [Hierarchical RL & Skills](Hierarchical-RL-and-Skills)
 
 ## 가설
 
-**H1:** 관계 기반 [Skill(성공 절차 재사용)](Skills)은 raw concrete macro보다 학습 중 보지 못한 rebinding 성공률이 높고 primitive-only search cost를 줄인다.
+**H1:** 관계 기반 [Skill(성공 절차 재사용)](Skills)은 raw 실제 개체를 구분하는 macro보다 학습 중 보지 못한 rebinding 성공률이 높고 primitive-only search cost를 줄인다.
 
 ## 지표
 
@@ -480,7 +480,7 @@ Creativity는 단순 행동 diversity가 아니다. 유효한 목표 달성 경�
 | RQ5 [Calibration(예측 신뢰도 보정)](Calibration) | 신뢰도 판정 관문 audit | 현재 활성 + 검증 진행 | [상태 코드까지 고려하는(status-aware)](Calibration) calibration 현재 활성 |
 | RQ6 [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD) | 국소 데이터 근거 구성요소 제거 비교 | 현재 활성 + 검증 진행 | [근거가 부족하면 보수적으로 거부하는(fail-closed)](Critic-Support-and-OOD) 데이터 근거 판정 관문 현재 활성 |
 | RQ7 [Imagination](Imagination) | [같은 체크포인트(same-checkpoint)](Experiments) OFF vs ON | final performance 미확정 | 계획기 semantics 현재 활성 |
-| RQ8 전체 성능 | five-condition + blind | pending | 우월성 주장 금지 |
+| RQ8 전체 성능 | five-condition + [결과를 미리 보지 않는 비공개 평가(blind)](Ablation-Benchmarking-and-Reproducibility) | pending | 우월성 주장 금지 |
 | RQ9 [Skill](Skills) | primitive vs 관계 기반 skill | 제한적 증거 | mechanism experimental |
 | Creativity | path novelty analysis | future | primary 연구 주장 아님 |
 

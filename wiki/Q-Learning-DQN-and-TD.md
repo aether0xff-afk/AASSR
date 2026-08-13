@@ -56,7 +56,7 @@ r_t+\gamma\max_{a'}Q(s_{t+1},a')-Q(s_t,a_t)
 
 # 3. Temporal-Difference learning
 
-TD learning은 실제 최종 누적 보상 전체를 기다리지 않고 **현재 [보상(reward)](Sparse-Reward-and-Credit-Assignment)와 다음 상태의 가치 estimate를 이용해 update**한다.
+TD learning은 실제 최종 누적 보상 전체를 기다리지 않고 **현재 [보상(reward)](Sparse-Reward-and-Credit-Assignment)와 다음 상태의 가치 [추정값(estimate)](Value-Functions-and-Bellman-Equation)를 이용해 update**한다.
 
 ```math
 target=r_t+\gamma V(s_{t+1})
@@ -153,7 +153,7 @@ Q_\theta(s,a)
 state representation
 ```
 
-출력 방식은 구현에 따라 다르지만 일반적으로 각 행동 [Q값(Q-value)](Value-Functions-and-Bellman-Equation) 또는 상태/행동 pair score를 만든다.
+출력 방식은 구현에 따라 다르지만 일반적으로 각 행동 [Q값(Q-value)](Value-Functions-and-Bellman-Equation) 또는 상태/행동 pair [평가 점수(score)](Terminology-Guide)를 만든다.
 
 AASSR [현재(current)](Current-Status) [DQN](Q-Learning-DQN-and-TD)은 [관계 기반(relational)](Relational-Representation-and-Generalization) 상태/행동 structure를 이용하는 변형된 행동 scoring path를 사용한다.
 
@@ -316,7 +316,7 @@ AASSR 현재 [Policy](Policy)도 이 기본 탐색 mechanism을 가진다.
 
 # 15. Overestimation bias
 
-Q-learning의 `max`는 noisy estimate 중 큰 값을 선택하기 때문에 가치를 과대평가할 수 있다.
+Q-learning의 `max`는 noisy 추정값 중 큰 값을 선택하기 때문에 가치를 과대평가할 수 있다.
 
 ```text
 실제 값은 비슷한데
@@ -329,7 +329,7 @@ Double [DQN](Q-Learning-DQN-and-TD)은 행동 selection과 [평가(evaluation)](
 
 AASSR의 [Imagination(가상 미래 탐색)](Imagination)에서도 비슷하게 **max를 어디에 사용해도 되는지**가 중요하다.
 
-환경 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) outcome에 max를 쓰면 더 심각한 optimistic [계획(planning)](Counterfactual-Planning-and-Search) 오류가 생긴다.
+환경 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)에 max를 쓰면 더 심각한 optimistic [계획(planning)](Counterfactual-Planning-and-Search) 오류가 생긴다.
 
 관련 페이지:
 
@@ -339,7 +339,7 @@ AASSR의 [Imagination(가상 미래 탐색)](Imagination)에서도 비슷하게 
 
 # 16. Distribution shift
 
-[DQN](Q-Learning-DQN-and-TD)은 학습 중 경험한 상태/행동 distribution에서 학습한다.
+[DQN](Q-Learning-DQN-and-TD)은 학습 중 경험한 상태/행동 [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability)에서 학습한다.
 
 새로운 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) region에서는 function approximator가 근거 없는 Q값를 낼 수 있다.
 
@@ -375,7 +375,7 @@ dqn_relational
 
 핵심 차이는 "[DQN](Q-Learning-DQN-and-TD)이냐 아니냐"가 아니라 **상태/행동 표현**이다.
 
-Relational [DQN](Q-Learning-DQN-and-TD)은 concrete ID 자체보다 역할/관계 구조를 사용해 [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)-renaming [전이(transfer)](Relational-Representation-and-Generalization)를 노린다.
+Relational [DQN](Q-Learning-DQN-and-TD)은 [실제 개체를 구분하는(concrete)](State-Representation) ID 자체보다 역할/관계 구조를 사용해 [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)-renaming [전이(transfer)](Relational-Representation-and-Generalization)를 노린다.
 
 관련 페이지:
 
@@ -392,7 +392,7 @@ Current [Policy](Policy)의 기본 개념:
 score(S,A)=Q_{task}(S,A)+I(S,A)
 ```
 
-여기서 `Q_task`는 [DQN](Q-Learning-DQN-and-TD)이 external [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment)를 학습한 값이다.
+여기서 `Q_task`는 [DQN](Q-Learning-DQN-and-TD)이 [환경이 주는 외부(external)](Terminology-Guide) [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment)를 학습한 값이다.
 
 `I`는 별도의 [정보 가치 잔차(information residual)](Policy)이다.
 

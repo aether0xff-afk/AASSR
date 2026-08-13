@@ -24,7 +24,7 @@
 
 # 1. 연구 질문
 
-> **실제 성공과 실패가 드문 환경에서 학습한 누적 보상 [학습 모델(model)](Terminology-Guide)이 [Imagination(가상 미래 탐색)](Imagination) branch의 장기 가치를 구분할 수 있는가? 그리고 현재 [상태(state)](State-Representation)/[행동(action)](Reinforcement-Learning)에서 그 값을 믿을 실제 근거가 있는지 구분할 수 있는가?**
+> **실제 성공과 실패가 드문 환경에서 학습한 누적 보상 [학습 모델(model)](Terminology-Guide)이 [Imagination(가상 미래 탐색)](Imagination) [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)의 장기 가치를 구분할 수 있는가? 그리고 현재 [상태(state)](State-Representation)/[행동(action)](Reinforcement-Learning)에서 그 값을 믿을 실제 근거가 있는지 구분할 수 있는가?**
 
 [Prophecy](Prophecy)는:
 
@@ -56,9 +56,9 @@ value prediction
 
 # 2. Reward와 Critic target
 
-[Critic](Critic)은 사람이 만든 intermediate score를 학습하지 않는다.
+[Critic](Critic)은 사람이 만든 intermediate [평가 점수(score)](Terminology-Guide)를 학습하지 않는다.
 
-기본 external outcome:
+기본 [환경이 주는 외부(external)](Terminology-Guide) [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability):
 
 ```text
 success       +1
@@ -134,7 +134,7 @@ Critic
 → predicted/imagined transition sequence의 long-horizon sparse return 평가
 ```
 
-즉 두 가치 estimator의 **[입력(input)](Terminology-Guide) [명세(contract)](Current-Status)와 사용 위치**가 다르다.
+즉 두 가치 [값을 추정하는 모델(estimator)](Terminology-Guide)의 **[입력(input)](Terminology-Guide) [명세(contract)](Current-Status)와 사용 위치**가 다르다.
 
 [Policy](Policy)는 기본 행동 선택기이고 [Critic](Critic)은 [planner leaf/branch evaluator](Counterfactual-Planning-and-Search)에 가깝다.
 
@@ -213,7 +213,7 @@ Training과 inference의 recurrent-state 명세가 달라진다.
 
 # 9. Decision suffix training
 
-이를 맞추기 위해 현재 [Critic](Critic)은 한 real 한 번의 문제 풀이 구간에서 모든 decision suffix를 만든다.
+이를 맞추기 위해 현재 [Critic](Critic)은 한 [실제 환경에서 관측된(real)](Research-Jargon-Guide) 한 번의 문제 풀이 구간에서 모든 decision suffix를 만든다.
 
 ```text
 S0 → S1 → S2 → S3 → terminal
@@ -251,7 +251,7 @@ prefix [S1,S2,S3]    → γ²
 
 # 11. Critic input과 relational identity
 
-[Critic](Critic)은 concrete route/profile/object 이름 자체보다 [relational transition feature](Relational-Representation-and-Generalization)를 사용한다.
+[Critic](Critic)은 [실제 개체를 구분하는(concrete)](State-Representation) route/profile/object 이름 자체보다 [relational transition feature](Relational-Representation-and-Generalization)를 사용한다.
 
 목표:
 
@@ -261,7 +261,7 @@ training seed의 route-12에서 배운 가치 구조
 unseen seed의 같은 역할 route-31에 transfer
 ```
 
-이것은 [ASEQ](ASEQ)가 concrete semantic [식별 방식(identity)](State-Representation)를 유지하는 이유와 반대처럼 보일 수 있다.
+이것은 [ASEQ](ASEQ)가 실제 개체를 구분하는 [의미 기준(semantic)](State-Representation) [식별 방식(identity)](State-Representation)를 유지하는 이유와 반대처럼 보일 수 있다.
 
 하지만 목적이 다르다.
 
@@ -316,7 +316,7 @@ confidence 높음
 
 이다.
 
-그래서 현재 구조는 기존 tensor shape를 유지하되 confidence feature slot을 constant로 중립화한다.
+그래서 현재 구조는 기존 tensor shape를 유지하되 [예측 신뢰 정도(confidence)](Calibration) [학습에 사용하는 특징(feature)](Terminology-Guide) slot을 constant로 중립화한다.
 
 ```text
 Critic ranking = sparse-return value
@@ -363,11 +363,11 @@ local empirical support
 
 # 15. Local Critic support
 
-현재는 real [Critic](Critic) 학습 상태 전이s를 이용해 query 상태/행동이 실제 학습 region과 얼마나 가까운지 판단한다.
+현재는 실제 [Critic](Critic) 학습 상태 전이s를 이용해 query 상태/행동이 실제 학습 region과 얼마나 가까운지 판단한다.
 
 질문은 하나다.
 
-> **이 [Critic](Critic) 가치를 비교에 사용할 real 학습 [증거(evidence)](Evidence-Matrix)가 충분한가?**
+> **이 [Critic](Critic) 가치를 비교에 사용할 실제 학습 [증거(evidence)](Evidence-Matrix)가 충분한가?**
 
 ```text
 Policy root support 충분?
@@ -381,13 +381,13 @@ Candidate root support 충분?
 
 # 16. Support distance
 
-Support distance는 raw ID의 단순 Euclidean distance가 아니라 **[공개된(public)](State-Representation) 관계 기반 structural region**의 차이를 본다.
+Support distance는 raw ID의 단순 Euclidean distance가 아니라 **[공개된(public)](State-Representation) 관계 기반 [구조 기반(structural)](Relational-Representation-and-Generalization) region**의 차이를 본다.
 
 비교 요소 예:
 
 - workflow progress
 - known route/profile/object counts
-- observed role distributions
+- observed [역할(role)](Relational-Representation-and-Generalization) distributions
 - object-related 공개된 facts
 - latest observed 공개된 [상태 코드(status)](Terminology-Guide)
 
@@ -409,7 +409,7 @@ Critic predicted value 자체는 support distance에 쓰지 않음
 
 # 17. Support confidence
 
-현재 구현은 nearest real sample distance와 sample count를 함께 반영하는 형태다.
+현재 구현은 nearest 실제 sample distance와 sample count를 함께 반영하는 형태다.
 
 개념적 intuition:
 
@@ -447,7 +447,7 @@ support 높음
 좋은 행동
 ```
 
-실패 branch도 [학습 데이터(training data)](Terminology-Guide)가 많으면 데이터 근거가 높을 수 있다.
+실패 결과 경로도 [학습 데이터(training data)](Terminology-Guide)가 많으면 데이터 근거가 높을 수 있다.
 
 Support는:
 
@@ -489,18 +489,18 @@ Current design은 이런 경우 B [기본 행동 덮어쓰기(override)](Imagina
 
 | 값 | 질문 |
 |---|---|
-| [Prophecy](Prophecy) [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability) | 이 future outcome이 발생할 mass는? |
+| [Prophecy](Prophecy) [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability) | 이 future 환경 결과이 발생할 mass는? |
 | [Prophecy](Prophecy) 신뢰도 | 상태 전이 [예측(prediction)](Terminology-Guide)을 믿을 수 있나? |
 | [Critic](Critic) 가치 | 이 future의 sparse 누적 보상은? |
-| [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD) | 그 가치를 믿을 real 학습 증거가 있나? |
+| [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD) | 그 가치를 믿을 실제 학습 증거가 있나? |
 
-AASSR 현재 repair의 중요한 철학은 **서로 다른 의미를 하나의 confidence score로 합치지 않는 것**이다.
+AASSR 현재 repair의 중요한 철학은 **서로 다른 의미를 하나의 예측 신뢰 정도 평가 점수로 합치지 않는 것**이다.
 
 ---
 
 # 21. 왜 Planner가 Critic OOD를 더 위험하게 만드는가?
 
-Search는 많은 candidate 중 가장 높은 가치를 찾는다.
+Search는 많은 [선택 후보(candidate)](Terminology-Guide) 중 가장 높은 가치를 찾는다.
 
 ```text
 branch 1 → 0.1
@@ -521,7 +521,7 @@ Optimization은 우연한 예측 error를 적극적으로 선택할 수 있다.
 
 Repaired [Imagination](Imagination)은 이전에는 inert했지만 이후 실제로 행동을 바꾸게 됐다.
 
-그러나 higher-level region에서 **real [Critic](Critic) 학습 데이터 근거가 부족한 상태**에서도 branch 가치를 갈라냈고, 많은 기본 행동 덮어쓰기가 실제 error/상태 코드로 이어졌다.
+그러나 higher-level region에서 **실제 [Critic](Critic) 학습 데이터 근거가 부족한 상태**에서도 결과 경로 가치를 갈라냈고, 많은 기본 행동 덮어쓰기가 실제 error/상태 코드로 이어졌다.
 
 이 결과가 보여준 것:
 
@@ -533,7 +533,7 @@ Critic is trustworthy here
 
 이다.
 
-[국소 데이터 근거(Local support)](Critic-Support-and-OOD) 판정 관문는 바로 이 실패 mode를 겨냥한다.
+[국소 데이터 근거(Local support)](Critic-Support-and-OOD) 판정 관문는 바로 이 실패 [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration)를 겨냥한다.
 
 ---
 
@@ -548,7 +548,7 @@ ordinary 0
 ...
 ```
 
-그러면 branch 간 누적 보상 discrimination이 약해진다.
+그러면 결과 경로 간 누적 보상 discrimination이 약해진다.
 
 결과:
 
@@ -562,7 +562,7 @@ ordinary 0
 
 # 24. Critic training과 Replay
 
-[Critic](Critic)은 real trajectory를 기반으로 suffix 학습 examples를 만든다.
+[Critic](Critic)은 실제 trajectory를 기반으로 suffix 학습 examples를 만든다.
 
 이때 [episode boundary](Replay-Buffer-and-Episode-Boundaries)가 정확해야 한다.
 
@@ -594,9 +594,9 @@ Critic parameter optimization objective
 
 # 26. Batched training/inference
 
-[Imagination](Imagination) tree에는 많은 branch가 있다.
+[Imagination](Imagination) tree에는 많은 결과 경로가 있다.
 
-[Critic](Critic)을 branch마다 scalar GPU call로 실행하면 overhead가 매우 커질 수 있다.
+[Critic](Critic)을 결과 경로마다 scalar GPU call로 실행하면 overhead가 매우 커질 수 있다.
 
 ```text
 branch1 → GPU
@@ -605,7 +605,7 @@ branch3 → GPU
 ...
 ```
 
-Current hardware path는 여러 branch를 한 batch로 평가한다.
+Current hardware path는 여러 결과 경로를 한 batch로 평가한다.
 
 ```text
 [branch1, branch2, branch3, ...]
@@ -621,14 +621,14 @@ Current hardware path는 여러 branch를 한 batch로 평가한다.
 
 ## 27.1 Sparse target starvation
 
-**원인:** 성공/실패 real trajectory 부족.  
+**원인:** 성공/실패 실제 trajectory 부족.  
 **결과:** 모든 가치가 비슷함.  
-**대응:** 더 많은 real frontier experience, [난이도 조절 학습(curriculum)](Curriculum-Learning)/전이 개선.
+**대응:** 더 많은 실제 frontier experience, [난이도 조절 학습(curriculum)](Curriculum-Learning)/전이 개선.
 
 ## 27.2 OOD extrapolation
 
 **원인:** 학습 모델이 학습 데이터 근거 밖에서도 숫자를 출력.  
-**결과:** 계획기가 unrealistically high candidate를 선택.  
+**결과:** 계획기가 unrealistically high 선택 후보를 선택.  
 **대응:** 국소 데이터 근거 [근거가 부족하면 보수적으로 거부하는(fail-closed)](Critic-Support-and-OOD).
 
 ## 27.3 Recurrent-state mismatch
@@ -638,14 +638,14 @@ Current hardware path는 여러 branch를 한 batch로 평가한다.
 
 ## 27.4 Confidence leakage
 
-**원인:** [Prophecy](Prophecy) 신뢰도가 [Critic](Critic) 입력에 가치 feature로 들어감.  
+**원인:** [Prophecy](Prophecy) 신뢰도가 [Critic](Critic) 입력에 가치 학습 특징로 들어감.  
 **대응:** confidence-independent encoding.
 
 ## 27.5 Over-conservative support
 
-**원인:** 데이터 근거 threshold가 너무 높음.  
-**결과:** useful novel candidate도 전부 막음.  
-**대응:** 실제 행동 개입-quality [구성요소 제거 비교(ablation)](Ablation-Benchmarking-and-Reproducibility)으로 threshold 검증.
+**원인:** 데이터 근거 [판정 기준값(threshold)](Terminology-Guide)가 너무 높음.  
+**결과:** useful novel 선택 후보도 전부 막음.  
+**대응:** 실제 행동 개입-quality [구성요소 제거 비교(ablation)](Ablation-Benchmarking-and-Reproducibility)으로 판정 기준값 검증.
 
 ---
 
@@ -656,18 +656,18 @@ Current hardware path는 여러 branch를 한 batch로 평가한다.
 - 누적 보상 회귀 검증 error
 - positive/negative/zero target 분포
 - sequence-length별 error
-- decision-suffix coverage
+- decision-suffix [데이터가 어느 영역까지 포함하는지(coverage)](Critic-Support-and-OOD)
 
 ## Support-level
 
 - 국소 데이터 근거 pass rate
 - nearest-support distance
 - sample count
-- suppressed [OOD](Critic-Support-and-OOD) candidate count
+- suppressed [OOD](Critic-Support-and-OOD) 선택 후보 count
 
 ## Planner-level
 
-- candidate 가치 gap
+- 선택 후보 가치 gap
 - 데이터 근거 때문에 취소된 실제 행동 개입
 - supported 실제 행동 개입 error rate
 
@@ -677,7 +677,7 @@ Current hardware path는 여러 branch를 한 batch로 평가한다.
 - direct success-producing 실제 행동 개입
 - bad-status 실제 행동 개입 감소 여부
 
-높은 [Critic](Critic) 회귀 검증 score가 final 성공를 자동 보장하지 않는다.
+높은 [Critic](Critic) 회귀 검증 평가 점수가 final 성공를 자동 보장하지 않는다.
 
 [Proxy metric과 task metric](Ablation-Benchmarking-and-Reproducibility)을 분리한다.
 

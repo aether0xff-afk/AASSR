@@ -31,7 +31,7 @@ P(403) = 0.2
 P(429) = 0.1
 ```
 
-이 값들의 합이 1이면 환경 outcome distribution으로 볼 수 있다.
+이 값들의 합이 1이면 환경 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability) [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability)으로 볼 수 있다.
 
 AASSR [Prophecy(미래 예측 모델)](Prophecy)의 **[결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability)**가 이 의미다.
 
@@ -55,13 +55,13 @@ X=403 with p=0.2
 X=429 with p=0.1
 ```
 
-World [학습 모델(model)](Terminology-Guide)은 이런 next-outcome random variable의 distribution을 근사할 수 있다.
+World [학습 모델(model)](Terminology-Guide)은 이런 next-outcome random variable의 분포을 근사할 수 있다.
 
 ---
 
 # 3. Expected value
 
-여러 outcome의 [가치(value)](Value-Functions-and-Bellman-Equation)가 다를 때 확률 가중 평균을 구한다.
+여러 환경 결과의 [가치(value)](Value-Functions-and-Bellman-Equation)가 다를 때 확률 가중 평균을 구한다.
 
 ```math
 \mathbb{E}[V]
@@ -85,13 +85,13 @@ World [학습 모델(model)](Terminology-Guide)은 이런 next-outcome random va
 
 이다.
 
-AASSR의 [chance node](Chance-and-Decision-Nodes)는 환경 outcome을 이런 expectation으로 backup한다.
+AASSR의 [chance node](Chance-and-Decision-Nodes)는 환경 환경 결과을 이런 [확률 기댓값(expectation)](Chance-and-Decision-Nodes)으로 [미래 가치를 앞 단계로 되돌려 계산하는 과정(backup)](Value-Functions-and-Bellman-Equation)한다.
 
 ---
 
 # 4. Variance
 
-기대값이 같아도 distribution의 퍼짐은 다를 수 있다.
+기대값이 같아도 분포의 퍼짐은 다를 수 있다.
 
 ```math
 Var(X)=\mathbb{E}[(X-\mathbb{E}[X])^2]
@@ -104,11 +104,11 @@ A: 항상 0.5
 B: 50%로 0, 50%로 1
 ```
 
-둘의 expectation은 0.5지만 B가 훨씬 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability)하다.
+둘의 확률 기댓값은 0.5지만 B가 훨씬 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability)하다.
 
 Risk-sensitive [계획(planning)](Counterfactual-Planning-and-Search)에서는 variance 같은 정보도 중요할 수 있다.
 
-AASSR [현재(current)](Current-Status) [계획기(planner)](Counterfactual-Planning-and-Search)의 기본 chance semantics는 결과 확률의 expectation을 중심으로 하며, variance 자체를 [보상(reward)](Sparse-Reward-and-Credit-Assignment)로 추가하는 구조는 아니다.
+AASSR [현재(current)](Current-Status) [계획기(planner)](Counterfactual-Planning-and-Search)의 기본 chance semantics는 결과 확률의 확률 기댓값을 중심으로 하며, variance 자체를 [보상(reward)](Sparse-Reward-and-Credit-Assignment)로 추가하는 구조는 아니다.
 
 ---
 
@@ -125,13 +125,13 @@ AASSR [현재(current)](Current-Status) [계획기(planner)](Counterfactual-Plan
 
 이것은 모델이 멍청해서 생기는 것이 아니다.
 
-완벽한 학습 모델을 가지고 있어도 outcome을 하나로 확정할 수 없을 수 있다.
+완벽한 학습 모델을 가지고 있어도 환경 결과을 하나로 확정할 수 없을 수 있다.
 
 ---
 
 # 6. Partial observability로 인한 apparent stochasticity
 
-환경 자체는 deterministic하더라도 [에이전트(agent)](Reinforcement-Learning)가 [숨은 환경 상태(hidden state)](MDP-and-POMDP)를 못 보면 [공개된(public)](State-Representation) 관점에서는 여러 outcome이 가능해 보일 수 있다.
+환경 자체는 deterministic하더라도 [에이전트(agent)](Reinforcement-Learning)가 [숨은 환경 상태(hidden state)](MDP-and-POMDP)를 못 보면 [공개된(public)](State-Representation) 관점에서는 여러 환경 결과이 가능해 보일 수 있다.
 
 ```text
 hidden H1 + public O + action A → outcome X
@@ -178,7 +178,7 @@ Epistemic uncertainty
 
 데이터를 무한히 더 모아도 환경 자체가 확률적하면 이 uncertainty는 사라지지 않는다.
 
-AASSR에서는 **mixture outcome distribution**이 이런 [여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) uncertainty를 표현하는 역할을 한다.
+AASSR에서는 **mixture 환경 결과 분포**이 이런 [여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) uncertainty를 표현하는 역할을 한다.
 
 ---
 
@@ -238,7 +238,7 @@ Ensemble/calibration
 
 AASSR에서 결과 확률는:
 
-> 이 예측 branch가 나타내는 공개된 outcome이 환경에서 발생할 [확률 질량(probability mass)](Stochasticity-Uncertainty-and-Probability)
+> 이 예측 [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)가 나타내는 공개된 환경 결과이 환경에서 발생할 [확률 질량(probability mass)](Stochasticity-Uncertainty-and-Probability)
 
 다.
 
@@ -292,10 +292,10 @@ AASSR [Calibration(예측 신뢰도 보정)](Calibration)이 이 의미를 담�
 
 예:
 
-- softmax probability
+- softmax [확률(probability)](Stochasticity-Uncertainty-and-Probability)
 - ensemble agreement
-- calibration score
-- posterior probability
+- calibration [평가 점수(score)](Terminology-Guide)
+- posterior 확률
 - heuristic certainty
 
 그래서 AASSR 위키에서는 가능하면 더 구체적으로:
@@ -341,7 +341,7 @@ value 높음
 
 AASSR의 local [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD)는:
 
-> 현재 상태/행동의 가치 estimate가 실제 [Critic](Critic) 학습 데이터 근처에 있는가?
+> 현재 상태/행동의 가치 [추정값(estimate)](Value-Functions-and-Bellman-Equation)가 실제 [Critic](Critic) 학습 데이터 근처에 있는가?
 
 를 나타낸다.
 
@@ -351,7 +351,7 @@ support 높음
 좋은 action
 ```
 
-단지 가치 estimate를 신뢰할 empirical basis가 더 있다는 뜻이다.
+단지 가치 추정값를 신뢰할 empirical basis가 더 있다는 뜻이다.
 
 관련 페이지:
 
@@ -408,7 +408,7 @@ Probability 학습 모델이 calibration되어 있다는 것은 대략:
 
 라는 의미와 연결된다.
 
-하지만 AASSR 현재 semantic calibration은 단순 binary confidence calibration만이 아니라 **semantic next-state correctness, [상태 코드(status)](Terminology-Guide), legal mask, [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) 등 [의사결정에 중요한(decision-critical)](Calibration) correctness를 검증용 분리 데이터으로 평가**하는 구조다.
+하지만 AASSR 현재 [의미 기준(semantic)](State-Representation) calibration은 단순 binary [예측 신뢰 정도(confidence)](Calibration) calibration만이 아니라 **의미 기준 next-state correctness, [상태 코드(status)](Terminology-Guide), legal mask, [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) 등 [의사결정에 중요한(decision-critical)](Calibration) correctness를 검증용 분리 데이터으로 평가**하는 구조다.
 
 따라서 일반 확률 calibration 개념과 AASSR의 operational 신뢰도 [판정 관문(gate)](Terminology-Guide)를 구분해서 이해하는 것이 좋다.
 
@@ -416,16 +416,16 @@ Probability 학습 모델이 calibration되어 있다는 것은 대략:
 
 # 18. Distribution shift
 
-Training distribution과 [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility) distribution이 달라지면 학습 모델 uncertainty가 커질 수 있다.
+Training 분포과 [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility) 분포이 달라지면 학습 모델 uncertainty가 커질 수 있다.
 
 ```text
 Training: Level 0/1 region
 Evaluation: higher-level unseen region
 ```
 
-모델은 높은 softmax probability를 내더라도 실제로 [학습 분포 밖(OOD)](Critic-Support-and-OOD)일 수 있다.
+모델은 높은 softmax 확률를 내더라도 실제로 [학습 분포 밖(OOD)](Critic-Support-and-OOD)일 수 있다.
 
-이런 이유로 raw 학습 모델 confidence만으로 충분하지 않다.
+이런 이유로 raw 학습 모델 예측 신뢰 정도만으로 충분하지 않다.
 
 관련 페이지:
 
@@ -436,7 +436,7 @@ Evaluation: higher-level unseen region
 
 # 19. Class imbalance
 
-Rare outcome이 중요한데 학습 데이터에서 매우 적으면 학습 모델이 다수 class만 잘 맞혀도 높은 accuracy를 얻을 수 있다.
+Rare 환경 결과이 중요한데 학습 데이터에서 매우 적으면 학습 모델이 다수 class만 잘 맞혀도 높은 accuracy를 얻을 수 있다.
 
 예:
 
@@ -485,9 +485,9 @@ reliability gate 통과
 
 # 21. Risk와 uncertainty도 다르다
 
-Risk는 일반적으로 outcome distribution에서 나쁜 결과가 발생할 가능성과 그 크기를 말한다.
+Risk는 일반적으로 환경 결과 분포에서 나쁜 결과가 발생할 가능성과 그 크기를 말한다.
 
-Uncertainty는 distribution 자체를 얼마나 알고 있는지까지 포함할 수 있다.
+Uncertainty는 분포 자체를 얼마나 알고 있는지까지 포함할 수 있다.
 
 예:
 
@@ -509,13 +509,13 @@ AASSR 현재 계획기의 기본 학습 목표는 expected sparse 누적 보상�
 
 | 개념 | AASSR에서의 대표 역할 |
 |---|---|
-| [결과 확률(Outcome probability)](Stochasticity-Uncertainty-and-Probability) | [Prophecy](Prophecy) mixture branch mass |
-| Aleatoric uncertainty | 여러 확률적 outcome mode |
+| [결과 확률(Outcome probability)](Stochasticity-Uncertainty-and-Probability) | [Prophecy](Prophecy) mixture 결과 경로 mass |
+| Aleatoric uncertainty | 여러 확률적 환경 결과 [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration) |
 | Epistemic uncertainty | 학습 모델 knowledge 부족 |
 | Reliability | [Calibration](Calibration) 판정 관문 |
-| Value | [Policy(정책 모델)](Policy) [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) / [Critic](Critic) 누적 보상 estimate |
+| Value | [Policy(정책 모델)](Policy) [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) / [Critic](Critic) 누적 보상 추정값 |
 | Support | [Critic](Critic) real-training neighborhood [증거(evidence)](Evidence-Matrix) |
-| Expected 가치 | [Imagination(가상 미래 탐색)](Imagination) chance backup |
+| Expected 가치 | [Imagination(가상 미래 탐색)](Imagination) chance 가치 되돌림 계산 |
 
 ---
 

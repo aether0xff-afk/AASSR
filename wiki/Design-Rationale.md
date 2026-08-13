@@ -45,7 +45,7 @@ route-12 != route-31
 
 ## Relational만 쓰면
 
-같은 역할을 가진 서로 다른 concrete object를 같은 대상으로 취급할 수 있다.
+같은 역할을 가진 서로 다른 [실제 개체를 구분하는(concrete)](State-Representation) object를 같은 대상으로 취급할 수 있다.
 
 그래서:
 
@@ -90,7 +90,7 @@ S -> A -> S
 
 정보를 얻는 행동은 장기적으로 유용할 수 있다.
 
-하지만 이를 external 보상로 만들면 연구자가 사실상 subgoal 보상를 설계하는 셈이 될 수 있다.
+하지만 이를 [환경이 주는 외부(external)](Terminology-Guide) 보상로 만들면 연구자가 사실상 subgoal 보상를 설계하는 셈이 될 수 있다.
 
 그래서 [Policy(정책 모델)](Policy)는:
 
@@ -102,7 +102,7 @@ separate information residual
 
 로 유지한다.
 
-이렇게 하면 external [학습 목표(objective)](Terminology-Guide)와 internal [탐색(exploration)](Exploration-and-Exploitation) signal을 구분해서 감사할 수 있다.
+이렇게 하면 환경이 주는 외부 [학습 목표(objective)](Terminology-Guide)와 internal [탐색(exploration)](Exploration-and-Exploitation) signal을 구분해서 감사할 수 있다.
 
 ---
 
@@ -121,7 +121,7 @@ nonexistent C
 
 를 만들 수 있다.
 
-그래서 현재 [Prophecy(미래 예측 모델)](Prophecy)는 conditional mixture를 사용해 여러 outcome mode와 [확률 질량(probability mass)](Stochasticity-Uncertainty-and-Probability)를 보존한다.
+그래서 현재 [Prophecy(미래 예측 모델)](Prophecy)는 conditional mixture를 사용해 여러 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability) [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration)와 [확률 질량(probability mass)](Stochasticity-Uncertainty-and-Probability)를 보존한다.
 
 ---
 
@@ -161,13 +161,13 @@ success 90%
 
 라고 말해도 해당 region을 한 번도 제대로 학습하지 않았다면 그 90% 자체가 신뢰할 수 없을 수 있다.
 
-따라서 mixture mass와 calibration confidence를 다른 의미로 유지한다.
+따라서 mixture mass와 calibration [예측 신뢰 정도(confidence)](Calibration)를 다른 의미로 유지한다.
 
 ---
 
 # 8. 왜 confidence를 value bonus로 쓰지 않는가?
 
-높은 confidence는 "좋은 미래"가 아니라 "예측을 더 믿을 수 있음"을 뜻한다.
+높은 예측 신뢰 정도는 "좋은 미래"가 아니라 "예측을 더 믿을 수 있음"을 뜻한다.
 
 잘못된 설계:
 
@@ -183,13 +183,13 @@ confidence 충분?
   no  -> fail closed
 ```
 
-그래서 confidence가 [Critic(미래 가치 평가기)](Critic) branch ranking에 다시 새어 들어가지 않도록 현재 encoder에서도 이를 중립화한다.
+그래서 예측 신뢰 정도가 [Critic(미래 가치 평가기)](Critic) [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes) [후보 순위(ranking)](Policy)에 다시 새어 들어가지 않도록 현재 encoder에서도 이를 중립화한다.
 
 ---
 
 # 9. 왜 chance node는 평균이고 decision node는 max인가?
 
-[에이전트(Agent)](Reinforcement-Learning)는 자신의 다음 행동은 선택할 수 있지만 환경 outcome은 선택할 수 없다.
+[에이전트(Agent)](Reinforcement-Learning)는 자신의 다음 행동은 선택할 수 있지만 환경 환경 결과은 선택할 수 없다.
 
 따라서:
 
@@ -203,7 +203,7 @@ V_{decision}=\max_aV(a)
 
 를 구분한다.
 
-환경 stochasticity에도 `max`를 쓰면 에이전트가 실제로 통제할 수 없는 좋은 outcome만 고르는 낙관적 [계획기(planner)](Counterfactual-Planning-and-Search)가 된다.
+환경 stochasticity에도 `max`를 쓰면 에이전트가 실제로 통제할 수 없는 좋은 환경 결과만 고르는 낙관적 [계획기(planner)](Counterfactual-Planning-and-Search)가 된다.
 
 ---
 
@@ -223,7 +223,7 @@ depth 증가
 
 - calibration
 - [탐색의 첫 행동(root)](Imagination) preservation
-- branch validity
+- 결과 경로 validity
 - [Critic](Critic) horizon
 - [묶음 처리(batching)](Reproduction)
 
@@ -233,7 +233,7 @@ depth 증가
 
 # 11. 왜 branch count `n`을 concrete action 수로 보면 안 되는가?
 
-현재 [행동(action)](Reinforcement-Learning) surface에는 이름만 다른 structural alias가 많을 수 있다.
+현재 [행동(action)](Reinforcement-Learning) surface에는 이름만 다른 [구조 기반(structural)](Relational-Representation-and-Generalization) alias가 많을 수 있다.
 
 ```text
 172 concrete actions
@@ -258,7 +258,7 @@ real execution
 
 # 12. 왜 root를 보존하는가?
 
-깊은 branch가 불확실하다고 탐색의 첫 행동 행동까지 삭제하면 계획기가 실제 legal 행동을 평가 후보에서 잃을 수 있다.
+깊은 결과 경로가 불확실하다고 탐색의 첫 행동 행동까지 삭제하면 계획기가 실제 legal 행동을 평가 후보에서 잃을 수 있다.
 
 그래서:
 
@@ -274,9 +274,9 @@ deep rollout 실패
 
 # 13. 왜 Critic은 actual sparse return을 학습하는가?
 
-Planner 전용 handcrafted score를 [Critic](Critic) target으로 쓰면 최종 학습 목표와 [계획(planning)](Counterfactual-Planning-and-Search) 가치가 달라질 수 있다.
+Planner 전용 handcrafted [평가 점수(score)](Terminology-Guide)를 [Critic](Critic) target으로 쓰면 최종 학습 목표와 [계획(planning)](Counterfactual-Planning-and-Search) 가치가 달라질 수 있다.
 
-그래서 현재 [Critic](Critic)은 실제 external outcome을 기반으로 한다.
+그래서 현재 [Critic](Critic)은 실제 환경이 주는 외부 환경 결과을 기반으로 한다.
 
 ```text
 success +1
@@ -385,7 +385,7 @@ model error
 -> error amplification
 ```
 
-을 피하기 위해 **상상은 계획에 쓰고 factual learning은 real [상태 전이(transition)](MDP-and-POMDP)에 근거한다**는 원칙을 유지한다.
+을 피하기 위해 **상상은 계획에 쓰고 factual learning은 [실제 환경에서 관측된(real)](Research-Jargon-Guide) [상태 전이(transition)](MDP-and-POMDP)에 근거한다**는 원칙을 유지한다.
 
 ---
 
@@ -412,7 +412,7 @@ imagined fact인가 real fact인가?
 
 Raw 성공 sequence를 저장하면 난수 시드가 바뀌었을 때 target ID가 달라져 재사용하기 어렵다.
 
-그래서 성공 ASeq를 [관계 기반(relational)](Relational-Representation-and-Generalization) 행동 template로 저장하고 현재 행동 surface에 다시 bind한다.
+그래서 성공 ASeq를 [관계 기반(relational)](Relational-Representation-and-Generalization) 행동 [재사용 가능한 틀(template)](Skills)로 저장하고 현재 행동 surface에 다시 bind한다.
 
 ```text
 structure transfer

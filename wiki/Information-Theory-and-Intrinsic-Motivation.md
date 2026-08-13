@@ -50,9 +50,9 @@ I(x)=-\log p(x)
 H(X)=-\sum_x p(x)\log p(x)
 ```
 
-Distribution이 한 outcome에 거의 확정되어 있으면 entropy가 낮다.
+Distribution이 한 [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability)에 거의 확정되어 있으면 entropy가 낮다.
 
-여러 outcome이 비슷한 probability를 가지면 entropy가 높다.
+여러 환경 결과이 비슷한 [확률(probability)](Stochasticity-Uncertainty-and-Probability)를 가지면 entropy가 높다.
 
 관련 페이지:
 
@@ -97,7 +97,7 @@ hidden/task-relevant state X에 대해 얼마나 더 알게 되는가?
 
 # 6. KL divergence
 
-두 probability distribution 차이를 측정하는 대표량:
+두 확률 [확률 또는 데이터 분포(distribution)](Stochasticity-Uncertainty-and-Probability) 차이를 측정하는 대표량:
 
 ```math
 D_{KL}(P\|Q)=\sum_xP(x)\log\frac{P(x)}{Q(x)}
@@ -200,7 +200,7 @@ r_{int}\propto\|\hat s'-s'\|
 
 # 12. Noisy-TV problem
 
-[에이전트(Agent)](Reinforcement-Learning)가 예측하기 어려운 랜덤 noise source만 계속 바라보는 [실패(failure)](Replay-Buffer-and-Episode-Boundaries) mode다.
+[에이전트(Agent)](Reinforcement-Learning)가 예측하기 어려운 랜덤 noise source만 계속 바라보는 [실패(failure)](Replay-Buffer-and-Episode-Boundaries) [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration)다.
 
 ```text
 랜덤 noise
@@ -223,7 +223,7 @@ B(s)\propto\frac1{\sqrt{N(s)}}
 
 큰/continuous 상태 space에서는 exact 상태 count가 어렵기 때문에 pseudo-count나 [표현(representation)](Relational-Representation-and-Generalization)-based count를 사용할 수 있다.
 
-AASSR에서는 [관계 기반(relational)](Relational-Representation-and-Generalization) 상태를 쓰므로 structural novelty를 정의할 가능성도 있지만 현재 main external 보상에 count bonus를 넣는 구조는 아니다.
+AASSR에서는 [관계 기반(relational)](Relational-Representation-and-Generalization) 상태를 쓰므로 [구조 기반(structural)](Relational-Representation-and-Generalization) novelty를 정의할 가능성도 있지만 현재 main [환경이 주는 외부(external)](Terminology-Guide) 보상에 count bonus를 넣는 구조는 아니다.
 
 ---
 
@@ -249,7 +249,7 @@ Action A
 → 몇 단계 뒤 success
 ```
 
-Information [가치(value)](Value-Functions-and-Bellman-Equation)를 완전히 external 누적 보상 안에서만 학습하려면 성공 sample을 통해 긴 [보상 책임 배분(credit assignment)](Sparse-Reward-and-Credit-Assignment)가 필요하다.
+Information [가치(value)](Value-Functions-and-Bellman-Equation)를 완전히 환경이 주는 외부 누적 보상 안에서만 학습하려면 성공 sample을 통해 긴 [보상 책임 배분(credit assignment)](Sparse-Reward-and-Credit-Assignment)가 필요하다.
 
 AASSR [Policy(정책 모델)](Policy)는 별도 residual로 이 내부 값을 추적한다.
 
@@ -263,7 +263,7 @@ r'=r_{task}+\beta r_{info}
 
 처럼 합치면 [학습 주체(learner)](Terminology-Guide) 학습 목표 자체가 바뀐다.
 
-AASSR의 연구 질문은 sparse external 보상를 유지하는 것이므로:
+AASSR의 연구 질문은 sparse 환경이 주는 외부 보상를 유지하는 것이므로:
 
 ```text
 DQN external Q
@@ -307,7 +307,7 @@ Internal signal이 너무 크면 에이전트가 목표를 끝내기보다 계�
 목표 completion 안 함
 ```
 
-그래서 [진단 실험(diagnostic)](Evidence-Matrix)에서 external Q와 information [구성요소(component)](Research-Architecture)를 따로 보는 것이 중요하다.
+그래서 [진단 실험(diagnostic)](Evidence-Matrix)에서 환경이 주는 외부 Q와 information [구성요소(component)](Research-Architecture)를 따로 보는 것이 중요하다.
 
 ---
 
@@ -339,17 +339,17 @@ Uncertainty가 높은 행동이 항상 informative한 것은 아니다.
 → information gain은 낮을 수 있음
 ```
 
-반대로 현재 outcome은 거의 deterministic하지만 중요한 숨겨진 fact를 공개하는 행동은 매우 informative할 수 있다.
+반대로 현재 환경 결과은 거의 deterministic하지만 중요한 숨겨진 fact를 공개하는 행동은 매우 informative할 수 있다.
 
 ---
 
 # 21. Information와 Prophecy
 
-World 학습 모델은 행동 outcome을 예측한다.
+World 학습 모델은 행동 환경 결과을 예측한다.
 
 Information-seeking [계획기(planner)](Counterfactual-Planning-and-Search)라면 "이 행동이 학습 모델 uncertainty를 얼마나 줄일까?"까지 계획할 수 있다.
 
-AASSR 현재 [Imagination(가상 미래 탐색)](Imagination)의 주요 학습 목표는 external sparse-누적 보상 [계획(planning)](Counterfactual-Planning-and-Search)이며, uncertainty 자체를 positive task 가치로 사용하지 않는다.
+AASSR 현재 [Imagination(가상 미래 탐색)](Imagination)의 주요 학습 목표는 환경이 주는 외부 sparse-누적 보상 [계획(planning)](Counterfactual-Planning-and-Search)이며, uncertainty 자체를 positive task 가치로 사용하지 않는다.
 
 ---
 
