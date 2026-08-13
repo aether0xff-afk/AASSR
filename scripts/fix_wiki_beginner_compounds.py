@@ -19,6 +19,12 @@ REPLACEMENTS = {
     "관측([관측(observation)](MDP-and-POMDP))": "[관측(observation)](MDP-and-POMDP)",
     "표현([표현(representation)](Relational-Representation-and-Generalization))": "[표현(representation)](Relational-Representation-and-Generalization)",
     "외부 제한 종료([외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries))": "[외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries)",
+    "현재 세대([현재 세대(current-generation)](Current-Status))": "[현재 세대(current-generation)](Current-Status)",
+    "현재 실행 구조([현재 실행 구조(current runtime)](Current-Status))": "[현재 실행 구조(current runtime)](Current-Status)",
+    "현재 구조([현재 구조(current architecture)](Current-Status))": "[현재 구조(current architecture)](Current-Status)",
+    "진단 실험([진단 실험(diagnostic)](Evidence-Matrix))": "[진단 실험(diagnostic)](Evidence-Matrix)",
+    "증거([증거(evidence)](Evidence-Matrix))": "[증거(evidence)](Evidence-Matrix)",
+    "연구 주장([연구 주장(claim)](Evidence-Matrix))": "[연구 주장(claim)](Evidence-Matrix)",
 }
 
 
