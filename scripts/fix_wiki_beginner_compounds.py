@@ -10,6 +10,7 @@ REPLACEMENTS = {
     "same 체크포인트": "[같은 체크포인트(same checkpoint)](Experiments)",
     "Same [체크포인트(checkpoint)](Reproduction)": "[같은 체크포인트(same checkpoint)](Experiments)",
     "Same 체크포인트": "[같은 체크포인트(same checkpoint)](Experiments)",
+    "Critic 데이터 근거": "가치 평가 데이터 근거",
 }
 
 
