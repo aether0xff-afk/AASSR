@@ -1,6 +1,6 @@
 # 연구 구조 (Research Architecture)
 
-이 페이지는 AASSR을 **연구 질문에서 실제 current-generation 구현까지 한 흐름으로 연결해서** 설명한다.
+이 페이지는 AASSR을 **연구 질문에서 실제 [현재 세대(current-generation)](Current-Status) 구현까지 한 흐름으로 연결해서** 설명한다.
 
 단순한 소프트웨어 모듈 목록이 아니라,
 
@@ -19,7 +19,7 @@
 순서로 내려간다.
 
 > [!IMPORTANT]
-> 현재 실행 경로의 [최종 기준(source of truth)](Current-Status)는 `src/aassr_v2/current_manifest.py`다. 과거 v0.4, old effect-composition, 초기 [Imagination(가상 미래 탐색)](Imagination)/[Prophecy(미래 예측 모델)](Prophecy) 실험은 재현용으로 남아 있지만 current runtime 설명과 섞지 않는다.
+> 현재 실행 경로의 [최종 기준(source of truth)](Current-Status)는 `src/aassr_v2/current_manifest.py`다. 과거 v0.4, old effect-composition, 초기 [Imagination(가상 미래 탐색)](Imagination)/[Prophecy(미래 예측 모델)](Prophecy) 실험은 재현용으로 남아 있지만 [현재 실행 구조(current runtime)](Current-Status) 설명과 섞지 않는다.
 
 ---
 
@@ -74,30 +74,30 @@ flowchart TD
 
 > **에이전트에게 정답을 숨긴 채 실제로 관측 가능한 정보만으로 장기 문제를 풀게 할 수 있는가?**
 
-현재 [관측(observation)](MDP-and-POMDP) contract는 `response-causal relational public state v3 + latest HTTP status`다.
+현재 [관측(observation)](MDP-and-POMDP) [명세(contract)](Current-Status)는 `response-causal relational public state v3 + latest HTTP status`다.
 
-에이전트가 사용할 수 있는 것은 public 관측이다.
+에이전트가 사용할 수 있는 것은 [공개된(public)](State-Representation) 관측이다.
 
 예:
 
-- 실제 response에서 확인한 사실
+- 실제 [응답(response)](State-Representation)에서 확인한 사실
 - 발견된 route/profile/object 관계
 - legal [행동(action)](Reinforcement-Learning) surface
 - session / CSRF 존재 여부
 - self-counted usage
 - self-observed progress
-- latest public HTTP status
+- latest 공개된 HTTP [상태 코드(status)](Terminology-Guide)
 
-반대로 hidden simulator state는 직접 주지 않는다.
+반대로 [숨겨진(hidden)](MDP-and-POMDP) simulator [상태(state)](State-Representation)는 직접 주지 않는다.
 
 예:
 
-- hidden [난이도 조절 학습(curriculum)](Curriculum-Learning) level
-- hidden workflow depth
-- exact hidden session countdown
-- hidden audit pressure
-- 정답 route/profile/object identity
-- future state
+- 숨겨진 [난이도 조절 학습(curriculum)](Curriculum-Learning) level
+- 숨겨진 workflow depth
+- exact 숨겨진 session countdown
+- 숨겨진 audit pressure
+- 정답 route/profile/object [식별 방식(identity)](State-Representation)
+- future 상태
 
 이 경계가 중요한 이유는 [세계 모델(world model)](Model-Based-RL-and-World-Models)이 예측해야 할 정보를 관측에 몰래 넣으면 연구 질문이 무너지기 때문이다.
 
@@ -112,7 +112,7 @@ AASSR에서는 "같은 상태"라는 말이 한 가지 의미가 아니다.
 사용처:
 
 - [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ)
-- episode-local exact repetition
+- [현재 에피소드 안에서만 유지되는(episode-local)](Knowledge) exact repetition
 - cycle detection
 
 예:
@@ -121,7 +121,7 @@ AASSR에서는 "같은 상태"라는 말이 한 가지 의미가 아니다.
 route-12 != route-31
 ```
 
-실제 episode에서는 서로 다른 대상이므로 구분해야 한다.
+실제 [한 번의 문제 풀이 구간(episode)](Terminology-Guide)에서는 서로 다른 대상이므로 구분해야 한다.
 
 ## 3.2 Relational transfer identity
 
@@ -163,7 +163,7 @@ Relational만 쓰면:
 -> self-loop / 실행 identity 오류
 ```
 
-그래서 AASSR은 **실행과 반복 판정에는 concrete semantic identity**, **학습과 [전이(transfer)](Relational-Representation-and-Generalization)에는 relational identity**를 쓴다.
+그래서 AASSR은 **실행과 반복 판정에는 concrete semantic 식별 방식**, **학습과 [전이(transfer)](Relational-Representation-and-Generalization)에는 [관계 기반(relational)](Relational-Representation-and-Generalization) 식별 방식**를 쓴다.
 
 ---
 
@@ -175,7 +175,7 @@ Relational만 쓰면:
 (S, A, S')
 ```
 
-초기 AASSR 문서에서는 [ASEQ](ASEQ)가 비교적 넓은 기억 구조로 해석되기도 했지만, current-generation에서는 역할이 더 명확하다.
+초기 AASSR 문서에서는 [ASEQ](ASEQ)가 비교적 넓은 기억 구조로 해석되기도 했지만, 현재 세대에서는 역할이 더 명확하다.
 
 핵심 [제자리 반복(self-loop)](ASEQ) rule:
 
@@ -204,7 +204,7 @@ S' != S
 
 ## 연구 질문
 
-> **현재 public relational state에서 어떤 행동이 장기적으로 유리한지 model-free하게 학습할 수 있는가?**
+> **현재 공개된 관계 기반 상태에서 어떤 행동이 장기적으로 유리한지 model-free하게 학습할 수 있는가?**
 
 현재 [Policy](Policy)는 relational-invariant [DQN](Q-Learning-DQN-and-TD) + [정보 가치 잔차(information residual)](Policy)이다.
 
@@ -218,7 +218,7 @@ Q_total(S,A)
 
 중요한 점은 정보 가치 잔차이 외부 [보상(reward)](Sparse-Reward-and-Credit-Assignment) shaping은 아니라는 것이다.
 
-외부 [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment) contract는 그대로 유지한다.
+외부 [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment) 명세는 그대로 유지한다.
 
 ```text
 success       +1
@@ -234,7 +234,7 @@ otherwise      0
 
 # 6. Knowledge: 지금까지 무엇을 알아냈는가?
 
-현재 [Knowledge(에피소드 지식)](Knowledge)는 episode-local response context다.
+현재 [Knowledge(에피소드 지식)](Knowledge)는 현재 에피소드 안에서만 유지되는 응답 context다.
 
 ## 가장 중요한 시간 방향
 
@@ -262,7 +262,7 @@ otherwise      0
 
 ## 연구 질문
 
-> **현재 상태와 행동으로부터 가능한 다음 public outcome들을 학습할 수 있는가?**
+> **현재 상태와 행동으로부터 가능한 다음 공개된 outcome들을 학습할 수 있는가?**
 
 현재 [Prophecy](Prophecy)는 `relational conditional-mixture ensemble v5, status-balanced`다.
 
@@ -292,7 +292,7 @@ outcome probability
 
 ## 왜 하나의 평균 상태를 예측하지 않는가?
 
-Partial observability 때문에 같은 public `(S,A)`에서도 여러 결과가 가능하다.
+Partial observability 때문에 같은 공개된 `(S,A)`에서도 여러 결과가 가능하다.
 
 ```text
 actual future A
@@ -309,13 +309,13 @@ nonexistent average C
 
 # 8. Calibration: 예측을 믿어도 되는가?
 
-[Prophecy](Prophecy)가 예측을 낸다고 해서 항상 planner에 사용하면 안 된다.
+[Prophecy](Prophecy)가 예측을 낸다고 해서 항상 [계획기(planner)](Counterfactual-Planning-and-Search)에 사용하면 안 된다.
 
 [Calibration(예측 신뢰도 보정)](Calibration)은 다음 질문을 담당한다.
 
-> **이 world-model prediction은 현재 상태에서 얼마나 신뢰할 수 있는가?**
+> **이 world-model [예측(prediction)](Terminology-Guide)은 현재 상태에서 얼마나 신뢰할 수 있는가?**
 
-현재 calibration은 semantic + probability + status aware [검증용 분리 데이터(holdout)](Calibration) calibration이다.
+현재 calibration은 semantic + probability + 상태 코드 aware [검증용 분리 데이터(holdout)](Calibration) calibration이다.
 
 중요한 구분:
 
@@ -329,9 +329,9 @@ prediction reliability
 
 둘은 같은 값이 아니다.
 
-또 reliability는 미래 value bonus가 아니다.
+또 [신뢰도(reliability)](Calibration)는 미래 [가치(value)](Value-Functions-and-Bellman-Equation) bonus가 아니다.
 
-신뢰도가 높다고 좋은 미래라는 뜻은 아니며, 단지 **그 예측을 planner 계산에 사용할 자격이 있는가**를 판단한다.
+신뢰도가 높다고 좋은 미래라는 뜻은 아니며, 단지 **그 예측을 계획기 계산에 사용할 자격이 있는가**를 판단한다.
 
 ---
 
@@ -341,7 +341,7 @@ prediction reliability
 
 > **세계 모델에서 여러 단계의 counterfactual future를 평가하면 [Policy](Policy)보다 더 좋은 첫 행동을 고를 수 있는가?**
 
-현재 planner는 두 종류의 node를 분리한다.
+현재 계획기는 두 종류의 node를 분리한다.
 
 ## Chance node
 
@@ -359,7 +359,7 @@ V_chance = sum_i p_i * V_i
 V_decision = max_a V(a)
 ```
 
-이 차이를 섞으면 stochastic outcome 중 좋은 결과만 골라잡는 비현실적인 optimistic planner가 될 수 있다.
+이 차이를 섞으면 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) outcome 중 좋은 결과만 골라잡는 비현실적인 optimistic 계획기가 될 수 있다.
 
 자세한 내용: **[Imagination](Imagination)**
 
@@ -367,7 +367,7 @@ V_decision = max_a V(a)
 
 # 10. Critic: 이 미래의 장기 가치는 얼마인가?
 
-현재 [Critic](Critic)은 relational [GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) discounted sparse-[누적 보상(return)](Value-Functions-and-Bellman-Equation) [Critic](Critic)이다.
+현재 [Critic](Critic)은 관계 기반 [GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) discounted sparse-[누적 보상(return)](Value-Functions-and-Bellman-Equation) [Critic](Critic)이다.
 
 학습 target의 기반은 실제 외부 누적 보상이다.
 
@@ -377,13 +377,13 @@ true failure  -1
 truncation     0
 ```
 
-[Critic](Critic)은 predicted branch의 끝이나 중간 상태를 평가해 planner가 horizon 밖의 장기 가치를 추정할 수 있게 한다.
+[Critic](Critic)은 predicted branch의 끝이나 중간 상태를 평가해 계획기가 horizon 밖의 장기 가치를 추정할 수 있게 한다.
 
 ## Zero-memory decision suffix
 
-[Imagination](Imagination)은 trajectory 중간의 실제 decision state에서도 시작될 수 있다.
+[Imagination](Imagination)은 trajectory 중간의 실제 decision 상태에서도 시작될 수 있다.
 
-그래서 [Critic](Critic)도 episode 시작점만 학습하면 안 된다.
+그래서 [Critic](Critic)도 한 번의 문제 풀이 구간 시작점만 학습하면 안 된다.
 
 ```text
 S0 -> S1 -> S2 -> S3 -> terminal
@@ -395,7 +395,7 @@ S2
 S3
 ```
 
-각 suffix를 독립적인 decision root로 학습한다.
+각 suffix를 독립적인 decision [탐색의 첫 행동(root)](Imagination)로 학습한다.
 
 ---
 
@@ -411,7 +411,7 @@ Critic이 학습됨
 모든 unseen state/action에서 Critic이 정확함
 ```
 
-그래서 현재는 별도의 support gate가 있다.
+그래서 현재는 별도의 [데이터 근거(support)](Critic-Support-and-OOD) [판정 관문(gate)](Terminology-Guide)가 있다.
 
 ```text
 현재 state/action region
@@ -424,9 +424,9 @@ value 비교 허용      fail closed
                      Policy 유지
 ```
 
-이 support는 보상도 아니고 hidden simulator 정보도 아니다.
+이 데이터 근거는 보상도 아니고 숨겨진 simulator 정보도 아니다.
 
-실제 training data coverage를 검사하는 안전장치다.
+실제 [학습 데이터(training data)](Terminology-Guide) coverage를 검사하는 안전장치다.
 
 ---
 
@@ -466,9 +466,9 @@ Policy action override
 ~17 structural roots
 ```
 
-같은 relational structure라면 비싼 [Prophecy](Prophecy) / [Critic](Critic) 계산은 한 번만 수행한다.
+같은 관계 기반 structure라면 비싼 [Prophecy](Prophecy) / [Critic](Critic) 계산은 한 번만 수행한다.
 
-하지만 실행 identity는 유지한다.
+하지만 실행 식별 방식는 유지한다.
 
 ```text
 planning compute: structural alias 공유
@@ -481,7 +481,7 @@ real execution  : concrete action 유지
 
 # 14. Training / Evaluation boundary
 
-AASSR current protocol에서 가장 중요한 공정성 규칙 중 하나다.
+AASSR [현재(current)](Current-Status) [실험 규칙(protocol)](Ablation-Benchmarking-and-Reproducibility)에서 가장 중요한 공정성 규칙 중 하나다.
 
 ```text
 Training:
@@ -494,7 +494,7 @@ Evaluation B:
 same frozen checkpoint + Imagination ON
 ```
 
-따라서 OFF/ON 차이는 planner의 marginal effect로 해석할 수 있다.
+따라서 OFF/ON 차이는 계획기의 marginal effect로 해석할 수 있다.
 
 평가 사이에 학습이 일어나면 비교가 깨진다.
 
@@ -506,16 +506,16 @@ same frozen checkpoint + Imagination ON
 
 | Layer | Current implementation |
 |---|---|
-| [관측(Observation)](MDP-and-POMDP) | response-causal relational public state v3 + latest HTTP status |
+| [관측(Observation)](MDP-and-POMDP) | response-causal 관계 기반 [공개 관측 상태(public state)](State-Representation) v3 + latest HTTP 상태 코드 |
 | [ASEQ](ASEQ) | semantic 제자리 반복 empirical v3 |
 | [Policy](Policy) | relational-invariant [DQN](Q-Learning-DQN-and-TD) + 정보 가치 잔차 |
-| [Prophecy](Prophecy) | relational [조건부 혼합(conditional-mixture)](Prophecy) ensemble v5, [상태 코드 데이터 불균형을 보정한(status-balanced)](Prophecy) |
+| [Prophecy](Prophecy) | 관계 기반 [조건부 혼합(conditional-mixture)](Prophecy) ensemble v5, [상태 코드 데이터 불균형을 보정한(status-balanced)](Prophecy) |
 | [Calibration](Calibration) | semantic probability 검증용 분리 데이터 calibration v3, [상태 코드까지 고려하는(status-aware)](Calibration) |
-| [Knowledge](Knowledge) | episode-local response knowledge context |
+| [Knowledge](Knowledge) | 현재 에피소드 안에서만 유지되는 응답 knowledge context |
 | [Imagination](Imagination) | structural compute dedup + probability chance / decision tree |
-| [Critic](Critic) | relational [GRU](GRU-and-Sequence-Models) discounted sparse-누적 보상 |
-| [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD) | local real-training support, fail-closed |
-| [Skill](Skills) | relational [ASEQ](ASEQ) template |
+| [Critic](Critic) | 관계 기반 [GRU](GRU-and-Sequence-Models) discounted sparse-누적 보상 |
+| [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD) | local real-training 데이터 근거, [근거가 부족하면 보수적으로 거부하는(fail-closed)](Critic-Support-and-OOD) |
+| [Skill](Skills) | 관계 기반 [ASEQ](ASEQ) template |
 | Training [Imagination](Imagination) | disabled for [같은 체크포인트(same-checkpoint)](Experiments) comparison |
 
 ---
@@ -558,7 +558,7 @@ aassr_current_no_imagination
 aassr_current_full
 ```
 
-추가로 official [DreamerV3](Experiments) relational 비교 기준을 둔다.
+추가로 official [DreamerV3](Experiments) 관계 기반 비교 기준을 둔다.
 
 자세한 실험 설계와 결과는 **[Experiments](Experiments)** 를 참고한다.
 

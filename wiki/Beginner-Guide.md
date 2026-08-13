@@ -520,7 +520,7 @@ Critic이 높은 값을 냄
 Imagination이 기본 Policy를 덮어쓰지 못하게 막음
 ```
 
-이것은 과감하게 틀리는 것보다, 근거가 없을 때 기존 정책으로 돌아가는 **보수적 실패(fail closed)** 설계다.
+이것은 과감하게 틀리는 것보다, 근거가 없을 때 기존 정책으로 돌아가는 **보수적 실패([근거가 부족하면 보수적으로 거부하는(fail closed)](Critic-Support-and-OOD))** 설계다.
 
 관련 문서: [Critic Support와 OOD](Critic-Support-and-OOD)
 

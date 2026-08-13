@@ -1,10 +1,10 @@
 # 상태 표현 (State Representation)
 
-AASSR current-generation의 [전이(transfer)](Relational-Representation-and-Generalization) 학습기는 **response-causal relational public state v3**를 사용한다.
+AASSR [현재 세대(current-generation)](Current-Status)의 [전이(transfer)](Relational-Representation-and-Generalization) 학습기는 **response-causal [관계 기반(relational)](Relational-Representation-and-Generalization) [공개 관측 상태(public state)](State-Representation) v3**를 사용한다.
 
 이 페이지의 핵심 질문은 다음이다.
 
-> **정답 identity나 hidden simulator state를 주지 않으면서도, 이름이 바뀐 새로운 scenario에서 같은 문제 구조를 알아볼 수 있는 상태 표현을 만들 수 있는가?**
+> **정답 [식별 방식(identity)](State-Representation)나 [숨겨진(hidden)](MDP-and-POMDP) simulator [상태(state)](State-Representation)를 주지 않으면서도, 이름이 바뀐 새로운 scenario에서 같은 문제 구조를 알아볼 수 있는 상태 표현을 만들 수 있는가?**
 
 이 질문은 일반적으로 [state와 observation의 차이](MDP-and-POMDP), [partial observability](MDP-and-POMDP), [representation learning](Relational-Representation-and-Generalization), [invariance](Relational-Representation-and-Generalization), [generalization](Relational-Representation-and-Generalization), [data leakage](Causality-Leakage-and-Evaluation) 문제와 연결된다.
 
@@ -16,9 +16,9 @@ AASSR current-generation의 [전이(transfer)](Relational-Representation-and-Gen
 
 # 0. 먼저 알아두면 좋은 개념
 
-- [MDP and POMDP](MDP-and-POMDP) — true state, [관측(observation)](MDP-and-POMDP), Markov property, state aliasing
+- [MDP and POMDP](MDP-and-POMDP) — [실제 환경 상태(true state)](MDP-and-POMDP), [관측(observation)](MDP-and-POMDP), Markov property, 상태 aliasing
 - [Relational Representation & Generalization](Relational-Representation-and-Generalization) — permutation, invariance, memorization vs 전이
-- [Causality, Leakage & Fair Evaluation](Causality-Leakage-and-Evaluation) — hidden simulator state를 learner input에 넣으면 왜 안 되는가?
+- [Causality, Leakage & Fair Evaluation](Causality-Leakage-and-Evaluation) — 숨겨진 simulator 상태를 [학습 주체(learner)](Terminology-Guide) [입력(input)](Terminology-Guide)에 넣으면 왜 안 되는가?
 - [Neural Networks & Optimization](Neural-Networks-and-Optimization) — feature vector, one-hot encoding, normalization
 - [Sparse Reward & Credit Assignment](Sparse-Reward-and-Credit-Assignment) — [표현(representation)](Relational-Representation-and-Generalization)이 long-horizon learning에 미치는 영향
 
@@ -28,7 +28,7 @@ AASSR current-generation의 [전이(transfer)](Relational-Representation-and-Gen
 
 [강화학습](Reinforcement-Learning)에서 [Policy(정책 모델)](Policy)가 아무리 강해도 입력 표현이 잘못되면 전이가 어렵다.
 
-예를 들어 training에서:
+예를 들어 [학습(training)](Terminology-Guide)에서:
 
 ```text
 route-12 = useful catalog-like route
@@ -42,7 +42,7 @@ route-12 = useful catalog-like route
 route-31 = useful catalog-like route
 ```
 
-로 바뀌면 concrete ID 중심 learner는 두 상황을 별개로 볼 수 있다.
+로 바뀌면 concrete ID 중심 학습 주체는 두 상황을 별개로 볼 수 있다.
 
 AASSR은 이름보다 **공개적으로 관측한 역할과 관계 구조**를 전이 표현의 핵심으로 사용한다.
 
@@ -64,9 +64,9 @@ Relational State v3
 Policy / Prophecy / Critic / Skill
 ```
 
-[POMDP](MDP-and-POMDP)에서는 hidden true state `S_t` 전체를 [에이전트(agent)](Reinforcement-Learning)가 보지 못하고 관측 `O_t`만 받는다.
+[POMDP](MDP-and-POMDP)에서는 숨겨진 실제 환경 상태 `S_t` 전체를 [에이전트(agent)](Reinforcement-Learning)가 보지 못하고 관측 `O_t`만 받는다.
 
-[표현(Representation)](Relational-Representation-and-Generalization)은 그 관측을 learner가 사용할 feature로 바꾼 것이다.
+[표현(Representation)](Relational-Representation-and-Generalization)은 그 관측을 학습 주체가 사용할 feature로 바꾼 것이다.
 
 ```text
 observation contract
@@ -76,15 +76,15 @@ representation format
 
 이다.
 
-표현이 relational하다고 해서 hidden simulator 정보를 새로 볼 수 있는 것은 아니다.
+표현이 관계 기반하다고 해서 숨겨진 simulator 정보를 새로 볼 수 있는 것은 아니다.
 
 ---
 
 # 3. Markov property와 representation
 
-이론적인 [MDP](MDP-and-POMDP) state는 현재 정보만으로 다음 state distribution을 충분히 결정할 수 있는 [Markov property](MDP-and-POMDP)를 가진다.
+이론적인 [MDP](MDP-and-POMDP) 상태는 현재 정보만으로 다음 상태 distribution을 충분히 결정할 수 있는 [Markov property](MDP-and-POMDP)를 가진다.
 
-하지만 learner의 표현이 중요한 정보를 버리면:
+하지만 학습 주체의 표현이 중요한 정보를 버리면:
 
 ```text
 실제 상황 A ─┐
@@ -94,7 +94,7 @@ representation format
 
 가 생길 수 있다.
 
-A와 B에서 future dynamics나 optimal [행동(action)](Reinforcement-Learning)이 다르면 **state aliasing**이다.
+A와 B에서 future [환경의 상태 변화 규칙(dynamics)](Model-Based-RL-and-World-Models)나 optimal [행동(action)](Reinforcement-Learning)이 다르면 **상태 aliasing**이다.
 
 즉 abstr행동은 전이를 도울 수 있지만 너무 강하면 Markov sufficiency를 해칠 수 있다.
 
@@ -102,32 +102,32 @@ A와 B에서 future dynamics나 optimal [행동(action)](Reinforcement-Learning)
 
 # 4. 무엇을 볼 수 있는가?
 
-current pentest runtime은 실제 response에서 인과적으로 관측 가능한 public information을 사용한다.
+[현재(current)](Current-Status) pentest [실행 구조(runtime)](Current-Status)은 실제 [응답(response)](State-Representation)에서 인과적으로 관측 가능한 [공개된(public)](State-Representation) information을 사용한다.
 
 예:
 
 - 발견된 route/profile/object 관계
 - 현재 legal 행동 surface
-- session / CSRF 존재처럼 실제 response를 통해 확인한 상태
+- session / CSRF 존재처럼 실제 응답를 통해 확인한 상태
 - self-counted request usage
 - self-observed workflow progress
-- latest public HTTP status
+- latest 공개된 HTTP [상태 코드(status)](Terminology-Guide)
 
-이 정보들은 에이전트가 실제 inter행동 history에서 얻을 수 있는 public signal이다.
+이 정보들은 에이전트가 실제 inter행동 history에서 얻을 수 있는 공개된 signal이다.
 
 ---
 
 # 5. 무엇을 의도적으로 숨기는가?
 
-learner에게 직접 주지 않는 정보의 예:
+학습 주체에게 직접 주지 않는 정보의 예:
 
-- hidden [난이도 조절 학습(curriculum)](Curriculum-Learning) level
-- exact hidden workflow depth
-- exact hidden audit / lockout pressure
-- exact hidden session countdown
-- hidden rate-limit distance
-- 정답 route/profile/object identity
-- future state
+- 숨겨진 [난이도 조절 학습(curriculum)](Curriculum-Learning) level
+- exact 숨겨진 workflow depth
+- exact 숨겨진 audit / lockout pressure
+- exact 숨겨진 session countdown
+- 숨겨진 rate-limit distance
+- 정답 route/profile/object 식별 방식
+- future 상태
 
 핵심 원칙:
 
@@ -139,14 +139,14 @@ learner에게 직접 주지 않는 정보의 예:
 
 # 6. 두 종류의 identity
 
-AASSR에서는 identity를 하나로 통일하지 않는다.
+AASSR에서는 식별 방식를 하나로 통일하지 않는다.
 
 ## Concrete semantic identity
 
 사용처:
 
 - [ASEQ](ASEQ)
-- episode-local exact repetition
+- [현재 에피소드 안에서만 유지되는(episode-local)](Knowledge) exact repetition
 - concrete cycle detection
 - 실제 [환경(environment)](Reinforcement-Learning) 행동 execution
 
@@ -165,7 +165,7 @@ route-12 != route-31
 - [Critic](Critic)
 - [Skill](Skills)
 - Relational [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility)
-- [DreamerV3(외부 세계 모델 강화학습 비교군)](Experiments) relational adapter
+- [DreamerV3(외부 세계 모델 강화학습 비교군)](Experiments) 관계 기반 adapter
 
 ```text
 route-12 -> catalog-like role
@@ -232,13 +232,13 @@ important public distinction ↓
 
 가 가능하다.
 
-AASSR Relational State v3는 이 trade-off에서 **latest public HTTP status처럼 decision-critical한 공개 차이는 명시적으로 다시 보존**하는 방향으로 발전했다.
+AASSR Relational [상태(State)](State-Representation) v3는 이 trade-off에서 **latest 공개된 HTTP 상태 코드처럼 [의사결정에 중요한(decision-critical)](Calibration)한 공개 차이는 명시적으로 다시 보존**하는 방향으로 발전했다.
 
 ---
 
 # 9. Relational state v3의 구조
 
-current v3는 기존 relational v2 descriptor 뒤에 **latest public HTTP status channel**을 추가한다.
+현재 v3는 기존 관계 기반 v2 descriptor 뒤에 **latest 공개된 HTTP 상태 코드 channel**을 추가한다.
 
 현재 코드 기준:
 
@@ -249,7 +249,7 @@ latest status channel     :  8 dimensions
 v3 descriptor             : 43 dimensions
 ```
 
-status channel은 다음 public status vocabulary의 [one-hot/categorical representation](Neural-Networks-and-Optimization)이다.
+상태 코드 channel은 다음 공개된 상태 코드 vocabulary의 [one-hot/categorical representation](Neural-Networks-and-Optimization)이다.
 
 ```text
 200 / 302 / 400 / 401 / 403 / 404 / 409 / 429
@@ -259,9 +259,9 @@ status channel은 다음 public status vocabulary의 [one-hot/categorical repres
 
 # 10. 왜 latest HTTP status가 필요했는가?
 
-이전 relational state에서는 전체 semantic structure는 비슷하게 표현하면서도 최근 response의 `403/404/429` 같은 public signal을 잃을 수 있었다.
+이전 관계 기반 상태에서는 전체 semantic structure는 비슷하게 표현하면서도 최근 응답의 `403/404/429` 같은 공개된 signal을 잃을 수 있었다.
 
-2026-08-11 [Imagination](Imagination) diagnostic에서는 semantic prediction [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility)이 높게 보여도 실제 override가 이러한 오류 status로 이어지는 문제가 관찰됐다.
+2026-08-11 [Imagination](Imagination) [진단 실험(diagnostic)](Evidence-Matrix)에서는 semantic [예측(prediction)](Terminology-Guide) [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility)이 높게 보여도 실제 [기본 행동 덮어쓰기(override)](Imagination)가 이러한 오류 상태 코드로 이어지는 문제가 관찰됐다.
 
 즉:
 
@@ -273,9 +273,9 @@ decision-critical public outcome까지 같음
 
 이었다.
 
-v3는 latest status를 명시적으로 보존해 이 blind spot을 줄인다.
+v3는 latest 상태 코드를 명시적으로 보존해 이 blind spot을 줄인다.
 
-이 사례는 일반적인 **표현 abstr행동이 중요한 state variable을 지워 state aliasing을 만든 사례**로 볼 수 있다.
+이 사례는 일반적인 **표현 abstr행동이 중요한 상태 variable을 지워 상태 aliasing을 만든 사례**로 볼 수 있다.
 
 ---
 
@@ -283,7 +283,7 @@ v3는 latest status를 명시적으로 보존해 이 blind spot을 줄인다.
 
 중요한 방법론 경계다.
 
-AASSR이 보는 것은 실제 response로 공개된 HTTP-like status다.
+AASSR이 보는 것은 실제 응답로 공개된 HTTP-like 상태 코드다.
 
 ```text
 latest observed 403
@@ -298,9 +298,9 @@ lockout까지 정확히 1회 남음
 hidden audit pressure = 0.93
 ```
 
-같은 값은 learner에게 직접 주지 않는다.
+같은 값은 학습 주체에게 직접 주지 않는다.
 
-따라서 [상태 코드까지 고려하는(status-aware)](Calibration) 표현은 hidden safety oracle을 추가하는 것이 아니다.
+따라서 [상태 코드까지 고려하는(status-aware)](Calibration) 표현은 숨겨진 safety oracle을 추가하는 것이 아니다.
 
 이 차이는 [public observation과 privileged information](Causality-Leakage-and-Evaluation)의 차이다.
 
@@ -308,7 +308,7 @@ hidden audit pressure = 0.93
 
 # 12. 왜 status는 scalar가 아니라 categorical인가?
 
-HTTP status code의 숫자 차이는 task semantics의 거리와 일치하지 않는다.
+HTTP 상태 코드 code의 숫자 차이는 task semantics의 거리와 일치하지 않는다.
 
 ```text
 403과 404의 숫자 차이 = 1
@@ -322,17 +322,17 @@ HTTP status code의 숫자 차이는 task semantics의 거리와 일치하지 �
 
 # 13. Status vector를 어떻게 얻는가?
 
-current implementation은 public status의 명시적 metadata/fact/vector channel에서 latest status를 복원한다.
+현재 implementation은 공개된 상태 코드의 명시적 metadata/fact/vector channel에서 latest 상태 코드를 복원한다.
 
-우선순위에 따라 이미 relational prediction이 가진 status probabilities를 사용할 수도 있고, 실제 public `last_status` fact 또는 raw public 관측 channel에서 읽을 수도 있다.
+우선순위에 따라 이미 관계 기반 예측이 가진 상태 코드 probabilities를 사용할 수도 있고, 실제 공개된 `last_status` fact 또는 raw 공개된 관측 channel에서 읽을 수도 있다.
 
-어느 경로든 hidden audit/session state를 읽지 않는 것이 contract다.
+어느 경로든 숨겨진 audit/session 상태를 읽지 않는 것이 [명세(contract)](Current-Status)다.
 
 ---
 
 # 14. Predicted relational state decode
 
-[Prophecy](Prophecy)는 relational descriptor 자체를 예측한다.
+[Prophecy](Prophecy)는 관계 기반 descriptor 자체를 예측한다.
 
 v3 decode는:
 
@@ -346,17 +346,17 @@ predicted terminal class
 predicted status probabilities
 ```
 
-를 다시 planner가 사용할 `StateSnapshot` 형태로 복원한다.
+를 다시 [계획기(planner)](Counterfactual-Planning-and-Search)가 사용할 `StateSnapshot` 형태로 복원한다.
 
-예측된 latest status는 predicted fact/metadata에도 일관되게 반영된다.
+예측된 latest 상태 코드는 predicted fact/metadata에도 일관되게 반영된다.
 
-즉 [세계 모델(world model)](Model-Based-RL-and-World-Models)이 사용하는 latent/feature 표현과 planner가 사용하는 행동/state protocol 사이에 명시적인 decoder가 있다.
+즉 [세계 모델(world model)](Model-Based-RL-and-World-Models)이 사용하는 latent/feature 표현과 계획기가 사용하는 행동/상태 [실험 규칙(protocol)](Ablation-Benchmarking-and-Reproducibility) 사이에 명시적인 decoder가 있다.
 
 ---
 
 # 15. Legal action surface도 state의 일부인가?
 
-AASSR planning에서는 현재 state에서 어떤 행동이 실제로 가능한지가 매우 중요하다.
+AASSR [계획(planning)](Counterfactual-Planning-and-Search)에서는 현재 상태에서 어떤 행동이 실제로 가능한지가 매우 중요하다.
 
 일반적으로 state-dependent 행동 set을:
 
@@ -366,9 +366,9 @@ AASSR planning에서는 현재 state에서 어떤 행동이 실제로 가능한�
 
 처럼 생각할 수 있다.
 
-[Prophecy](Prophecy)가 next state를 예측하면서 [가능 행동 마스크(legal action mask)](Prophecy)도 예측하는 이유다.
+[Prophecy](Prophecy)가 next 상태를 예측하면서 [가능 행동 마스크(legal action mask)](Prophecy)도 예측하는 이유다.
 
-State vector가 비슷해도 legal 행동s가 다르면 planner에게는 다른 state일 수 있다.
+상태 vector가 비슷해도 legal 행동s가 다르면 계획기에게는 다른 상태일 수 있다.
 
 ---
 
@@ -376,7 +376,7 @@ State vector가 비슷해도 legal 행동s가 다르면 planner에게는 다른 
 
 World-model [Calibration](Calibration)에서는 단순 vector distance 하나만 보지 않는다.
 
-current v3 semantic score는 개념적으로 다음 네 종류의 correctness를 함께 본다.
+현재 v3 semantic score는 개념적으로 다음 네 종류의 correctness를 함께 본다.
 
 ```text
 base relational semantics
@@ -396,7 +396,7 @@ terminal match        : 0.10
 
 이다.
 
-이 수치는 [보상(reward)](Sparse-Reward-and-Credit-Assignment)가 아니라 **[Prophecy(미래 예측 모델)](Prophecy) prediction validation 평가지표**이다.
+이 수치는 [보상(reward)](Sparse-Reward-and-Credit-Assignment)가 아니라 **[Prophecy(미래 예측 모델)](Prophecy) 예측 [검증(validation)](Ablation-Benchmarking-and-Reproducibility) 평가지표**이다.
 
 [training loss와 evaluation metric](Loss-Functions-and-Class-Imbalance)을 구분해야 한다.
 
@@ -404,11 +404,11 @@ terminal match        : 0.10
 
 # 17. 왜 status 비중이 꽤 큰가?
 
-과거 diagnostic에서 전체 semantic similarity가 높아도 status error가 실제 decision quality를 망칠 수 있다는 evidence가 나왔기 때문이다.
+과거 진단 실험에서 전체 semantic similarity가 높아도 상태 코드 error가 실제 decision quality를 망칠 수 있다는 [증거(evidence)](Evidence-Matrix)가 나왔기 때문이다.
 
-따라서 calibration 평가지표이 단순 "대부분 비슷하다"만 보지 않고 decision-critical public response를 명시적으로 반영한다.
+따라서 calibration 평가지표이 단순 "대부분 비슷하다"만 보지 않고 의사결정에 중요한 공개된 응답를 명시적으로 반영한다.
 
-단, status match를 에이전트 task 보상에 더하는 것은 아니다.
+단, 상태 코드 match를 에이전트 task 보상에 더하는 것은 아니다.
 
 ```text
 status metric weight
@@ -422,15 +422,15 @@ reward shaping
 
 # 18. 누가 v3 representation을 쓰는가?
 
-current contract 설치 후 핵심 전이 consumer가 v3로 rebound된다.
+현재 명세 설치 후 핵심 전이 consumer가 v3로 rebound된다.
 
 대표적으로:
 
-- [Policy](Policy) state encoding
-- [Prophecy](Prophecy) relational codec/model
+- [Policy](Policy) 상태 encoding
+- [Prophecy](Prophecy) 관계 기반 codec/[학습 모델(model)](Terminology-Guide)
 - semantic calibration/evaluator
-- [Critic(미래 가치 평가기)](Critic)/support 관련 relational state key
-- [DreamerV3](Experiments) relational adapter
+- [Critic(미래 가치 평가기)](Critic)/[데이터 근거(support)](Critic-Support-and-OOD) 관련 관계 기반 상태 key
+- [DreamerV3](Experiments) 관계 기반 adapter
 
 따라서 비교 기준과 AASSR 비교에서 [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization) 계약을 최대한 일관되게 유지한다.
 
@@ -462,9 +462,9 @@ dqn_relational
 
 # 20. State와 Knowledge의 경계
 
-현재 public state에는 이미 실제 response에서 관측한 많은 사실이 포함된다.
+현재 공개 관측 상태에는 이미 실제 응답에서 관측한 많은 사실이 포함된다.
 
-[KnowledgeStore](Knowledge)는 그와 별도로 provenance와 causal timing을 가진 explicit episode context를 관리한다.
+[KnowledgeStore](Knowledge)는 그와 별도로 [정보의 출처 기록(provenance)](Knowledge)와 causal timing을 가진 explicit [한 번의 문제 풀이 구간(episode)](Terminology-Guide) context를 관리한다.
 
 ```text
 State
@@ -474,15 +474,15 @@ Knowledge
 = 어떤 response에서 언제 알게 되었는지까지 관리하는 explicit context
 ```
 
-같은 사실을 무분별하게 두 경로에서 중복 주입하지 않도록 current [Prophecy](Prophecy)는 context path를 보수적으로 다룬다.
+같은 사실을 무분별하게 두 경로에서 중복 주입하지 않도록 현재 [Prophecy](Prophecy)는 context path를 보수적으로 다룬다.
 
 ---
 
 # 21. State와 ASEQ의 경계
 
-[Policy](Policy)/[Prophecy](Prophecy)는 relational state를 쓰지만 [ASEQ](ASEQ)는 exact repetition을 판정해야 한다.
+[Policy](Policy)/[Prophecy](Prophecy)는 관계 기반 상태를 쓰지만 [ASEQ](ASEQ)는 exact repetition을 판정해야 한다.
 
-따라서 [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ)까지 같은 relational identity로 뭉치면:
+따라서 [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ)까지 같은 관계 기반 식별 방식로 뭉치면:
 
 ```text
 서로 다른 route지만 같은 역할
@@ -492,29 +492,29 @@ Knowledge
 
 이 생길 수 있다.
 
-그래서 concrete [의미 기반 상태(semantic state)](State-Representation)와 relational state를 동시에 유지한다.
+그래서 concrete [의미 기반 상태(semantic state)](State-Representation)와 관계 기반 상태를 동시에 유지한다.
 
 ---
 
 # 22. State와 Critic support
 
-[Critic local support](Critic-Support-and-OOD)는 query state/행동이 real training distribution 근처인지 판단해야 한다.
+[Critic local support](Critic-Support-and-OOD)는 query 상태/행동이 real 학습 distribution 근처인지 판단해야 한다.
 
 Raw concrete ID distance를 쓰면 학습 중 보지 못한 rename 자체를 [학습 분포 밖(OOD)](Critic-Support-and-OOD)로 잘못 볼 수 있다.
 
-그래서 support distance도 public relational structure를 중심으로 구성한다.
+그래서 데이터 근거 distance도 공개된 관계 기반 structure를 중심으로 구성한다.
 
-즉 관계 기반 표현은 [Policy](Policy)/[Prophecy](Prophecy) 전이뿐 아니라 **[OOD](Critic-Support-and-OOD) evidence 정의**에도 영향을 준다.
+즉 관계 기반 표현은 [Policy](Policy)/[Prophecy](Prophecy) 전이뿐 아니라 **[OOD](Critic-Support-and-OOD) 증거 정의**에도 영향을 준다.
 
 ---
 
 # 23. State와 Skill transfer
 
-[Skill](Skills)은 성공한 concrete trajectory를 relational 행동 template로 저장한다.
+[Skill](Skills)은 성공한 concrete trajectory를 관계 기반 행동 template로 저장한다.
 
-새 난수 시드에서 같은 structural state/행동 relationship을 찾아 [실제 실행 행동(concrete action)](State-Representation)으로 rebind한다.
+새 난수 시드에서 같은 structural 상태/행동 relationship을 찾아 [실제 실행 행동(concrete action)](State-Representation)으로 rebind한다.
 
-따라서 [Skill(성공 절차 재사용)](Skills) 전이도 State 표현의 역할/관계 정의에 의존한다.
+따라서 [Skill(성공 절차 재사용)](Skills) 전이도 상태 표현의 역할/관계 정의에 의존한다.
 
 관련 배경: [Hierarchical RL & Skills](Hierarchical-RL-and-Skills)
 
@@ -522,11 +522,11 @@ Raw concrete ID distance를 쓰면 학습 중 보지 못한 rename 자체를 [�
 
 # 24. State representation과 Curriculum
 
-[Curriculum](Curriculum-Learning) level이 올라가면 새로운 state/행동 distribution이 나타날 수 있다.
+[Curriculum](Curriculum-Learning) level이 올라가면 새로운 상태/행동 distribution이 나타날 수 있다.
 
 Relational 표현이 잘 설계되면 낮은 level에서 배운 구조를 higher level에 공유할 수 있다.
 
-하지만 higher level에서 새로운 decision-critical variable이 생기는데 descriptor가 이를 표현하지 못하면 state aliasing이 다시 발생할 수 있다.
+하지만 higher level에서 새로운 의사결정에 중요한 variable이 생기는데 descriptor가 이를 표현하지 못하면 상태 aliasing이 다시 발생할 수 있다.
 
 즉 난이도 조절 학습 전이 실패는 [Policy](Policy) 문제뿐 아니라 표현 문제일 수도 있다.
 
@@ -538,29 +538,29 @@ Concrete ID에 의존해 학습 중 보지 못한 rename 전이 실패.
 
 대응:
 
-- relational role 표현
+- 관계 기반 role 표현
 - 학습 중 보지 못한 identifier permutation [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)
 
 ---
 
 # 26. Failure mode: Over-abstraction
 
-서로 다른 실제 대상을 너무 강하게 같은 state로 압축.
+서로 다른 실제 대상을 너무 강하게 같은 상태로 압축.
 
 대응:
 
-- concrete semantic identity를 실행/[ASEQ](ASEQ)에 별도 유지
-- decision-critical public channel을 descriptor에 보존
+- concrete semantic 식별 방식를 실행/[ASEQ](ASEQ)에 별도 유지
+- 의사결정에 중요한 공개된 channel을 descriptor에 보존
 
 ---
 
 # 27. Failure mode: Decision-critical channel loss
 
-전체 구조는 유지하지만 latest status 같은 중요한 public signal을 버림.
+전체 구조는 유지하지만 latest 상태 코드 같은 중요한 공개된 signal을 버림.
 
 대응:
 
-- Relational State v3
+- Relational 상태 v3
 - 상태 코드까지 고려하는 [Prophecy](Prophecy) / calibration
 
 ---
@@ -571,31 +571,31 @@ Simulator 내부 정답/압력을 표현에 포함해 표준 비교 실험 short
 
 대응:
 
-- response-causal public 관측 contract
+- response-causal 공개된 관측 명세
 - [privileged-information audit](Causality-Leakage-and-Evaluation)
 
 ---
 
 # 29. Failure mode: Representation drift
 
-[Policy](Policy), [Prophecy](Prophecy), [Critic](Critic), 비교 기준이 서로 다른 relational definition을 쓰면 비교가 깨진다.
+[Policy](Policy), [Prophecy](Prophecy), [Critic](Critic), 비교 기준이 서로 다른 관계 기반 definition을 쓰면 비교가 깨진다.
 
 대응:
 
-- current contract 설치
+- 현재 명세 설치
 - manifest [최종 기준(source of truth)](Current-Status)
-- CI/[회귀 검증(regression)](Ablation-Benchmarking-and-Reproducibility) validation
+- CI/[회귀 검증(regression)](Ablation-Benchmarking-and-Reproducibility) 검증
 
 ---
 
 # 30. Failure mode: Feature-scale distortion
 
-Count feature와 binary/public probability feature의 scale이 크게 다르면 neural optimization에 영향을 줄 수 있다.
+Count feature와 binary/공개된 probability feature의 scale이 크게 다르면 neural optimization에 영향을 줄 수 있다.
 
 대응:
 
 - bounded normalization
-- descriptor contract test
+- descriptor 명세 test
 
 관련 기초: [Neural Networks & Optimization](Neural-Networks-and-Optimization)
 
@@ -605,18 +605,18 @@ Count feature와 binary/public probability feature의 scale이 크게 다르면 
 
 표현 자체에는 단일 accuracy가 없다.
 
-대신 다음 downstream/diagnostic을 본다.
+대신 다음 downstream/진단 실험을 본다.
 
-- raw [DQN](Q-Learning-DQN-and-TD) vs relational [DQN](Q-Learning-DQN-and-TD) 학습 중 보지 못한 success
+- raw [DQN](Q-Learning-DQN-and-TD) vs 관계 기반 [DQN](Q-Learning-DQN-and-TD) 학습 중 보지 못한 [성공(success)](Terminology-Guide)
 - identifier permutation consistency
 - equivalent-role 행동 score consistency
-- same relational structure의 [Prophecy](Prophecy) prediction consistency
+- same 관계 기반 structure의 [Prophecy](Prophecy) 예측 consistency
 - concrete [ASEQ](ASEQ) false-positive rate
-- latest status preservation accuracy
+- latest 상태 코드 preservation accuracy
 - hidden-state leakage [회귀 테스트(regression test)](Ablation-Benchmarking-and-Reproducibility)
-- higher-level state aliasing diagnostic
+- higher-level 상태 aliasing 진단 실험
 
-표현 quality는 결국 여러 learner의 [generalization](Relational-Representation-and-Generalization)에 미치는 영향으로 평가된다.
+표현 quality는 결국 여러 학습 주체의 [generalization](Relational-Representation-and-Generalization)에 미치는 영향으로 평가된다.
 
 ---
 
@@ -652,7 +652,7 @@ src/aassr_v2/current_manifest.py
 
 # 34. 한 문장 요약
 
-> **Relational State v3는 hidden 정답을 추가하는 표현이 아니라, public 관측에서 concrete name의 불필요한 차이는 줄이되 decision-critical public status와 실행에 필요한 [실제 개체 구분(concrete identity)](State-Representation)는 별도 경로로 보존하는 전이 표현이다.**
+> **Relational 상태 v3는 숨겨진 정답을 추가하는 표현이 아니라, 공개된 관측에서 concrete name의 불필요한 차이는 줄이되 의사결정에 중요한 공개된 상태 코드와 실행에 필요한 [실제 개체 구분(concrete identity)](State-Representation)는 별도 경로로 보존하는 전이 표현이다.**
 
 ---
 

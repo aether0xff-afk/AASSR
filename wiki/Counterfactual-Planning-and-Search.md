@@ -1,6 +1,6 @@
 # Counterfactual Planning and Search
 
-**Counterfactual planning**은 실제 행동을 하기 전에 "다른 행동을 했다면 어떤 미래가 생길까?"를 계산하고 비교하는 과정이다.
+**Counterfactual [계획(planning)](Counterfactual-Planning-and-Search)**은 실제 행동을 하기 전에 "다른 행동을 했다면 어떤 미래가 생길까?"를 계산하고 비교하는 과정이다.
 
 AASSR의 [Imagination](Imagination)은 learned [세계 모델(world model)](Model-Based-RL-and-World-Models)인 [Prophecy](Prophecy)를 이용해 이런 counterfactual future를 전개한다.
 
@@ -8,7 +8,7 @@ AASSR의 [Imagination](Imagination)은 learned [세계 모델(world model)](Mode
 
 # 1. Planning이란?
 
-Planning은 현재 가진 환경 model을 이용해 미래 consequences를 계산하고 행동을 선택하는 과정이다.
+Planning은 현재 가진 환경 [학습 모델(model)](Terminology-Guide)을 이용해 미래 consequences를 계산하고 행동을 선택하는 과정이다.
 
 ```text
 현재 상태
@@ -32,7 +32,7 @@ Planning
 → 현재 parameter를 이용해 행동 전에 계산함
 ```
 
-AASSR current main protocol에서 [Imagination(가상 미래 탐색)](Imagination)은 주로 planning 역할이다.
+AASSR [현재(current)](Current-Status) main [실험 규칙(protocol)](Ablation-Benchmarking-and-Reproducibility)에서 [Imagination(가상 미래 탐색)](Imagination)은 주로 계획 역할이다.
 
 ---
 
@@ -53,7 +53,7 @@ Counterfactual은 실제로 일어나지 않은 대안을 묻는다.
 
 를 모델을 통해 계산한다.
 
-AASSR에서는 아직 실행하지 않은 여러 root [행동(action)](Reinforcement-Learning)을 [Prophecy(미래 예측 모델)](Prophecy)로 전개한다.
+AASSR에서는 아직 실행하지 않은 여러 [탐색의 첫 행동(root)](Imagination) [행동(action)](Reinforcement-Learning)을 [Prophecy(미래 예측 모델)](Prophecy)로 전개한다.
 
 ---
 
@@ -68,7 +68,7 @@ Depth 2: two-step futures
 Depth 3: ...
 ```
 
-Lookahead depth가 길수록 장기 consequence를 더 볼 수 있지만 model error와 compute가 증가한다.
+Lookahead depth가 길수록 장기 consequence를 더 볼 수 있지만 학습 모델 error와 compute가 증가한다.
 
 ---
 
@@ -92,7 +92,7 @@ AASSR의 imagination depth는 이 trade-off 안에 있다.
 
 # 5. Search tree
 
-여러 행동과 stochastic outcome을 전개하면 tree가 된다.
+여러 행동과 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) outcome을 전개하면 tree가 된다.
 
 ```text
 S0
@@ -111,7 +111,7 @@ S0
 하지만 이 tree에는 서로 다른 종류의 branching이 섞여 있다.
 
 - [에이전트(agent)](Reinforcement-Learning)가 고르는 행동 branch
-- [환경(environment)](Reinforcement-Learning)가 만드는 stochastic outcome branch
+- [환경(environment)](Reinforcement-Learning)가 만드는 확률적 outcome branch
 
 AASSR은 이를 [Decision node와 Chance node](Chance-and-Decision-Nodes)로 분리한다.
 
@@ -127,9 +127,9 @@ AASSR은 이를 [Decision node와 Chance node](Chance-and-Decision-Nodes)로 분
 O(b^d)
 ```
 
-실제로 stochastic outcome branch까지 있으면 더 커질 수 있다.
+실제로 확률적 outcome branch까지 있으면 더 커질 수 있다.
 
-따라서 planner에는 pruning, beam search, dedup, [묶음 처리(batching)](Reproduction) 같은 계산 전략이 필요하다.
+따라서 [계획기(planner)](Counterfactual-Planning-and-Search)에는 pruning, beam search, dedup, [묶음 처리(batching)](Reproduction) 같은 계산 전략이 필요하다.
 
 ---
 
@@ -153,7 +153,7 @@ Depth 2: 확장
 
 - 초기에 낮게 평가된 중요한 branch가 잘릴 수 있음
 
-AASSR의 planner/[Skill(성공 절차 재사용)](Skills) rollout에서도 제한된 branching을 관리하는 아이디어가 사용된다.
+AASSR의 계획기/[Skill(성공 절차 재사용)](Skills) rollout에서도 제한된 branching을 관리하는 아이디어가 사용된다.
 
 ---
 
@@ -171,15 +171,15 @@ model reliability 너무 낮음
 → branch expansion 중단 가능
 ```
 
-하지만 pruning이 root 행동 자체를 삭제하게 되면 실제 legal 행동 비교가 왜곡될 수 있다.
+하지만 pruning이 탐색의 첫 행동 행동 자체를 삭제하게 되면 실제 legal 행동 비교가 왜곡될 수 있다.
 
-그래서 AASSR에서는 **root preservation**이 중요하다.
+그래서 AASSR에서는 **탐색의 첫 행동 preservation**이 중요하다.
 
 ---
 
 # 9. Root preservation
 
-어떤 root 행동의 깊은 rollout이 실패해도 이미 계산한 shallow value까지 잃을 필요는 없다.
+어떤 탐색의 첫 행동 행동의 깊은 rollout이 실패해도 이미 계산한 shallow [가치(value)](Value-Functions-and-Bellman-Equation)까지 잃을 필요는 없다.
 
 ```text
 Action A
@@ -200,7 +200,7 @@ depth 2 expansion 중단
 하지만 root A는 shallower evidence로 유지
 ```
 
-이것이 AASSR current planner의 중요한 설계 원칙이다.
+이것이 AASSR 현재 계획기의 중요한 설계 원칙이다.
 
 ---
 
@@ -224,7 +224,7 @@ Relational role이 같다면 세계 모델/[Critic(미래 가치 평가기)](Cri
 결과를 concrete aliases에 fan-out
 ```
 
-이를 통해 planning complexity를 크게 줄일 수 있다.
+이를 통해 계획 complexity를 크게 줄일 수 있다.
 
 하지만 실제 실행은 [실제 실행 행동(concrete action)](State-Representation)을 유지해야 한다.
 
@@ -247,9 +247,9 @@ Execution identity
 = concrete action
 ```
 
-두 행동이 planning 계산상 같은 구조라고 해서 실제 환경에서 같은 객체는 아니다.
+두 행동이 계획 계산상 같은 구조라고 해서 실제 환경에서 같은 객체는 아니다.
 
-따라서 dedup은 **계산 공유**이지 **실제 identity 병합**이 아니다.
+따라서 dedup은 **계산 공유**이지 **실제 [식별 방식(identity)](State-Representation) 병합**이 아니다.
 
 ---
 
@@ -277,9 +277,9 @@ Explicit rollout value
 Leaf value estimate
 ```
 
-짧은 horizon에서 model prediction을 쓰고, 그 이후는 [Critic](Critic)이 요약된 long-term value를 제공한다.
+짧은 horizon에서 학습 모델 [예측(prediction)](Terminology-Guide)을 쓰고, 그 이후는 [Critic](Critic)이 요약된 long-term 가치를 제공한다.
 
-이런 구조는 다양한 planning 알고리즘에서 흔한 아이디어다.
+이런 구조는 다양한 계획 알고리즘에서 흔한 아이디어다.
 
 ---
 
@@ -317,7 +317,7 @@ V=\max_iV_i
 
 하지만 에이전트가 outcome `i`를 선택할 수 없다면 이것은 지나치게 optimistic하다.
 
-AASSR은 stochastic outcome을 probability-weighted expectation으로 backup한다.
+AASSR은 확률적 outcome을 probability-weighted expectation으로 backup한다.
 
 ---
 
@@ -334,7 +334,7 @@ AASSR [Imagination](Imagination)도 넓은 의미에서 비슷한 receding-horiz
 → 다시 planning
 ```
 
-하지만 AASSR은 learned stochastic relational model과 RL [Policy(정책 모델)](Policy)/[Critic](Critic)을 사용하므로 전통적 continuous-control MPC와 동일한 알고리즘이라고 부르는 것은 부정확하다.
+하지만 AASSR은 learned 확률적 [관계 기반(relational)](Relational-Representation-and-Generalization) 학습 모델과 RL [Policy(정책 모델)](Policy)/[Critic](Critic)을 사용하므로 전통적 continuous-control MPC와 동일한 알고리즘이라고 부르는 것은 부정확하다.
 
 ---
 
@@ -351,10 +351,10 @@ Plan A0,A1,A2,A3
 
 장점:
 
-- model prediction과 실제 outcome 차이를 다음 decision에서 즉시 반영
+- 학습 모델 예측과 실제 outcome 차이를 다음 decision에서 즉시 반영
 - open-loop error 누적 감소
 
-AASSR은 실제 행동 하나 실행 후 다시 public response를 읽는 구조다.
+AASSR은 실제 행동 하나 실행 후 다시 [공개된(public)](State-Representation) [응답(response)](State-Representation)를 읽는 구조다.
 
 ---
 
@@ -380,16 +380,16 @@ AASSR [Imagination](Imagination)은 내부적으로 미래 sequence를 상상하
 
 # 19. Planning with uncertainty
 
-World model prediction이 unreliable한 branch까지 강하게 최적화하면 model error [활용(exploitation)](Exploration-and-Exploitation)이 생길 수 있다.
+World 학습 모델 예측이 unreliable한 branch까지 강하게 최적화하면 학습 모델 error [활용(exploitation)](Exploration-and-Exploitation)이 생길 수 있다.
 
-그래서 planner는:
+그래서 계획기는:
 
-- model reliability
-- critic support
+- 학습 모델 [신뢰도(reliability)](Calibration)
+- critic [데이터 근거(support)](Critic-Support-and-OOD)
 
 를 확인할 수 있다.
 
-AASSR current design은 uncertainty를 value bonus/penalty로 섞기보다 **eligibility gate**로 분리한다.
+AASSR 현재 design은 uncertainty를 가치 bonus/penalty로 섞기보다 **eligibility [판정 관문(gate)](Terminology-Guide)**로 분리한다.
 
 관련 페이지:
 
@@ -400,17 +400,17 @@ AASSR current design은 uncertainty를 value bonus/penalty로 섞기보다 **eli
 
 # 20. Intervention margin
 
-Planner가 [Policy](Policy)보다 아주 미세하게 높은 root를 찾았다고 바로 switch하면 noise에 민감할 수 있다.
+Planner가 [Policy](Policy)보다 아주 미세하게 높은 탐색의 첫 행동를 찾았다고 바로 switch하면 noise에 민감할 수 있다.
 
 ```math
 V_{candidate}-V_{policy}\ge m
 ```
 
-일 때만 override하도록 margin을 둘 수 있다.
+일 때만 [기본 행동 덮어쓰기(override)](Imagination)하도록 [최소 차이 기준(margin)](Imagination)을 둘 수 있다.
 
-AASSR current [Imagination](Imagination)은 fixed [실제 행동 개입(intervention)](Imagination) margin을 사용한다.
+AASSR 현재 [Imagination](Imagination)은 fixed [실제 행동 개입(intervention)](Imagination) 최소 차이 기준을 사용한다.
 
-중요한 점은 margin이 [보상(reward)](Sparse-Reward-and-Credit-Assignment)가 아니라 **행동 switch decision threshold**라는 것이다.
+중요한 점은 최소 차이 기준이 [보상(reward)](Sparse-Reward-and-Credit-Assignment)가 아니라 **행동 switch decision threshold**라는 것이다.
 
 ---
 
@@ -427,7 +427,7 @@ ON evaluation
 
 을 비교해야 한다.
 
-Training 중 planner 실제 행동 개입이 trajectory를 바꾸면 두 모델은 더 이상 같은 학습 조건이 아니다.
+Training 중 계획기 실제 행동 개입이 trajectory를 바꾸면 두 모델은 더 이상 같은 학습 조건이 아니다.
 
 관련 페이지:
 
@@ -446,9 +446,9 @@ Training 중 planner 실제 행동 개입이 trajectory를 바꾸면 두 모델�
 3. 그 candidate가 실제로 더 좋은 결과를 만듦
 ```
 
-AASSR의 과거 diagnostic은 1, 2는 성립해도 3이 자동으로 성립하지 않음을 보여줬다.
+AASSR의 과거 [진단 실험(diagnostic)](Evidence-Matrix)은 1, 2는 성립해도 3이 자동으로 성립하지 않음을 보여줬다.
 
-그래서 실제 행동 개입 count와 success를 따로 본다.
+그래서 실제 행동 개입 count와 [성공(success)](Terminology-Guide)를 따로 본다.
 
 ---
 
@@ -460,15 +460,15 @@ AASSR의 과거 diagnostic은 1, 2는 성립해도 3이 자동으로 성립하�
 
 ## Model exploitation
 
-Model이 틀리는 방향을 planner가 선택.
+Model이 틀리는 방향을 계획기가 선택.
 
 ## OOD leaf value
 
-[Critic](Critic)이 경험하지 않은 state에서 큰 값을 출력.
+[Critic](Critic)이 경험하지 않은 [상태(state)](State-Representation)에서 큰 값을 출력.
 
 ## Over-pruning
 
-중요한 root가 너무 일찍 삭제.
+중요한 탐색의 첫 행동가 너무 일찍 삭제.
 
 ## Optimistic chance backup
 
@@ -476,7 +476,7 @@ Model이 틀리는 방향을 planner가 선택.
 
 ## Inert planner
 
-모든 root가 비슷하거나 gate가 너무 강해 행동을 한 번도 바꾸지 못함.
+모든 탐색의 첫 행동가 비슷하거나 판정 관문가 너무 강해 행동을 한 번도 바꾸지 못함.
 
 ---
 

@@ -1,23 +1,23 @@
 # 실험 설계와 결과 (Experiments)
 
-이 페이지는 AASSR의 **실험 protocol, 비교 조건, evidence level, historical diagnostic, current claim boundary**를 정리한다.
+이 페이지는 AASSR의 **실험 [실험 규칙(protocol)](Ablation-Benchmarking-and-Reproducibility), 비교 조건, [증거(evidence)](Evidence-Matrix) level, [과거 기록(historical)](Development-History) [진단 실험(diagnostic)](Evidence-Matrix), [현재(current)](Current-Status) [연구 주장(claim)](Evidence-Matrix) boundary**를 정리한다.
 
 > [!IMPORTANT]
 > AASSR 저장소에는 여러 세대의 결과가 함께 남아 있다. 이 페이지에서는 숫자를 반드시 다음 중 하나로 분류한다.
 >
 > ```text
-> [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility) validation
-> mechanism diagnostic
-> historical root-cause diagnostic
-> current-generation reduced validation
+> [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility) [검증(validation)](Ablation-Benchmarking-and-Reproducibility)
+> mechanism 진단 실험
+> 과거 기록 root-cause 진단 실험
+> [현재 세대(current-generation)](Current-Status) reduced 검증
 > multi-[난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility) 표준 비교 실험
-> [최종 비공개 평가(final blind)](Ablation-Benchmarking-and-Reproducibility)ed evaluation
+> [최종 비공개 평가(final blind)](Ablation-Benchmarking-and-Reproducibility)ed [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)
 > ```
 >
 > 서로 다른 세대의 숫자를 한 표에 섞어 “성능 추세”처럼 해석하지 않는다.
 
 전체 연구 질문과 가설: [Research Questions](Research-Questions)  
-RQ별 변수·지표·claim 상태: [Evidence Matrix](Evidence-Matrix)
+RQ별 변수·지표·연구 주장 상태: [Evidence Matrix](Evidence-Matrix)
 
 ---
 
@@ -101,7 +101,7 @@ ordinary transition  0
 
 - guided progress score
 - oracle route proximity
-- hidden target proximity
+- [숨겨진(hidden)](MDP-and-POMDP) target proximity
 - intermediate proof hint
 - 사람이 만든 성공 [행동(action)](Reinforcement-Learning) sequence
 
@@ -117,26 +117,26 @@ external task reward
 internal information-value signal
 ```
 
-따라서 정보 가치 잔차을 “중간 보상 shaping”으로 보고 success 보상에 더한 값으로 해석하면 안 된다.
+따라서 정보 가치 잔차을 “중간 보상 shaping”으로 보고 [성공(success)](Terminology-Guide) 보상에 더한 값으로 해석하면 안 된다.
 
 ## 2.3 Observation boundary
 
-Learner는 [response-causal](Causality-Leakage-and-Evaluation) public information만 사용한다.
+Learner는 [response-causal](Causality-Leakage-and-Evaluation) [공개된(public)](State-Representation) information만 사용한다.
 
 허용 예:
 
-- 실제 response에서 관측한 latest HTTP-like status
+- 실제 [응답(response)](State-Representation)에서 관측한 latest HTTP-like [상태 코드(status)](Terminology-Guide)
 - 발견된 route/profile/object relation
 - 현재 legal 행동 surface
-- response에서 획득한 session/CSRF fact
+- 응답에서 획득한 session/CSRF fact
 
 금지 예:
 
-- hidden target identity
-- exact hidden audit pressure
-- exact hidden session countdown
+- 숨겨진 target [식별 방식(identity)](State-Representation)
+- exact 숨겨진 audit pressure
+- exact 숨겨진 session countdown
 - future outcome
-- hidden [난이도 조절 학습(curriculum)](Curriculum-Learning) label을 learner state로 직접 주입
+- 숨겨진 [난이도 조절 학습(curriculum)](Curriculum-Learning) label을 [학습 주체(learner)](Terminology-Guide) [상태(state)](State-Representation)로 직접 주입
 
 ---
 
@@ -154,7 +154,7 @@ flowchart LR
     C --> P[Proof]
 ```
 
-환경은 다음과 같은 public inter행동 structure를 모사한다.
+환경은 다음과 같은 공개된 inter행동 structure를 모사한다.
 
 - `200/302/400/401/403/404/409/429`
 - redirect
@@ -168,11 +168,11 @@ flowchart LR
 - decoy routes
 - 난수 시드마다 바뀌는 opaque identifiers
 
-실제 network socket, shell, external target은 사용하지 않는다.
+실제 [신경망(network)](Neural-Networks-and-Optimization) socket, shell, external target은 사용하지 않는다.
 
 ## 3.1 난도 validation
 
-40 evaluation 난수 시드s에서 표준 비교 실험 validation 비교 기준:
+40 평가 난수 시드s에서 표준 비교 실험 검증 비교 기준:
 
 | Tier | Oracle | Random | Browse-first | Response-guided | Abstract Q |
 |---|---:|---:|---:|---:|---:|
@@ -193,7 +193,7 @@ Response-guided degradation
 → 난도 차이가 존재
 ```
 
-이 결과는 **AASSR 우위 evidence가 아니다.** [표준 비교 실험(Benchmark)](Ablation-Benchmarking-and-Reproducibility)가 [에이전트(agent)](Reinforcement-Learning) comparison에 사용할 수 있는지 검증한 것이다.
+이 결과는 **AASSR 우위 증거가 아니다.** [표준 비교 실험(Benchmark)](Ablation-Benchmarking-and-Reproducibility)가 [에이전트(agent)](Reinforcement-Learning) comparison에 사용할 수 있는지 검증한 것이다.
 
 ---
 
@@ -201,14 +201,14 @@ Response-guided degradation
 
 질문:
 
-> guided trajectory와 shaping 보상 없이 real success experience가 발생하는가?
+> guided trajectory와 shaping 보상 없이 real 성공 experience가 발생하는가?
 
 관련: [Research Questions — RQ1](Research-Questions#rq1--희소-보상만으로-최초-성공을-발견할-수-있는가)
 
 ## 관측해야 할 값
 
 - first proof [상태 전이(transition)](MDP-and-POMDP) index
-- total training proofs
+- total [학습(training)](Terminology-Guide) proofs
 - 난이도 조절 학습 promotion / demotion
 - frontier exposure
 - stalled episodes
@@ -228,13 +228,13 @@ Easy → Medium → Hard exposure
 
 ## 현재 evidence 해석
 
-과거 autonomous pilot과 focused training에서 human-written success sequence 없이 proof가 발생한 사례가 있다.
+과거 autonomous pilot과 focused 학습에서 human-written 성공 sequence 없이 proof가 발생한 사례가 있다.
 
 이것은:
 
 > “autonomous proof discovery가 가능하다”
 
-라는 좁은 evidence다.
+라는 좁은 증거다.
 
 이것만으로:
 
@@ -264,26 +264,26 @@ dqn_relational
 |---|---|
 | 보상 | 표현 |
 | 상태 전이 budget | 표현 |
-| [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) training protocol | 표현 |
+| [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) 학습 실험 규칙 | 표현 |
 | eval 난수 시드s | 표현 |
 | 난이도 조절 학습 exposure | 표현 |
 
 ## Primary metrics
 
-- 학습 중 보지 못한 success
-- tier별 success
+- 학습 중 보지 못한 성공
+- tier별 성공
 - milestone reach
 - stalled rate
 - mean requests
 
 ## Secondary diagnostics
 
-- state/행동 collision rate
+- 상태/행동 collision rate
 - 표현 alias frequency
 - rename permutation consistency
 
 > [!NOTE]
-> Current [State Representation v3](State-Representation)은 latest public HTTP status를 보존한다. 따라서 과거 relational v2와 current v3 결과를 같은 표현 condition으로 취급하면 안 된다.
+> Current [State Representation v3](State-Representation)은 latest 공개된 HTTP 상태 코드를 보존한다. 따라서 과거 [관계 기반(relational)](Relational-Representation-and-Generalization) v2와 현재 v3 결과를 같은 표현 condition으로 취급하면 안 된다.
 
 ---
 
@@ -291,7 +291,7 @@ dqn_relational
 
 질문:
 
-> semantic `S → A → S` evidence를 사용하면 stalled behavior를 줄일 수 있는가?
+> semantic `S → A → S` 증거를 사용하면 stalled behavior를 줄일 수 있는가?
 
 ## 6.1 No-retraining diagnostic
 
@@ -310,18 +310,18 @@ exact ASEQ stalled        0 / 24
 | L2 pre-demotion | 0/8 | 7/8 |
 | post-demotion retrained | 0/8 | 5/8 |
 
-이 결과는 **[ASEQ](ASEQ) guard의 mechanism diagnostic**이다.
+이 결과는 **[ASEQ](ASEQ) guard의 mechanism 진단 실험**이다.
 
 ## 6.2 Consistent retraining diagnostic
 
 학습과 평가 모두 exact [ASEQ](ASEQ) rule을 사용한 focused run:
 
-| training mode | training successes | L0 | L1 | L2 |
+| 학습 mode | 학습 successes | L0 | L1 | L2 |
 |---|---:|---:|---:|---:|
 | legacy filter | 29 | 15 | 14 | 0 |
 | exact [ASEQ](ASEQ) | **50** | **30** | **19** | **1** |
 
-Unseen evaluation:
+Unseen 평가:
 
 | trained with | L0 | L1 | L2 |
 |---|---:|---:|---:|
@@ -333,21 +333,21 @@ Unseen evaluation:
 - research 난수 시드 1개
 - 학습 중 보지 못한 난수 시드 8개
 - focused L0~L2 experiment
-- current Full final 표준 비교 실험가 아님
+- 현재 Full final 표준 비교 실험가 아님
 
-따라서 이 숫자를 current AASSR leaderboard에 넣지 않는다.
+따라서 이 숫자를 현재 AASSR leaderboard에 넣지 않는다.
 
 ---
 
 # 7. RQ4/RQ5 — Prophecy & Calibration
 
-Current [Prophecy](Prophecy) contract:
+Current [Prophecy](Prophecy) [명세(contract)](Current-Status):
 
 ```text
 relational-conditional-mixture-ensemble-v5-status-balanced
 ```
 
-Current [Calibration](Calibration) contract:
+Current [Calibration](Calibration) 명세:
 
 ```text
 semantic-probability-holdout-calibration-v3-status-aware
@@ -366,24 +366,24 @@ semantic-probability-holdout-calibration-v3-status-aware
 - legal-slot precision / recall
 
 ### Terminal
-- active / success / failure / [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries) class accuracy
-- rare [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) recall
+- [현재 활성(active)](Current-Status) / 성공 / [실패(failure)](Replay-Buffer-and-Episode-Boundaries) / [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries) class accuracy
+- [드문(rare)](Loss-Functions-and-Class-Imbalance) [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) recall
 
 ### Public status
-- categorical status accuracy
-- status confusion matrix
-- rare `403/404/429` recall
+- [범주형(categorical)](Loss-Functions-and-Class-Imbalance) 상태 코드 accuracy
+- 상태 코드 confusion matrix
+- 드문 `403/404/429` recall
 
 ### Multimodality
-- mixture component usage
+- mixture [구성요소(component)](Research-Architecture) usage
 - outcome mass normalization
 - multiple empirical outcome preservation
 
 ## 7.2 Calibration metrics
 
-Prediction quality와 reliability quality는 다르다.
+Prediction quality와 [신뢰도(reliability)](Calibration) quality는 다르다.
 
-필요한 diagnostic:
+필요한 진단 실험:
 
 ```text
 reliability bucket
@@ -399,13 +399,13 @@ reliability bucket
 | 0.7–0.8 | ? |
 | ... | ... |
 
-가능하면 expected calibration error류의 summary뿐 아니라 **decision-critical channel별 reliability**를 같이 본다.
+가능하면 expected calibration error류의 summary뿐 아니라 **[의사결정에 중요한(decision-critical)](Calibration) channel별 신뢰도**를 같이 본다.
 
 ## 7.3 왜 이게 필요해졌나?
 
-2026-08-11 diagnostic에서 전체 semantic quality는 높게 보였지만 planner [실제 행동 개입(intervention)](Imagination)은 많은 `403/404/429` 오류를 만들었다.
+2026-08-11 진단 실험에서 전체 semantic quality는 높게 보였지만 [계획기(planner)](Counterfactual-Planning-and-Search) [실제 행동 개입(intervention)](Imagination)은 많은 `403/404/429` 오류를 만들었다.
 
-전체 root cause는 별도 보관한다.
+전체 [탐색의 첫 행동(root)](Imagination) cause는 별도 보관한다.
 
 → [Historical Imagination Diagnostic — 2026-08-11](Historical-Imagination-Diagnostic-2026-08-11)
 
@@ -436,16 +436,16 @@ A: local support gate OFF
 B: local support gate ON
 ```
 
-단, gate OFF가 위험한 unsupported 행동을 허용할 수 있으므로 diagnostic [환경(environment)](Reinforcement-Learning)와 failure accounting을 엄격히 유지한다.
+단, [판정 관문(gate)](Terminology-Guide) OFF가 위험한 unsupported 행동을 허용할 수 있으므로 진단 실험 [환경(environment)](Reinforcement-Learning)와 실패 accounting을 엄격히 유지한다.
 
 ## Primary mechanism metrics
 
-- support pass rate
-- support reject rate
+- [데이터 근거(support)](Critic-Support-and-OOD) pass rate
+- 데이터 근거 reject rate
 - unsupported high-value candidate count
 - 실제 행동 개입 error rate
 - successful 실제 행동 개입 rate
-- planner activity after gate
+- 계획기 activity after 판정 관문
 
 ## Fail-closed의 두 실패 모드
 
@@ -464,7 +464,7 @@ OOD value extrapolation
 → planner inert
 ```
 
-따라서 **안전성과 planner usability를 동시에 측정**한다.
+따라서 **안전성과 계획기 usability를 동시에 측정**한다.
 
 ---
 
@@ -483,11 +483,11 @@ OFF                   ON
 Policy-only       Imagination
 ```
 
-OFF와 ON을 따로 재학습하면 hard comparison failure다.
+OFF와 ON을 따로 재학습하면 hard comparison 실패다.
 
 ## 9.2 왜 training-time Imagination을 끄는가?
 
-현재 primary marginal-effect comparison에서 training-time planner가 replay distribution까지 바꾸면:
+현재 primary marginal-effect comparison에서 training-time 계획기가 replay distribution까지 바꾸면:
 
 ```text
 planner effect
@@ -497,7 +497,7 @@ planner effect
 
 가 섞인다.
 
-그래서 current manifest는:
+그래서 현재 manifest는:
 
 ```text
 training_imagination = disabled-same-checkpoint
@@ -509,8 +509,8 @@ training_imagination = disabled-same-checkpoint
 
 ### Opportunity
 - plan count
-- root count
-- structural root count
+- 탐색의 첫 행동 count
+- structural 탐색의 첫 행동 count
 
 ### Gate
 - unreliable suppressions
@@ -525,8 +525,8 @@ training_imagination = disabled-same-checkpoint
 - bad-status 실제 행동 개입s
 
 ### Final task
-- success
-- true failure
+- 성공
+- true 실패
 - stalled
 - 외부 제한 종료
 - milestone reach
@@ -539,7 +539,7 @@ training_imagination = disabled-same-checkpoint
 
 ## 9.4 Historical 2026-08-11 result
 
-과거 diagnostic:
+과거 진단 실험:
 
 ```text
 no-Imagination 4/20
@@ -548,7 +548,7 @@ interventions  86
 bad-status     58/86
 ```
 
-이 숫자는 current v5/[상태 코드까지 고려하는(status-aware)](Calibration)/local-support architecture의 final result가 아니다.
+이 숫자는 현재 v5/[상태 코드까지 고려하는(status-aware)](Calibration)/local-support [구조(architecture)](Research-Architecture)의 final result가 아니다.
 
 상세: [Historical Imagination Diagnostic — 2026-08-11](Historical-Imagination-Diagnostic-2026-08-11)
 
@@ -556,15 +556,15 @@ bad-status     58/86
 
 # 10. RQ8 — Five-condition final suite
 
-최종 current-generation comparison row:
+최종 현재 세대 comparison row:
 
-| Condition | [표현(Representation)](Relational-Representation-and-Generalization) | Model-based component | 역할 |
+| Condition | [표현(Representation)](Relational-Representation-and-Generalization) | Model-based 구성요소 | 역할 |
 |---|---|---|---|
-| `dqn_raw` | raw current | none | corrected model-free 비교 기준 |
-| `dqn_relational` | relational current | none | 표현 [구성요소 제거 비교(ablation)](Ablation-Benchmarking-and-Reproducibility) |
-| `dreamerv3_relational` | relational current | official [DreamerV3(외부 세계 모델 강화학습 비교군)](Experiments) | external model-based 비교 기준 |
-| `aassr_current_no_imagination` | relational current | AASSR models, planner OFF | non-[Imagination(가상 미래 탐색)](Imagination) AASSR stack |
-| `aassr_current_full` | relational current | AASSR planner ON | [Imagination](Imagination) marginal effect |
+| `dqn_raw` | raw 현재 | none | corrected model-free 비교 기준 |
+| `dqn_relational` | 관계 기반 현재 | none | 표현 [구성요소 제거 비교(ablation)](Ablation-Benchmarking-and-Reproducibility) |
+| `dreamerv3_relational` | 관계 기반 현재 | official [DreamerV3(외부 세계 모델 강화학습 비교군)](Experiments) | external model-based 비교 기준 |
+| `aassr_current_no_imagination` | 관계 기반 현재 | AASSR models, 계획기 OFF | non-[Imagination(가상 미래 탐색)](Imagination) AASSR stack |
+| `aassr_current_full` | 관계 기반 현재 | AASSR 계획기 ON | [Imagination](Imagination) marginal effect |
 
 ## 10.1 AASSR OFF/ON checkpoint 수
 
@@ -585,11 +585,11 @@ AASSR checkpoint
 
 Imagined rollout step은 환경 sample로 세지 않는다.
 
-다만 compute cost는 별도 runtime 평가지표으로 반드시 보고한다.
+다만 compute cost는 별도 [실행 구조(runtime)](Current-Status) 평가지표으로 반드시 보고한다.
 
 ## 10.3 DreamerV3 fairness boundary
 
-[DreamerV3](Experiments) 비교 기준은 upstream 알고리즘을 AASSR에 유리하도록 개조하는 것이 아니라, pinned official implementation을 current [관측(observation)](MDP-and-POMDP)/행동 interface에 adapter로 연결하는 방향을 사용한다.
+[DreamerV3](Experiments) 비교 기준은 upstream 알고리즘을 AASSR에 유리하도록 개조하는 것이 아니라, pinned official implementation을 현재 [관측(observation)](MDP-and-POMDP)/행동 interface에 adapter로 연결하는 방향을 사용한다.
 
 최종 result에는 반드시:
 
@@ -598,7 +598,7 @@ Imagined rollout step은 환경 sample로 세지 않는다.
 - JAX platform
 - train ratio
 - dtype
-- adapter contract
+- adapter 명세
 
 를 기록한다.
 
@@ -610,7 +610,7 @@ Imagined rollout step은 환경 sample로 세지 않는다.
 
 질문:
 
-> repeated successful real ASeq를 relational template로 승격하면 학습 중 보지 못한 난수 시드에서 primitive-only보다 재사용 효율이 좋아지는가?
+> repeated successful real ASeq를 관계 기반 template로 승격하면 학습 중 보지 못한 난수 시드에서 primitive-only보다 재사용 효율이 좋아지는가?
 
 ## 비교 후보
 
@@ -626,11 +626,11 @@ relational Skill
 
 - [Skill(성공 절차 재사용)](Skills) promotion count
 - promotion precision
-- concrete rebinding success
+- concrete rebinding 성공
 - unavailable primitive rate
-- [Skill](Skills) completion success
+- [Skill](Skills) completion 성공
 - 상태 전이s saved
-- stochastic rollout branch survival
+- [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) rollout branch survival
 - primitive [탐색(exploration)](Exploration-and-Exploitation) suppression
 
 [Skill](Skills)이 잘 작동해도 그것이 곧 “창의성”은 아니다.
@@ -655,12 +655,12 @@ condition
 
 각 cell에서:
 
-- success count / denominator
-- true failure
+- 성공 count / denominator
+- true 실패
 - stalled
 - 외부 제한 종료
 - mean/median requests
-- runtime
+- 실행 구조
 
 을 보존한다.
 
@@ -671,7 +671,7 @@ condition
 - mean across research 난수 시드s
 - standard deviation
 - 난수 시드-level raw values
-- binomial success uncertainty 또는 적절한 confidence interval
+- binomial 성공 uncertainty 또는 적절한 confidence interval
 
 을 함께 보고한다.
 
@@ -694,13 +694,13 @@ true failure
 
 은 **task 평가지표**이다.
 
-Mechanism 평가지표이 좋아졌다고 final success가 자동으로 좋아진 것은 아니다.
+Mechanism 평가지표이 좋아졌다고 final 성공가 자동으로 좋아진 것은 아니다.
 
 ---
 
 # 13. 최종 claim gate
 
-다음 표현은 evidence level을 충족하기 전까지 사용하지 않는다.
+다음 표현은 증거 level을 충족하기 전까지 사용하지 않는다.
 
 ```text
 “AASSR이 DQN보다 우수하다.”
@@ -709,7 +709,7 @@ Mechanism 평가지표이 좋아졌다고 final success가 자동으로 좋아�
 “Relational representation이 일반화를 유의미하게 개선한다.”
 ```
 
-각 문장을 사용하려면 대응되는 RQ의 current-generation controlled evidence가 있어야 한다.
+각 문장을 사용하려면 대응되는 RQ의 현재 세대 controlled 증거가 있어야 한다.
 
 Claim 상태는 [Evidence Matrix](Evidence-Matrix)와 [Current Status](Current-Status)에 기록한다.
 

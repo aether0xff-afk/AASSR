@@ -1,6 +1,6 @@
 # Skills — 성공 절차 재사용
 
-[Skill(성공 절차 재사용)](Skills)은 AASSR에서 **반복해서 성공한 실제 ASeq 구조를 relational template로 승격해 다시 사용할 수 있게 하는 메커니즘**이다.
+[Skill(성공 절차 재사용)](Skills)은 AASSR에서 **반복해서 성공한 실제 ASeq 구조를 [관계 기반(relational)](Relational-Representation-and-Generalization) template로 승격해 다시 사용할 수 있게 하는 메커니즘**이다.
 
 사람이 정답 macro를 미리 넣어주는 기능이 아니다.
 
@@ -17,7 +17,7 @@ Skill template 승격
 > [!IMPORTANT]
 > 현재 manifest 계약: `relational-aseq-template-v1`  
 > template promotion: `RelationalSkillLibrary` in `current_generation.py`  
-> stochastic rollout: `src/aassr_v2/current_relational_skill_prophecy.py`
+> [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) rollout: `src/aassr_v2/current_relational_skill_prophecy.py`
 
 ---
 
@@ -74,13 +74,13 @@ REQUEST object-2
 
 Raw signature sequence를 그대로 재생하면 [전이(transfer)](Relational-Representation-and-Generalization)가 실패한다.
 
-그래서 current [Skill](Skills)은 각 primitive를 **relational 행동 template**로 저장한다.
+그래서 [현재(current)](Current-Status) [Skill](Skills)은 각 primitive를 **관계 기반 행동 template**로 저장한다.
 
 ---
 
 # 4. Relational template
 
-실제 성공 trace의 각 행동을 relational key로 바꾼다.
+실제 성공 trace의 각 행동을 관계 기반 key로 바꾼다.
 
 ```text
 trace action A0 -> relational template T0
@@ -94,13 +94,13 @@ trace action A2 -> relational template T2
 Skill = (T0, T1, T2, ...)
 ```
 
-새 state에서는 `T_i`와 같은 relational role을 가진 현재 legal [실제 실행 행동(concrete action)](State-Representation)을 찾아 다시 bind한다.
+새 [상태(state)](State-Representation)에서는 `T_i`와 같은 관계 기반 role을 가진 현재 legal [실제 실행 행동(concrete action)](State-Representation)을 찾아 다시 bind한다.
 
 ---
 
 # 5. Concrete rebinding
 
-[Skill](Skills) step `i`에서 current 행동 surface를 검색한다.
+[Skill](Skills) step `i`에서 현재 행동 surface를 검색한다.
 
 ```text
 현재 legal actions
@@ -121,13 +121,13 @@ matching concrete candidates
 실행은 concrete
 ```
 
-라는 AASSR의 identity 원칙을 그대로 따른다.
+라는 AASSR의 [식별 방식(identity)](State-Representation) 원칙을 그대로 따른다.
 
 ---
 
 # 6. Promotion
 
-현재 relational library는 goal completion에서 최근 ASeq를 관측해 동일 template가 반복 성공했는지 센다.
+현재 관계 기반 library는 goal completion에서 최근 ASeq를 관측해 동일 template가 반복 성공했는지 센다.
 
 기본적인 아이디어:
 
@@ -157,7 +157,7 @@ primitive C
 skill-0001
 ```
 
-하지만 [Skill](Skills)을 실행하면 내부적으로 현재 state에 맞는 primitive sequence로 풀린다.
+하지만 [Skill](Skills)을 실행하면 내부적으로 현재 상태에 맞는 primitive sequence로 풀린다.
 
 즉 [환경(environment)](Reinforcement-Learning)에 새로운 초능력 행동을 추가하는 것이 아니다.
 
@@ -165,9 +165,9 @@ skill-0001
 
 # 8. Skill과 Policy
 
-Primitive 행동의 external value는 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD)이 담당한다.
+Primitive 행동의 external [가치(value)](Value-Functions-and-Bellman-Equation)는 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD)이 담당한다.
 
-[Skill](Skills)은 별도 identity를 가지기 때문에 [Policy](Policy)에서 [Skill](Skills) value를 별도로 관리할 수 있다.
+[Skill](Skills)은 별도 식별 방식를 가지기 때문에 [Policy](Policy)에서 [Skill](Skills) 가치를 별도로 관리할 수 있다.
 
 중요한 점은 [Skill](Skills)이 존재한다고 항상 선택되는 것이 아니라 다른 현재 후보들과 가치 비교를 거친다는 것이다.
 
@@ -190,9 +190,9 @@ Prophecy(T1)
 Prophecy(T2)
 ```
 
-초기 구현에서 매 primitive마다 가장 높은 probability outcome 하나만 선택하면 stochastic future가 collapse된다.
+초기 구현에서 매 primitive마다 가장 높은 probability outcome 하나만 선택하면 확률적 future가 collapse된다.
 
-current-generation은 이 문제를 수리해 [Skill](Skills) rollout에서도 여러 outcome branch를 작은 beam으로 유지한다.
+[현재 세대(current-generation)](Current-Status)은 이 문제를 수리해 [Skill](Skills) rollout에서도 여러 outcome branch를 작은 beam으로 유지한다.
 
 ---
 
@@ -208,9 +208,9 @@ reliability
 = 각 primitive prediction을 신뢰할 수 있는 정도의 누적
 ```
 
-이 둘을 곱해 하나의 의미로 섞어버리면 planner semantics가 흐려진다.
+이 둘을 곱해 하나의 의미로 섞어버리면 [계획기(planner)](Counterfactual-Planning-and-Search) semantics가 흐려진다.
 
-current stochastic [Skill](Skills) [Prophecy(미래 예측 모델)](Prophecy)는 여러 outcome의 mass를 유지하면서 reliability도 별도로 누적한다.
+현재 확률적 [Skill](Skills) [Prophecy(미래 예측 모델)](Prophecy)는 여러 outcome의 mass를 유지하면서 [신뢰도(reliability)](Calibration)도 별도로 누적한다.
 
 ---
 
@@ -230,13 +230,13 @@ outcome mass / reliability 기준 정렬
 mass renormalization
 ```
 
-이것은 단순히 가장 좋은 미래 하나를 고르는 것이 아니라 **중요한 stochastic mass를 제한된 계산량에서 유지하려는 근사**다.
+이것은 단순히 가장 좋은 미래 하나를 고르는 것이 아니라 **중요한 확률적 mass를 제한된 계산량에서 유지하려는 근사**다.
 
 ---
 
 # 12. Skill 실패가 왜 중요한가?
 
-훈련에서 성공했던 relational template라도 새 scenario에서는 중간 primitive가 legal하지 않을 수 있다.
+훈련에서 성공했던 관계 기반 template라도 새 scenario에서는 중간 primitive가 legal하지 않을 수 있다.
 
 ```text
 T0 resolve 성공
@@ -246,7 +246,7 @@ T2 matching concrete action 없음
 
 이 경우 [Skill](Skills)을 억지로 실행하면 안 된다.
 
-current path는 unavailable state를 표시하거나 confidence를 낮춰 planner가 이를 신뢰하지 않도록 한다.
+현재 path는 unavailable 상태를 표시하거나 confidence를 낮춰 계획기가 이를 신뢰하지 않도록 한다.
 
 ---
 
@@ -258,7 +258,7 @@ current path는 unavailable state를 표시하거나 confidence를 낮춰 planne
 
 창의성 연구 질문은 별도다.
 
-> 기존 [Skill](Skills)과 training trajectory를 그대로 복제하지 않고도 새로운 유효한 해결 경로가 나오는가?
+> 기존 [Skill](Skills)과 [학습(training)](Terminology-Guide) trajectory를 그대로 복제하지 않고도 새로운 유효한 해결 경로가 나오는가?
 
 따라서 [Skill](Skills) 사용 성공과 새로운 해결 경로 생성은 구분해서 분석해야 한다.
 
@@ -286,31 +286,31 @@ Skill
 
 raw ID sequence를 저장하면 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) 난수 시드 전이 실패.
 
-대응: relational template + current concrete rebinding.
+대응: 관계 기반 template + 현재 concrete rebinding.
 
 ## 15.2 Premature promotion
 
 우연히 한 번 성공한 sequence를 강한 [Skill](Skills)로 고정하면 잘못된 macro가 강화될 수 있다.
 
-대응: 반복 성공 evidence, reliability/failure accounting.
+대응: 반복 성공 [증거(evidence)](Evidence-Matrix), 신뢰도/[실패(failure)](Replay-Buffer-and-Episode-Boundaries) accounting.
 
 ## 15.3 Stochastic collapse
 
-[Skill](Skills) rollout에서 매 step 가장 높은 outcome만 남기면 위험한 stochastic branch를 잃는다.
+[Skill](Skills) rollout에서 매 step 가장 높은 outcome만 남기면 위험한 확률적 branch를 잃는다.
 
-대응: stochastic outcome beam.
+대응: 확률적 outcome beam.
 
 ## 15.4 Unavailable primitive
 
-새 state에서 template에 맞는 legal 실제 실행 행동이 없음.
+새 상태에서 template에 맞는 legal 실제 실행 행동이 없음.
 
 대응: unavailable / low-confidence 처리.
 
 ## 15.5 Skill domination
 
-한 [Skill](Skills)의 value가 과도하게 높아져 primitive [탐색(exploration)](Exploration-and-Exploitation)을 막을 수 있다.
+한 [Skill](Skills)의 가치가 과도하게 높아져 primitive [탐색(exploration)](Exploration-and-Exploitation)을 막을 수 있다.
 
-대응: primitive와 같은 외부 objective 기준에서 평가하고 별도 diagnostic을 유지해야 한다.
+대응: primitive와 같은 외부 [학습 목표(objective)](Terminology-Guide) 기준에서 평가하고 별도 [진단 실험(diagnostic)](Evidence-Matrix)을 유지해야 한다.
 
 ---
 

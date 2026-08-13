@@ -2,7 +2,7 @@
 
 **Hierarchical [강화학습(Reinforcement Learning)](Reinforcement-Learning)(HRL)** 은 긴 문제를 여러 시간 규모의 행동 단위로 나누는 강화학습 연구 방향이다.
 
-AASSR의 [Skills](Skills)는 이 문제와 연결되지만, 사람이 정답 macro를 미리 제공하는 방식이 아니라 **반복 성공한 실제 ASeq를 relational template로 승격**한다.
+AASSR의 [Skills](Skills)는 이 문제와 연결되지만, 사람이 정답 macro를 미리 제공하는 방식이 아니라 **반복 성공한 실제 ASeq를 [관계 기반(relational)](Relational-Representation-and-Generalization) template로 승격**한다.
 
 ---
 
@@ -35,7 +35,7 @@ High-level:
 Skill X
 ```
 
-고수준 planner는 `Skill X`를 하나의 선택처럼 다룰 수 있다.
+고수준 [계획기(planner)](Counterfactual-Planning-and-Search)는 `Skill X`를 하나의 선택처럼 다룰 수 있다.
 
 ---
 
@@ -50,11 +50,11 @@ Macro M = [A1,A2,A3]
 장점:
 
 - 긴 sequence 재사용
-- planning horizon 축소
+- [계획(planning)](Counterfactual-Planning-and-Search) horizon 축소
 
 하지만 concrete ID를 그대로 macro에 넣으면 [전이(transfer)](Relational-Representation-and-Generalization)가 약하다.
 
-AASSR은 raw macro보다 relational template를 사용한다.
+AASSR은 raw macro보다 관계 기반 template를 사용한다.
 
 ---
 
@@ -76,7 +76,7 @@ Hierarchical RL에서 유명한 개념 중 하나가 **option**이다.
 
 즉 단순 고정 sequence보다 일반적인 temporally extended 행동이다.
 
-AASSR [Skill(성공 절차 재사용)](Skills)이 고전적인 option framework와 동일한 구현이라는 뜻은 아니다.
+AASSR [Skill(성공 절차 재사용)](Skills)이 고전적인 option [문제 표현 틀(framework)](Terminology-Guide)와 동일한 구현이라는 뜻은 아니다.
 
 하지만 "여러 primitive를 재사용 가능한 고수준 행동으로 만든다"는 연구 배경은 연결된다.
 
@@ -86,7 +86,7 @@ AASSR [Skill(성공 절차 재사용)](Skills)이 고전적인 option framework�
 
 넓은 RL 문맥에서 skill은 재사용 가능한 행동 패턴/subpolicy를 의미할 수 있다.
 
-AASSR current [Skill](Skills)은 더 구체적이다.
+AASSR [현재(current)](Current-Status) [Skill](Skills)은 더 구체적이다.
 
 ```text
 실제 성공 trajectory
@@ -136,7 +136,7 @@ researcher knows correct sequence
 
 하지만 AASSR 연구에서는 "정답 수행 과정을 인간이 미리 주입하지 않는다"는 원칙이 중요하다.
 
-그래서 current [Skill](Skills)은 **실제 [에이전트(agent)](Reinforcement-Learning) 성공 experience에서만 promotion**된다.
+그래서 현재 [Skill](Skills)은 **실제 [에이전트(agent)](Reinforcement-Learning) 성공 experience에서만 promotion**된다.
 
 ---
 
@@ -147,13 +147,13 @@ researcher knows correct sequence
 가능한 접근:
 
 - 자주 반복되는 subtrajectory
-- bottleneck state
-- diversity objective
+- bottleneck [상태(state)](State-Representation)
+- diversity [학습 목표(objective)](Terminology-Guide)
 - eigenoptions
 - unsupervised skill discovery
 - goal-conditioned behavior
 
-AASSR은 그중 **goal completion에 실제로 반복 기여한 relational ASeq**를 promotion하는 좁고 auditable한 방식을 사용한다.
+AASSR은 그중 **goal completion에 실제로 반복 기여한 관계 기반 ASeq**를 promotion하는 좁고 auditable한 방식을 사용한다.
 
 ---
 
@@ -207,7 +207,7 @@ request [target-like object role]
 
 # 11. Initiation condition과 AASSR Skill
 
-고전 option의 initiation set처럼, AASSR [Skill](Skills)도 모든 state에서 실행 가능한 것은 아니다.
+고전 option의 initiation set처럼, AASSR [Skill](Skills)도 모든 상태에서 실행 가능한 것은 아니다.
 
 각 template step에 맞는 concrete legal 행동이 현재 행동 surface에 있어야 한다.
 
@@ -233,7 +233,7 @@ A1 실행
 → 그래도 A2,A3 강제 실행
 ```
 
-AASSR [Skill](Skills) execution/prediction은 current state에 맞는 concrete primitive를 step마다 resolve하는 구조를 가져, 단순 raw script replay와 차이가 있다.
+AASSR [Skill](Skills) execution/[예측(prediction)](Terminology-Guide)은 현재 상태에 맞는 concrete primitive를 step마다 resolve하는 구조를 가져, 단순 raw script replay와 차이가 있다.
 
 ---
 
@@ -251,9 +251,9 @@ A1
       └→ A2 → ...
 ```
 
-각 step에서 best outcome 하나만 선택하면 stochastic risk를 잃을 수 있다.
+각 step에서 best outcome 하나만 선택하면 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) risk를 잃을 수 있다.
 
-AASSR current [Skill](Skills) [Prophecy(미래 예측 모델)](Prophecy)는 여러 outcome을 작은 beam으로 유지한다.
+AASSR 현재 [Skill](Skills) [Prophecy(미래 예측 모델)](Prophecy)는 여러 outcome을 작은 beam으로 유지한다.
 
 ---
 
@@ -271,7 +271,7 @@ prediction reliability
 
 Sequence가 길어질수록 primitive [예측 신뢰도(prediction reliability)](Calibration)가 누적되어 전체 [Skill](Skills) confidence가 낮아질 수 있다.
 
-동시에 stochastic outcome mass도 branch별로 별도로 추적해야 한다.
+동시에 확률적 outcome mass도 branch별로 별도로 추적해야 한다.
 
 관련 페이지:
 
@@ -281,7 +281,7 @@ Sequence가 길어질수록 primitive [예측 신뢰도(prediction reliability)]
 
 # 15. Skill beam
 
-Primitive마다 `M`개의 stochastic outcome이 있고 [Skill](Skills) 길이가 `L`이면 naive branch 수는 `M^L`로 늘어날 수 있다.
+Primitive마다 `M`개의 확률적 outcome이 있고 [Skill](Skills) 길이가 `L`이면 naive branch 수는 `M^L`로 늘어날 수 있다.
 
 그래서 일부 branch만 유지한다.
 
@@ -291,7 +291,7 @@ candidate branches 생성
 → retained mass renormalize
 ```
 
-이는 exact planning의 근사다.
+이는 exact 계획의 근사다.
 
 ---
 
@@ -299,8 +299,8 @@ candidate branches 생성
 
 - 긴 horizon 압축
 - 반복되는 해결 구조 재사용
-- higher-level planning 가능
-- 학습 중 보지 못한 concrete ID에 relational 전이 가능
+- higher-level 계획 가능
+- 학습 중 보지 못한 concrete ID에 관계 기반 전이 가능
 
 ---
 
@@ -312,11 +312,11 @@ candidate branches 생성
 
 ## Skill domination
 
-높은 estimated value의 skill만 계속 선택해 primitive 탐색이 사라짐.
+높은 estimated [가치(value)](Value-Functions-and-Bellman-Equation)의 skill만 계속 선택해 primitive 탐색이 사라짐.
 
 ## Context mismatch
 
-훈련에서는 성공했던 skill이 새 state에서는 전제가 다름.
+훈련에서는 성공했던 skill이 새 상태에서는 전제가 다름.
 
 ## Error compounding
 
@@ -381,7 +381,7 @@ Skill ON
 - successful skill execution
 - failed/unavailable skill
 - 학습 중 보지 못한 난수 시드 rebinding rate
-- primitive-only success와 비교
+- primitive-only [성공(success)](Terminology-Guide)와 비교
 
 관련 페이지:
 

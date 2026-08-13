@@ -2,7 +2,7 @@
 
 [Policy(정책 모델)](Policy)는 AASSR에서 **현재 상태에서 실제로 실행할 기본 행동을 선택하는 [model-free 강화학습](Reinforcement-Learning) 학습기**다.
 
-current-generation의 핵심은 단순 [DQN](Q-Learning-DQN-and-TD) 하나가 아니라 다음 두 신호를 의도적으로 분리한다는 점이다.
+[현재 세대(current-generation)](Current-Status)의 핵심은 단순 [DQN](Q-Learning-DQN-and-TD) 하나가 아니라 다음 두 신호를 의도적으로 분리한다는 점이다.
 
 ```text
 외부 task return을 학습하는 DQN
@@ -22,7 +22,7 @@ current-generation의 핵심은 단순 [DQN](Q-Learning-DQN-and-TD) 하나가 �
 
 - [Reinforcement Learning](Reinforcement-Learning) — policy, [보상(reward)](Sparse-Reward-and-Credit-Assignment), [누적 보상(return)](Value-Functions-and-Bellman-Equation), model-free
 - [Value Functions & Bellman Equation](Value-Functions-and-Bellman-Equation) — `Q(s,a)`, 누적 보상, discounting
-- [Q-Learning, DQN & TD](Q-Learning-DQN-and-TD) — [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD), TD target, target network, replay
+- [Q-Learning, DQN & TD](Q-Learning-DQN-and-TD) — [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD), TD target, target [신경망(network)](Neural-Networks-and-Optimization), replay
 - [Exploration & Exploitation](Exploration-and-Exploitation) — epsilon-greedy
 - [Information Theory & Intrinsic Motivation](Information-Theory-and-Intrinsic-Motivation) — information gain, intrinsic signal
 - [Relational Representation & Generalization](Relational-Representation-and-Generalization) — identifier permutation과 [전이(transfer)](Relational-Representation-and-Generalization)
@@ -34,7 +34,7 @@ current-generation의 핵심은 단순 [DQN](Q-Learning-DQN-and-TD) 하나가 �
 
 > **[희소한 외부 reward](Sparse-Reward-and-Credit-Assignment)만 유지하면서도, 이름이 바뀐 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) 환경에서 [관계 구조](Relational-Representation-and-Generalization)를 이용해 현재 행동의 가치를 학습할 수 있는가?**
 
-[Policy](Policy)는 AASSR의 fallback이기도 하다.
+[Policy](Policy)는 AASSR의 [기본 경로로 돌아가기(fallback)](Imagination)이기도 하다.
 
 [Prophecy](Prophecy)나 [Critic](Critic)이 불확실하면 최종적으로 [Policy](Policy) 행동을 그대로 실행한다.
 
@@ -48,7 +48,7 @@ current-generation의 핵심은 단순 [DQN](Q-Learning-DQN-and-TD) 하나가 �
 
 평가 [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)에서는 같은 역할이 `route-31`이라는 새 이름을 가질 수 있다.
 
-Raw identity를 강하게 사용하면:
+Raw [식별 방식(identity)](State-Representation)를 강하게 사용하면:
 
 ```text
 route-12 != route-31
@@ -66,7 +66,7 @@ route-31 -> catalog-like role
 
 로 볼 수 있다.
 
-실제 current input 계약은 [State Representation](State-Representation)에서 더 자세히 설명한다.
+실제 [현재(current)](Current-Status) [입력(input)](Terminology-Guide) 계약은 [State Representation](State-Representation)에서 더 자세히 설명한다.
 
 이것이 `dqn_raw`와 `dqn_relational`을 따로 두는 이유다.
 
@@ -81,7 +81,7 @@ AASSR 전체 효과와 [표현(representation)](Relational-Representation-and-Ge
 
 # 3. 기본 DQN objective
 
-Primitive [행동(action)](Reinforcement-Learning)의 외부 task value는 [DQN](Q-Learning-DQN-and-TD)이 담당한다.
+Primitive [행동(action)](Reinforcement-Learning)의 외부 task [가치(value)](Value-Functions-and-Bellman-Equation)는 [DQN](Q-Learning-DQN-and-TD)이 담당한다.
 
 개념적으로 일반적인 [TD target](Q-Learning-DQN-and-TD)은 다음 형태다.
 
@@ -96,7 +96,7 @@ y_t = r_t + \gamma (1-d_t) \max_{a'} Q_{\theta^-}(S_{t+1},a')
 - `d_t`: [bootstrap을 끊는 episode boundary](Replay-Buffer-and-Episode-Boundaries)
 - `Q_{θ^-}`: target Q-network
 
-AASSR의 외부 보상 contract는 좁게 유지한다.
+AASSR의 외부 보상 [명세(contract)](Current-Status)는 좁게 유지한다.
 
 ```text
 success       +1
@@ -140,7 +140,7 @@ I(S,A)는 환경 reward가 아니다.
 
 # 5. 왜 둘을 분리하는가?
 
-외부 보상와 information value를 하나로 섞으면 연구 질문이 달라질 수 있다.
+외부 보상와 information 가치를 하나로 섞으면 연구 질문이 달라질 수 있다.
 
 예를 들어:
 
@@ -184,7 +184,7 @@ Primitive 행동에 대해서는 [relational state key와 relational action key]
 
 따라서 concrete ID가 바뀌어도 관계 구조가 같으면 residual을 재사용할 수 있다.
 
-[Skill](Skills)은 primitive와 다른 identity를 사용하므로 별도의 skill value table을 가진다.
+[Skill](Skills)은 primitive와 다른 식별 방식를 사용하므로 별도의 skill 가치 table을 가진다.
 
 ---
 
@@ -235,7 +235,7 @@ A_imagined 실행               A_policy 실행
 
 - `reliable`: [Prophecy prediction reliability](Stochasticity-Uncertainty-and-Probability)
 - `supported`: [Critic local support](Critic-Support-and-OOD)
-- `advantage`: planner candidate와 [Policy](Policy) root의 value 차이
+- `advantage`: [계획기(planner)](Counterfactual-Planning-and-Search) candidate와 [Policy](Policy) [탐색의 첫 행동(root)](Imagination)의 가치 차이
 
 즉 [Imagination](Imagination)이 실패하거나 불확실하더라도 에이전트는 행동할 수 있다.
 
@@ -245,7 +245,7 @@ A_imagined 실행               A_policy 실행
 
 # 9. 왜 Imagination으로 Policy를 학습시키지 않는가?
 
-current protocol에서는 imagined experience가 real [Policy](Policy)를 직접 강화하지 않는다.
+현재 [실험 규칙(protocol)](Ablation-Benchmarking-and-Reproducibility)에서는 imagined experience가 real [Policy](Policy)를 직접 강화하지 않는다.
 
 이유는 두 가지다.
 
@@ -277,7 +277,7 @@ OFF eval     ON eval
 
 이다.
 
-Training trajectory 자체를 [Imagination](Imagination)이 바꾸면 OFF/ON의 차이가 planner marginal effect만이 아니게 된다.
+Training trajectory 자체를 [Imagination](Imagination)이 바꾸면 OFF/ON의 차이가 계획기 marginal effect만이 아니게 된다.
 
 이 비교 원칙은 [same-checkpoint evaluation](Ablation-Benchmarking-and-Reproducibility)에서 더 깊게 설명한다.
 
@@ -345,15 +345,15 @@ ID 자체에 과도하게 의존하면 학습 중 보지 못한 난수 시드 �
 
 ## 12.3 Information residual dominance
 
-내부 information signal이 외부 task objective를 압도하면 탐색만 하고 목표를 끝내지 못할 수 있다.
+내부 information signal이 외부 task [학습 목표(objective)](Terminology-Guide)를 압도하면 탐색만 하고 목표를 끝내지 못할 수 있다.
 
-그래서 외부 [DQN](Q-Learning-DQN-and-TD)과 residual을 별도 신호로 관리하고 diagnostic을 분리해야 한다.
+그래서 외부 [DQN](Q-Learning-DQN-and-TD)과 residual을 별도 신호로 관리하고 [진단 실험(diagnostic)](Evidence-Matrix)을 분리해야 한다.
 
-관련 일반 failure mode는 [Intrinsic Motivation](Information-Theory-and-Intrinsic-Motivation)에서 본다.
+관련 일반 [실패(failure)](Replay-Buffer-and-Episode-Boundaries) mode는 [Intrinsic Motivation](Information-Theory-and-Intrinsic-Motivation)에서 본다.
 
 ## 12.4 OOD action ranking
 
-새로운 relational region에서 [Policy](Policy) 자체도 틀릴 수 있다.
+새로운 [관계 기반(relational)](Relational-Representation-and-Generalization) region에서 [Policy](Policy) 자체도 틀릴 수 있다.
 
 [Imagination](Imagination)은 이를 고칠 가능성이 있지만, 반대로 [Prophecy(미래 예측 모델)](Prophecy)/[Critic(미래 가치 평가기)](Critic)도 [OOD](Critic-Support-and-OOD)라면 [Policy](Policy)를 유지하는 쪽이 더 안전할 수 있다.
 

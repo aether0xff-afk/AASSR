@@ -11,7 +11,7 @@ AASSR은 특정 모듈을 먼저 만들고 이유를 붙인 프로젝트가 아�
 이 페이지는 이 큰 질문을 **실제로 틀릴 수 있는(testable) 연구 질문**으로 쪼갠다.
 
 > [!TIP]
-> 각 질문의 H1/H0, 독립변수, 종속변수, evidence 수준을 한눈에 보려면 **[Evidence Matrix](Evidence-Matrix)** 를 같이 본다.
+> 각 질문의 H1/H0, 독립변수, 종속변수, [증거(evidence)](Evidence-Matrix) 수준을 한눈에 보려면 **[Evidence Matrix](Evidence-Matrix)** 를 같이 본다.
 
 ---
 
@@ -87,7 +87,7 @@ true failure   -1
 
 이 질문은 나머지 모든 질문보다 앞선다.
 
-성공 상태 전이을 한 번도 보지 못하면 [DQN/TD](Q-Learning-DQN-and-TD), [Critic](Critic), [Prophecy](Prophecy), [Skill](Skills) 모두 충분한 positive evidence를 얻기 어렵다.
+성공 상태 전이을 한 번도 보지 못하면 [DQN/TD](Q-Learning-DQN-and-TD), [Critic](Critic), [Prophecy](Prophecy), [Skill](Skills) 모두 충분한 positive 증거를 얻기 어렵다.
 
 AASSR은 정답 경로를 직접 주는 대신 다음을 사용한다.
 
@@ -103,13 +103,13 @@ AASSR은 정답 경로를 직접 주는 대신 다음을 사용한다.
 ## 반증되는 경우
 
 - 성공이 oracle/guided 행동이 있을 때만 발생
-- hidden difficulty/target information이 learner input에 들어감
+- [숨겨진(hidden)](MDP-and-POMDP) difficulty/target information이 [학습 주체(learner)](Terminology-Guide) [입력(input)](Terminology-Guide)에 들어감
 - shaping 보상를 제거하면 성공 experience가 완전히 사라짐
 
 ## 핵심 측정
 
 - first proof 상태 전이
-- training proof count
+- [학습(training)](Terminology-Guide) proof count
 - 난이도 조절 학습 level reached
 - stalled rate
 
@@ -137,7 +137,7 @@ object-2 → candidate object
 
 Concrete ID는 전부 다르지만 구조는 같을 수 있다.
 
-그래서 [State Representation](State-Representation)은 두 identity를 분리한다.
+그래서 [State Representation](State-Representation)은 두 [식별 방식(identity)](State-Representation)를 분리한다.
 
 ```text
 Concrete semantic identity
@@ -157,7 +157,7 @@ dqn_relational
 
 ## H1
 
-> 동일한 보상, budget, [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) 조건에서 [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)이 학습 중 보지 못한 success 또는 milestone reach를 개선한다.
+> 동일한 보상, budget, [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) 조건에서 [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)이 학습 중 보지 못한 [성공(success)](Terminology-Guide) 또는 milestone reach를 개선한다.
 
 ## 중요한 반론
 
@@ -170,7 +170,7 @@ abstraction ↑
 → state aliasing ↑
 ```
 
-2026-08-11의 public HTTP status 소실은 이 trade-off를 보여준 historical 사례다.
+2026-08-11의 [공개된(public)](State-Representation) HTTP [상태 코드(status)](Terminology-Guide) 소실은 이 trade-off를 보여준 [과거 기록(historical)](Development-History) 사례다.
 
 관련: [Historical Imagination Diagnostic — 2026-08-11](Historical-Imagination-Diagnostic-2026-08-11)
 
@@ -199,15 +199,15 @@ S1 → A → S2
 S2 → A → S3
 ```
 
-같은 행동 type이 반복되어도 state가 진행하면 허용한다.
+같은 행동 type이 반복되어도 [상태(state)](State-Representation)가 진행하면 허용한다.
 
 ## H1
 
-> exact semantic [제자리 반복(self-loop)](ASEQ) guard가 stalled episode를 줄이고 false suppression은 낮게 유지한다.
+> exact semantic [제자리 반복(self-loop)](ASEQ) guard가 stalled [한 번의 문제 풀이 구간(episode)](Terminology-Guide)를 줄이고 false suppression은 낮게 유지한다.
 
 ## 현재 mechanism evidence
 
-과거 diagnostic에서:
+과거 [진단 실험(diagnostic)](Evidence-Matrix)에서:
 
 ```text
 raw greedy stalled       24 / 24
@@ -222,11 +222,11 @@ exact ASEQ stalled        0 / 24
 
 # RQ4 — Prophecy는 planning에 쓸 수 있는 stochastic world model인가?
 
-> **현재 public state와 행동으로부터 가능한 다음 public outcome의 분포를 학습하여 multi-step planning에 사용할 수 있는가?**
+> **현재 [공개 관측 상태(public state)](State-Representation)와 행동으로부터 가능한 다음 공개된 outcome의 분포를 학습하여 multi-step [계획(planning)](Counterfactual-Planning-and-Search)에 사용할 수 있는가?**
 
 현재 [Prophecy](Prophecy)는 deterministic `(S,A) → S'` 회귀가 아니다.
 
-`main`의 current contract:
+`main`의 [현재(current)](Current-Status) [명세(contract)](Current-Status):
 
 ```text
 relational-conditional-mixture-ensemble-v5-status-balanced
@@ -242,8 +242,8 @@ p(S_{t+1}|S_t,A_t,K_t)
 
 예측 대상에는:
 
-- relational next descriptor
-- latest public HTTP status
+- [관계 기반(relational)](Relational-Representation-and-Generalization) next descriptor
+- latest 공개된 HTTP 상태 코드
 - [가능 행동 마스크(legal-action mask)](Prophecy)
 - [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) class
 - [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability) mass
@@ -252,7 +252,7 @@ p(S_{t+1}|S_t,A_t,K_t)
 
 ## H1
 
-> [검증용 분리 데이터(holdout)](Calibration) real 상태 전이에서 [Prophecy(미래 예측 모델)](Prophecy)의 multimodal prediction이 decision-relevant future structure를 충분히 보존해 planner input으로 사용할 수 있다.
+> [검증용 분리 데이터(holdout)](Calibration) real 상태 전이에서 [Prophecy(미래 예측 모델)](Prophecy)의 [여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) [예측(prediction)](Terminology-Guide)이 decision-relevant future structure를 충분히 보존해 [계획기(planner)](Counterfactual-Planning-and-Search) 입력으로 사용할 수 있다.
 
 ## 단순 accuracy만 보면 안 되는 이유
 
@@ -262,7 +262,7 @@ p(S_{t+1}|S_t,A_t,K_t)
 403/404/429 같은 중요한 channel이 정확함
 ```
 
-따라서 status accuracy, legal-mask accuracy, 에피소드 종료 accuracy, mixture coverage를 별도로 본다.
+따라서 상태 코드 accuracy, legal-mask accuracy, 에피소드 종료 accuracy, mixture coverage를 별도로 본다.
 
 관련: [Mixture, Ensemble & Calibration](Mixture-Ensemble-and-Calibration), [Loss Functions & Class Imbalance](Loss-Functions-and-Class-Imbalance)
 
@@ -270,7 +270,7 @@ p(S_{t+1}|S_t,A_t,K_t)
 
 # RQ5 — Prediction reliability를 실제 decision gate로 쓸 수 있는가?
 
-> **[Prophecy](Prophecy)가 내놓은 결과 확률와 model reliability를 분리하고, 검증용 분리 데이터 calibration으로 unreliable future를 실제 행동 override 전에 걸러낼 수 있는가?**
+> **[Prophecy](Prophecy)가 내놓은 결과 확률와 [학습 모델(model)](Terminology-Guide) [신뢰도(reliability)](Calibration)를 분리하고, 검증용 분리 데이터 calibration으로 unreliable future를 실제 행동 [기본 행동 덮어쓰기(override)](Imagination) 전에 걸러낼 수 있는가?**
 
 두 값은 다르다.
 
@@ -282,7 +282,7 @@ Prediction reliability
 = 그 prediction을 얼마나 믿을 수 있는가
 ```
 
-[Calibration](Calibration)의 목적은 rare outcome을 없애는 것이 아니다.
+[Calibration](Calibration)의 목적은 [드문(rare)](Loss-Functions-and-Class-Imbalance) outcome을 없애는 것이 아니다.
 
 예를 들어:
 
@@ -294,11 +294,11 @@ Prediction reliability
 
 ## H1
 
-> [상태 코드까지 고려하는(status-aware)](Calibration) 검증용 분리 데이터 calibration은 decision-critical prediction error가 큰 branch의 override 참여를 줄인다.
+> [상태 코드까지 고려하는(status-aware)](Calibration) 검증용 분리 데이터 calibration은 [의사결정에 중요한(decision-critical)](Calibration) 예측 error가 큰 branch의 기본 행동 덮어쓰기 참여를 줄인다.
 
 ## 실패 가능성
 
-너무 공격적인 gate:
+너무 공격적인 [판정 관문(gate)](Terminology-Guide):
 
 ```text
 planner opportunity
@@ -306,24 +306,24 @@ planner opportunity
 → intervention 0
 ```
 
-너무 느슨한 gate:
+너무 느슨한 판정 관문:
 
 ```text
 unreliable branch 통과
 → model exploitation
 ```
 
-따라서 **안전함과 planner activity를 같이 측정**해야 한다.
+따라서 **안전함과 계획기 activity를 같이 측정**해야 한다.
 
 ---
 
 # RQ6 — Critic value를 local support 없이 믿어도 되는가?
 
-> **[Critic(미래 가치 평가기)](Critic)이 전체적으로 학습됐더라도 지금 imagined state/행동이 실제 training distribution 밖이라면 그 value를 믿어도 되는가?**
+> **[Critic(미래 가치 평가기)](Critic)이 전체적으로 학습됐더라도 지금 imagined 상태/행동이 실제 학습 distribution 밖이라면 그 [가치(value)](Value-Functions-and-Bellman-Equation)를 믿어도 되는가?**
 
-2026-08-11 historical diagnostic에서 이 질문의 필요성이 드러났다.
+2026-08-11 과거 기록 진단 실험에서 이 질문의 필요성이 드러났다.
 
-당시에는 낮은 난이도 조절 학습 level의 real success evidence가 주로 존재했는데 planner는 더 높은 학습 중 보지 못한 level에서 [Critic](Critic) value를 이용해 적극적으로 override했다.
+당시에는 낮은 난이도 조절 학습 level의 real 성공 증거가 주로 존재했는데 계획기는 더 높은 학습 중 보지 못한 level에서 [Critic](Critic) 가치를 이용해 적극적으로 기본 행동 덮어쓰기했다.
 
 이것은 다음 구분을 만들었다.
 
@@ -337,7 +337,7 @@ Local Critic support
 
 ## H1
 
-> [local real-training support gate](Critic-Support-and-OOD)는 unsupported high-value extrapolation을 fail-closed하면서 supported planning은 유지한다.
+> [local real-training support gate](Critic-Support-and-OOD)는 unsupported high-value extrapolation을 [근거가 부족하면 보수적으로 거부하는(fail-closed)](Critic-Support-and-OOD)하면서 supported 계획은 유지한다.
 
 ## 중요한 경계
 
@@ -354,9 +354,9 @@ Support는 **값이 좋다는 뜻이 아니라 값 추정의 데이터 근거가
 
 # RQ7 — Imagination은 같은 Policy보다 더 좋은 첫 행동을 만드는가?
 
-> **실제로 행동하기 전에 여러 counterfactual future를 전개하면, 동일하게 학습된 [Policy(정책 모델)](Policy)-only보다 더 좋은 root 행동을 선택할 수 있는가?**
+> **실제로 행동하기 전에 여러 counterfactual future를 전개하면, 동일하게 학습된 [Policy(정책 모델)](Policy)-only보다 더 좋은 [탐색의 첫 행동(root)](Imagination) 행동을 선택할 수 있는가?**
 
-[Imagination](Imagination)은 현재 protocol에서 persistent imagined learning이 아니라 planning 장치다.
+[Imagination](Imagination)은 현재 [실험 규칙(protocol)](Ablation-Benchmarking-and-Reproducibility)에서 persistent imagined learning이 아니라 계획 장치다.
 
 가장 중요한 실험 계약:
 
@@ -384,11 +384,11 @@ training randomness
 
 ## H1
 
-> planner ON이 OFF보다 success/failure trade-off를 개선한다.
+> 계획기 ON이 OFF보다 성공/[실패(failure)](Replay-Buffer-and-Episode-Boundaries) trade-off를 개선한다.
 
 ## planner가 지켜야 하는 수학
 
-환경의 stochastic outcome:
+환경의 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) outcome:
 
 ```math
 V_{chance}=\sum_i p_iV_i
@@ -404,7 +404,7 @@ V_{decision}=\max_aV(S',a)
 
 ## Historical diagnostic과 current claim 분리
 
-2026-08-11 `4/20 vs 4/20`, `86 interventions`는 **현재 v5/상태 코드까지 고려하는/support-gated architecture의 최종 성능 결과가 아니다.**
+2026-08-11 `4/20 vs 4/20`, `86 interventions`는 **현재 v5/상태 코드까지 고려하는/support-gated [구조(architecture)](Research-Architecture)의 최종 성능 결과가 아니다.**
 
 그 결과는 [Historical Imagination Diagnostic](Historical-Imagination-Diagnostic-2026-08-11)로 분리한다.
 
@@ -412,7 +412,7 @@ V_{decision}=\max_aV(S',a)
 
 # RQ8 — AASSR 전체가 strong baseline보다 나은가?
 
-> **같은 보상, [관측(observation)](MDP-and-POMDP) boundary, real sample budget, 학습 중 보지 못한 protocol에서 current AASSR이 strong model-free / model-based [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility)보다 더 안정적으로 장기 task를 해결하는가?**
+> **같은 보상, [관측(observation)](MDP-and-POMDP) boundary, real sample budget, 학습 중 보지 못한 실험 규칙에서 현재 AASSR이 strong model-free / model-based [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility)보다 더 안정적으로 장기 task를 해결하는가?**
 
 최종 비교 구조:
 
@@ -436,7 +436,7 @@ aassr_current_full
 
 ## 이 질문은 마지막에 답한다
 
-각 component가 individually reasonable하다고 해서 전체 시스템이 비교 기준보다 좋은 것은 아니다.
+각 [구성요소(component)](Research-Architecture)가 individually reasonable하다고 해서 전체 시스템이 비교 기준보다 좋은 것은 아니다.
 
 ```text
 good representation
@@ -449,13 +449,13 @@ good representation
 
 최종적으로는 [Ablation](Ablation-Benchmarking-and-Reproducibility), multi-[난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility) aggregate, [최종 비공개 평가(final blind)](Ablation-Benchmarking-and-Reproducibility)가 필요하다.
 
-현재 claim 상태: **Pending.**
+현재 [연구 주장(claim)](Evidence-Matrix) 상태: **Pending.**
 
 ---
 
 # RQ9 — Skill은 성공 구조를 unseen scenario에 재사용하는가?
 
-> **반복 성공한 real ASeq를 concrete ID가 아닌 relational template로 저장하면 새로운 scenario에서도 high-level 행동 structure로 재사용할 수 있는가?**
+> **반복 성공한 real ASeq를 concrete ID가 아닌 관계 기반 template로 저장하면 새로운 scenario에서도 high-level 행동 structure로 재사용할 수 있는가?**
 
 [Skill](Skills)은 사람이 정답 macro를 넣는 장치가 아니다.
 
@@ -473,13 +473,13 @@ new scenario의 concrete action에 rebind
 
 ## H1
 
-> relational [Skill(성공 절차 재사용)](Skills)이 raw concrete macro보다 학습 중 보지 못한 rebinding에 강하고 primitive-only search cost를 줄인다.
+> 관계 기반 [Skill(성공 절차 재사용)](Skills)이 raw concrete macro보다 학습 중 보지 못한 rebinding에 강하고 primitive-only search cost를 줄인다.
 
 ## 별도로 봐야 할 것
 
 - premature promotion
 - unavailable primitive
-- stochastic rollout collapse
+- 확률적 rollout collapse
 - [Skill](Skills) domination
 
 관련: [Hierarchical RL & Skills](Hierarchical-RL-and-Skills)
@@ -492,7 +492,7 @@ new scenario의 concrete action에 rebind
 
 > **에이전트가 인간이 미리 정해준 정답 경로 또는 이미 학습한 [Skill](Skills)을 그대로 복제하지 않고도 새로운 유효한 목표 수행 경로를 만들 수 있는가?**
 
-이 질문은 중요하지만 현재 primary performance claim과 분리한다.
+이 질문은 중요하지만 현재 primary performance 연구 주장과 분리한다.
 
 먼저 다음이 필요하다.
 
@@ -550,21 +550,21 @@ flowchart TD
 
 모든 RQ에서 공통으로 지킨다.
 
-- [external sparse reward](Sparse-Reward-and-Credit-Assignment)는 성공 `+1`, true failure `-1`, 그 외 `0`이라는 task contract를 유지한다.
+- [external sparse reward](Sparse-Reward-and-Credit-Assignment)는 성공 `+1`, true 실패 `-1`, 그 외 `0`이라는 task 명세를 유지한다.
 - intermediate shaping 보상를 최종 목표의 대체물로 쓰지 않는다.
-- oracle 행동 / guided success trajectory를 learner에게 주지 않는다.
-- hidden simulator truth를 [observation](MDP-and-POMDP)에 넣지 않는다.
-- [Knowledge](Knowledge)는 prediction 시점 이전에 real response로 획득한 사실만 사용한다.
-- imagined 상태 전이을 real factual evidence로 자동 승격하지 않는다.
-- evaluation 중 persistent learner state를 바꾸지 않는다.
-- [Imagination](Imagination) OFF/ON은 same frozen [체크포인트(checkpoint)](Reproduction)다.
-- 과거 세대 수치를 current-generation final claim에 섞지 않는다.
+- oracle 행동 / guided 성공 trajectory를 학습 주체에게 주지 않는다.
+- 숨겨진 simulator truth를 [observation](MDP-and-POMDP)에 넣지 않는다.
+- [Knowledge](Knowledge)는 예측 시점 이전에 real [응답(response)](State-Representation)로 획득한 사실만 사용한다.
+- imagined 상태 전이을 real factual 증거로 자동 승격하지 않는다.
+- [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility) 중 persistent 학습 주체 상태를 바꾸지 않는다.
+- [Imagination](Imagination) OFF/ON은 same [학습을 멈춘(frozen)](Ablation-Benchmarking-and-Reproducibility) [체크포인트(checkpoint)](Reproduction)다.
+- 과거 세대 수치를 [현재 세대(current-generation)](Current-Status) final 연구 주장에 섞지 않는다.
 
 ---
 
 ## 다음으로 읽기
 
-- **[Evidence Matrix](Evidence-Matrix)** — 각 RQ를 실제 변수·지표·claim으로 연결
-- **[Experiments](Experiments)** — 실험 protocol과 결과
-- **[Current Status](Current-Status)** — 지금 무엇이 current인지
+- **[Evidence Matrix](Evidence-Matrix)** — 각 RQ를 실제 변수·지표·연구 주장으로 연결
+- **[Experiments](Experiments)** — 실험 실험 규칙과 결과
+- **[Current Status](Current-Status)** — 지금 무엇이 현재인지
 - **[Historical Imagination Diagnostic — 2026-08-11](Historical-Imagination-Diagnostic-2026-08-11)** — 대표 negative result

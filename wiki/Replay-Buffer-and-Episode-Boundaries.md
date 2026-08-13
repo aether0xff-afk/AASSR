@@ -1,6 +1,6 @@
 # Replay Buffer and Episode Boundaries
 
-이 페이지는 **experience replay**와 **episode boundary**, 그리고 `terminal`, `failure`, `truncation`, `reset`, `TD bootstrap`이 왜 서로 다른 개념인지 설명한다.
+이 페이지는 **experience replay**와 **[한 번의 문제 풀이 구간(episode)](Terminology-Guide) boundary**, 그리고 `terminal`, `failure`, `truncation`, `reset`, `TD bootstrap`이 왜 서로 다른 개념인지 설명한다.
 
 AASSR의 학습 메커니즘 수정에서 실제로 중요한 버그가 있었던 부분이기도 하다.
 
@@ -58,7 +58,7 @@ Knowledge Store
 = 현재 episode에서 실제 response를 통해 지금 알고 있는 explicit facts
 ```
 
-과거 replay에 어떤 route가 있었다고 해서 새 episode의 [에이전트(agent)](Reinforcement-Learning)가 그 concrete route를 현재 알고 있다고 취급하면 안 된다.
+과거 replay에 어떤 route가 있었다고 해서 새 한 번의 문제 풀이 구간의 [에이전트(agent)](Reinforcement-Learning)가 그 concrete route를 현재 알고 있다고 취급하면 안 된다.
 
 관련 페이지:
 
@@ -79,19 +79,19 @@ Episode B
 T0 → T1 → ...
 ```
 
-이 경계가 있는데도 learner가:
+이 경계가 있는데도 [학습 주체(learner)](Terminology-Guide)가:
 
 ```text
 S2 → T0
 ```
 
-를 같은 episode의 정상 상태 전이처럼 해석하면 잘못된 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)이 생길 수 있다.
+를 같은 한 번의 문제 풀이 구간의 정상 상태 전이처럼 해석하면 잘못된 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)이 생길 수 있다.
 
 ---
 
 # 5. Terminal
 
-**Terminal state**는 task dynamics 관점에서 episode가 끝난 상태다.
+**Terminal [상태(state)](State-Representation)**는 task [환경의 상태 변화 규칙(dynamics)](Model-Based-RL-and-World-Models) 관점에서 한 번의 문제 풀이 구간가 끝난 상태다.
 
 예:
 
@@ -100,7 +100,7 @@ success
 true irreversible failure
 ```
 
-Terminal 상태 전이에서는 일반적으로 이후 value를 이어붙이지 않는다.
+Terminal 상태 전이에서는 일반적으로 이후 [가치(value)](Value-Functions-and-Bellman-Equation)를 이어붙이지 않는다.
 
 ```math
 y=r
@@ -120,7 +120,7 @@ y=r
 
 일반 RL에서는 [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries) 이후 underlying task가 계속될 수 있으므로 true [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries)과 구분한다.
 
-하지만 실제 구현에서 [환경(environment)](Reinforcement-Learning)가 즉시 reset되어 **다음 관측이 완전히 새 episode라면**, replay 연결을 그대로 다음 상태 가치 이어받기할 수는 없다.
+하지만 실제 구현에서 [환경(environment)](Reinforcement-Learning)가 즉시 reset되어 **다음 관측이 완전히 새 한 번의 문제 풀이 구간라면**, replay 연결을 그대로 다음 상태 가치 이어받기할 수는 없다.
 
 ---
 
@@ -133,9 +133,9 @@ true failure  → -1
 truncation    →  0
 ```
 
-왜냐하면 상태 전이 cap이나 rate-limit administrative reset을 task 실패와 동일한 `-1`로 바꾸면 원래 sparse objective를 변형할 수 있기 때문이다.
+왜냐하면 상태 전이 cap이나 rate-limit administrative reset을 task 실패와 동일한 `-1`로 바꾸면 원래 sparse [학습 목표(objective)](Terminology-Guide)를 변형할 수 있기 때문이다.
 
-그렇다고 외부 제한 종료 뒤 새 episode state까지 다음 상태 가치 이어받기해야 한다는 뜻은 아니다.
+그렇다고 외부 제한 종료 뒤 새 한 번의 문제 풀이 구간 상태까지 다음 상태 가치 이어받기해야 한다는 뜻은 아니다.
 
 ---
 
@@ -197,7 +197,7 @@ y=0+\gamma\max_{a'}Q(T,a')
 
 가 된다.
 
-즉 **새 episode B의 value가 episode A의 마지막 행동에 보상처럼 연결된다.**
+즉 **새 한 번의 문제 풀이 구간 B의 가치가 한 번의 문제 풀이 구간 A의 마지막 행동에 보상처럼 연결된다.**
 
 이것은 causal trajectory가 아니다.
 
@@ -205,7 +205,7 @@ y=0+\gamma\max_{a'}Q(T,a')
 
 # 10. AASSR에서 발견된 training mismatch
 
-과거 autonomous training path에서는 reset이 일어나도 에피소드 종료 판단이 `next_state.available_actions` 같은 조건에 과도하게 의존해 **reset 상태 전이이 non-에피소드 종료 replay로 들어갈 수 있는 문제**가 있었다.
+과거 autonomous [학습(training)](Terminology-Guide) path에서는 reset이 일어나도 에피소드 종료 판단이 `next_state.available_actions` 같은 조건에 과도하게 의존해 **reset 상태 전이이 non-에피소드 종료 replay로 들어갈 수 있는 문제**가 있었다.
 
 수리 방향:
 
@@ -216,7 +216,7 @@ stall / rate-limit / transition-cap reset
 → TD bootstrap만 차단
 ```
 
-즉 [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment) contract는 유지하면서 학습 연결만 고쳤다.
+즉 [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment) [명세(contract)](Current-Status)는 유지하면서 학습 연결만 고쳤다.
 
 ---
 
@@ -224,7 +224,7 @@ stall / rate-limit / transition-cap reset
 
 Reset을 경험했으니 `-1`을 주면 간단해 보인다.
 
-하지만 그러면 에이전트는 원래 task failure가 아니라 **실험 runner의 administrative limit**를 task objective로 학습할 수 있다.
+하지만 그러면 에이전트는 원래 task [실패(failure)](Replay-Buffer-and-Episode-Boundaries)가 아니라 **실험 runner의 administrative limit**를 task 학습 목표로 학습할 수 있다.
 
 ```text
 true task failure
@@ -248,13 +248,13 @@ y=r+\gamma(1-d)\max_{a'}Q(s',a')
 
 여기서 `d=1`이면 다음 상태 가치 이어받기을 끊는다.
 
-AASSR에서 중요한 것은 이 `d`가 단순히 `reward == -1`인지 확인하는 값이 아니라 **trajectory continuity contract**를 나타내야 한다는 것이다.
+AASSR에서 중요한 것은 이 `d`가 단순히 `reward == -1`인지 확인하는 값이 아니라 **trajectory continuity 명세**를 나타내야 한다는 것이다.
 
 ---
 
 # 13. Success boundary
 
-성공 `+1`로 episode가 끝나면:
+성공 `+1`로 한 번의 문제 풀이 구간가 끝나면:
 
 ```text
 reward = +1
@@ -263,13 +263,13 @@ bootstrap = stop
 
 이다.
 
-Terminal 뒤의 새 episode value를 더하면 성공 직전 [Q값(Q-value)](Value-Functions-and-Bellman-Equation)가 `+1`보다 더 큰 이상한 target을 받을 수 있다.
+Terminal 뒤의 새 한 번의 문제 풀이 구간 가치를 더하면 성공 직전 [Q값(Q-value)](Value-Functions-and-Bellman-Equation)가 `+1`보다 더 큰 이상한 target을 받을 수 있다.
 
 ---
 
 # 14. True failure boundary
 
-실제 irreversible failure:
+실제 irreversible 실패:
 
 ```text
 reward = -1
@@ -278,7 +278,7 @@ bootstrap = stop
 
 이다.
 
-여기서 `-1`은 task 의미이며, 다음 상태 가치 이어받기 stop은 episode continuity 의미다.
+여기서 `-1`은 task 의미이며, 다음 상태 가치 이어받기 stop은 한 번의 문제 풀이 구간 continuity 의미다.
 
 둘이 동시에 발생하지만 개념적으로는 별개의 축이다.
 
@@ -286,9 +286,9 @@ bootstrap = stop
 
 # 15. Stall
 
-**Stall**은 에이전트가 의미 있는 진행을 만들지 못한 채 episode 운영 규칙에 걸린 상태일 수 있다.
+**Stall**은 에이전트가 의미 있는 진행을 만들지 못한 채 한 번의 문제 풀이 구간 운영 규칙에 걸린 상태일 수 있다.
 
-AASSR diagnostic에서는 success/failure/외부 제한 종료/stalled를 분리해 집계한다.
+AASSR [진단 실험(diagnostic)](Evidence-Matrix)에서는 [성공(success)](Terminology-Guide)/실패/외부 제한 종료/stalled를 분리해 집계한다.
 
 왜냐하면:
 
@@ -296,17 +296,17 @@ AASSR diagnostic에서는 success/failure/외부 제한 종료/stalled를 분리
 0% success
 ```
 
-만 보면 모든 episode가 실제 실패했는지, 그냥 움직이지 못했는지 알 수 없기 때문이다.
+만 보면 모든 한 번의 문제 풀이 구간가 실제 실패했는지, 그냥 움직이지 못했는지 알 수 없기 때문이다.
 
 ---
 
 # 16. Rate limit reset
 
-Rate limit에 걸렸다는 public status는 decision-critical 정보일 수 있다.
+Rate limit에 걸렸다는 [공개된(public)](State-Representation) [상태 코드(status)](Terminology-Guide)는 [의사결정에 중요한(decision-critical)](Calibration) 정보일 수 있다.
 
-하지만 [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility) runner가 그 뒤 episode를 reset하는 방식과 **task 보상**는 구분해야 한다.
+하지만 [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility) runner가 그 뒤 한 번의 문제 풀이 구간를 reset하는 방식과 **task 보상**는 구분해야 한다.
 
-AASSR current [표현(representation)](Relational-Representation-and-Generalization)은 latest public HTTP status를 state에 보존하지만, hidden exact countdown/pressure를 직접 learner에 주지 않는다.
+AASSR [현재(current)](Current-Status) [표현(representation)](Relational-Representation-and-Generalization)은 latest 공개된 HTTP 상태 코드를 상태에 보존하지만, [숨겨진(hidden)](MDP-and-POMDP) exact countdown/pressure를 직접 학습 주체에 주지 않는다.
 
 관련 페이지:
 
@@ -317,7 +317,7 @@ AASSR current [표현(representation)](Relational-Representation-and-Generalizat
 
 # 17. Replay sampling bias
 
-Replay dataset이 특정 [행동(action)](Reinforcement-Learning)/outcome에 과도하게 치우치면 learner도 그 분포에 크게 영향을 받는다.
+Replay dataset이 특정 [행동(action)](Reinforcement-Learning)/outcome에 과도하게 치우치면 학습 주체도 그 분포에 크게 영향을 받는다.
 
 예:
 
@@ -326,9 +326,9 @@ Replay dataset이 특정 [행동(action)](Reinforcement-Learning)/outcome에 과
 403/429   5%
 ```
 
-희귀 failure/status가 model training에서 묻힐 수 있다.
+희귀 실패/상태 코드가 [학습 모델(model)](Terminology-Guide) 학습에서 묻힐 수 있다.
 
-AASSR [Prophecy(미래 예측 모델)](Prophecy)에서는 [상태 코드까지 고려하는(status-aware)](Calibration)/balanced training을 별도로 사용한다.
+AASSR [Prophecy(미래 예측 모델)](Prophecy)에서는 [상태 코드까지 고려하는(status-aware)](Calibration)/balanced 학습을 별도로 사용한다.
 
 관련 페이지:
 
@@ -339,7 +339,7 @@ AASSR [Prophecy(미래 예측 모델)](Prophecy)에서는 [상태 코드까지 �
 
 # 18. Holdout과 Replay
 
-[Calibration(예측 신뢰도 보정)](Calibration)에서는 replay의 일부를 **[검증용 분리 데이터(holdout)](Calibration)**으로 분리해 [세계 모델(world model)](Model-Based-RL-and-World-Models) reliability를 평가할 수 있다.
+[Calibration(예측 신뢰도 보정)](Calibration)에서는 replay의 일부를 **[검증용 분리 데이터(holdout)](Calibration)**으로 분리해 [세계 모델(world model)](Model-Based-RL-and-World-Models) [신뢰도(reliability)](Calibration)를 평가할 수 있다.
 
 ```text
 training replay
@@ -367,9 +367,9 @@ Replay factual data
 = real environment transition
 ```
 
-[Imagination(가상 미래 탐색)](Imagination)이 만든 predicted 상태 전이을 실제 replay와 같은 truth로 저장해 learner를 업데이트하면 model error가 자기증폭될 수 있다.
+[Imagination(가상 미래 탐색)](Imagination)이 만든 predicted 상태 전이을 실제 replay와 같은 truth로 저장해 학습 주체를 업데이트하면 학습 모델 error가 자기증폭될 수 있다.
 
-따라서 current 핵심 비교에서는 imagined experience와 real evidence를 분리한다.
+따라서 현재 핵심 비교에서는 imagined experience와 real [증거(evidence)](Evidence-Matrix)를 분리한다.
 
 관련 페이지:
 
@@ -380,7 +380,7 @@ Replay factual data
 
 # 20. Critic replay
 
-AASSR [Critic(미래 가치 평가기)](Critic)은 단순 `(S,A,S')` 하나뿐 아니라 trajectory suffix를 training example로 만든다.
+AASSR [Critic(미래 가치 평가기)](Critic)은 단순 `(S,A,S')` 하나뿐 아니라 trajectory suffix를 학습 example로 만든다.
 
 ```text
 S0 → S1 → S2 → S3 → terminal
@@ -391,7 +391,7 @@ S2...
 S3...
 ```
 
-각 suffix를 zero-memory root로 학습해 current decision point에서의 recurrent inference와 맞춘다.
+각 suffix를 zero-memory [탐색의 첫 행동(root)](Imagination)로 학습해 현재 decision point에서의 recurrent inference와 맞춘다.
 
 관련 페이지:
 
@@ -404,16 +404,16 @@ S3...
 
 연구 재현성을 위해 상태 전이마다 가능한 한 다음 의미가 분리되어야 한다.
 
-- state
+- 상태
 - 행동
-- next state
+- next 상태
 - external 보상
-- success/failure outcome
+- 성공/실패 outcome
 - 에피소드 종료 여부
 - 외부 제한 종료 여부
 - reset reason
-- episode id
-- provenance/trace id
+- 한 번의 문제 풀이 구간 id
+- [정보의 출처 기록(provenance)](Knowledge)/trace id
 
 모든 구현이 같은 schema를 써야 한다는 뜻은 아니지만, **분석 시 의미를 복원할 수 있어야 한다.**
 
@@ -435,7 +435,7 @@ S3...
 
 ## "Replay에 있으면 agent가 그 사실을 현재 알고 있다"
 
-아니다. Replay는 learner의 training data이고 [Knowledge(에피소드 지식)](Knowledge)는 current episode의 explicit known facts다.
+아니다. Replay는 학습 주체의 [학습 데이터(training data)](Terminology-Guide)이고 [Knowledge(에피소드 지식)](Knowledge)는 현재 한 번의 문제 풀이 구간의 explicit known facts다.
 
 ---
 

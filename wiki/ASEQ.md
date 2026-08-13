@@ -10,7 +10,7 @@
 - `A`: 실제로 실행한 행동
 - `S'`: 행동 후 상태
 
-현재 pentest runtime에서 [ASEQ](ASEQ)는 특히 **진전 없는 [제자리 반복(self-loop)](ASEQ)를 최소한으로 억제하는 memory/[행동(action)](Reinforcement-Learning)-selection component**로 사용된다.
+현재 pentest [실행 구조(runtime)](Current-Status)에서 [ASEQ](ASEQ)는 특히 **진전 없는 [제자리 반복(self-loop)](ASEQ)를 최소한으로 억제하는 memory/[행동(action)](Reinforcement-Learning)-selection [구성요소(component)](Research-Architecture)**로 사용된다.
 
 ---
 
@@ -88,7 +88,7 @@ S -> A -> S
 S -> A -> S2
 ```
 
-환경이 stochastic하거나 부분 관측 때문에 결과가 달라질 수 있다는 증거다.
+환경이 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability)하거나 부분 관측 때문에 결과가 달라질 수 있다는 증거다.
 
 이 경우 `(S,A)`를 무조건 제자리 반복라고 단정해서는 안 된다.
 
@@ -114,24 +114,24 @@ raw S1 != raw S2
 
 그러면 인간이 보기에는 같은 제자리 반복인데 exact raw vector 비교에서는 매번 다른 상태가 된다.
 
-따라서 [ASEQ](ASEQ)의 `S`는 task-relevant **concrete semantic identity**를 사용한다.
+따라서 [ASEQ](ASEQ)의 `S`는 task-relevant **concrete semantic [식별 방식(identity)](State-Representation)**를 사용한다.
 
 하지만 여기서 또 중요한 점이 있다.
 
-[ASEQ](ASEQ)는 전이용 relational identity와 완전히 같지 않다.
+[ASEQ](ASEQ)는 전이용 [관계 기반(relational)](Relational-Representation-and-Generalization) 식별 방식와 완전히 같지 않다.
 
 ```text
 route-A와 route-B가 둘 다 catalog 역할
 ```
 
-이라고 해도 같은 episode에서 서로 다른 concrete route라면 [ASEQ](ASEQ)에서는 구분해야 한다. 그렇지 않으면 route-A에서 실패한 행동 때문에 route-B까지 막을 수 있다.
+이라고 해도 같은 [한 번의 문제 풀이 구간(episode)](Terminology-Guide)에서 서로 다른 concrete route라면 [ASEQ](ASEQ)에서는 구분해야 한다. 그렇지 않으면 route-A에서 실패한 행동 때문에 route-B까지 막을 수 있다.
 
 정리하면:
 
-| 목적 | identity |
+| 목적 | 식별 방식 |
 |---|---|
 | exact 제자리 반복 detection | concrete semantic |
-| [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility) 간 일반화 | relational |
+| [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility) 간 일반화 | 관계 기반 |
 
 ---
 
@@ -170,7 +170,7 @@ route-A와 route-B가 둘 다 catalog 역할
 
 #### 학습 중 성공
 
-| training mode | episodes | successes | L0 | L1 | L2 |
+| [학습(training)](Terminology-Guide) mode | episodes | successes | L0 | L1 | L2 |
 |---|---:|---:|---:|---:|---:|
 | legacy filter | 94 | 29 | 15 | 14 | 0 |
 | exact [ASEQ](ASEQ) | 109 | **50** | **30** | **19** | **1** |
@@ -182,9 +182,9 @@ route-A와 route-B가 둘 다 catalog 역할
 | legacy filter | 1/8 | 1/8 | 0/8 |
 | exact [ASEQ](ASEQ) | **8/8** | **7/8** | **1/8** |
 
-모든 exact-[ASEQ](ASEQ) evaluation에서 stalled는 0이었다.
+모든 exact-[ASEQ](ASEQ) [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)에서 stalled는 0이었다.
 
-다만 이 실험은 research 난수 시드 1개, evaluation 난수 시드 8개, L0~L2 focused 조건이었다. 따라서 최종 일반화 성능으로 과장해서는 안 된다.
+다만 이 실험은 research 난수 시드 1개, 평가 난수 시드 8개, L0~L2 focused 조건이었다. 따라서 최종 일반화 성능으로 과장해서는 안 된다.
 
 ---
 

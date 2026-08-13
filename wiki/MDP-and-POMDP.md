@@ -2,7 +2,7 @@
 
 이 페이지는 강화학습의 수학적 환경 모델인 **MDP(Markov Decision Process)** 와 **POMDP(Partially Observable Markov Decision Process)** 를 설명한다.
 
-AASSR에서 [부분 관측](MDP-and-POMDP#5-pomdp-partially-observable-markov-decision-process), stochastic [Prophecy(미래 예측 모델)](Prophecy), [Knowledge(에피소드 지식)](Knowledge), recurrent [Critic(미래 가치 평가기)](Critic)이 왜 필요한지 이해하려면 이 개념이 중요하다.
+AASSR에서 [부분 관측](MDP-and-POMDP#5-pomdp-partially-observable-markov-decision-process), [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) [Prophecy(미래 예측 모델)](Prophecy), [Knowledge(에피소드 지식)](Knowledge), recurrent [Critic(미래 가치 평가기)](Critic)이 왜 필요한지 이해하려면 이 개념이 중요하다.
 
 ---
 
@@ -24,7 +24,7 @@ P(S_{t+1}\mid S_t,A_t)
 
 이것은 "과거가 중요하지 않다"는 뜻이 아니다.
 
-과거의 중요한 정보가 **현재 state에 충분히 요약되어 있다**는 뜻이다.
+과거의 중요한 정보가 **현재 [상태(state)](State-Representation)에 충분히 요약되어 있다**는 뜻이다.
 
 ---
 
@@ -38,7 +38,7 @@ P(S_{t+1}\mid S_t,A_t)
 
 각 항은:
 
-- `S`: state space
+- `S`: 상태 space
 - `A`: [행동(action)](Reinforcement-Learning) space
 - `P`: [상태 전이(transition)](MDP-and-POMDP) probability
 - `R`: [보상(reward)](Sparse-Reward-and-Credit-Assignment) function
@@ -50,7 +50,7 @@ P(S_{t+1}\mid S_t,A_t)
 
 # 3. Transition probability
 
-환경은 현재 state와 행동으로부터 다음 state를 만든다.
+환경은 현재 상태와 행동으로부터 다음 상태를 만든다.
 
 ```math
 P(s'\mid s,a)
@@ -62,7 +62,7 @@ P(s'\mid s,a)
 (S,A) → S'
 ```
 
-stochastic하면 여러 결과가 확률적으로 가능하다.
+확률적하면 여러 결과가 확률적으로 가능하다.
 
 ```text
 (S,A)
@@ -71,7 +71,7 @@ stochastic하면 여러 결과가 확률적으로 가능하다.
  `-- 0.1 → S3'
 ```
 
-AASSR의 [Prophecy](Prophecy)는 이 상태 전이 distribution을 public relational space에서 학습하려 한다.
+AASSR의 [Prophecy](Prophecy)는 이 상태 전이 distribution을 [공개된(public)](State-Representation) [관계 기반(relational)](Relational-Representation-and-Generalization) space에서 학습하려 한다.
 
 ---
 
@@ -85,7 +85,7 @@ True environment state S_t
         Agent
 ```
 
-이때 state 표현이 정말 Markov하다면 [세계 모델(world model)](Model-Based-RL-and-World-Models)은 원칙적으로:
+이때 상태 표현이 정말 Markov하다면 [세계 모델(world model)](Model-Based-RL-and-World-Models)은 원칙적으로:
 
 ```math
 P(S_{t+1}\mid S_t,A_t)
@@ -93,13 +93,13 @@ P(S_{t+1}\mid S_t,A_t)
 
 만 알면 된다.
 
-그러나 실제 문제에서는 learner가 true state 전체를 보지 못하는 경우가 많다.
+그러나 실제 문제에서는 [학습 주체(learner)](Terminology-Guide)가 [실제 환경 상태(true state)](MDP-and-POMDP) 전체를 보지 못하는 경우가 많다.
 
 ---
 
 # 5. POMDP: Partially Observable Markov Decision Process
 
-POMDP에서는 실제 hidden state `S_t`가 있지만 에이전트는 [관측(observation)](MDP-and-POMDP) `O_t`만 받는다.
+POMDP에서는 실제 [숨은 환경 상태(hidden state)](MDP-and-POMDP) `S_t`가 있지만 에이전트는 [관측(observation)](MDP-and-POMDP) `O_t`만 받는다.
 
 보통 다음처럼 확장한다.
 
@@ -110,7 +110,7 @@ POMDP에서는 실제 hidden state `S_t`가 있지만 에이전트는 [관측(ob
 여기서:
 
 - `Ω`: 관측 space
-- `O(o|s)`: hidden state에서 관측이 나오는 분포
+- `O(o|s)`: 숨은 환경 상태에서 관측이 나오는 분포
 
 를 추가한다.
 
@@ -130,7 +130,7 @@ Agent
 
 # 6. 같은 observation인데 미래가 달라질 수 있다
 
-부분 관측에서는 서로 다른 hidden state가 같은 관측을 만들 수 있다.
+부분 관측에서는 서로 다른 숨은 환경 상태가 같은 관측을 만들 수 있다.
 
 ```text
 Hidden S_A ─┐
@@ -150,7 +150,7 @@ O + action A
 
 처럼 여러 미래가 가능하다.
 
-이것이 AASSR의 [Prophecy](Prophecy)가 단일 deterministic `S'`보다 **multimodal stochastic distribution**을 표현해야 하는 이유 중 하나다.
+이것이 AASSR의 [Prophecy](Prophecy)가 단일 deterministic `S'`보다 **[여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) 확률적 distribution**을 표현해야 하는 이유 중 하나다.
 
 관련 페이지:
 
@@ -184,21 +184,21 @@ simulator가 내부적으로 가진 모든 정보.
 
 예:
 
-- hidden workflow stage
-- hidden session countdown
-- 정답 identity
+- [숨겨진(hidden)](MDP-and-POMDP) workflow stage
+- 숨겨진 session countdown
+- 정답 [식별 방식(identity)](State-Representation)
 
 ## Public observation
 
-에이전트가 실제 response를 통해 볼 수 있는 정보.
+에이전트가 실제 [응답(response)](State-Representation)를 통해 볼 수 있는 정보.
 
 ## Relational State v3
 
-public 관측을 [전이(transfer)](Relational-Representation-and-Generalization)하기 좋은 구조로 변환한 [표현(representation)](Relational-Representation-and-Generalization).
+공개된 관측을 [전이(transfer)](Relational-Representation-and-Generalization)하기 좋은 구조로 변환한 [표현(representation)](Relational-Representation-and-Generalization).
 
 ## Knowledge / sequence context
 
-과거 public 관측s에서 얻은 정보를 현재 decision에 보존하는 추가 context.
+과거 공개된 관측s에서 얻은 정보를 현재 decision에 보존하는 추가 context.
 
 관련 페이지:
 
@@ -210,9 +210,9 @@ public 관측을 [전이(transfer)](Relational-Representation-and-Generalization
 
 # 8. Belief state
 
-POMDP의 고전적인 해법 중 하나는 **belief state**를 유지하는 것이다.
+POMDP의 고전적인 해법 중 하나는 **belief 상태**를 유지하는 것이다.
 
-belief state는 hidden state에 대한 확률분포다.
+belief 상태는 숨은 환경 상태에 대한 확률분포다.
 
 ```math
 b_t(s)=P(S_t=s\mid O_{0:t},A_{0:t-1})
@@ -230,12 +230,12 @@ AASSR이 explicit Bayesian belief-state solver라고 주장하는 것은 아니�
 
 하지만 개념적으로 다음 요소들이 부분 관측을 보완한다.
 
-- public relational state
-- episode-local [Knowledge](Knowledge)
-- stochastic [Prophecy](Prophecy)
+- 공개된 관계 기반 상태
+- [현재 에피소드 안에서만 유지되는(episode-local)](Knowledge) [Knowledge](Knowledge)
+- 확률적 [Prophecy](Prophecy)
 - recurrent [Critic](Critic)
 
-이들은 hidden state를 직접 알려주는 것이 아니라 **관측 가능한 history와 future distribution을 이용해 의사결정에 필요한 구조를 복원하려는 장치**다.
+이들은 숨은 환경 상태를 직접 알려주는 것이 아니라 **관측 가능한 history와 future distribution을 이용해 의사결정에 필요한 구조를 복원하려는 장치**다.
 
 ---
 
@@ -255,8 +255,8 @@ AASSR이 explicit Bayesian belief-state solver라고 주장하는 것은 아니�
 
 이 때문에 POMDP에서 다음이 사용될 수 있다.
 
-- recurrent neural network
-- belief state
+- recurrent neural [신경망(network)](Neural-Networks-and-Optimization)
+- belief 상태
 - explicit memory
 - history window
 
@@ -274,9 +274,9 @@ AASSR에서는 [Knowledge](Knowledge)와 [GRU Critic](GRU-and-Sequence-Models)�
 
 ## Stochasticity
 
-같은 실제 state/행동에서도 환경 자체가 확률적으로 다른 결과를 낼 수 있다.
+같은 실제 상태/행동에서도 환경 자체가 확률적으로 다른 결과를 낼 수 있다.
 
-두 현상 모두 에이전트의 public 관점에서는 여러 미래를 만들 수 있지만 원인은 다르다.
+두 현상 모두 에이전트의 공개된 관점에서는 여러 미래를 만들 수 있지만 원인은 다르다.
 
 ```text
 여러 미래
@@ -284,7 +284,7 @@ AASSR에서는 [Knowledge](Knowledge)와 [GRU Critic](GRU-and-Sequence-Models)�
   └─ 환경 자체가 랜덤해서
 ```
 
-AASSR 세계 모델은 둘을 public outcome distribution에서 함께 다뤄야 할 수 있다.
+AASSR 세계 모델은 둘을 공개된 outcome distribution에서 함께 다뤄야 할 수 있다.
 
 더 자세히:
 
@@ -294,7 +294,7 @@ AASSR 세계 모델은 둘을 public outcome distribution에서 함께 다뤄야
 
 # 11. POMDP와 model error도 다르다
 
-세 번째로 분리해야 하는 것이 **model uncertainty**다.
+세 번째로 분리해야 하는 것이 **[학습 모델(model)](Terminology-Guide) uncertainty**다.
 
 ```text
 A. 실제 환경이 stochastic함
@@ -322,23 +322,23 @@ Calibration / ensemble evidence
 
 # 12. Action space도 state에 따라 달라질 수 있다
 
-일반적인 교과서 MDP에서는 `A`를 고정된 행동 set처럼 쓰지만 실제 환경에서는 state마다 legal 행동이 달라질 수 있다.
+일반적인 교과서 MDP에서는 `A`를 고정된 행동 set처럼 쓰지만 실제 환경에서는 상태마다 legal 행동이 달라질 수 있다.
 
 ```math
 \mathcal{A}(s) \subseteq \mathcal{A}
 ```
 
-AASSR에서는 현재 public state의 `available_actions`가 매우 중요하다.
+AASSR에서는 현재 [공개 관측 상태(public state)](State-Representation)의 `available_actions`가 매우 중요하다.
 
-그래서 [Prophecy](Prophecy)는 다음 state의 표현뿐 아니라 **[가능 행동 마스크(legal action mask)](Prophecy)/surface**도 예측한다.
+그래서 [Prophecy](Prophecy)는 다음 상태의 표현뿐 아니라 **[가능 행동 마스크(legal action mask)](Prophecy)/surface**도 예측한다.
 
-그렇지 않으면 planner가 존재하지 않는 행동을 상상할 수 있다.
+그렇지 않으면 [계획기(planner)](Counterfactual-Planning-and-Search)가 존재하지 않는 행동을 상상할 수 있다.
 
 ---
 
 # 13. Terminal state
 
-Terminal state는 episode가 끝나는 상태다.
+Terminal 상태는 [한 번의 문제 풀이 구간(episode)](Terminology-Guide)가 끝나는 상태다.
 
 그러나 구현에서는 여러 종류의 종료를 구분해야 한다.
 
@@ -349,7 +349,7 @@ truncation
 administrative reset
 ```
 
-MDP 의미에서 goal/failure termination과, 학습 데이터 수집 과정에서 발생하는 상태 전이 cap은 의미가 다르다.
+MDP 의미에서 goal/[실패(failure)](Replay-Buffer-and-Episode-Boundaries) termination과, 학습 데이터 수집 과정에서 발생하는 상태 전이 cap은 의미가 다르다.
 
 관련 페이지:
 
@@ -359,7 +359,7 @@ MDP 의미에서 goal/failure termination과, 학습 데이터 수집 과정에�
 
 # 14. POMDP에서 Q(s,a)를 그대로 쓰기 어려운 이유
 
-true state `s`를 볼 수 없다면 엄밀히는 에이전트가 `Q(s,a)`를 직접 계산할 수 없다.
+실제 환경 상태 `s`를 볼 수 없다면 엄밀히는 에이전트가 `Q(s,a)`를 직접 계산할 수 없다.
 
 대신 관측/history/belief 표현에 대해 근사한다.
 
@@ -367,15 +367,15 @@ true state `s`를 볼 수 없다면 엄밀히는 에이전트가 `Q(s,a)`를 직
 Q(observation representation, action)
 ```
 
-AASSR [Policy(정책 모델)](Policy)는 raw hidden state가 아니라 public [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)을 입력으로 사용한다.
+AASSR [Policy(정책 모델)](Policy)는 raw 숨은 환경 상태가 아니라 공개된 [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)을 입력으로 사용한다.
 
-따라서 엄밀하게는 learner가 만든 **에이전트-side decision state**에 대한 [Q값(Q-value)](Value-Functions-and-Bellman-Equation)라고 보는 것이 맞다.
+따라서 엄밀하게는 학습 주체가 만든 **에이전트-side decision 상태**에 대한 [Q값(Q-value)](Value-Functions-and-Bellman-Equation)라고 보는 것이 맞다.
 
 ---
 
 # 15. State representation이 충분하지 않으면 생기는 일
 
-두 hidden situations가 실제로 중요한 차이가 있는데 표현에서 같은 값으로 압축되면 **state aliasing**이 생긴다.
+두 숨겨진 situations가 실제로 중요한 차이가 있는데 표현에서 같은 값으로 압축되면 **상태 aliasing**이 생긴다.
 
 ```text
 Situation A ─┐
@@ -385,11 +385,11 @@ Situation B ─┘
 
 그런데 최적 행동이 다르면 [Policy](Policy)가 모순된 target을 받는다.
 
-World model도 여러 incompatible next states를 보게 된다.
+World 학습 모델도 여러 incompatible next states를 보게 된다.
 
-AASSR의 conditional mixture는 이런 multimodality를 일부 흡수할 수 있지만, decision-critical public signal을 표현 자체에서 버리면 한계가 있다.
+AASSR의 conditional mixture는 이런 multimodality를 일부 흡수할 수 있지만, [의사결정에 중요한(decision-critical)](Calibration) 공개된 signal을 표현 자체에서 버리면 한계가 있다.
 
-그래서 Relational State v3에서 latest public HTTP status를 명시적으로 보존했다.
+그래서 Relational [상태(State)](State-Representation) v3에서 latest 공개된 HTTP [상태 코드(status)](Terminology-Guide)를 명시적으로 보존했다.
 
 관련 페이지:
 
@@ -414,7 +414,7 @@ Relational abstraction
 → 과도하면 state aliasing 위험
 ```
 
-AASSR에서 [실제 개체 구분(concrete identity)](State-Representation)와 relational 전이 identity를 동시에 유지하는 이유가 여기에 있다.
+AASSR에서 [실제 개체 구분(concrete identity)](State-Representation)와 관계 기반 전이 식별 방식를 동시에 유지하는 이유가 여기에 있다.
 
 관련 페이지:
 
@@ -448,9 +448,9 @@ Knowledge / learned memory
 P(R_{t+1}\mid R_t,A_t,K_t)
 ```
 
-에 가까운 public future distribution을 근사한다.
+에 가까운 공개된 future distribution을 근사한다.
 
-여기서 `R_t`는 true hidden state가 아니라 relational public 표현이다.
+여기서 `R_t`는 true 숨은 환경 상태가 아니라 관계 기반 공개된 표현이다.
 
 ---
 
@@ -458,19 +458,19 @@ P(R_{t+1}\mid R_t,A_t,K_t)
 
 ## "POMDP면 Markov property가 없는가?"
 
-Hidden true state 과정은 Markov일 수 있다. **에이전트가 그 state를 직접 관측하지 못하는 것**이 문제다.
+Hidden 실제 환경 상태 과정은 Markov일 수 있다. **에이전트가 그 상태를 직접 관측하지 못하는 것**이 문제다.
 
 ## "같은 observation에서 여러 미래면 환경이 랜덤인가?"
 
-반드시 그렇지 않다. 서로 다른 hidden states가 같은 관측으로 alias된 것일 수 있다.
+반드시 그렇지 않다. 서로 다른 숨겨진 states가 같은 관측으로 alias된 것일 수 있다.
 
 ## "history를 쓰면 무조건 POMDP가 해결되는가?"
 
-아니다. history가 hidden state를 완전히 식별하지 못할 수 있고, 모델 capacity/학습 데이터도 필요하다.
+아니다. history가 숨은 환경 상태를 완전히 식별하지 못할 수 있고, 모델 capacity/학습 데이터도 필요하다.
 
 ## "relational abstraction은 항상 좋나?"
 
-아니다. identifier memorization을 줄이지만 중요한 state variable까지 버리면 aliasing이 커질 수 있다.
+아니다. identifier memorization을 줄이지만 중요한 상태 variable까지 버리면 aliasing이 커질 수 있다.
 
 ---
 

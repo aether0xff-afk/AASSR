@@ -1,14 +1,14 @@
 # Loss Functions and Class Imbalance
 
-이 페이지는 neural model이 **무엇을 틀렸다고 판단하고 어떻게 학습 신호를 만드는지** 설명한다.
+이 페이지는 neural [학습 모델(model)](Terminology-Guide)이 **무엇을 틀렸다고 판단하고 어떻게 학습 신호를 만드는지** 설명한다.
 
-AASSR에서는 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD), [Prophecy(미래 예측 모델)](Prophecy), [Critic(미래 가치 평가기)](Critic)이 서로 다른 prediction target을 가지므로 [학습 손실(loss)](Loss-Functions-and-Class-Imbalance)의 의미도 다르다.
+AASSR에서는 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD), [Prophecy(미래 예측 모델)](Prophecy), [Critic(미래 가치 평가기)](Critic)이 서로 다른 [예측(prediction)](Terminology-Guide) target을 가지므로 [학습 손실(loss)](Loss-Functions-and-Class-Imbalance)의 의미도 다르다.
 
 ---
 
 # 1. Loss function이란?
 
-Model prediction과 target의 차이를 scalar로 측정한다.
+Model 예측과 target의 차이를 scalar로 측정한다.
 
 ```math
 L(\theta)
@@ -32,7 +32,7 @@ Loss
 → model parameter를 학습시키는 optimization objective
 ```
 
-AASSR에서 status classification 학습 손실를 추가한다고 외부 보상 shaping이 생기는 것은 아니다.
+AASSR에서 [상태 코드(status)](Terminology-Guide) classification 학습 손실를 추가한다고 외부 보상 shaping이 생기는 것은 아니다.
 
 ---
 
@@ -46,7 +46,7 @@ MSE=\frac1N\sum_i(\hat y_i-y_i)^2
 
 큰 error에 제곱으로 강한 penalty를 준다.
 
-Value [회귀 검증(regression)](Ablation-Benchmarking-and-Reproducibility)이나 continuous prediction에 사용할 수 있다.
+Value [회귀 검증(regression)](Ablation-Benchmarking-and-Reproducibility)이나 continuous 예측에 사용할 수 있다.
 
 ---
 
@@ -78,7 +78,7 @@ MSE의 smoothness와 MAE의 outlier robustness를 절충한다.
 
 [DQN](Q-Learning-DQN-and-TD)/[누적 보상(return)](Value-Functions-and-Bellman-Equation) 회귀 검증에서 자주 사용된다.
 
-AASSR current [Critic](Critic)도 Smooth L1 계열과 연결된다.
+AASSR [현재(current)](Current-Status) [Critic](Critic)도 Smooth L1 계열과 연결된다.
 
 ---
 
@@ -93,9 +93,9 @@ HTTP status class
 200 / 302 / 400 / 401 / 403 / 404 / 409 / 429
 ```
 
-이를 continuous scalar 회귀 검증으로 보면 status 숫자 사이의 거리 자체에 의미가 있다고 잘못 가정할 수 있다.
+이를 continuous scalar 회귀 검증으로 보면 상태 코드 숫자 사이의 거리 자체에 의미가 있다고 잘못 가정할 수 있다.
 
-AASSR은 status를 categorical prediction으로 다룬다.
+AASSR은 상태 코드를 [범주형(categorical)](Loss-Functions-and-Class-Imbalance) 예측으로 다룬다.
 
 ---
 
@@ -145,7 +145,7 @@ Legal [행동(action)](Reinforcement-Learning) mask처럼 여러 행동 availabi
 
 # 9. Categorical과 Multi-label 차이
 
-HTTP status:
+HTTP 상태 코드:
 
 ```text
 한 transition에서 하나의 latest status
@@ -177,13 +177,13 @@ Prediction target의 구조에 맞는 학습 손실를 써야 한다.
 
 항상 200이라고 예측해도 accuracy가 90%가 된다.
 
-하지만 rare `429` 같은 outcome이 planner에 매우 중요할 수 있다.
+하지만 [드문(rare)](Loss-Functions-and-Class-Imbalance) `429` 같은 outcome이 [계획기(planner)](Counterfactual-Planning-and-Search)에 매우 중요할 수 있다.
 
 ---
 
 # 11. Accuracy paradox
 
-Imbalanced dataset에서 단순 accuracy가 model quality를 과장할 수 있다.
+Imbalanced dataset에서 단순 accuracy가 학습 모델 quality를 과장할 수 있다.
 
 예:
 
@@ -200,7 +200,7 @@ accuracy = 99%
 critical failure recall = 0%
 ```
 
-따라서 decision-critical rare class는 별도 [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility)이 필요하다.
+따라서 [의사결정에 중요한(decision-critical)](Calibration) 드문 class는 별도 [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility)이 필요하다.
 
 ---
 
@@ -220,9 +220,9 @@ L=-\sum_c w_cy_c\log p_c
 rare class weight ↑
 ```
 
-는 "그 status가 task에서 더 나쁘다"는 보상 의미가 아니다.
+는 "그 상태 코드가 task에서 더 나쁘다"는 보상 의미가 아니다.
 
-단지 **training dataset imbalance를 보정**하는 optimization 선택이다.
+단지 **[학습(training)](Terminology-Guide) dataset imbalance를 보정**하는 optimization 선택이다.
 
 ---
 
@@ -264,13 +264,13 @@ Majority class sample 일부를 줄인다.
 FL(p_t)=-(1-p_t)^\gamma\log p_t
 ```
 
-AASSR current status model이 반드시 focal 학습 손실를 쓴다는 뜻은 아니다. Class imbalance 문제를 이해하기 위한 관련 일반 개념이다.
+AASSR 현재 상태 코드 학습 모델이 반드시 focal 학습 손실를 쓴다는 뜻은 아니다. Class imbalance 문제를 이해하기 위한 관련 일반 개념이다.
 
 ---
 
 # 16. Multi-task loss
 
-World model은 여러 target을 동시에 예측할 수 있다.
+World 학습 모델은 여러 target을 동시에 예측할 수 있다.
 
 예:
 
@@ -290,7 +290,7 @@ L=\lambda_1L_{state}+\lambda_2L_{status}+\lambda_3L_{mask}+\lambda_4L_{terminal}
 
 처럼 조합할 수 있다.
 
-여기서 `λ`는 각 training objective의 상대적인 최적화 scale을 정한다.
+여기서 `λ`는 각 학습 [학습 목표(objective)](Terminology-Guide)의 상대적인 최적화 scale을 정한다.
 
 이 weight 역시 [환경(environment)](Reinforcement-Learning) 보상와는 별개다.
 
@@ -308,13 +308,13 @@ Status reward +0.2/-0.2
 → agent의 task objective 자체를 바꿈
 ```
 
-AASSR current repair는 decision-critical status를 **prediction target/validation 평가지표에서 강화**하지만 sparse external 보상를 status-based shaping으로 바꾸지 않는다.
+AASSR 현재 repair는 의사결정에 중요한 상태 코드를 **예측 target/[검증(validation)](Ablation-Benchmarking-and-Reproducibility) 평가지표에서 강화**하지만 sparse external 보상를 status-based shaping으로 바꾸지 않는다.
 
 ---
 
 # 18. Terminal classification
 
-다음 state가:
+다음 [상태(state)](State-Representation)가:
 
 ```text
 active
@@ -325,7 +325,7 @@ truncation
 
 중 무엇인지 예측해야 할 수 있다.
 
-Failure와 [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries)이 같은 class로 뭉치면 planner/value semantics가 왜곡될 수 있다.
+Failure와 [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries)이 같은 class로 뭉치면 계획기/[가치(value)](Value-Functions-and-Bellman-Equation) semantics가 왜곡될 수 있다.
 
 관련 페이지:
 
@@ -348,7 +348,7 @@ Predicted [가능 행동 마스크(legal action mask)](Prophecy)와 actual mask�
 
 같은 방법을 사용할 수 있다.
 
-AASSR semantic evaluation에서는 legal 행동 structure가 decision-critical하므로 mask quality를 별도 요소로 본다.
+AASSR semantic [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)에서는 legal 행동 structure가 의사결정에 중요한하므로 mask quality를 별도 요소로 본다.
 
 ---
 
@@ -377,7 +377,7 @@ Classification accuracy가 높아도 probability가 잘 calibrated되어 있지 
 
 이면 overconfident하다.
 
-AASSR에서는 raw softmax confidence 대신 real [검증용 분리 데이터(holdout)](Calibration) semantic reliability를 별도로 본다.
+AASSR에서는 raw softmax confidence 대신 real [검증용 분리 데이터(holdout)](Calibration) semantic [신뢰도(reliability)](Calibration)를 별도로 본다.
 
 관련 페이지:
 
@@ -388,13 +388,13 @@ AASSR에서는 raw softmax confidence 대신 real [검증용 분리 데이터(ho
 
 # 22. NLL
 
-Negative Log-Likelihood는 probabilistic model이 실제 data에 얼마나 높은 likelihood를 주는지 평가하는 대표 objective다.
+Negative Log-Likelihood는 probabilistic 학습 모델이 실제 data에 얼마나 높은 likelihood를 주는지 평가하는 대표 학습 목표다.
 
 ```math
 NLL=-\sum_i\log p_\theta(y_i|x_i)
 ```
 
-Mixture model training에서도 likelihood-based objective가 자연스럽다.
+Mixture 학습 모델 학습에서도 likelihood-based 학습 목표가 자연스럽다.
 
 ---
 
@@ -408,7 +408,7 @@ p(y|x)=\sum_m\pi_m(x)p_m(y|x)
 
 의 likelihood를 최대화한다.
 
-여러 component가 같은 mode로 collapse하거나 한 component만 모든 mass를 가져가는 failure가 생길 수 있어 diagnostic이 필요하다.
+여러 [구성요소(component)](Research-Architecture)가 같은 mode로 collapse하거나 한 구성요소만 모든 mass를 가져가는 [실패(failure)](Replay-Buffer-and-Episode-Boundaries)가 생길 수 있어 [진단 실험(diagnostic)](Evidence-Matrix)이 필요하다.
 
 관련 페이지:
 
@@ -444,7 +444,7 @@ probability-weighted quality
 
 # 25. Proxy objective 문제
 
-Training 학습 손실를 낮추는 것이 최종 [에이전트(agent)](Reinforcement-Learning) success를 높인다는 보장은 없다.
+Training 학습 손실를 낮추는 것이 최종 [에이전트(agent)](Reinforcement-Learning) [성공(success)](Terminology-Guide)를 높인다는 보장은 없다.
 
 ```text
 World-model MSE ↓
@@ -458,7 +458,7 @@ Imagination success contribution = 0
 
 일 수 있다.
 
-그래서 AASSR은 model 평가지표과 downstream [실제 행동 개입(intervention)](Imagination)/task 평가지표을 분리한다.
+그래서 AASSR은 학습 모델 평가지표과 downstream [실제 행동 개입(intervention)](Imagination)/task 평가지표을 분리한다.
 
 관련 페이지:
 
@@ -482,7 +482,7 @@ L=(Q_\theta(s,a)-y)^2
 
 같은 회귀 검증 학습 손실로 학습한다.
 
-즉 RL에서도 결국 neural network optimization 수준에서는 학습 손실 function이 존재한다.
+즉 RL에서도 결국 neural [신경망(network)](Neural-Networks-and-Optimization) optimization 수준에서는 학습 손실 function이 존재한다.
 
 관련 페이지:
 
@@ -492,7 +492,7 @@ L=(Q_\theta(s,a)-y)^2
 
 # 27. Critic regression
 
-AASSR [Critic](Critic)은 실제 sparse-누적 보상 target을 sequence input에서 회귀한다.
+AASSR [Critic](Critic)은 실제 sparse-누적 보상 target을 sequence [입력(input)](Terminology-Guide)에서 회귀한다.
 
 ```text
 sequence → predicted return
@@ -500,7 +500,7 @@ sequence → predicted return
 
 Sparse target이 대부분 0이면 class imbalance와 비슷한 **target starvation** 문제가 생길 수 있다.
 
-성공/failure trajectory가 너무 적으면 [Critic](Critic)이 branch를 구분하기 어렵다.
+성공/실패 trajectory가 너무 적으면 [Critic](Critic)이 branch를 구분하기 어렵다.
 
 ---
 
@@ -513,9 +513,9 @@ L_state ≈ 0.01
 L_status ≈ 4.0
 ```
 
-같다면 단순 합산 시 status가 최적화를 지배할 수 있다.
+같다면 단순 합산 시 상태 코드가 최적화를 지배할 수 있다.
 
-Weighting/normalization을 설계할 때 각 objective의 의미와 scale을 함께 봐야 한다.
+Weighting/normalization을 설계할 때 각 학습 목표의 의미와 scale을 함께 봐야 한다.
 
 ---
 

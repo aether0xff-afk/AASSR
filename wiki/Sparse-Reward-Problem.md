@@ -32,7 +32,7 @@ S0 -> A0 -> S1 -> A1 -> S2 -> A2 -> ... -> success
           0           0                  +1
 ```
 
-현재 pentest [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)의 외부 보상 contract는 다음처럼 매우 좁다.
+현재 pentest [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)의 외부 보상 [명세(contract)](Current-Status)는 다음처럼 매우 좁다.
 
 ```text
 proof success       +1
@@ -67,15 +67,15 @@ A0 -> A1 -> A2 -> A3 -> A4 -> success
 
 특히 이름만 다른 [실제 실행 행동(concrete action)](State-Representation)이 많이 존재할 수 있다.
 
-그래서 AASSR은 [실제 개체 구분(concrete identity)](State-Representation)와 relational role을 분리한다.
+그래서 AASSR은 [실제 개체 구분(concrete identity)](State-Representation)와 [관계 기반(relational)](Relational-Representation-and-Generalization) role을 분리한다.
 
 ---
 
 ## 2.3 Partial observability
 
-환경의 내부 상태를 전부 볼 수 없으면 동일해 보이는 public state에서 서로 다른 미래가 나올 수 있다.
+환경의 내부 상태를 전부 볼 수 없으면 동일해 보이는 [공개 관측 상태(public state)](State-Representation)에서 서로 다른 미래가 나올 수 있다.
 
-즉 실제 dynamics는 단순히
+즉 실제 [환경의 상태 변화 규칙(dynamics)](Model-Based-RL-and-World-Models)는 단순히
 
 ```text
 (S,A) -> 하나의 S'
@@ -90,18 +90,18 @@ A0 -> A1 -> A2 -> A3 -> A4 -> success
   `-- p3 --> S3'
 ```
 
-이 때문에 현재 [Prophecy(미래 예측 모델)](Prophecy)는 deterministic [회귀 검증(regression)](Ablation-Benchmarking-and-Reproducibility)이 아니라 stochastic conditional mixture를 사용한다.
+이 때문에 현재 [Prophecy(미래 예측 모델)](Prophecy)는 deterministic [회귀 검증(regression)](Ablation-Benchmarking-and-Reproducibility)이 아니라 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) conditional mixture를 사용한다.
 
 ---
 
 ## 2.4 비가역적 실패
 
-어떤 행동은 단순히 한 번의 보상 손실로 끝나지 않고 episode 전체를 망칠 수 있다.
+어떤 행동은 단순히 한 번의 보상 손실로 끝나지 않고 [한 번의 문제 풀이 구간(episode)](Terminology-Guide) 전체를 망칠 수 있다.
 
 예:
 
 - true lockout
-- irreversible workflow failure
+- irreversible workflow [실패(failure)](Replay-Buffer-and-Episode-Boundaries)
 - session [학습 손실(loss)](Loss-Functions-and-Class-Imbalance) 후 복구 불가능한 상태
 
 따라서 실제로 행동하기 전에 미래 위험을 추정하는 능력이 중요해진다.
@@ -173,7 +173,7 @@ AASSR의 여러 구성 요소는 학습을 돕지만 외부 task 보상 자체�
 - [Critic(미래 가치 평가기)](Critic)은 **실제 sparse [누적 보상(return)](Value-Functions-and-Bellman-Equation)**을 학습한다.
 - [Imagination(가상 미래 탐색)](Imagination)은 **실행 전 [반사실적 계획(counterfactual planning)](Counterfactual-Planning-and-Search)**을 한다.
 
-즉 내부 계산은 복잡해져도 외부 보상 contract는 그대로 유지된다.
+즉 내부 계산은 복잡해져도 외부 보상 명세는 그대로 유지된다.
 
 ---
 
@@ -199,7 +199,7 @@ Sparse reward
 
 # 6. 현재 benchmark는 어떻게 이 문제를 만든가?
 
-AASSR의 current HTTP pentest lab은 실제 공격 대신 safe in-process simulator를 사용한다.
+AASSR의 [현재(current)](Current-Status) HTTP pentest lab은 실제 공격 대신 safe in-process simulator를 사용한다.
 
 환경은 다음 요소를 포함한다.
 
@@ -213,7 +213,7 @@ AASSR의 current HTTP pentest lab은 실제 공격 대신 safe in-process simula
 - rate limit
 - session expiration
 - opaque identifier permutation
-- HTTP-like public status
+- HTTP-like [공개된(public)](State-Representation) [상태 코드(status)](Terminology-Guide)
 
 대표적인 진행 구조는 다음과 같다.
 
@@ -241,7 +241,7 @@ Proof
 
 희소 보상 실험에서는 환경 자체가 사실상 불가능하면 [에이전트(agent)](Reinforcement-Learning) 성능을 비교할 수 없다.
 
-그래서 표준 비교 실험 validation 단계에서는 다음을 따로 확인한다.
+그래서 표준 비교 실험 [검증(validation)](Ablation-Benchmarking-and-Reproducibility) 단계에서는 다음을 따로 확인한다.
 
 - Oracle은 일관되게 성공하는가?
 - Random은 거의 성공하지 못하는가?

@@ -6,7 +6,7 @@
 
 # 1. Q-learning의 목표
 
-Q-learning은 최적 [행동(action)](Reinforcement-Learning) value:
+Q-learning은 최적 [행동(action)](Reinforcement-Learning) [가치(value)](Value-Functions-and-Bellman-Equation):
 
 ```math
 Q^*(s,a)
@@ -16,7 +16,7 @@ Q^*(s,a)
 
 이 값은:
 
-> state `s`에서 행동 `a`를 먼저 한 뒤 최적으로 행동했을 때 기대되는 장기 [누적 보상(return)](Value-Functions-and-Bellman-Equation)
+> [상태(state)](State-Representation) `s`에서 행동 `a`를 먼저 한 뒤 최적으로 행동했을 때 기대되는 장기 [누적 보상(return)](Value-Functions-and-Bellman-Equation)
 
 이다.
 
@@ -56,7 +56,7 @@ r_t+\gamma\max_{a'}Q(s_{t+1},a')-Q(s_t,a_t)
 
 # 3. Temporal-Difference learning
 
-TD learning은 실제 최종 누적 보상 전체를 기다리지 않고 **현재 [보상(reward)](Sparse-Reward-and-Credit-Assignment)와 다음 state의 value estimate를 이용해 update**한다.
+TD learning은 실제 최종 누적 보상 전체를 기다리지 않고 **현재 [보상(reward)](Sparse-Reward-and-Credit-Assignment)와 다음 상태의 가치 estimate를 이용해 update**한다.
 
 ```math
 target=r_t+\gamma V(s_{t+1})
@@ -103,7 +103,7 @@ target=0+0.9(0.8)=0.72
 
 현재 Q를 위쪽으로 수정한다.
 
-희소 보상에서는 [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) `+1`에서 생긴 value가 이런 TD update를 통해 이전 [상태 전이(transition)](MDP-and-POMDP)들로 전파될 수 있다.
+희소 보상에서는 [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) `+1`에서 생긴 가치가 이런 TD update를 통해 이전 [상태 전이(transition)](MDP-and-POMDP)들로 전파될 수 있다.
 
 ---
 
@@ -125,15 +125,15 @@ Q-learning target은 실제 behavior가 다음에 어떤 행동을 했는지가 
 
 # 6. Tabular Q-learning의 한계
 
-State/행동 space가 작으면 table을 둘 수 있다.
+[상태(State)](State-Representation)/행동 space가 작으면 table을 둘 수 있다.
 
 ```text
 Q[state][action]
 ```
 
-하지만 실제 환경의 state가 고차원이고 거의 연속적이면 table이 불가능하다.
+하지만 실제 환경의 상태가 고차원이고 거의 연속적이면 table이 불가능하다.
 
-그래서 neural network로 Q-function을 근사한다.
+그래서 neural [신경망(network)](Neural-Networks-and-Optimization)로 Q-function을 근사한다.
 
 ```math
 Q_\theta(s,a)
@@ -145,7 +145,7 @@ Q_\theta(s,a)
 
 # 7. DQN
 
-**Deep Q-Network**는 neural network를 Q-function approximator로 사용한다.
+**Deep Q-Network**는 neural 신경망를 Q-function approximator로 사용한다.
 
 입력:
 
@@ -153,9 +153,9 @@ Q_\theta(s,a)
 state representation
 ```
 
-출력 방식은 구현에 따라 다르지만 일반적으로 각 행동 [Q값(Q-value)](Value-Functions-and-Bellman-Equation) 또는 state/행동 pair score를 만든다.
+출력 방식은 구현에 따라 다르지만 일반적으로 각 행동 [Q값(Q-value)](Value-Functions-and-Bellman-Equation) 또는 상태/행동 pair score를 만든다.
 
-AASSR current [DQN](Q-Learning-DQN-and-TD)은 relational state/행동 structure를 이용하는 변형된 행동 scoring path를 사용한다.
+AASSR [현재(current)](Current-Status) [DQN](Q-Learning-DQN-and-TD)은 [관계 기반(relational)](Relational-Representation-and-Generalization) 상태/행동 structure를 이용하는 변형된 행동 scoring path를 사용한다.
 
 관련 페이지:
 
@@ -166,7 +166,7 @@ AASSR current [DQN](Q-Learning-DQN-and-TD)은 relational state/행동 structure�
 
 # 8. 왜 그냥 neural network 하나로 Q-learning을 하면 불안정할 수 있나?
 
-Q-learning + function approximation에서는 target 자체가 같은 network의 output에 의존한다.
+Q-learning + function approximation에서는 target 자체가 같은 신경망의 [출력(output)](Terminology-Guide)에 의존한다.
 
 ```text
 network가 Q 예측
@@ -183,7 +183,7 @@ target도 다시 움직임
 이 때문에 [DQN](Q-Learning-DQN-and-TD)에서는 대표적으로:
 
 - experience replay
-- target network
+- target 신경망
 
 같은 장치를 사용한다.
 
@@ -213,7 +213,7 @@ target도 다시 움직임
 
 # 10. Target Network
 
-Online network를 `Q_θ`, target network를 `Q_{θ^-}`라 하자.
+Online 신경망를 `Q_θ`, target 신경망를 `Q_{θ^-}`라 하자.
 
 Target:
 
@@ -221,9 +221,9 @@ Target:
 y=r+\gamma\max_{a'}Q_{\theta^-}(s',a')
 ```
 
-Online network는 이 target에 맞추어 학습한다.
+Online 신경망는 이 target에 맞추어 학습한다.
 
-Target network는 더 느리게 갱신하여 target이 지나치게 빠르게 움직이는 것을 줄인다.
+Target 신경망는 더 느리게 갱신하여 target이 지나치게 빠르게 움직이는 것을 줄인다.
 
 ---
 
@@ -261,7 +261,7 @@ y=r+\gamma\max_{a'}Q(s',a')
 
 따라서 `done`/에피소드 종료 flag는 매우 중요하다.
 
-AASSR에서 한때 reset이 일어났는데 replay에서 non-에피소드 종료로 취급되어 **새 episode state를 이전 episode의 미래처럼 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)**하는 mismatch가 문제가 된 이유가 이것이다.
+AASSR에서 한때 reset이 일어났는데 replay에서 non-에피소드 종료로 취급되어 **새 [한 번의 문제 풀이 구간(episode)](Terminology-Guide) 상태를 이전 한 번의 문제 풀이 구간의 미래처럼 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)**하는 mismatch가 문제가 된 이유가 이것이다.
 
 관련 페이지:
 
@@ -289,15 +289,15 @@ A에서는 다음 상태 가치 이어받기이 자연스럽다.
 y=0+\gamma\max Q(s',a')
 ```
 
-B에서 같은 식을 쓰면 **새 episode의 value가 이전 episode 행동에 연결**된다.
+B에서 같은 식을 쓰면 **새 한 번의 문제 풀이 구간의 가치가 이전 한 번의 문제 풀이 구간 행동에 연결**된다.
 
-그래서 보상 의미와 episode boundary를 분리해야 한다.
+그래서 보상 의미와 한 번의 문제 풀이 구간 boundary를 분리해야 한다.
 
 ---
 
 # 14. Epsilon-greedy
 
-[DQN](Q-Learning-DQN-and-TD) training에서 [탐색(exploration)](Exploration-and-Exploitation)을 위해:
+[DQN](Q-Learning-DQN-and-TD) [학습(training)](Terminology-Guide)에서 [탐색(exploration)](Exploration-and-Exploitation)을 위해:
 
 ```text
 확률 ε → random action
@@ -306,7 +306,7 @@ B에서 같은 식을 쓰면 **새 episode의 value가 이전 episode 행동에 
 
 를 사용할 수 있다.
 
-AASSR current [Policy](Policy)도 이 기본 탐색 mechanism을 가진다.
+AASSR 현재 [Policy](Policy)도 이 기본 탐색 mechanism을 가진다.
 
 자세한 내용:
 
@@ -316,7 +316,7 @@ AASSR current [Policy](Policy)도 이 기본 탐색 mechanism을 가진다.
 
 # 15. Overestimation bias
 
-Q-learning의 `max`는 noisy estimate 중 큰 값을 선택하기 때문에 value를 과대평가할 수 있다.
+Q-learning의 `max`는 noisy estimate 중 큰 값을 선택하기 때문에 가치를 과대평가할 수 있다.
 
 ```text
 실제 값은 비슷한데
@@ -325,11 +325,11 @@ noise 때문에 어떤 action Q가 우연히 높음
 → optimistic bias
 ```
 
-Double [DQN](Q-Learning-DQN-and-TD)은 행동 selection과 evaluation을 분리해 이 문제를 줄이는 대표 방법이다.
+Double [DQN](Q-Learning-DQN-and-TD)은 행동 selection과 [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)을 분리해 이 문제를 줄이는 대표 방법이다.
 
 AASSR의 [Imagination(가상 미래 탐색)](Imagination)에서도 비슷하게 **max를 어디에 사용해도 되는지**가 중요하다.
 
-환경 stochastic outcome에 max를 쓰면 더 심각한 optimistic planning 오류가 생긴다.
+환경 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) outcome에 max를 쓰면 더 심각한 optimistic [계획(planning)](Counterfactual-Planning-and-Search) 오류가 생긴다.
 
 관련 페이지:
 
@@ -339,7 +339,7 @@ AASSR의 [Imagination(가상 미래 탐색)](Imagination)에서도 비슷하게 
 
 # 16. Distribution shift
 
-[DQN](Q-Learning-DQN-and-TD)은 training 중 경험한 state/행동 distribution에서 학습한다.
+[DQN](Q-Learning-DQN-and-TD)은 학습 중 경험한 상태/행동 distribution에서 학습한다.
 
 새로운 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) region에서는 function approximator가 근거 없는 Q값를 낼 수 있다.
 
@@ -353,7 +353,7 @@ training support 밖
 
 AASSR에서는 [Policy](Policy)뿐 아니라 [Critic(미래 가치 평가기)](Critic)에서도 이 문제가 중요하다.
 
-특히 [Imagination](Imagination)이 model-generated state를 평가하면 [학습 분포 밖(OOD)](Critic-Support-and-OOD) risk가 더 커질 수 있다.
+특히 [Imagination](Imagination)이 model-generated 상태를 평가하면 [학습 분포 밖(OOD)](Critic-Support-and-OOD) risk가 더 커질 수 있다.
 
 관련 페이지:
 
@@ -373,7 +373,7 @@ dqn_relational
 
 을 비교한다.
 
-핵심 차이는 "[DQN](Q-Learning-DQN-and-TD)이냐 아니냐"가 아니라 **state/행동 표현**이다.
+핵심 차이는 "[DQN](Q-Learning-DQN-and-TD)이냐 아니냐"가 아니라 **상태/행동 표현**이다.
 
 Relational [DQN](Q-Learning-DQN-and-TD)은 concrete ID 자체보다 역할/관계 구조를 사용해 [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)-renaming [전이(transfer)](Relational-Representation-and-Generalization)를 노린다.
 
@@ -412,7 +412,7 @@ I를 DQN reward target에 합쳐서 학습하는 것이 아니다.
 
 [DQN](Q-Learning-DQN-and-TD)은 model-free하게 기본 행동을 제안한다.
 
-[Imagination](Imagination)은 learned [세계 모델(world model)](Model-Based-RL-and-World-Models)을 사용해 여러 root 행동을 미래 관점에서 재평가한다.
+[Imagination](Imagination)은 learned [세계 모델(world model)](Model-Based-RL-and-World-Models)을 사용해 여러 [탐색의 첫 행동(root)](Imagination) 행동을 미래 관점에서 재평가한다.
 
 ```text
 DQN Policy action
@@ -424,7 +424,7 @@ Prophecy / Planner / Critic
 
 따라서 AASSR Full은 [DQN](Q-Learning-DQN-and-TD)을 제거한 시스템이 아니다.
 
-**[DQN](Q-Learning-DQN-and-TD) [Policy](Policy)가 fallback이자 [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility) decision**이다.
+**[DQN](Q-Learning-DQN-and-TD) [Policy](Policy)가 [기본 경로로 돌아가기(fallback)](Imagination)이자 [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility) decision**이다.
 
 ---
 
@@ -442,7 +442,7 @@ GRU Critic
 → Imagination branch 평가
 ```
 
-둘을 같은 value network라고 생각하면 안 된다.
+둘을 같은 가치 신경망라고 생각하면 안 된다.
 
 관련 페이지:
 
@@ -459,7 +459,7 @@ GRU Critic
 
 ## "Reward가 0이면 TD target도 0인가?"
 
-Non-에피소드 종료이면 다음 state Q가 들어가므로 아니다.
+Non-에피소드 종료이면 다음 상태 Q가 들어가므로 아니다.
 
 ## "DQN은 world model을 학습하나?"
 
@@ -467,7 +467,7 @@ Non-에피소드 종료이면 다음 state Q가 들어가므로 아니다.
 
 ## "Relational DQN이면 model-based인가?"
 
-아니다. 표현이 relational일 뿐 [DQN](Q-Learning-DQN-and-TD) 자체는 model-free다.
+아니다. 표현이 관계 기반일 뿐 [DQN](Q-Learning-DQN-and-TD) 자체는 model-free다.
 
 ---
 

@@ -14,7 +14,7 @@ f(x)=y
 
 하지만 정확한 식을 모른다.
 
-Neural network는 parameter `θ`를 가진 함수:
+Neural [신경망(network)](Neural-Networks-and-Optimization)는 parameter `θ`를 가진 함수:
 
 ```math
 f_\theta(x)
@@ -28,9 +28,9 @@ f_\theta(x)
 Q_\theta(s,a)
 ```
 
-로 [행동(action)](Reinforcement-Learning) value를 근사할 수 있다.
+로 [행동(action)](Reinforcement-Learning) [가치(value)](Value-Functions-and-Bellman-Equation)를 근사할 수 있다.
 
-World model에서는:
+World [학습 모델(model)](Terminology-Guide)에서는:
 
 ```math
 \hat P_\theta(s'|s,a)
@@ -42,7 +42,7 @@ World model에서는:
 
 # 2. Neuron / Linear layer
 
-가장 기본적인 layer는:
+가장 기본적인 [처리 계층(layer)](Research-Architecture)는:
 
 ```math
 z=Wx+b
@@ -71,13 +71,13 @@ Linear transformation만 여러 번 쌓으면 전체가 다시 linear transforma
 ReLU(x)=\max(0,x)
 ```
 
-Nonlinearity 덕분에 neural network가 복잡한 함수를 표현할 수 있다.
+Nonlinearity 덕분에 neural 신경망가 복잡한 함수를 표현할 수 있다.
 
 ---
 
 # 4. Forward pass
 
-Input을 network에 넣어 output을 계산하는 과정이다.
+Input을 신경망에 넣어 [출력(output)](Terminology-Guide)을 계산하는 과정이다.
 
 ```text
 input
@@ -91,7 +91,7 @@ layer 2
 output
 ```
 
-[DQN](Q-Learning-DQN-and-TD)에서는 [Q값(Q-value)](Value-Functions-and-Bellman-Equation)가 나오고, [Prophecy](Prophecy)에서는 future prediction parameter가 나오며, [Critic](Critic)에서는 [누적 보상(return)](Value-Functions-and-Bellman-Equation) estimate가 나올 수 있다.
+[DQN](Q-Learning-DQN-and-TD)에서는 [Q값(Q-value)](Value-Functions-and-Bellman-Equation)가 나오고, [Prophecy](Prophecy)에서는 future [예측(prediction)](Terminology-Guide) parameter가 나오며, [Critic](Critic)에서는 [누적 보상(return)](Value-Functions-and-Bellman-Equation) estimate가 나올 수 있다.
 
 ---
 
@@ -129,7 +129,7 @@ Gradient descent의 기본 update:
 
 # 7. Backpropagation
 
-Network output에서 학습 손실를 계산한 뒤 chain rule로 각 parameter gradient를 뒤로 전파하는 알고리즘이다.
+Network 출력에서 학습 손실를 계산한 뒤 chain rule로 각 parameter gradient를 뒤로 전파하는 알고리즘이다.
 
 ```text
 forward
@@ -173,7 +173,7 @@ Gradient를 이용해 parameter를 업데이트하는 알고리즘이다.
 
 Adam은 각 parameter의 gradient 1차/2차 moment를 추적해 adaptive step size를 사용한다.
 
-AASSR의 여러 neural component 역시 optimizer를 통해 gradient update를 수행한다.
+AASSR의 여러 neural [구성요소(component)](Research-Architecture) 역시 optimizer를 통해 gradient update를 수행한다.
 
 ---
 
@@ -197,7 +197,7 @@ Batch size가 너무 작으면 gradient noise가 크고, 너무 크면 memory/co
 
 Supervised learning에서는 dataset 전체를 한 번 본 것을 epoch라고 자주 부른다.
 
-RL replay training에서는 고정 dataset epoch보다 **[환경(environment)](Reinforcement-Learning) [상태 전이(transition)](MDP-and-POMDP)s 수와 gradient update 수**가 더 자연스러운 단위일 수 있다.
+RL replay [학습(training)](Terminology-Guide)에서는 고정 dataset epoch보다 **[환경(environment)](Reinforcement-Learning) [상태 전이(transition)](MDP-and-POMDP)s 수와 gradient update 수**가 더 자연스러운 단위일 수 있다.
 
 AASSR 문서에서 `2k transitions`와 `gradient_updates`를 구분해야 하는 이유다.
 
@@ -212,7 +212,7 @@ train error ↓
 test error ↑
 ```
 
-AASSR에서는 특히 concrete ID memorization과 validation/test 반복 tuning이 overfitting을 만들 수 있다.
+AASSR에서는 특히 concrete ID memorization과 [검증(validation)](Ablation-Benchmarking-and-Reproducibility)/test 반복 tuning이 overfitting을 만들 수 있다.
 
 관련 페이지:
 
@@ -223,9 +223,9 @@ AASSR에서는 특히 concrete ID memorization과 validation/test 반복 tuning�
 
 # 13. Underfitting
 
-Model capacity가 부족하거나 training이 충분하지 않아 training data조차 잘 설명하지 못하는 상태다.
+Model capacity가 부족하거나 학습이 충분하지 않아 [학습 데이터(training data)](Terminology-Guide)조차 잘 설명하지 못하는 상태다.
 
-[Prophecy](Prophecy)가 미래 outcome mode를 제대로 분리하지 못하거나 [Critic](Critic)이 모든 branch에 비슷한 값을 내는 경우 capacity/training 부족 가능성을 생각할 수 있다.
+[Prophecy](Prophecy)가 미래 outcome mode를 제대로 분리하지 못하거나 [Critic](Critic)이 모든 branch에 비슷한 값을 내는 경우 capacity/학습 부족 가능성을 생각할 수 있다.
 
 ---
 
@@ -287,7 +287,7 @@ status 200 → [1,0,0,...]
 status 403 → [0,0,0,1,...]
 ```
 
-HTTP status를 numeric continuous value로 해석하지 않고 categorical channel로 처리하는 AASSR 설계와 연결된다.
+HTTP [상태 코드(status)](Terminology-Guide)를 numeric continuous 가치로 해석하지 않고 [범주형(categorical)](Loss-Functions-and-Class-Imbalance) channel로 처리하는 AASSR 설계와 연결된다.
 
 관련 페이지:
 
@@ -306,17 +306,17 @@ ID/category
 vector
 ```
 
-AASSR current [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)은 concrete ID embedding 암기보다 role/relationship features를 강조한다.
+AASSR [현재(current)](Current-Status) [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)은 concrete ID embedding 암기보다 role/relationship features를 강조한다.
 
 ---
 
 # 19. Function approximation과 Generalization
 
-Neural network는 정확히 본 sample뿐 아니라 비슷한 input에도 output을 만든다.
+Neural 신경망는 정확히 본 sample뿐 아니라 비슷한 [입력(input)](Terminology-Guide)에도 출력을 만든다.
 
 이것이 [일반화(generalization)](Relational-Representation-and-Generalization)의 장점이다.
 
-하지만 training support 밖에서도 숫자를 출력하므로 [학습 분포 밖(OOD)](Critic-Support-and-OOD) extrapolation의 원인이 되기도 한다.
+하지만 학습 [데이터 근거(support)](Critic-Support-and-OOD) 밖에서도 숫자를 출력하므로 [학습 분포 밖(OOD)](Critic-Support-and-OOD) extrapolation의 원인이 되기도 한다.
 
 관련 페이지:
 
@@ -334,7 +334,7 @@ Gradient norm이 너무 커지는 것을 제한한다.
 g\leftarrow c\frac{g}{\|g\|}
 ```
 
-RNN/[GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) training 안정화에 자주 사용된다.
+RNN/[GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) 학습 안정화에 자주 사용된다.
 
 관련 페이지:
 
@@ -344,17 +344,17 @@ RNN/[GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) training 안정화�
 
 # 21. Ensemble training
 
-여러 network를 독립적으로 학습할 수 있다.
+여러 신경망를 독립적으로 학습할 수 있다.
 
 차이를 만들기 위해:
 
 - initialization
 - [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries) sample
-- stochastic optimization
+- [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) optimization
 
 등을 다르게 할 수 있다.
 
-AASSR [Prophecy](Prophecy) ensemble의 uncertainty evidence와 연결된다.
+AASSR [Prophecy](Prophecy) ensemble의 uncertainty [증거(evidence)](Evidence-Matrix)와 연결된다.
 
 관련 페이지:
 
@@ -364,9 +364,9 @@ AASSR [Prophecy](Prophecy) ensemble의 uncertainty evidence와 연결된다.
 
 # 22. GPU batching
 
-GPU는 작은 model call을 수천 번 순차 실행하는 것보다 큰 tensor batch를 한 번에 처리할 때 효율적인 경우가 많다.
+GPU는 작은 학습 모델 call을 수천 번 순차 실행하는 것보다 큰 tensor batch를 한 번에 처리할 때 효율적인 경우가 많다.
 
-AASSR current-generation에서 [Prophecy](Prophecy)/[Critic](Critic) depth [묶음 처리(batching)](Reproduction)이 큰 성능 최적화였던 이유다.
+AASSR [현재 세대(current-generation)](Current-Status)에서 [Prophecy](Prophecy)/[Critic](Critic) depth [묶음 처리(batching)](Reproduction)이 큰 성능 최적화였던 이유다.
 
 ```text
 scalar calls × N
@@ -384,7 +384,7 @@ GPU 연산 중간에 `.item()`처럼 값을 CPU로 자주 가져오면 GPU가 �
 
 많은 작은 sync는 성능을 크게 떨어뜨릴 수 있다.
 
-AASSR current hardware optimizations가 batch [전이(transfer)](Relational-Representation-and-Generalization)와 bulk 학습 손실 bookkeeping을 사용하는 이유와 연결된다.
+AASSR 현재 hardware optimizations가 batch [전이(transfer)](Relational-Representation-and-Generalization)와 bulk 학습 손실 bookkeeping을 사용하는 이유와 연결된다.
 
 ---
 
@@ -398,9 +398,9 @@ AASSR current hardware optimizations가 batch [전이(transfer)](Relational-Repr
 
 # 25. Neural network가 '이해'한다는 말
 
-Network가 높은 prediction accuracy를 보인다고 해서 내부적으로 인간과 같은 의미를 이해한다고 자동으로 말할 수는 없다.
+Network가 높은 예측 accuracy를 보인다고 해서 내부적으로 인간과 같은 의미를 이해한다고 자동으로 말할 수는 없다.
 
-연구 문서에서는 가능한 한 operational claim을 사용한다.
+연구 문서에서는 가능한 한 operational [연구 주장(claim)](Evidence-Matrix)을 사용한다.
 
 ```text
 "이 관계를 이해한다"
@@ -425,7 +425,7 @@ Critic
 → sparse-return sequence value approximation
 ```
 
-각 network는 target과 역할이 다르다.
+각 신경망는 target과 역할이 다르다.
 
 ---
 

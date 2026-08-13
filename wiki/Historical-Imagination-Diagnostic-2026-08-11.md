@@ -1,9 +1,9 @@
 # Historical Imagination Diagnostic — 2026-08-11
 
 > [!WARNING]
-> 이 페이지는 **과거 실패 진단(historical diagnostic)** 을 보존한다. 여기의 `4/20 vs 4/20`, `86 interventions`, `58 bad-status interventions`는 **현재 repaired AASSR의 최종 성능 결과가 아니다.**
+> 이 페이지는 **과거 실패 진단([과거 기록(historical)](Development-History) [진단 실험(diagnostic)](Evidence-Matrix))** 을 보존한다. 여기의 `4/20 vs 4/20`, `86 interventions`, `58 bad-status interventions`는 **현재 repaired AASSR의 최종 성능 결과가 아니다.**
 
-이 실험의 가치는 성능 숫자 그 자체보다 **[Imagination(가상 미래 탐색)](Imagination)이 왜 잘못된 행동을 자신 있게 선택했는지 root cause를 찾아낸 것**에 있다.
+이 실험의 가치는 성능 숫자 그 자체보다 **[Imagination(가상 미래 탐색)](Imagination)이 왜 잘못된 행동을 자신 있게 선택했는지 [탐색의 첫 행동(root)](Imagination) cause를 찾아낸 것**에 있다.
 
 ---
 
@@ -35,10 +35,10 @@ Planner가 바꾼 action이 실제로 더 좋은가?
 
 - 날짜: `2026-08-11`
 - research [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility): `7`
-- real training [상태 전이(transition)](MDP-and-POMDP)s: `2,048`
+- real [학습(training)](Terminology-Guide) [상태 전이(transition)](MDP-and-POMDP)s: `2,048`
 - 하나의 AASSR [체크포인트(checkpoint)](Reproduction)만 학습
-- 같은 frozen 체크포인트에서 planner OFF / ON 비교
-- [실제 행동 개입(intervention)](Imagination) margin: `0.05`
+- 같은 [학습을 멈춘(frozen)](Ablation-Benchmarking-and-Reproducibility) 체크포인트에서 [계획기(planner)](Counterfactual-Planning-and-Search) OFF / ON 비교
+- [실제 행동 개입(intervention)](Imagination) [최소 차이 기준(margin)](Imagination): `0.05`
 
 즉 [same-checkpoint comparison](Ablation-Benchmarking-and-Reproducibility)을 사용했다.
 
@@ -55,7 +55,7 @@ Policy-only       Imagination enabled
 
 # 3. 결과
 
-| Condition | Success | L0 | L1 | L2 | L3 | L4 | True failure |
+| Condition | Success | L0 | L1 | L2 | L3 | L4 | True [실패(failure)](Replay-Buffer-and-Episode-Boundaries) |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | no-[Imagination](Imagination) | **4/20** | 4/4 | 0/4 | 0/4 | 0/4 | 0/4 | 0 |
 | Full | **4/20** | 4/4 | 0/4 | 0/4 | 0/4 | 0/4 | 2 |
@@ -69,7 +69,7 @@ executed interventions     86
 changed actions             86
 ```
 
-즉 planner가 단순히 계산만 한 것이 아니라 **86번 실제 실행 [행동(action)](Reinforcement-Learning)을 [Policy](Policy) 선택과 다르게 바꿨다.**
+즉 계획기가 단순히 계산만 한 것이 아니라 **86번 실제 실행 [행동(action)](Reinforcement-Learning)을 [Policy](Policy) 선택과 다르게 바꿨다.**
 
 ---
 
@@ -101,9 +101,9 @@ planner often wrong  = yes, in this diagnostic
 
 # 5. matched-state audit
 
-단순히 “ON run이 운이 나빴다”는 설명을 줄이기 위해 실제 행동 개입 state를 OFF run의 같은 scenario / [의미 기반 상태(semantic state)](State-Representation)와 맞췄다.
+단순히 “ON run이 운이 나빴다”는 설명을 줄이기 위해 실제 행동 개입 [상태(state)](State-Representation)를 OFF run의 같은 scenario / [의미 기반 상태(semantic state)](State-Representation)와 맞췄다.
 
-68개 matched 실제 행동 개입 state에서:
+68개 matched 실제 행동 개입 상태에서:
 
 ```text
 Full intervention -> error
@@ -115,16 +115,16 @@ Policy original    -> error
 = 0 cases
 ```
 
-이 결과는 당시 잘못된 override가 단순 stochastic bad luck만으로 설명되기 어렵다는 evidence였다.
+이 결과는 당시 잘못된 [기본 행동 덮어쓰기(override)](Imagination)가 단순 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) bad luck만으로 설명되기 어렵다는 [증거(evidence)](Evidence-Matrix)였다.
 
 > [!NOTE]
-> 이 matched-state audit 역시 최종 causal theorem이 아니라 **root-cause diagnostic evidence**다. episode trajectory coupling과 limited sample size를 고려해야 한다.
+> 이 matched-state audit 역시 최종 causal theorem이 아니라 **root-cause 진단 실험 증거**다. [한 번의 문제 풀이 구간(episode)](Terminology-Guide) trajectory coupling과 limited sample size를 고려해야 한다.
 
 ---
 
 # 6. Root cause 1 — decision-critical HTTP status 소실
 
-당시 [Relational State](State-Representation) v2는 구조적 similarity에 집중하면서 최근 public response의 `403`, `404`, `429` 같은 status를 명시적으로 보존하지 않았다.
+당시 [Relational State](State-Representation) v2는 구조적 similarity에 집중하면서 최근 [공개된(public)](State-Representation) [응답(response)](State-Representation)의 `403`, `404`, `429` 같은 [상태 코드(status)](Terminology-Guide)를 명시적으로 보존하지 않았다.
 
 ```text
 실제 response
@@ -135,7 +135,7 @@ relational abstraction
 status distinction 약화
 ```
 
-문제는 `403`과 `200`이 단순한 작은 feature 차이가 아니라 다음 행동에 큰 영향을 주는 **decision-critical public signal**이라는 점이다.
+문제는 `403`과 `200`이 단순한 작은 feature 차이가 아니라 다음 행동에 큰 영향을 주는 **[의사결정에 중요한(decision-critical)](Calibration) 공개된 signal**이라는 점이다.
 
 이 사건은 일반적인 [state aliasing](MDP-and-POMDP) 사례로 볼 수 있다.
 
@@ -159,7 +159,7 @@ terminal match                       ≈ 0.991
 
 처럼 전체 semantic [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility)은 높게 보였다.
 
-하지만 실제 planner 실제 행동 개입은 나빴다.
+하지만 실제 계획기 실제 행동 개입은 나빴다.
 
 즉:
 
@@ -171,15 +171,15 @@ decision-critical channel 정확함
 
 이었다.
 
-그래서 [Calibration](Calibration)은 단순 global semantic similarity가 아니라 public HTTP-status 같은 핵심 channel을 명시적으로 평가하는 방향으로 수정됐다.
+그래서 [Calibration](Calibration)은 단순 global semantic similarity가 아니라 공개된 HTTP-status 같은 핵심 channel을 명시적으로 평가하는 방향으로 수정됐다.
 
 ---
 
 # 8. Root cause 3 — global Critic readiness와 local support 혼동
 
-당시 training success는 낮은 [난이도 조절 학습(curriculum)](Curriculum-Learning) level에 집중되어 있었다.
+당시 학습 [성공(success)](Terminology-Guide)는 낮은 [난이도 조절 학습(curriculum)](Curriculum-Learning) level에 집중되어 있었다.
 
-그런데 planner는 높은 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) level에서 [Critic(미래 가치 평가기)](Critic) value를 이용해 86번 override했다.
+그런데 계획기는 높은 [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) level에서 [Critic(미래 가치 평가기)](Critic) [가치(value)](Value-Functions-and-Bellman-Equation)를 이용해 86번 기본 행동 덮어쓰기했다.
 
 ```text
 Critic has trained somewhere
@@ -214,9 +214,9 @@ relational root structures   ~17
 
 이었다.
 
-실행에서는 [실제 실행 행동(concrete action)](State-Representation)을 구분해야 하지만, 관계적으로 같은 구조의 root를 [세계 모델(world model)](Model-Based-RL-and-World-Models)과 [Critic](Critic)에 172번 다시 넣을 필요는 없다.
+실행에서는 [실제 실행 행동(concrete action)](State-Representation)을 구분해야 하지만, 관계적으로 같은 구조의 탐색의 첫 행동를 [세계 모델(world model)](Model-Based-RL-and-World-Models)과 [Critic](Critic)에 172번 다시 넣을 필요는 없다.
 
-그래서 current planner는:
+그래서 [현재(current)](Current-Status) 계획기는:
 
 ```text
 execution identity = concrete
@@ -229,7 +229,7 @@ compute identity   = relational structural slot
 
 # 10. 이 diagnostic 이후 들어간 repair
 
-현재 `main`의 `current_manifest.py`는 당시와 다른 contract를 사용한다.
+현재 `main`의 `current_manifest.py`는 당시와 다른 [명세(contract)](Current-Status)를 사용한다.
 
 ## Relational State v3
 
@@ -269,7 +269,7 @@ root-concrete-execution
 + structural-compute-dedup
 ```
 
-즉 이 historical diagnostic의 failure mode를 그대로 둔 모델이 current runtime은 아니다.
+즉 이 과거 기록 진단 실험의 실패 mode를 그대로 둔 모델이 [현재 실행 구조(current runtime)](Current-Status)은 아니다.
 
 ---
 
@@ -277,7 +277,7 @@ root-concrete-execution
 
 ## 올바른 표현
 
-> 2026-08-11 diagnostic에서 [Imagination](Imagination)은 86회 실제 행동을 변경했지만 성공률 향상은 없었고, 58회의 bad-status 실제 행동 개입이 발생했다. 이 분석은 [상태 코드까지 고려하는(status-aware)](Calibration) [표현(representation)](Relational-Representation-and-Generalization)/calibration, local [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD), structural root dedup을 도입하는 근거가 되었다.
+> 2026-08-11 진단 실험에서 [Imagination](Imagination)은 86회 실제 행동을 변경했지만 성공률 향상은 없었고, 58회의 bad-status 실제 행동 개입이 발생했다. 이 분석은 [상태 코드까지 고려하는(status-aware)](Calibration) [표현(representation)](Relational-Representation-and-Generalization)/calibration, local [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD), structural 탐색의 첫 행동 dedup을 도입하는 근거가 되었다.
 
 ## 잘못된 표현
 
@@ -287,7 +287,7 @@ root-concrete-execution
 
 > 현재 [Imagination](Imagination)은 58/86 확률로 잘못된 행동을 한다.
 
-둘 다 잘못이다. 그 숫자는 **특정 과거 체크포인트와 당시 architecture의 diagnostic**이다.
+둘 다 잘못이다. 그 숫자는 **특정 과거 체크포인트와 당시 [구조(architecture)](Research-Architecture)의 진단 실험**이다.
 
 ---
 

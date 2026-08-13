@@ -1,29 +1,29 @@
 # Knowledge — 에피소드 지식
 
-[Knowledge(에피소드 지식)](Knowledge)는 AASSR에서 **현재 episode 동안 실제 response를 통해 이미 알아낸 사실을 명시적으로 보존하는 [memory/context](MDP-and-POMDP)** 다.
+[Knowledge(에피소드 지식)](Knowledge)는 AASSR에서 **현재 [한 번의 문제 풀이 구간(episode)](Terminology-Guide) 동안 실제 [응답(response)](State-Representation)를 통해 이미 알아낸 사실을 명시적으로 보존하는 [memory/context](MDP-and-POMDP)** 다.
 
 중요한 것은 자료구조가 `dict`인가 아닌가가 아니다.
 
 연구적으로 더 중요한 질문은 다음이다.
 
-> **어떤 정보를 언제 알게 되었고, 그 정보를 어느 prediction과 decision에 사용할 수 있는가?**
+> **어떤 정보를 언제 알게 되었고, 그 정보를 어느 [예측(prediction)](Terminology-Guide)과 decision에 사용할 수 있는가?**
 
 즉 [Knowledge](Knowledge)의 핵심은 **저장 방식보다 [causal information boundary](Causality-Leakage-and-Evaluation)** 다.
 
 > [!IMPORTANT]
 > 현재 manifest 계약: `episode-local-response-knowledge-context-v1`  
 > 기본 저장 구조: `src/aassr_v2/knowledge.py`  
-> current [Prophecy(미래 예측 모델)](Prophecy) 경계: `KnowledgeBoundProphecy` in `current_generation.py`
+> [현재(current)](Current-Status) [Prophecy(미래 예측 모델)](Prophecy) 경계: `KnowledgeBoundProphecy` in `current_generation.py`
 
 ---
 
 # 0. 먼저 알아두면 좋은 개념
 
-- [MDP and POMDP](MDP-and-POMDP) — state와 [관측(observation)](MDP-and-POMDP), history/memory가 필요한 이유
+- [MDP and POMDP](MDP-and-POMDP) — [상태(state)](State-Representation)와 [관측(observation)](MDP-and-POMDP), history/memory가 필요한 이유
 - [Causality, Leakage & Fair Evaluation](Causality-Leakage-and-Evaluation) — hindsight leakage, privileged information, time order
-- [Replay Buffer & Episode Boundaries](Replay-Buffer-and-Episode-Boundaries) — replay와 current explicit knowledge의 차이
-- [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability) — [Knowledge](Knowledge) confidence와 model reliability의 차이
-- [Relational Representation & Generalization](Relational-Representation-and-Generalization) — [실제 개체 구분(concrete identity)](State-Representation)를 episode 간 정답처럼 들고 가면 안 되는 이유
+- [Replay Buffer & Episode Boundaries](Replay-Buffer-and-Episode-Boundaries) — replay와 현재 explicit knowledge의 차이
+- [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability) — [Knowledge](Knowledge) confidence와 [학습 모델(model)](Terminology-Guide) [신뢰도(reliability)](Calibration)의 차이
+- [Relational Representation & Generalization](Relational-Representation-and-Generalization) — [실제 개체 구분(concrete identity)](State-Representation)를 한 번의 문제 풀이 구간 간 정답처럼 들고 가면 안 되는 이유
 - [Model-Based RL & World Models](Model-Based-RL-and-World-Models) — imagined fact와 real fact를 구분해야 하는 이유
 
 ---
@@ -41,9 +41,9 @@ route를 요청함
 → 그 뒤에야 목표 경로 진행 가능
 ```
 
-그래서 AASSR은 단순 state vector 외에도 **명시적인 episode-local [Knowledge](Knowledge) provenance**를 관리한다.
+그래서 AASSR은 단순 상태 vector 외에도 **명시적인 [현재 에피소드 안에서만 유지되는(episode-local)](Knowledge) [Knowledge](Knowledge) [정보의 출처 기록(provenance)](Knowledge)**를 관리한다.
 
-이것은 [POMDP](MDP-and-POMDP)에서 history를 보존하려는 일반적인 문제와 연결되지만, AASSR [Knowledge](Knowledge)는 neural hidden state가 아니라 **명시적 fact + provenance**를 저장한다.
+이것은 [POMDP](MDP-and-POMDP)에서 history를 보존하려는 일반적인 문제와 연결되지만, AASSR [Knowledge](Knowledge)는 neural [숨은 환경 상태(hidden state)](MDP-and-POMDP)가 아니라 **명시적 fact + 정보의 출처 기록**를 저장한다.
 
 ---
 
@@ -53,7 +53,7 @@ route를 요청함
 
 [State / observation](MDP-and-POMDP)는 현재 [에이전트(agent)](Reinforcement-Learning)가 의사결정에 사용하는 공개 상황의 [표현(representation)](Relational-Representation-and-Generalization)이다.
 
-[Knowledge](Knowledge)는 response에서 획득한 명시적 사실과 그 출처를 보존한다.
+[Knowledge](Knowledge)는 응답에서 획득한 명시적 사실과 그 출처를 보존한다.
 
 ```text
 State
@@ -63,7 +63,7 @@ Knowledge
 = 지금까지 real response를 통해 이미 획득한 explicit facts의 context
 ```
 
-Current [Relational State v3](State-Representation)가 이미 많은 public response fact를 포함하기 때문에 최근 [Prophecy](Prophecy) repair에서는 concrete [Knowledge](Knowledge)를 무조건 다시 주입하지 않는다.
+Current [Relational State v3](State-Representation)가 이미 많은 [공개된(public)](State-Representation) 응답 fact를 포함하기 때문에 최근 [Prophecy](Prophecy) repair에서는 concrete [Knowledge](Knowledge)를 무조건 다시 주입하지 않는다.
 
 그러나 [Skill(성공 절차 재사용)](Skills)이나 explicit context path처럼 **언제 정보를 알았는지**가 필요한 경로에서는 [Knowledge](Knowledge) boundary가 여전히 중요하다.
 
@@ -109,7 +109,7 @@ enabled_action_signatures
 "token": true
 ```
 
-만 저장하는 것이 아니라 **어느 real trace에서 나온 정보인지 provenance**를 함께 유지할 수 있다.
+만 저장하는 것이 아니라 **어느 real trace에서 나온 정보인지 정보의 출처 기록**를 함께 유지할 수 있다.
 
 이는 debugging뿐 아니라 [causality audit](Causality-Leakage-and-Evaluation)에 중요하다.
 
@@ -135,15 +135,15 @@ source_trace_id: transition-00427
 행동 전에 이미 알고 있었나?
 ```
 
-즉 provenance는 **[Knowledge](Knowledge)의 causal history를 검증할 수 있게 만드는 metadata**다.
+즉 정보의 출처 기록는 **[Knowledge](Knowledge)의 causal history를 검증할 수 있게 만드는 metadata**다.
 
 ---
 
 # 6. Episode-local 원칙
 
-Current default에서는 [Knowledge](Knowledge)를 episode 간 영구 정답 메모리처럼 사용하는 것이 핵심이 아니다.
+Current default에서는 [Knowledge](Knowledge)를 한 번의 문제 풀이 구간 간 영구 정답 메모리처럼 사용하는 것이 핵심이 아니다.
 
-목표는 현재 episode에서 실제로 발견한 response information을 이후 decision에 쓰는 것이다.
+목표는 현재 한 번의 문제 풀이 구간에서 실제로 발견한 응답 information을 이후 decision에 쓰는 것이다.
 
 ```text
 Episode start
@@ -157,13 +157,13 @@ Knowledge accumulates
 Episode ends
 ```
 
-환경 [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)가 달라졌는데 이전 episode의 concrete 정답 identifier를 그대로 들고 가는 구조는 [unseen transfer](Relational-Representation-and-Generalization)를 오염시킬 수 있다.
+환경 [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)가 달라졌는데 이전 한 번의 문제 풀이 구간의 concrete 정답 identifier를 그대로 들고 가는 구조는 [unseen transfer](Relational-Representation-and-Generalization)를 오염시킬 수 있다.
 
 ---
 
 # 7. 왜 cross-episode concrete memory가 위험한가?
 
-Training episode에서:
+Training 한 번의 문제 풀이 구간에서:
 
 ```text
 route-12 = 중요한 route
@@ -179,7 +179,7 @@ route-31
 
 로 permutation되었다면 이전 concrete fact를 그대로 유지하는 것은 도움이 되지 않을 뿐 아니라 [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility) shortcut이 될 수 있다.
 
-AASSR은 reusable knowledge를 **구조적 학습 parameter/relational pattern**으로 [전이(transfer)](Relational-Representation-and-Generalization)하고, current episode의 concrete known facts는 episode-local로 다루는 방향을 택한다.
+AASSR은 reusable knowledge를 **구조적 학습 parameter/[관계 기반(relational)](Relational-Representation-and-Generalization) pattern**으로 [전이(transfer)](Relational-Representation-and-Generalization)하고, 현재 한 번의 문제 풀이 구간의 concrete known facts는 현재 에피소드 안에서만 유지되는로 다루는 방향을 택한다.
 
 ---
 
@@ -191,7 +191,7 @@ AASSR은 reusable knowledge를 **구조적 학습 parameter/relational pattern**
 S_t --A_t--> S_{t+1}
 ```
 
-`S_{t+1}`의 response에서 새로운 token `K_new`를 발견했다고 하자.
+`S_{t+1}`의 응답에서 새로운 token `K_new`를 발견했다고 하자.
 
 잘못된 경로:
 
@@ -201,7 +201,7 @@ K_new를 얻음
 → A_t 실행 전 Prophecy input에 K_new 사용
 ```
 
-그러면 model은 실제 행동 시점에는 알 수 없었던 미래 정보를 사용한다.
+그러면 학습 모델은 실제 행동 시점에는 알 수 없었던 미래 정보를 사용한다.
 
 이것이 [hindsight leakage](Causality-Leakage-and-Evaluation)다.
 
@@ -240,9 +240,9 @@ K_{t+1} = K_t + new response knowledge
 
 이다.
 
-Future 관측은 current [행동(action)](Reinforcement-Learning)의 원인보다 뒤에 있다.
+Future 관측은 현재 [행동(action)](Reinforcement-Learning)의 원인보다 뒤에 있다.
 
-Future information을 current decision feature로 사용하면 prediction relation이 실제 online causal graph와 달라진다.
+Future information을 현재 decision feature로 사용하면 예측 relation이 실제 online causal graph와 달라진다.
 
 AASSR의 [response-causal observation contract](State-Representation)도 같은 원칙을 따른다.
 
@@ -250,9 +250,9 @@ AASSR의 [response-causal observation contract](State-Representation)도 같은 
 
 # 11. Holdout validation에서는 왜 context-free path가 필요한가?
 
-World-model [Calibration](Calibration)을 할 때 현재 live episode의 [Knowledge](Knowledge)를 과거 [검증용 분리 데이터(holdout)](Calibration) 상태 전이에 무분별하게 넣으면 leakage가 생길 수 있다.
+World-model [Calibration](Calibration)을 할 때 현재 live 한 번의 문제 풀이 구간의 [Knowledge](Knowledge)를 과거 [검증용 분리 데이터(holdout)](Calibration) 상태 전이에 무분별하게 넣으면 leakage가 생길 수 있다.
 
-그래서 architecture는 대략 두 경로를 구분한다.
+그래서 [구조(architecture)](Research-Architecture)는 대략 두 경로를 구분한다.
 
 ```text
 context-free predict
@@ -263,13 +263,13 @@ predict_with_context
    명시적으로 전달된 current episode Knowledge만 사용
 ```
 
-이 경계 덕분에 model validation과 online context usage를 분리할 수 있다.
+이 경계 덕분에 학습 모델 [검증(validation)](Ablation-Benchmarking-and-Reproducibility)과 online context usage를 분리할 수 있다.
 
 ---
 
 # 12. Knowledge가 action surface를 바꿀 수 있는 이유
 
-어떤 response fact는 새로운 행동을 실제로 가능하게 할 수 있다.
+어떤 응답 fact는 새로운 행동을 실제로 가능하게 할 수 있다.
 
 예:
 
@@ -280,7 +280,7 @@ predict_with_context
 
 [Knowledge](Knowledge) entry는 enabled 행동 signature를 연결할 수 있다.
 
-Context-aware prediction에서는 현재 실제 행동 surface에 존재하는 enabled 행동을 predicted next-state 행동 map에 합칠 수 있다.
+Context-aware 예측에서는 현재 실제 행동 surface에 존재하는 enabled 행동을 predicted next-state 행동 map에 합칠 수 있다.
 
 단:
 
@@ -290,9 +290,9 @@ Context-aware prediction에서는 현재 실제 행동 surface에 존재하는 e
 
 # 13. Knowledge와 Legal Action Mask
 
-[Prophecy](Prophecy)는 다음 state의 legal 행동 surface도 예측한다.
+[Prophecy](Prophecy)는 다음 상태의 legal 행동 surface도 예측한다.
 
-[Knowledge](Knowledge)는 실제로 이미 발견된 public 행동-enabling fact를 보존할 수 있다.
+[Knowledge](Knowledge)는 실제로 이미 발견된 공개된 행동-enabling fact를 보존할 수 있다.
 
 두 정보원이 중복될 수 있기 때문에:
 
@@ -304,7 +304,7 @@ Knowledge context
 
 를 결합할 때 같은 fact를 두 번 과도하게 강조하지 않는 것이 중요하다.
 
-이것이 current relational [Prophecy](Prophecy)에서 concrete [Knowledge](Knowledge) reinjection을 보수적으로 다루는 이유 중 하나다.
+이것이 현재 관계 기반 [Prophecy](Prophecy)에서 concrete [Knowledge](Knowledge) reinjection을 보수적으로 다루는 이유 중 하나다.
 
 ---
 
@@ -334,13 +334,13 @@ ASEQ
 같은 semantic S에서 A를 했더니 다시 S였다
 ```
 
-는 [ASEQ](ASEQ) [제자리 반복(self-loop)](ASEQ) evidence다.
+는 [ASEQ](ASEQ) [제자리 반복(self-loop)](ASEQ) [증거(evidence)](Evidence-Matrix)다.
 
 ---
 
 # 15. Knowledge와 Replay의 차이
 
-[Replay buffer](Replay-Buffer-and-Episode-Boundaries)는 learner training을 위해 과거 상태 전이을 저장한다.
+[Replay buffer](Replay-Buffer-and-Episode-Boundaries)는 [학습 주체(learner)](Terminology-Guide) [학습(training)](Terminology-Guide)을 위해 과거 상태 전이을 저장한다.
 
 [Knowledge](Knowledge)Store는 **현재 decision context에서 실제로 알고 있다고 주장할 수 있는 explicit fact**를 저장한다.
 
@@ -352,13 +352,13 @@ Knowledge
 = current episode에서 알고 있는 사실
 ```
 
-Replay에 `route-12`가 나온 적 있다고 해서 새 episode 에이전트가 `route-12`의 존재를 직접 알고 있다고 처리하면 안 된다.
+Replay에 `route-12`가 나온 적 있다고 해서 새 한 번의 문제 풀이 구간 에이전트가 `route-12`의 존재를 직접 알고 있다고 처리하면 안 된다.
 
 ---
 
 # 16. Knowledge와 Learned Parameter의 차이
 
-과거 경험은 neural parameter나 relational value를 통해 일반화될 수 있다.
+과거 경험은 neural parameter나 관계 기반 [가치(value)](Value-Functions-and-Bellman-Equation)를 통해 일반화될 수 있다.
 
 ```text
 과거 episode 경험
@@ -372,7 +372,7 @@ Replay에 `route-12`가 나온 적 있다고 해서 새 episode 에이전트가 
 현재 episode에서 concrete route X를 실제로 알고 있음
 ```
 
-은 다른 claim이다.
+은 다른 [연구 주장(claim)](Evidence-Matrix)이다.
 
 전자는 **statistical learning**, 후자는 **explicit factual context**다.
 
@@ -390,7 +390,7 @@ root
 
 따라서 `KnowledgeStore.clone()`처럼 branch-local copy를 만들 수 있는 구조가 유용하다.
 
-그러나 imagined branch의 fact는 **그 branch 안의 counterfactual context**이지 real episode factual truth가 아니다.
+그러나 imagined branch의 fact는 **그 branch 안의 counterfactual context**이지 real 한 번의 문제 풀이 구간 factual truth가 아니다.
 
 ---
 
@@ -487,7 +487,7 @@ Knowledge
 
 # 22. Failure mode: Hindsight leakage
 
-행동 후 얻은 정보를 행동 전 prediction에 사용.
+행동 후 얻은 정보를 행동 전 예측에 사용.
 
 결과:
 
@@ -498,7 +498,7 @@ real online reproducibility ↓
 
 대응:
 
-- trace provenance
+- trace 정보의 출처 기록
 - pre-행동 [Knowledge](Knowledge) snapshot
 - context-free 검증용 분리 데이터 path
 
@@ -506,23 +506,23 @@ real online reproducibility ↓
 
 # 23. Failure mode: Cross-episode concrete leakage
 
-이전 난수 시드의 concrete identifier를 새 episode에서 정답처럼 유지.
+이전 난수 시드의 concrete identifier를 새 한 번의 문제 풀이 구간에서 정답처럼 유지.
 
 결과:
 
 - [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) 전이 표준 비교 실험 오염
-- relational [일반화(generalization)](Relational-Representation-and-Generalization) 효과 과대평가
+- 관계 기반 [일반화(generalization)](Relational-Representation-and-Generalization) 효과 과대평가
 
 대응:
 
-- episode-local [Knowledge](Knowledge)
+- 현재 에피소드 안에서만 유지되는 [Knowledge](Knowledge)
 - structural learning과 concrete factual memory 분리
 
 ---
 
 # 24. Failure mode: Imagined fact promotion
 
-World model prediction을 실제 관측 fact처럼 persistent store에 저장.
+World 학습 모델 예측을 실제 관측 fact처럼 persistent store에 저장.
 
 결과:
 
@@ -546,8 +546,8 @@ model hallucination
 
 대응:
 
-- state contract와 context contract 분리
-- current repaired [Prophecy](Prophecy)의 보수적 [Knowledge](Knowledge) reinjection
+- 상태 [명세(contract)](Current-Status)와 context 명세 분리
+- 현재 repaired [Prophecy](Prophecy)의 보수적 [Knowledge](Knowledge) reinjection
 
 ---
 
@@ -579,13 +579,13 @@ imagined인가?
 
 를 검증하기 어려워진다.
 
-연구 재현성과 leakage audit 관점에서 provenance는 단순 debugging metadata 이상이다.
+연구 재현성과 leakage audit 관점에서 정보의 출처 기록는 단순 debugging metadata 이상이다.
 
 ---
 
 # 28. Knowledge를 평가하는 방법
 
-Task success만 보면 [Knowledge](Knowledge)가 어떻게 작동했는지 알기 어렵다.
+Task [성공(success)](Terminology-Guide)만 보면 [Knowledge](Knowledge)가 어떻게 작동했는지 알기 어렵다.
 
 Diagnostic [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility) 예:
 
@@ -596,7 +596,7 @@ Diagnostic [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility) 예
 - stale/removed entries
 - hindsight-leak [회귀 테스트(regression test)](Ablation-Benchmarking-and-Reproducibility)
 - context-free vs context-aware [Prophecy](Prophecy) difference
-- [Knowledge](Knowledge) OFF/ON success difference
+- [Knowledge](Knowledge) OFF/ON 성공 difference
 
 이 중 일부는 correctness 평가지표이고 일부는 activity 평가지표이므로 [proxy metric](Ablation-Benchmarking-and-Reproducibility)을 구분한다.
 
@@ -634,7 +634,7 @@ src/aassr_v2/current_agent.py
 
 # 31. 한 문장 요약
 
-> **[Knowledge](Knowledge)는 '무엇을 기억하느냐'보다 '그 사실을 언제, 어떤 real response에서 알았으며 어느 decision부터 사용할 수 있느냐'를 명시하는 episode-local causal memory 계층이다.**
+> **[Knowledge](Knowledge)는 '무엇을 기억하느냐'보다 '그 사실을 언제, 어떤 real 응답에서 알았으며 어느 decision부터 사용할 수 있느냐'를 명시하는 현재 에피소드 안에서만 유지되는 causal memory 계층이다.**
 
 ---
 

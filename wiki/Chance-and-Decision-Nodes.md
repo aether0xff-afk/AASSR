@@ -60,7 +60,7 @@ Action A 실행
 
 에이전트는 X/Y/Z 중 하나를 고를 수 없다.
 
-따라서 expected value:
+따라서 expected [가치(value)](Value-Functions-and-Bellman-Equation):
 
 ```math
 V_{chance}(A)=\sum_i p_iV_i
@@ -101,7 +101,7 @@ A value = +1
 
 이다.
 
-B의 value는:
+B의 가치는:
 
 ```math
 0.2
@@ -121,7 +121,7 @@ B의 value는:
 
 를 쓰면 에이전트가 실제로 통제할 수 없는 randomness를 선택할 수 있는 것처럼 취급한다.
 
-이를 여기서는 **optimistic stochastic backup**이라고 부른다.
+이를 여기서는 **optimistic [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) backup**이라고 부른다.
 
 ```text
 위험한 action
@@ -130,13 +130,13 @@ B의 value는:
 → action을 과대평가
 ```
 
-AASSR current planner는 이 오류를 피하기 위해 chance/decision semantics를 분리한다.
+AASSR [현재(current)](Current-Status) [계획기(planner)](Counterfactual-Planning-and-Search)는 이 오류를 피하기 위해 chance/decision semantics를 분리한다.
 
 ---
 
 # 6. Expectation은 risk-neutral objective다
 
-Expected value만 최적화하는 것은 기본적으로 risk-neutral한 관점이다.
+Expected 가치만 최적화하는 것은 기본적으로 risk-neutral한 관점이다.
 
 두 행동이 같은 expectation을 가져도 variance는 다를 수 있다.
 
@@ -147,9 +147,9 @@ B: 50% +1, 50% -1
 
 둘의 expectation은 0이다.
 
-Risk-sensitive objective라면 variance, CVaR 같은 다른 기준을 사용할 수도 있다.
+Risk-sensitive [학습 목표(objective)](Terminology-Guide)라면 variance, CVaR 같은 다른 기준을 사용할 수도 있다.
 
-AASSR current main planner는 기본 sparse-누적 보상 expectation semantics를 유지한다.
+AASSR 현재 main 계획기는 기본 sparse-누적 보상 expectation semantics를 유지한다.
 
 관련 페이지:
 
@@ -190,7 +190,7 @@ Y value  0, probability 0.99
 
 # 8. Reliability는 probability weight가 아니다
 
-어떤 branch가 reliability `0.2`라고 해서:
+어떤 branch가 [신뢰도(reliability)](Calibration) `0.2`라고 해서:
 
 ```math
 0.2\times V
@@ -198,7 +198,7 @@ Y value  0, probability 0.99
 
 로 chance probability처럼 처리하면 의미가 바뀐다.
 
-AASSR current design:
+AASSR 현재 design:
 
 ```text
 Outcome probability
@@ -219,19 +219,19 @@ Prediction reliability
 
 # 9. Decision max와 Policy
 
-행동 선택 노드에서 `max`를 쓴다고 해서 실제 [Policy(정책 모델)](Policy)가 반드시 planner의 모든 future decision을 완벽히 실행한다는 뜻은 아니다.
+행동 선택 노드에서 `max`를 쓴다고 해서 실제 [Policy(정책 모델)](Policy)가 반드시 계획기의 모든 future decision을 완벽히 실행한다는 뜻은 아니다.
 
-Planner는 미래 state에서 available 행동s를 평가하고 최선의 continuation을 가정한다.
+Planner는 미래 [상태(state)](State-Representation)에서 available 행동s를 평가하고 최선의 continuation을 가정한다.
 
 이것은 model-based lookahead의 기본 가정이다.
 
-실제 [환경(environment)](Reinforcement-Learning)에서는 첫 행동만 실행하고 다시 관측해 planning하므로 future imagined decisions는 **counterfactual evaluation용**이다.
+실제 [환경(environment)](Reinforcement-Learning)에서는 첫 행동만 실행하고 다시 관측해 [계획(planning)](Counterfactual-Planning-and-Search)하므로 future imagined decisions는 **counterfactual [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility)용**이다.
 
 ---
 
 # 10. Alternating tree
 
-AASSR의 planning tree는 개념적으로 다음처럼 번갈아 간다.
+AASSR의 계획 tree는 개념적으로 다음처럼 번갈아 간다.
 
 ```text
 Decision: root action 선택
@@ -257,13 +257,13 @@ V(s')
 \right]
 ```
 
-즉 classic stochastic control의 Bellman optimality 구조와 연결된다.
+즉 classic 확률적 control의 Bellman optimality 구조와 연결된다.
 
 ---
 
 # 11. Terminal outcome
 
-Chance branch가 [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) success/failure로 끝나면 continuation decision이 없다.
+Chance branch가 [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries) [성공(success)](Terminology-Guide)/[실패(failure)](Replay-Buffer-and-Episode-Boundaries)로 끝나면 continuation decision이 없다.
 
 ```text
 Action A
@@ -271,19 +271,19 @@ Action A
  └→ active state     → future decision
 ```
 
-Terminal class prediction을 틀리면 tree semantics 자체가 바뀔 수 있다.
+Terminal class [예측(prediction)](Terminology-Guide)을 틀리면 tree semantics 자체가 바뀔 수 있다.
 
-그래서 AASSR [Prophecy](Prophecy)는 에피소드 종료 class를 decision-critical target으로 본다.
+그래서 AASSR [Prophecy](Prophecy)는 에피소드 종료 class를 [의사결정에 중요한(decision-critical)](Calibration) target으로 본다.
 
 ---
 
 # 12. Truncation outcome
 
-Truncation은 true failure와 다를 수 있다.
+Truncation은 true 실패와 다를 수 있다.
 
-Planner에서 predicted [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries)을 어떻게 평가할지는 experiment contract와 일관되어야 한다.
+Planner에서 predicted [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries)을 어떻게 평가할지는 experiment [명세(contract)](Current-Status)와 일관되어야 한다.
 
-AASSR 외부 [보상(reward)](Sparse-Reward-and-Credit-Assignment)에서는 administrative 외부 제한 종료을 failure `-1`로 자동 바꾸지 않는다.
+AASSR 외부 [보상(reward)](Sparse-Reward-and-Credit-Assignment)에서는 administrative 외부 제한 종료을 실패 `-1`로 자동 바꾸지 않는다.
 
 관련 페이지:
 
@@ -293,11 +293,11 @@ AASSR 외부 [보상(reward)](Sparse-Reward-and-Credit-Assignment)에서는 admi
 
 # 13. Chance branch pruning
 
-Probability가 매우 낮은 branch를 모두 버리면 rare catastrophic outcome을 잃을 수 있다.
+Probability가 매우 낮은 branch를 모두 버리면 [드문(rare)](Loss-Functions-and-Class-Imbalance) catastrophic outcome을 잃을 수 있다.
 
 반대로 모든 tiny branch를 유지하면 계산량이 폭발한다.
 
-따라서 stochastic planner에는:
+따라서 확률적 계획기에는:
 
 - outcome sample count
 - beam width
@@ -322,7 +322,7 @@ AASSR [Skill(성공 절차 재사용)](Skills) [Prophecy](Prophecy)에서도 bea
 \mathbb{E}[V]\approx\frac1N\sum_{j=1}^{N}V^{(j)}
 ```
 
-하지만 rare outcome을 sample하지 못할 수 있다.
+하지만 드문 outcome을 sample하지 못할 수 있다.
 
 AASSR [Prophecy](Prophecy)는 mixture branches와 outcome probabilities를 명시적으로 다루는 방향을 사용한다.
 
@@ -348,7 +348,7 @@ Chance pruning
 
 # 16. Structural alias와 Decision node
 
-Concrete 행동이 많지만 relationally 같은 구조라면 expensive value computation을 공유할 수 있다.
+Concrete 행동이 많지만 relationally 같은 구조라면 expensive 가치 computation을 공유할 수 있다.
 
 ```text
 concrete A1 ─┐
@@ -368,7 +368,7 @@ concrete A3 ─┘
 
 # 17. Critic leaf와 chance backup
 
-Depth limit에서 각 future state의 [Critic(미래 가치 평가기)](Critic) value가 나온다고 하자.
+Depth limit에서 각 future 상태의 [Critic(미래 가치 평가기)](Critic) 가치가 나온다고 하자.
 
 ```text
 Outcome X → Critic 0.8
@@ -382,13 +382,13 @@ X 0.25
 Y 0.75
 ```
 
-Root 행동 expected value:
+Root 행동 expected 가치:
 
 ```math
 0.25(0.8)+0.75(-0.2)=0.05
 ```
 
-[Critic](Critic) value가 큰 branch 하나만 고르면 안 된다.
+[Critic](Critic) 가치가 큰 branch 하나만 고르면 안 된다.
 
 ---
 
@@ -405,15 +405,15 @@ Root 행동 expected value:
 
 라는 의미 순서가 중요하다.
 
-AASSR current gate는 low-confidence root prediction을 override 후보에서 제외할 수 있다.
+AASSR 현재 [판정 관문(gate)](Terminology-Guide)는 low-confidence [탐색의 첫 행동(root)](Imagination) 예측을 [기본 행동 덮어쓰기(override)](Imagination) 후보에서 제외할 수 있다.
 
 ---
 
 # 19. Policy baseline 비교
 
-Planner가 preferred root `B`를 찾았다고 하자.
+Planner가 preferred 탐색의 첫 행동 `B`를 찾았다고 하자.
 
-실제 override는 단순:
+실제 기본 행동 덮어쓰기는 단순:
 
 ```text
 B is argmax
@@ -421,16 +421,16 @@ B is argmax
 
 만으로 결정하지 않는다.
 
-AASSR current flow에는:
+AASSR 현재 flow에는:
 
-- [Policy](Policy) root [예측 신뢰도(prediction reliability)](Calibration)
-- candidate reliability
+- [Policy](Policy) 탐색의 첫 행동 [예측 신뢰도(prediction reliability)](Calibration)
+- candidate 신뢰도
 - local [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD)
-- [실제 행동 개입(intervention)](Imagination) margin
+- [실제 행동 개입(intervention)](Imagination) [최소 차이 기준(margin)](Imagination)
 
 등이 포함된다.
 
-즉 chance/decision tree는 **root value를 만드는 내부 planning semantics**이고, 최종 execution gate는 별도다.
+즉 chance/decision tree는 **탐색의 첫 행동 가치를 만드는 내부 계획 semantics**이고, 최종 execution 판정 관문는 별도다.
 
 ---
 

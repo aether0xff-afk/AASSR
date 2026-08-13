@@ -19,7 +19,7 @@ state aliasing
 
 # 1. Representation이란?
 
-Machine learning model은 현실의 상태를 그대로 이해하는 것이 아니라 **입력 feature [표현(representation)](Relational-Representation-and-Generalization)**을 받는다.
+Machine learning [학습 모델(model)](Terminology-Guide)은 현실의 상태를 그대로 이해하는 것이 아니라 **입력 feature [표현(representation)](Relational-Representation-and-Generalization)**을 받는다.
 
 ```text
 Environment situation
@@ -29,7 +29,7 @@ Feature vector / structure
 Learner
 ```
 
-같은 실제 상황도 어떻게 encode하느냐에 따라 learner가 전혀 다르게 볼 수 있다.
+같은 실제 상황도 어떻게 encode하느냐에 따라 [학습 주체(learner)](Terminology-Guide)가 전혀 다르게 볼 수 있다.
 
 ---
 
@@ -45,7 +45,7 @@ profile-7
 object-3
 ```
 
-이런 값이 그대로 feature identity가 되면 model은 특정 ID와 value를 연결해 외울 수 있다.
+이런 값이 그대로 feature [식별 방식(identity)](State-Representation)가 되면 학습 모델은 특정 ID와 [가치(value)](Value-Functions-and-Bellman-Equation)를 연결해 외울 수 있다.
 
 훈련/평가에서 ID가 그대로 유지되면 성능이 높게 보일 수 있다.
 
@@ -103,7 +103,7 @@ Learner가 ID 자체에 의존하면 성능이 무너질 수 있다.
 
 # 5. Invariance
 
-어떤 변환을 해도 표현/output이 본질적으로 같게 유지되면 invariance라고 한다.
+어떤 변환을 해도 표현/[출력(output)](Terminology-Guide)이 본질적으로 같게 유지되면 invariance라고 한다.
 
 예를 들어 identifier permutation에 대해 invariant한 표현은:
 
@@ -122,12 +122,12 @@ AASSR 관계 기반 표현은 **난수 시드-renaming/permutation에 대한 [�
 
 Invariance와 함께 자주 나오는 개념이다.
 
-- Invariant: input을 특정 방식으로 바꿔도 output이 그대로
-- Equivariant: input 변환에 대응하여 output도 같은 규칙으로 변함
+- Invariant: [입력(input)](Terminology-Guide)을 특정 방식으로 바꿔도 출력이 그대로
+- Equivariant: 입력 변환에 대응하여 출력도 같은 규칙으로 변함
 
-Graph neural network나 set model에서 중요한 개념이다.
+Graph neural [신경망(network)](Neural-Networks-and-Optimization)나 set 학습 모델에서 중요한 개념이다.
 
-AASSR current relational descriptor는 explicit role/count/[행동(action)](Reinforcement-Learning)-feature 기반 구조이며, 모든 부분을 formal equivariant network로 구현한다고 주장하는 것은 아니다.
+AASSR [현재(current)](Current-Status) [관계 기반(relational)](Relational-Representation-and-Generalization) descriptor는 explicit role/count/[행동(action)](Reinforcement-Learning)-feature 기반 구조이며, 모든 부분을 formal equivariant 신경망로 구현한다고 주장하는 것은 아니다.
 
 하지만 **concrete naming permutation에 덜 민감한 inductive bias**를 만드는 것이 핵심이다.
 
@@ -155,7 +155,7 @@ target-object role
 
 처럼 표현할 수 있다.
 
-AASSR의 current descriptor는 public facts와 role distributions, known entity counts, 행동 structure, latest status 등을 조합한다.
+AASSR의 현재 descriptor는 [공개된(public)](State-Representation) facts와 role distributions, known entity counts, 행동 structure, latest [상태 코드(status)](Terminology-Guide) 등을 조합한다.
 
 관련 페이지:
 
@@ -165,7 +165,7 @@ AASSR의 current descriptor는 public facts와 role distributions, known entity 
 
 # 8. Inductive bias
 
-**Inductive bias**는 learner가 제한된 data에서 어떤 종류의 규칙을 더 쉽게 배우도록 만드는 사전 구조/가정이다.
+**Inductive bias**는 학습 주체가 제한된 data에서 어떤 종류의 규칙을 더 쉽게 배우도록 만드는 사전 구조/가정이다.
 
 Relational 표현은:
 
@@ -175,13 +175,13 @@ Relational 표현은:
 
 이 bias가 맞으면 전이가 좋아질 수 있다.
 
-틀리면 중요한 identity 정보를 잃을 수 있다.
+틀리면 중요한 식별 방식 정보를 잃을 수 있다.
 
 ---
 
 # 9. Abstraction
 
-Concrete state의 세부 정보를 줄이고 중요한 구조만 남기는 것을 abstr행동이라고 볼 수 있다.
+Concrete [상태(state)](State-Representation)의 세부 정보를 줄이고 중요한 구조만 남기는 것을 abstr행동이라고 볼 수 있다.
 
 ```text
 Concrete state
@@ -191,13 +191,13 @@ Relational state
 
 장점:
 
-- state space 압축
+- 상태 space 압축
 - 전이
 - sample sharing
 
 위험:
 
-- 서로 다른 중요한 상황을 같은 state로 합침
+- 서로 다른 중요한 상황을 같은 상태로 합침
 
 ---
 
@@ -211,15 +211,15 @@ Situation A ─┐
 Situation B ─┘
 ```
 
-A와 B에서 optimal 행동이 다르면 learner는 모순된 signal을 받는다.
+A와 B에서 optimal 행동이 다르면 학습 주체는 모순된 signal을 받는다.
 
-AASSR Relational State v3에서 latest public status를 추가한 것도 **과도한 abstr행동으로 decision-critical 차이를 잃는 문제**를 줄이기 위한 수리다.
+AASSR Relational [상태(State)](State-Representation) v3에서 latest 공개된 상태 코드를 추가한 것도 **과도한 abstr행동으로 [의사결정에 중요한(decision-critical)](Calibration) 차이를 잃는 문제**를 줄이기 위한 수리다.
 
 ---
 
 # 11. Concrete identity가 여전히 필요한 이유
 
-Transfer learner는 relational identity를 쓰더라도 실제 [환경(environment)](Reinforcement-Learning)는 [실제 실행 행동(concrete action)](State-Representation)을 요구한다.
+Transfer 학습 주체는 관계 기반 식별 방식를 쓰더라도 실제 [환경(environment)](Reinforcement-Learning)는 [실제 실행 행동(concrete action)](State-Representation)을 요구한다.
 
 ```text
 "catalog-like route를 요청"
@@ -254,7 +254,7 @@ execution identity        = concrete
 S(route-12) → action → S(route-31)
 ```
 
-이 실제 진행인데 relational role만 같다고:
+이 실제 진행인데 관계 기반 role만 같다고:
 
 ```text
 S → A → S
@@ -262,7 +262,7 @@ S → A → S
 
 로 오인할 수 있다.
 
-그래서 [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ) exact repetition은 concrete semantic identity를 유지한다.
+그래서 [ASEQ(실제 상태-행동-다음 상태 기록)](ASEQ) exact repetition은 concrete semantic 식별 방식를 유지한다.
 
 관련 페이지:
 
@@ -273,7 +273,7 @@ S → A → S
 
 # 13. Relational action representation
 
-State뿐 아니라 행동도 relational하게 표현해야 전이가 된다.
+상태뿐 아니라 행동도 관계 기반하게 표현해야 전이가 된다.
 
 예:
 
@@ -292,13 +292,13 @@ request + catalog-like-target
 
 같은 feature로 encode하면 structural similarity를 공유할 수 있다.
 
-AASSR의 [Policy(정책 모델)](Policy), [Prophecy(미래 예측 모델)](Prophecy), [Critic(미래 가치 평가기)](Critic), [Skill(성공 절차 재사용)](Skills)이 relational 행동 key를 활용한다.
+AASSR의 [Policy(정책 모델)](Policy), [Prophecy(미래 예측 모델)](Prophecy), [Critic(미래 가치 평가기)](Critic), [Skill(성공 절차 재사용)](Skills)이 관계 기반 행동 key를 활용한다.
 
 ---
 
 # 14. Structural root deduplication
 
-Planning에서는 같은 relational 행동 structure를 가진 concrete aliases가 많을 수 있다.
+Planning에서는 같은 관계 기반 행동 structure를 가진 concrete aliases가 많을 수 있다.
 
 ```text
 A1 ─┐
@@ -347,7 +347,7 @@ ID rename만 다른 unseen seed
 → stronger OOD shift
 ```
 
-Relational 표현이 identifier permutation에는 강해도 완전히 새로운 dynamics에 자동으로 일반화하는 것은 아니다.
+Relational 표현이 identifier permutation에는 강해도 완전히 새로운 [환경의 상태 변화 규칙(dynamics)](Model-Based-RL-and-World-Models)에 자동으로 일반화하는 것은 아니다.
 
 이 한계를 명시해야 한다.
 
@@ -373,7 +373,7 @@ Abstr행동이 강해지면 hidden-state aliasing이 커질 수 있다.
 → state aliasing 위험
 ```
 
-AASSR은 public latest status 같은 decision-critical channel을 별도 보존하여 이 trade-off를 조정한다.
+AASSR은 공개된 latest 상태 코드 같은 의사결정에 중요한 channel을 별도 보존하여 이 trade-off를 조정한다.
 
 관련 페이지:
 
@@ -383,14 +383,14 @@ AASSR은 public latest status 같은 decision-critical channel을 별도 보존�
 
 # 18. Relational representation과 World Model
 
-[Prophecy](Prophecy)가 relational state를 예측하면 future concrete ID를 정확히 생성하지 않아도 **역할 구조의 변화**를 예측할 수 있다.
+[Prophecy](Prophecy)가 관계 기반 상태를 예측하면 future concrete ID를 정확히 생성하지 않아도 **역할 구조의 변화**를 예측할 수 있다.
 
 장점:
 
 - [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) ID에 대한 전이
-- output space 구조화
+- 출력 space 구조화
 
-하지만 실제 행동 surface를 reconstruct해야 하므로 legal mask/decode contract가 중요하다.
+하지만 실제 행동 surface를 reconstruct해야 하므로 legal mask/decode [명세(contract)](Current-Status)가 중요하다.
 
 관련 페이지:
 
@@ -401,7 +401,7 @@ AASSR은 public latest status 같은 decision-critical channel을 별도 보존�
 
 # 19. Relational representation과 Critic
 
-[Critic](Critic)도 concrete ID를 암기하면 학습 중 보지 못한 branch value 전이가 약해질 수 있다.
+[Critic](Critic)도 concrete ID를 암기하면 학습 중 보지 못한 branch 가치 전이가 약해질 수 있다.
 
 Relational [상태 전이(transition)](MDP-and-POMDP) features를 사용하면:
 
@@ -471,7 +471,7 @@ dqn_relational
 
 # 22. Representation leakage
 
-Relational feature를 만들 때 hidden simulator truth를 사용하면 안 된다.
+Relational feature를 만들 때 [숨겨진(hidden)](MDP-and-POMDP) simulator truth를 사용하면 안 된다.
 
 예:
 
@@ -482,7 +482,7 @@ hidden 정답 object를 알고
 
 하면 표현이 사실상 oracle이 된다.
 
-AASSR current contract는 실제 response에서 관측한 관계만 사용하도록 response-causal boundary를 둔다.
+AASSR 현재 명세는 실제 [응답(response)](State-Representation)에서 관측한 관계만 사용하도록 response-causal boundary를 둔다.
 
 관련 페이지:
 
@@ -498,11 +498,11 @@ AASSR current contract는 실제 response에서 관측한 관계만 사용하도
 
 ## "Permutation invariance면 모든 unseen task에 일반화한다"
 
-아니다. 이름 재배치에는 강할 수 있지만 dynamics 자체가 바뀌면 별도 [OOD](Critic-Support-and-OOD) 문제다.
+아니다. 이름 재배치에는 강할 수 있지만 환경의 상태 변화 규칙 자체가 바뀌면 별도 [OOD](Critic-Support-and-OOD) 문제다.
 
 ## "Abstraction은 강할수록 좋다"
 
-아니다. decision-critical information을 지우면 state aliasing이 커진다.
+아니다. 의사결정에 중요한 information을 지우면 상태 aliasing이 커진다.
 
 ## "Relational DQN은 AASSR Full과 같다"
 

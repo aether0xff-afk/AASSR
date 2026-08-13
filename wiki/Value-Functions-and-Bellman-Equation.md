@@ -1,6 +1,6 @@
 # Value Functions and Bellman Equation
 
-강화학습에서 **value function**은 현재 상태 또는 행동이 장기적으로 얼마나 좋은지를 **미래 누적 [보상(reward)](Sparse-Reward-and-Credit-Assignment)의 기대값**으로 나타낸다.
+강화학습에서 **[가치(value)](Value-Functions-and-Bellman-Equation) function**은 현재 상태 또는 행동이 장기적으로 얼마나 좋은지를 **미래 누적 [보상(reward)](Sparse-Reward-and-Credit-Assignment)의 기대값**으로 나타낸다.
 
 AASSR의 [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) [Policy(정책 모델)](Policy)와 sparse-[누적 보상(return)](Value-Functions-and-Bellman-Equation) [Critic(미래 가치 평가기)](Critic)을 이해하는 핵심 기초다.
 
@@ -22,7 +22,7 @@ G_t = R_{t+1} + \gamma R_{t+2} + \gamma^2R_{t+3}+\cdots
 
 즉 현재 보상가 `0`이라고 해서 현재 행동의 가치가 `0`인 것은 아니다.
 
-몇 단계 뒤 `+1` 성공으로 이어진다면 현재 state/[행동(action)](Reinforcement-Learning)은 양의 장기 value를 가질 수 있다.
+몇 단계 뒤 `+1` 성공으로 이어진다면 현재 [상태(state)](State-Representation)/[행동(action)](Reinforcement-Learning)은 양의 장기 가치를 가질 수 있다.
 
 ---
 
@@ -51,7 +51,7 @@ G_t = R_{t+1} + \gamma R_{t+2} + \gamma^2R_{t+3}+\cdots
 
 # 3. State value V
 
-[Policy](Policy) `π`를 따를 때 state `s`에서 기대되는 누적 보상:
+[Policy](Policy) `π`를 따를 때 상태 `s`에서 기대되는 누적 보상:
 
 ```math
 V^\pi(s)=\mathbb{E}_\pi[G_t\mid S_t=s]
@@ -59,13 +59,13 @@ V^\pi(s)=\mathbb{E}_\pi[G_t\mid S_t=s]
 
 뜻:
 
-> 현재 state에 있고 앞으로 policy `π`를 따르면 평균적으로 얼마나 많은 discounted 누적 보상을 받을까?
+> 현재 상태에 있고 앞으로 policy `π`를 따르면 평균적으로 얼마나 많은 discounted 누적 보상을 받을까?
 
 ---
 
 # 4. Action value Q
 
-State `s`에서 행동 `a`를 먼저 한 뒤 policy `π`를 따를 때의 기대 누적 보상:
+[상태(State)](State-Representation) `s`에서 행동 `a`를 먼저 한 뒤 policy `π`를 따를 때의 기대 누적 보상:
 
 ```math
 Q^\pi(s,a)=\mathbb{E}_\pi[G_t\mid S_t=s,A_t=a]
@@ -85,7 +85,7 @@ Q_task(relational_state, action)
 
 # 5. Advantage
 
-[행동(Action)](Reinforcement-Learning) `a`가 state 평균보다 얼마나 좋은지 나타내는 값:
+[행동(Action)](Reinforcement-Learning) `a`가 상태 평균보다 얼마나 좋은지 나타내는 값:
 
 ```math
 A^\pi(s,a)=Q^\pi(s,a)-V^\pi(s)
@@ -101,7 +101,7 @@ Policy action value
 intervention advantage
 ```
 
-다만 AASSR의 구현상 advantage는 planner root evaluation 차이이며, 일반 actor-critic의 학습 advantage와 완전히 같은 객체라고 볼 필요는 없다.
+다만 AASSR의 구현상 advantage는 [계획기(planner)](Counterfactual-Planning-and-Search) [탐색의 첫 행동(root)](Imagination) [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility) 차이이며, 일반 actor-critic의 학습 advantage와 완전히 같은 객체라고 볼 필요는 없다.
 
 ---
 
@@ -116,7 +116,7 @@ V^\pi(s)
 \left[R_{t+1}+\gamma V^\pi(s')\right]
 ```
 
-행동 value는:
+행동 가치는:
 
 ```math
 Q^\pi(s,a)
@@ -125,13 +125,13 @@ Q^\pi(s,a)
 \left[R_{t+1}+\gamma\mathbb{E}_{a'\sim\pi}Q^\pi(s',a')\right]
 ```
 
-핵심은 현재 value를 **즉시 보상 + 다음 state의 value**로 분해할 수 있다는 것이다.
+핵심은 현재 가치를 **즉시 보상 + 다음 상태의 가치**로 분해할 수 있다는 것이다.
 
 ---
 
 # 7. Bellman optimality equation
 
-최적 value는 다음 행동에서 최선의 선택을 한다고 본다.
+최적 가치는 다음 행동에서 최선의 선택을 한다고 본다.
 
 ```math
 V^*(s)=\max_a\mathbb{E}\left[R_{t+1}+\gamma V^*(S_{t+1})\right]
@@ -150,7 +150,7 @@ Q^*(s,a)=
 
 # 8. Backup이란?
 
-강화학습에서 **backup**은 미래/다음 state의 정보를 현재 value로 가져오는 연산을 말한다.
+강화학습에서 **backup**은 미래/다음 상태의 정보를 현재 가치로 가져오는 연산을 말한다.
 
 ```text
 S_t
@@ -166,7 +166,7 @@ Bellman backup:
 y=r+\gamma\max_{a'}Q(s',a')
 ```
 
-AASSR [Imagination](Imagination)에서도 tree의 자식 node value를 부모로 올리는 **planning backup**이 존재한다.
+AASSR [Imagination](Imagination)에서도 tree의 자식 node 가치를 부모로 올리는 **[계획(planning)](Counterfactual-Planning-and-Search) backup**이 존재한다.
 
 하지만 [환경 결과 노드(chance node)](Chance-and-Decision-Nodes)와 [행동 선택 노드(decision node)](Chance-and-Decision-Nodes)의 backup rule은 다르다.
 
@@ -179,7 +179,7 @@ AASSR [Imagination](Imagination)에서도 tree의 자식 node value를 부모로
 
 # 9. Bootstrapping
 
-현재 target을 계산할 때 **이미 학습 중인 value estimate를 다시 사용하는 것**을 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)ping이라고 한다.
+현재 target을 계산할 때 **이미 학습 중인 가치 estimate를 다시 사용하는 것**을 [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries)ping이라고 한다.
 
 ```math
 target=r+\gamma V_{estimate}(s')
@@ -187,12 +187,12 @@ target=r+\gamma V_{estimate}(s')
 
 장점:
 
-- episode가 끝날 때까지 기다리지 않고 업데이트 가능
+- [한 번의 문제 풀이 구간(episode)](Terminology-Guide)가 끝날 때까지 기다리지 않고 업데이트 가능
 - 보상 신호를 단계적으로 전파 가능
 
 단점:
 
-- 잘못된 value가 target으로 다시 들어가 bias/error를 퍼뜨릴 수 있음
+- 잘못된 가치가 target으로 다시 들어가 bias/error를 퍼뜨릴 수 있음
 - [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries)/boundary 처리 실수가 큰 오류를 만듦
 
 더 자세히:
@@ -206,7 +206,7 @@ target=r+\gamma V_{estimate}(s')
 
 ## Monte Carlo
 
-실제 episode 누적 보상을 끝까지 관측하고 사용한다.
+실제 한 번의 문제 풀이 구간 누적 보상을 끝까지 관측하고 사용한다.
 
 ```math
 G_t=R_{t+1}+\gamma R_{t+2}+\cdots
@@ -241,7 +241,7 @@ r+\gamma V(s')
 
 # 11. Sparse reward에서 Bellman propagation
 
-다음 episode가 있다고 하자.
+다음 한 번의 문제 풀이 구간가 있다고 하자.
 
 ```text
 S0 → S1 → S2 → S3 → success(+1)
@@ -265,7 +265,7 @@ S1 target에 반영
 
 처럼 성공 신호가 뒤로 전파된다.
 
-문제는 **성공 episode 자체가 너무 드물면 이 propagation이 시작될 sample이 부족하다**는 것이다.
+문제는 **성공 한 번의 문제 풀이 구간 자체가 너무 드물면 이 propagation이 시작될 sample이 부족하다**는 것이다.
 
 관련 페이지:
 
@@ -275,7 +275,7 @@ S1 target에 반영
 
 # 12. Terminal state의 Bellman target
 
-Episode가 진짜 에피소드 종료이면 그 뒤의 미래 value를 이어붙이면 안 된다.
+Episode가 진짜 에피소드 종료이면 그 뒤의 미래 가치를 이어붙이면 안 된다.
 
 보통:
 
@@ -305,15 +305,15 @@ AASSR에서 stalled/reset이 보상 `0`이더라도 TD 다음 상태 가치 이�
 
 # 13. Truncation의 복잡성
 
-Time limit 때문에 episode를 강제로 끊었다고 하자.
+Time limit 때문에 한 번의 문제 풀이 구간를 강제로 끊었다고 하자.
 
 환경의 실제 underlying task는 에피소드 종료이 아닐 수도 있다.
 
 그래서 일반 RL에서는 [외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries)을 무조건 true 에피소드 종료과 동일하게 처리할지 주의해야 한다.
 
-AASSR의 current training에서는 **world reset으로 이어져 다음 [관측(observation)](MDP-and-POMDP)이 같은 episode의 연속이 아니면 TD 다음 상태 가치 이어받기을 끊어야 하는 경우**가 있다.
+AASSR의 [현재(current)](Current-Status) [학습(training)](Terminology-Guide)에서는 **world reset으로 이어져 다음 [관측(observation)](MDP-and-POMDP)이 같은 한 번의 문제 풀이 구간의 연속이 아니면 TD 다음 상태 가치 이어받기을 끊어야 하는 경우**가 있다.
 
-이것은 "외부 제한 종료 보상를 failure로 바꾼다"와는 다르다.
+이것은 "외부 제한 종료 보상를 [실패(failure)](Replay-Buffer-and-Episode-Boundaries)로 바꾼다"와는 다르다.
 
 ```text
 reward semantics
@@ -327,7 +327,7 @@ bootstrap boundary semantics
 
 Bellman optimality에서는 **[에이전트(agent)](Reinforcement-Learning)가 선택할 수 있는 다음 행동**에 대해 `max`를 쓴다.
 
-하지만 stochastic [환경(environment)](Reinforcement-Learning) outcome은 에이전트가 선택할 수 없다.
+하지만 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) [환경(environment)](Reinforcement-Learning) outcome은 에이전트가 선택할 수 없다.
 
 따라서 환경 outcome을 backup할 때는 확률적 expectation이 필요하다.
 
@@ -348,13 +348,13 @@ decision node → max
 
 # 15. Function approximation
 
-작은 tabular problem에서는 각 state/행동마다 Q-table을 둘 수 있다.
+작은 tabular problem에서는 각 상태/행동마다 Q-table을 둘 수 있다.
 
 ```text
 Q[s,a]
 ```
 
-큰 state space에서는 neural network 같은 function approximator를 쓴다.
+큰 상태 space에서는 neural [신경망(network)](Neural-Networks-and-Optimization) 같은 function approximator를 쓴다.
 
 ```math
 Q_\theta(s,a)
@@ -373,9 +373,9 @@ Function approximation은 [일반화(generalization)](Relational-Representation-
 
 # 16. Critic이란?
 
-넓은 의미에서 [Critic](Critic)은 state/행동/trajectory의 미래 누적 보상을 평가하는 value estimator다.
+넓은 의미에서 [Critic](Critic)은 상태/행동/trajectory의 미래 누적 보상을 평가하는 가치 estimator다.
 
-Actor-critic에서는 actor가 policy를 만들고 critic이 그 policy의 value/advantage를 평가한다.
+Actor-critic에서는 actor가 policy를 만들고 critic이 그 policy의 가치/advantage를 평가한다.
 
 AASSR의 [Critic](Critic)은 조금 다르게 사용된다.
 
@@ -387,7 +387,7 @@ GRU sparse-return Critic
 branch long-term value
 ```
 
-즉 AASSR [Critic](Critic)은 planner의 leaf/branch 평가기로 사용된다.
+즉 AASSR [Critic](Critic)은 계획기의 leaf/branch 평가기로 사용된다.
 
 관련 페이지:
 
@@ -416,8 +416,8 @@ Chance expectation:
 AASSR에서:
 
 - [Prophecy(미래 예측 모델)](Prophecy) [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability)
-- [Calibration(예측 신뢰도 보정)](Calibration) reliability
-- [Critic](Critic) value
+- [Calibration(예측 신뢰도 보정)](Calibration) [신뢰도(reliability)](Calibration)
+- [Critic](Critic) 가치
 - [국소 데이터 근거(local support)](Critic-Support-and-OOD)
 
 는 전부 다른 의미다.

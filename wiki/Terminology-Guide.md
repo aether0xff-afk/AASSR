@@ -397,7 +397,7 @@ S → A → S
 
 ## 출처 정보 — provenance
 
-**영어:** provenance
+**영어:** [정보의 출처 기록(provenance)](Knowledge)
 
 **쉬운 뜻:** 어떤 지식을 언제, 어디서, 어떤 실제 응답을 통해 알게 되었는지 기록하는 정보.
 
@@ -563,7 +563,7 @@ S → A → S
 
 **쉬운 뜻:** 여러 단계 미래를 상상한 뒤 결국 지금 현실에서 처음 실행할 행동.
 
-[Imagination(가상 미래 탐색)](Imagination)이 아무리 많은 미래를 계산해도 실제로는 root [행동(action)](Reinforcement-Learning) 하나만 실행한다.
+[Imagination(가상 미래 탐색)](Imagination)이 아무리 많은 미래를 계산해도 실제로는 [탐색의 첫 행동(root)](Imagination) [행동(action)](Reinforcement-Learning) 하나만 실행한다.
 
 ## 개입 — intervention
 
@@ -619,7 +619,7 @@ S → A → S
 
 **쉬운 뜻:** 신뢰할 근거가 부족할 때 공격적으로 새 결정을 하지 않고 더 안전한 기본 경로로 돌아가는 설계.
 
-AASSR의 [국소 데이터 근거(local support)](Critic-Support-and-OOD) gate는 근거가 부족하면 [Policy](Policy)를 유지한다.
+AASSR의 [국소 데이터 근거(local support)](Critic-Support-and-OOD) [판정 관문(gate)](Terminology-Guide)는 근거가 부족하면 [Policy](Policy)를 유지한다.
 
 ---
 
@@ -856,7 +856,7 @@ AASSR의 `current_manifest.py`가 이에 해당한다.
 
 **쉬운 뜻:** 너무 많은 요청 등으로 환경이 더 이상 요청을 허용하지 않는 상황.
 
-이런 종료를 task failure와 같은 `-1`로 취급하면 학습 의미가 달라질 수 있다.
+이런 종료를 task [실패(failure)](Replay-Buffer-and-Episode-Boundaries)와 같은 `-1`로 취급하면 학습 의미가 달라질 수 있다.
 
 관련: [Replay Buffer와 에피소드 경계](Replay-Buffer-and-Episode-Boundaries)
 

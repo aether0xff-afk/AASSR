@@ -19,7 +19,7 @@ Hard task
 → training signal 거의 없음
 ```
 
-쉬운 task에서 먼저 성공 구조를 경험하면 value/model/skill이 학습을 시작할 수 있다.
+쉬운 task에서 먼저 성공 구조를 경험하면 [가치(value)](Value-Functions-and-Bellman-Equation)/[학습 모델(model)](Terminology-Guide)/skill이 학습을 시작할 수 있다.
 
 ---
 
@@ -59,7 +59,7 @@ Level 3
 - 더 강한 [부분 관측(partial observability)](MDP-and-POMDP)
 - 더 큰 irreversible-risk structure
 
-AASSR [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)의 실제 difficulty contract는 [Experiments](Experiments)와 current 환경 code를 [최종 기준(source of truth)](Current-Status)로 봐야 한다.
+AASSR [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)의 실제 difficulty [명세(contract)](Current-Status)는 [Experiments](Experiments)와 [현재(current)](Current-Status) 환경 code를 [최종 기준(source of truth)](Current-Status)로 봐야 한다.
 
 ---
 
@@ -73,7 +73,7 @@ AASSR [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibilit
 10k steps Level 2
 ```
 
-간단하지만 learner가 아직 준비되지 않았거나 이미 너무 쉬워졌는데도 schedule이 고정된다.
+간단하지만 [학습 주체(learner)](Terminology-Guide)가 아직 준비되지 않았거나 이미 너무 쉬워졌는데도 schedule이 고정된다.
 
 ---
 
@@ -89,7 +89,7 @@ AASSR [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibilit
 → 강등
 ```
 
-AASSR current research에서는 자동 promotion/demotion 구조를 사용해 쉬운 환경 성공과 높은 난도의 [전이(transfer)](Relational-Representation-and-Generalization)를 연결하려 한다.
+AASSR 현재 research에서는 자동 promotion/demotion 구조를 사용해 쉬운 환경 성공과 높은 난도의 [전이(transfer)](Relational-Representation-and-Generalization)를 연결하려 한다.
 
 ---
 
@@ -122,7 +122,7 @@ L2 도달
 
 AASSR pilot에서 실제로 자동 승급과 강등이 관찰된 적이 있다.
 
-난이도 조절 학습 자체가 동작했다는 evidence와 final [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) 전이가 성공했다는 claim은 분리해야 한다.
+난이도 조절 학습 자체가 동작했다는 [증거(evidence)](Evidence-Matrix)와 final [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) 전이가 성공했다는 [연구 주장(claim)](Evidence-Matrix)은 분리해야 한다.
 
 ---
 
@@ -146,7 +146,7 @@ External 보상는 그대로 두고 **task distribution의 난도**를 조절한
 쉬운 task → 어려운 task
 ```
 
-AASSR은 [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment) contract를 유지하기 위해 후자를 사용한다.
+AASSR은 [희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment) 명세를 유지하기 위해 후자를 사용한다.
 
 관련 페이지:
 
@@ -169,7 +169,7 @@ Guided trajectory:
 정답 action sequence 자체를 제공
 ```
 
-AASSR current main protocol은 난이도 조절 학습을 허용하지만 oracle/guided success trajectory injection을 피한다.
+AASSR 현재 main [실험 규칙(protocol)](Ablation-Benchmarking-and-Reproducibility)은 난이도 조절 학습을 허용하지만 oracle/guided [성공(success)](Terminology-Guide) trajectory injection을 피한다.
 
 ---
 
@@ -202,7 +202,7 @@ L0 success
 → L2 success?
 ```
 
-AASSR 연구에서는 최초 성공 discovery 병목을 해결한 뒤 **higher-level 전이 failure**가 주요 병목으로 나타난 적이 있다.
+AASSR 연구에서는 최초 성공 discovery 병목을 해결한 뒤 **higher-level 전이 [실패(failure)](Replay-Buffer-and-Episode-Boundaries)**가 주요 병목으로 나타난 적이 있다.
 
 ---
 
@@ -218,7 +218,7 @@ AASSR에서는 쉬운 난도 경험을 replay에 유지하는지 여부가 난�
 
 # 13. Distribution shift
 
-Level이 올라가면 state/행동 distribution이 바뀐다.
+Level이 올라가면 [상태(state)](State-Representation)/행동 distribution이 바뀐다.
 
 ```text
 L0 distribution
@@ -237,13 +237,13 @@ L0 distribution
 
 # 14. Curriculum과 World Model
 
-쉬운 level [상태 전이(transition)](MDP-and-POMDP)만으로 학습한 [세계 모델(world model)](Model-Based-RL-and-World-Models)이 higher-level dynamics를 정확히 예측한다고 보장할 수 없다.
+쉬운 level [상태 전이(transition)](MDP-and-POMDP)만으로 학습한 [세계 모델(world model)](Model-Based-RL-and-World-Models)이 higher-level [환경의 상태 변화 규칙(dynamics)](Model-Based-RL-and-World-Models)를 정확히 예측한다고 보장할 수 없다.
 
 따라서 난이도 조절 학습 승급 직후:
 
-- [Prophecy](Prophecy) reliability
-- status prediction
-- legal-mask prediction
+- [Prophecy](Prophecy) [신뢰도(reliability)](Calibration)
+- [상태 코드(status)](Terminology-Guide) [예측(prediction)](Terminology-Guide)
+- legal-mask 예측
 
 을 따로 확인해야 한다.
 
@@ -256,9 +256,9 @@ L0 distribution
 
 # 15. Curriculum과 Critic
 
-[Critic](Critic)도 쉬운 level success/failure [누적 보상(return)](Value-Functions-and-Bellman-Equation)에만 학습되어 higher-level imagined state에서 extrapolate할 수 있다.
+[Critic](Critic)도 쉬운 level 성공/실패 [누적 보상(return)](Value-Functions-and-Bellman-Equation)에만 학습되어 higher-level imagined 상태에서 extrapolate할 수 있다.
 
-이것이 [국소 데이터 근거(local support)](Critic-Support-and-OOD) gate와 연결된다.
+이것이 [국소 데이터 근거(local support)](Critic-Support-and-OOD) [판정 관문(gate)](Terminology-Guide)와 연결된다.
 
 ```text
 Global Critic trained
@@ -283,7 +283,7 @@ Higher-level current state supported
 
 # 17. Curriculum leakage
 
-난도 level 자체가 hidden task structure를 직접 알려주는 feature가 되면 문제가 될 수 있다.
+난도 level 자체가 [숨겨진(hidden)](MDP-and-POMDP) task structure를 직접 알려주는 feature가 되면 문제가 될 수 있다.
 
 예:
 
@@ -291,9 +291,9 @@ Higher-level current state supported
 observation에 current hidden level = 3 제공
 ```
 
-이 값이 실제 response에서 알 수 없는 simulator metadata라면 learner shortcut이 된다.
+이 값이 실제 [응답(response)](State-Representation)에서 알 수 없는 simulator metadata라면 학습 주체 shortcut이 된다.
 
-AASSR은 hidden 난이도 조절 학습 metadata를 public [관측(observation)](MDP-and-POMDP)에 직접 주지 않는 방향을 사용한다.
+AASSR은 숨겨진 난이도 조절 학습 metadata를 [공개된(public)](State-Representation) [관측(observation)](MDP-and-POMDP)에 직접 주지 않는 방향을 사용한다.
 
 관련 페이지:
 
@@ -303,13 +303,13 @@ AASSR은 hidden 난이도 조절 학습 metadata를 public [관측(observation)]
 
 # 18. Curriculum metric
 
-단순 최종 success뿐 아니라:
+단순 최종 성공뿐 아니라:
 
-- first success 상태 전이
+- first 성공 상태 전이
 - level promotion time
 - maximum level reached
 - demotion count
-- per-level success
+- per-level 성공
 - replay composition
 - 전이 after promotion
 
@@ -341,7 +341,7 @@ Adaptive curriculum
 
 자동으로 난도를 조절하는 것 자체는 정답 행동을 알려주는 것이 아니다.
 
-다만 promotion rule이 hidden goal progress를 너무 자세히 사용하거나 다음 정답 stage를 직접 expose하면 indirect guidance가 될 수 있다.
+다만 promotion rule이 숨겨진 goal progress를 너무 자세히 사용하거나 다음 정답 stage를 직접 expose하면 indirect guidance가 될 수 있다.
 
 어떤 signal로 difficulty를 조절하는지 명시해야 한다.
 

@@ -5,7 +5,7 @@ AASSR은 한 번에 현재 구조로 만들어진 시스템이 아니다. 실험
 이 페이지는 **왜 현재 구조가 이렇게 생겼는지**를 설명한다.
 
 > [!NOTE]
-> 과거 결과는 역사적 evidence다. 현재 generation의 성능 숫자와 직접 합치지 않는다.
+> 과거 결과는 역사적 [증거(evidence)](Evidence-Matrix)다. 현재 generation의 성능 숫자와 직접 합치지 않는다.
 
 ---
 
@@ -28,14 +28,14 @@ Observation
 
 - generic [행동(action)](Reinforcement-Learning) plugin
 - OnlineFeatureMemory
-- GOAL state difference
+- GOAL [상태(state)](State-Representation) difference
 - [Skill(성공 절차 재사용)](Skills) promotion
 - pure-Python online [GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) [Prophecy(미래 예측 모델)](Prophecy)
 - parallel-universe [Imagination(가상 미래 탐색)](Imagination)
-- information value learning
+- information [가치(value)](Value-Functions-and-Bellman-Equation) learning
 - automatic [난이도 조절 학습(curriculum)](Curriculum-Learning)
 
-이 구조는 연구 아이디어를 빠르게 연결하는 데 유용했지만, 이후 실제 [전이(transfer)](Relational-Representation-and-Generalization) [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)를 붙이면서 [표현(representation)](Relational-Representation-and-Generalization), calibration, evaluation fairness 문제가 차례로 드러났다.
+이 구조는 연구 아이디어를 빠르게 연결하는 데 유용했지만, 이후 실제 [전이(transfer)](Relational-Representation-and-Generalization) [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)를 붙이면서 [표현(representation)](Relational-Representation-and-Generalization), calibration, [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility) fairness 문제가 차례로 드러났다.
 
 ---
 
@@ -60,7 +60,7 @@ semantic tool choices
 - replay imbalance
 - 행동 encoding
 - Bellman target masking
-- training/evaluation [체크포인트(checkpoint)](Reproduction) mismatch
+- [학습(training)](Terminology-Guide)/평가 [체크포인트(checkpoint)](Reproduction) mismatch
 
 특히 중요한 교정은 **[Policy(정책 모델)](Policy)-only와 [Imagination](Imagination)을 따로 재학습하지 않고 같은 체크포인트에서 비교**하기 시작한 것이다.
 
@@ -90,7 +90,7 @@ Grid/Tool 환경에서 더 현실적인 장기 dependency 문제로 이동하기
 
 초기에는 object ID 정렬 순서가 own/target 역할과 연결되는 shortcut이 있었고 이를 제거했다.
 
-40-난수 시드 표준 비교 실험 validation 결과:
+40-난수 시드 표준 비교 실험 [검증(validation)](Ablation-Benchmarking-and-Reproducibility) 결과:
 
 ```text
 Response-guided
@@ -157,7 +157,7 @@ stalled 0 / 24
 
 # 6. Exact ASEQ를 학습과 평가에 일관되게 사용 — PR #27
 
-기존 train-only repetition filter 대신 같은 exact [ASEQ](ASEQ) rule을 training/evaluation 모두에 적용했다.
+기존 train-only repetition filter 대신 같은 exact [ASEQ](ASEQ) rule을 학습/평가 모두에 적용했다.
 
 6k focused run 결과:
 
@@ -174,7 +174,7 @@ L1  7/8
 L2  1/8
 ```
 
-이때부터 [ASEQ](ASEQ)는 단순 diagnostic hack이 아니라 current design의 독립 component로 자리 잡았다.
+이때부터 [ASEQ](ASEQ)는 단순 [진단 실험(diagnostic)](Evidence-Matrix) hack이 아니라 [현재(current)](Current-Status) design의 독립 [구성요소(component)](Research-Architecture)로 자리 잡았다.
 
 ---
 
@@ -186,7 +186,7 @@ L2  1/8
 
 - train-only 행동 suppression
 - stall/rate-limit reset 뒤 TD [다음 상태 가치 이어받기(bootstrap)](Replay-Buffer-and-Episode-Boundaries) continuation
-- hidden simulator state가 semantic fingerprint에 섞일 위험
+- [숨겨진(hidden)](MDP-and-POMDP) simulator 상태가 semantic fingerprint에 섞일 위험
 - 난이도 조절 학습 metadata leakage
 - exact audit pressure/session countdown leakage
 - target rank shortcut
@@ -204,7 +204,7 @@ explicit TD episode boundaries
 train/eval action-surface consistency
 ```
 
-`response_causal_observation_v3`가 이 감사에서 current [관측(observation)](MDP-and-POMDP) contract로 자리 잡았다.
+`response_causal_observation_v3`가 이 감사에서 현재 [관측(observation)](MDP-and-POMDP) [명세(contract)](Current-Status)로 자리 잡았다.
 
 ---
 
@@ -227,11 +227,11 @@ observable state
 
 - same-[상태 전이(transition)](MDP-and-POMDP) hindsight [Knowledge(에피소드 지식)](Knowledge) leak
 - drifting [검증용 분리 데이터(holdout)](Calibration) set
-- evaluation learning leak
-- recurrent hidden state episode-boundary leak
+- 평가 learning leak
+- recurrent [숨은 환경 상태(hidden state)](MDP-and-POMDP) episode-boundary leak
 - [Skill](Skills) macro budget leak
 
-즉 0.4는 “기능을 더 넣은 버전”이라기보다 **기존 아이디어를 fair evaluation contract 안에 다시 묶은 세대**였다.
+즉 0.4는 “기능을 더 넣은 버전”이라기보다 **기존 아이디어를 fair 평가 명세 안에 다시 묶은 세대**였다.
 
 ---
 
@@ -241,19 +241,19 @@ Full AASSR은 작은 [GRU](GRU-and-Sequence-Models)/world-model 호출을 매우
 
 따라서 알고리즘 의미를 유지하면서 hot path를 batch화했다.
 
-- [Prophecy](Prophecy) batch prediction
-- 검증용 분리 데이터 validation [묶음 처리(batching)](Reproduction)
+- [Prophecy](Prophecy) batch [예측(prediction)](Terminology-Guide)
+- 검증용 분리 데이터 검증 [묶음 처리(batching)](Reproduction)
 - depth-batched [Imagination](Imagination)
 - process-level scheduling
 - CUDA [처리량(throughput)](Reproduction) path
 
-이 과정은 current-generation의 hardware-aware design으로 이어졌다.
+이 과정은 [현재 세대(current-generation)](Current-Status)의 hardware-aware design으로 이어졌다.
 
 ---
 
 # 10. Standalone current-generation — PR #33
 
-과거 v0.4와 현재 실험 코드가 섞이지 않도록 **현역 runtime을 standalone generation으로 분리**했다.
+과거 v0.4와 현재 실험 코드가 섞이지 않도록 **현역 [실행 구조(runtime)](Current-Status)을 standalone generation으로 분리**했다.
 
 주요 변화:
 
@@ -276,13 +276,13 @@ aassr_current_no_imagination
 aassr_current_full
 ```
 
-이 세대에서 legacy modules는 current runtime에서 `LEGACY_COMPONENTS_ACTIVE = ()`로 격리된다.
+이 세대에서 legacy modules는 [현재 실행 구조(current runtime)](Current-Status)에서 `LEGACY_COMPONENTS_ACTIVE = ()`로 격리된다.
 
 ---
 
 # 11. Imagination audit: “작동하지 않음”에서 “잘못 개입함”으로 — PR #34
 
-초기 current [Imagination](Imagination)을 분석하자 두 단계의 문제가 드러났다.
+초기 현재 [Imagination](Imagination)을 분석하자 두 단계의 문제가 드러났다.
 
 ## 단계 A: confidence가 value처럼 사용됨
 
@@ -292,7 +292,7 @@ aassr_current_full
 
 ## 단계 B: Critic value가 tie로 붕괴
 
-[Imagination](Imagination) plan은 만들어지지만 [Policy](Policy)와 다른 행동을 고를 만큼 value separation이 없었다.
+[Imagination](Imagination) plan은 만들어지지만 [Policy](Policy)와 다른 행동을 고를 만큼 가치 separation이 없었다.
 
 ```text
 Imagination runs exist
@@ -300,18 +300,18 @@ but
 interventions = 0
 ```
 
-그래서 표현/world-model/[Critic(미래 가치 평가기)](Critic)/planner contract를 크게 다시 감사했다.
+그래서 표현/world-model/[Critic(미래 가치 평가기)](Critic)/[계획기(planner)](Counterfactual-Planning-and-Search) 명세를 크게 다시 감사했다.
 
 주요 수리:
 
 - concrete ID target 제거
-- relational next-state prediction
-- [가능 행동 마스크(legal-action mask)](Prophecy) prediction
-- multimodal future mixture
-- probability vs reliability 분리
+- [관계 기반(relational)](Relational-Representation-and-Generalization) next-state 예측
+- [가능 행동 마스크(legal-action mask)](Prophecy) 예측
+- [여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) future mixture
+- probability vs [신뢰도(reliability)](Calibration) 분리
 - chance expectation / decision max 분리
 - signed sparse-[누적 보상(return)](Value-Functions-and-Bellman-Equation) [Critic](Critic)
-- root preservation
+- [탐색의 첫 행동(root)](Imagination) preservation
 - structural branching
 
 ---
@@ -354,11 +354,11 @@ Imagination acts in unsupported/wrong regions
 
 2k trace에서 세 가지 큰 원인이 드러났다.
 
-1. latest public HTTP status 누락
+1. latest [공개된(public)](State-Representation) HTTP [상태 코드(status)](Terminology-Guide) 누락
 2. semantic calibration의 response-risk blind spot
-3. global [Critic](Critic) readiness만으로 학습 중 보지 못한 L3 override 허용
+3. global [Critic](Critic) readiness만으로 학습 중 보지 못한 L3 [기본 행동 덮어쓰기(override)](Imagination) 허용
 
-현재 manifest에는 이를 반영한 다음 contract가 들어가 있다.
+현재 manifest에는 이를 반영한 다음 명세가 들어가 있다.
 
 ```text
 relational state v3 + latest HTTP status
@@ -370,7 +370,7 @@ structural root compute dedup
 
 이제 다음 질문은:
 
-> **이 수리들이 실제 행동 개입을 단순히 줄이는 데 그치지 않고, 올바른 실제 행동 개입을 남겨 실제 sparse-[보상(reward)](Sparse-Reward-and-Credit-Assignment) success를 높이는가?**
+> **이 수리들이 실제 행동 개입을 단순히 줄이는 데 그치지 않고, 올바른 실제 행동 개입을 남겨 실제 sparse-[보상(reward)](Sparse-Reward-and-Credit-Assignment) [성공(success)](Terminology-Guide)를 높이는가?**
 
 이다.
 
@@ -402,7 +402,7 @@ flowchart TD
 
 # 15. 왜 실패한 실험을 남기는가?
 
-AASSR의 구조 대부분은 “처음부터 그럴듯해서 넣은 기능”이 아니라 실제 failure trace에서 나온 수정이다.
+AASSR의 구조 대부분은 “처음부터 그럴듯해서 넣은 기능”이 아니라 실제 [실패(failure)](Replay-Buffer-and-Episode-Boundaries) trace에서 나온 수정이다.
 
 예:
 
@@ -422,4 +422,4 @@ L3 unsupported override
 
 따라서 실패 기록을 지우면 현재 구조의 이유도 사라진다.
 
-이 위키에서는 실패 실험도 **Historical evidence**로 남기되, current performance와 섞지 않는 것을 원칙으로 한다.
+이 위키에서는 실패 실험도 **Historical 증거**로 남기되, 현재 performance와 섞지 않는 것을 원칙으로 한다.

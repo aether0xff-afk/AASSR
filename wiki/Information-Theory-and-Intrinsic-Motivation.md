@@ -2,7 +2,7 @@
 
 AASSR의 [Policy](Policy)는 외부 sparse task [누적 보상(return)](Value-Functions-and-Bellman-Equation)과 별도로 **[정보 가치 잔차(information-value residual)](Policy)**을 유지한다. 이 페이지는 그 배경을 이해하는 데 필요한 정보이론과 [내재 동기(intrinsic motivation)](Information-Theory-and-Intrinsic-Motivation) 개념을 정리한다.
 
-AASSR의 current residual이 아래 모든 이론을 그대로 구현한다는 뜻은 아니다. **관련 개념을 구분하기 위한 배경 문서**다.
+AASSR의 [현재(current)](Current-Status) residual이 아래 모든 이론을 그대로 구현한다는 뜻은 아니다. **관련 개념을 구분하기 위한 배경 문서**다.
 
 ---
 
@@ -70,7 +70,7 @@ H(X|Y)
 
 이다.
 
-[관측(Observation)](MDP-and-POMDP)을 얻은 뒤 hidden situation에 대한 uncertainty가 얼마나 줄었는지 생각할 때 연결된다.
+[관측(Observation)](MDP-and-POMDP)을 얻은 뒤 [숨겨진(hidden)](MDP-and-POMDP) situation에 대한 uncertainty가 얼마나 줄었는지 생각할 때 연결된다.
 
 ---
 
@@ -172,7 +172,7 @@ Intrinsic signal
 = agent 내부에서 exploration/knowledge acquisition을 위해 계산한 신호
 ```
 
-AASSR current design의 중요한 원칙:
+AASSR 현재 design의 중요한 원칙:
 
 ```text
 External sparse reward
@@ -186,13 +186,13 @@ Information residual
 
 # 11. Curiosity by prediction error
 
-한 방법은 [세계 모델(world model)](Model-Based-RL-and-World-Models) prediction error가 큰 관측을 흥미롭다고 보는 것이다.
+한 방법은 [세계 모델(world model)](Model-Based-RL-and-World-Models) [예측(prediction)](Terminology-Guide) error가 큰 관측을 흥미롭다고 보는 것이다.
 
 ```math
 r_{int}\propto\|\hat s'-s'\|
 ```
 
-처음 보는 dynamics를 탐색하는 데 도움이 될 수 있다.
+처음 보는 [환경의 상태 변화 규칙(dynamics)](Model-Based-RL-and-World-Models)를 탐색하는 데 도움이 될 수 있다.
 
 하지만 [환경(environment)](Reinforcement-Learning) noise가 본질적으로 예측 불가능하면 계속 큰 보상가 생길 수 있다.
 
@@ -200,7 +200,7 @@ r_{int}\propto\|\hat s'-s'\|
 
 # 12. Noisy-TV problem
 
-[에이전트(Agent)](Reinforcement-Learning)가 예측하기 어려운 랜덤 noise source만 계속 바라보는 failure mode다.
+[에이전트(Agent)](Reinforcement-Learning)가 예측하기 어려운 랜덤 noise source만 계속 바라보는 [실패(failure)](Replay-Buffer-and-Episode-Boundaries) mode다.
 
 ```text
 랜덤 noise
@@ -215,25 +215,25 @@ r_{int}\propto\|\hat s'-s'\|
 
 # 13. Count-based exploration
 
-덜 방문한 state에 bonus를 주는 방법이다.
+덜 방문한 [상태(state)](State-Representation)에 bonus를 주는 방법이다.
 
 ```math
 B(s)\propto\frac1{\sqrt{N(s)}}
 ```
 
-큰/continuous state space에서는 exact state count가 어렵기 때문에 pseudo-count나 [표현(representation)](Relational-Representation-and-Generalization)-based count를 사용할 수 있다.
+큰/continuous 상태 space에서는 exact 상태 count가 어렵기 때문에 pseudo-count나 [표현(representation)](Relational-Representation-and-Generalization)-based count를 사용할 수 있다.
 
-AASSR에서는 relational state를 쓰므로 structural novelty를 정의할 가능성도 있지만 current main external 보상에 count bonus를 넣는 구조는 아니다.
+AASSR에서는 [관계 기반(relational)](Relational-Representation-and-Generalization) 상태를 쓰므로 structural novelty를 정의할 가능성도 있지만 현재 main external 보상에 count bonus를 넣는 구조는 아니다.
 
 ---
 
 # 14. Empowerment
 
-에이전트의 행동이 미래 state를 얼마나 다양하게 제어할 수 있는지와 관련된 intrinsic objective다.
+에이전트의 행동이 미래 상태를 얼마나 다양하게 제어할 수 있는지와 관련된 intrinsic [학습 목표(objective)](Terminology-Guide)다.
 
-대략 행동과 future state 사이 mutual information을 최대화하는 관점과 연결된다.
+대략 행동과 future 상태 사이 mutual information을 최대화하는 관점과 연결된다.
 
-AASSR current 정보 가치 잔차과 동일한 개념은 아니지만 **정보/통제 가능성에 내부 가치를 줄 수 있다**는 관련 연구 배경이다.
+AASSR 현재 정보 가치 잔차과 동일한 개념은 아니지만 **정보/통제 가능성에 내부 가치를 줄 수 있다**는 관련 연구 배경이다.
 
 ---
 
@@ -249,7 +249,7 @@ Action A
 → 몇 단계 뒤 success
 ```
 
-Information value를 완전히 external 누적 보상 안에서만 학습하려면 성공 sample을 통해 긴 [보상 책임 배분(credit assignment)](Sparse-Reward-and-Credit-Assignment)가 필요하다.
+Information [가치(value)](Value-Functions-and-Bellman-Equation)를 완전히 external 누적 보상 안에서만 학습하려면 성공 sample을 통해 긴 [보상 책임 배분(credit assignment)](Sparse-Reward-and-Credit-Assignment)가 필요하다.
 
 AASSR [Policy(정책 모델)](Policy)는 별도 residual로 이 내부 값을 추적한다.
 
@@ -261,7 +261,7 @@ AASSR [Policy(정책 모델)](Policy)는 별도 residual로 이 내부 값을 �
 r'=r_{task}+\beta r_{info}
 ```
 
-처럼 합치면 learner objective 자체가 바뀐다.
+처럼 합치면 [학습 주체(learner)](Terminology-Guide) 학습 목표 자체가 바뀐다.
 
 AASSR의 연구 질문은 sparse external 보상를 유지하는 것이므로:
 
@@ -282,7 +282,7 @@ separate information residual
 
 # 17. Residual이라는 말
 
-기본 model output에 추가되는 보정값을 residual이라고 부를 수 있다.
+기본 [학습 모델(model)](Terminology-Guide) [출력(output)](Terminology-Guide)에 추가되는 보정값을 residual이라고 부를 수 있다.
 
 AASSR 개념식:
 
@@ -307,7 +307,7 @@ Internal signal이 너무 크면 에이전트가 목표를 끝내기보다 계�
 목표 completion 안 함
 ```
 
-그래서 diagnostic에서 external Q와 information component를 따로 보는 것이 중요하다.
+그래서 [진단 실험(diagnostic)](Evidence-Matrix)에서 external Q와 information [구성요소(component)](Research-Architecture)를 따로 보는 것이 중요하다.
 
 ---
 
@@ -339,23 +339,23 @@ Uncertainty가 높은 행동이 항상 informative한 것은 아니다.
 → information gain은 낮을 수 있음
 ```
 
-반대로 현재 outcome은 거의 deterministic하지만 중요한 hidden fact를 공개하는 행동은 매우 informative할 수 있다.
+반대로 현재 outcome은 거의 deterministic하지만 중요한 숨겨진 fact를 공개하는 행동은 매우 informative할 수 있다.
 
 ---
 
 # 21. Information와 Prophecy
 
-World model은 행동 outcome을 예측한다.
+World 학습 모델은 행동 outcome을 예측한다.
 
-Information-seeking planner라면 "이 행동이 model uncertainty를 얼마나 줄일까?"까지 계획할 수 있다.
+Information-seeking [계획기(planner)](Counterfactual-Planning-and-Search)라면 "이 행동이 학습 모델 uncertainty를 얼마나 줄일까?"까지 계획할 수 있다.
 
-AASSR current [Imagination(가상 미래 탐색)](Imagination)의 주요 objective는 external sparse-누적 보상 planning이며, uncertainty 자체를 positive task value로 사용하지 않는다.
+AASSR 현재 [Imagination(가상 미래 탐색)](Imagination)의 주요 학습 목표는 external sparse-누적 보상 [계획(planning)](Counterfactual-Planning-and-Search)이며, uncertainty 자체를 positive task 가치로 사용하지 않는다.
 
 ---
 
 # 22. Information signal의 공정성
 
-Internal information signal이 [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)의 hidden correct structure를 직접 참조하면 사실상 shaping/oracle이 된다.
+Internal information signal이 [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)의 숨겨진 correct structure를 직접 참조하면 사실상 shaping/oracle이 된다.
 
 허용 가능한 방향:
 

@@ -6,30 +6,30 @@
 
 > **실제 행동을 하기 전에 [Prophecy](Prophecy)가 예측한 여러 미래를 몇 단계 전개해 보면, 현재 [Policy](Policy)가 고른 행동보다 더 나은 첫 행동을 선택할 수 있는가?**
 
-AASSR에서 [Imagination](Imagination)은 current main protocol 기준으로 imagined data를 사실처럼 학습시키는 장치가 아니라 **실행 전 planning 장치**다.
+AASSR에서 [Imagination](Imagination)은 [현재(current)](Current-Status) main [실험 규칙(protocol)](Ablation-Benchmarking-and-Reproducibility) 기준으로 imagined data를 사실처럼 학습시키는 장치가 아니라 **실행 전 [계획(planning)](Counterfactual-Planning-and-Search) 장치**다.
 
 > [!IMPORTANT]
 > 현재 핵심 구현: `src/aassr_v2/current_planner.py`  
-> 신뢰도 gate: `src/aassr_v2/current_confidence_gate.py`  
+> 신뢰도 [판정 관문(gate)](Terminology-Guide): `src/aassr_v2/current_confidence_gate.py`  
 > [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD): `src/aassr_v2/current_critic_support.py`
 
 ---
 
 # 0. 먼저 알아두면 좋은 개념
 
-- [Model-Based RL & World Models](Model-Based-RL-and-World-Models) — learned model로 planning한다는 뜻
-- [Counterfactual Planning & Search](Counterfactual-Planning-and-Search) — rollout, horizon, beam, pruning, root preservation
+- [Model-Based RL & World Models](Model-Based-RL-and-World-Models) — learned [학습 모델(model)](Terminology-Guide)로 계획한다는 뜻
+- [Counterfactual Planning & Search](Counterfactual-Planning-and-Search) — rollout, horizon, beam, pruning, [탐색의 첫 행동(root)](Imagination) preservation
 - [Chance Nodes & Decision Nodes](Chance-and-Decision-Nodes) — expectation과 max의 차이
-- [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability) — probability, reliability, value
-- [Critic, Support & OOD](Critic-Support-and-OOD) — search가 [학습 분포 밖(OOD)](Critic-Support-and-OOD) value error를 exploit하는 문제
-- [Relational Representation & Generalization](Relational-Representation-and-Generalization) — structural root dedup
+- [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability) — probability, [신뢰도(reliability)](Calibration), [가치(value)](Value-Functions-and-Bellman-Equation)
+- [Critic, Support & OOD](Critic-Support-and-OOD) — search가 [학습 분포 밖(OOD)](Critic-Support-and-OOD) 가치 error를 exploit하는 문제
+- [Relational Representation & Generalization](Relational-Representation-and-Generalization) — structural 탐색의 첫 행동 dedup
 - [Ablation, Benchmarking & Reproducibility](Ablation-Benchmarking-and-Reproducibility) — [같은 체크포인트(same-checkpoint)](Experiments) OFF/ON 비교
 
 ---
 
 # 1. 기본 아이디어
 
-현재 state에서 가능한 행동이 세 개 있다고 하자.
+현재 [상태(state)](State-Representation)에서 가능한 행동이 세 개 있다고 하자.
 
 ```text
 A
@@ -64,7 +64,7 @@ C를 하면?
 
 그리고 **실제로 실행하는 것은 첫 행동 하나뿐**이다.
 
-이후 real response를 관측하고 다시 planning한다. 이런 구조는 [receding-horizon / MPC](Counterfactual-Planning-and-Search)와 개념적으로 연결된다.
+이후 real [응답(response)](State-Representation)를 관측하고 다시 계획한다. 이런 구조는 [receding-horizon / MPC](Counterfactual-Planning-and-Search)와 개념적으로 연결된다.
 
 ---
 
@@ -80,7 +80,7 @@ Planning
 → 현재 학습된 model을 사용해 행동 전에 계산
 ```
 
-Current main AASSR protocol에서 [Imagination](Imagination)은 두 번째에 해당한다.
+Current main AASSR 실험 규칙에서 [Imagination](Imagination)은 두 번째에 해당한다.
 
 ```text
 Imagined branch
@@ -102,19 +102,19 @@ n개의 행동 후보
 k depth
 ```
 
-는 틀리지는 않지만 current planner의 핵심 의미를 놓친다.
+는 틀리지는 않지만 현재 [계획기(planner)](Counterfactual-Planning-and-Search)의 핵심 의미를 놓친다.
 
 실제로는 다음 문제가 더 중요하다.
 
 1. [환경의 stochastic outcome과 agent의 decision을 구분](Chance-and-Decision-Nodes)해야 한다.
-2. 각 stochastic outcome에는 [확률 질량(probability mass)](Stochasticity-Uncertainty-and-Probability)가 있다.
+2. 각 [확률적(stochastic)](Stochasticity-Uncertainty-and-Probability) outcome에는 [확률 질량(probability mass)](Stochasticity-Uncertainty-and-Probability)가 있다.
 3. [Prophecy reliability](Calibration)가 낮으면 branch를 믿으면 안 된다.
-4. [Critic OOD](Critic-Support-and-OOD)라면 큰 value가 나와도 override하면 안 된다.
+4. [Critic OOD](Critic-Support-and-OOD)라면 큰 가치가 나와도 [기본 행동 덮어쓰기(override)](Imagination)하면 안 된다.
 5. concrete aliases가 많아도 같은 [structural root](Relational-Representation-and-Generalization)를 반복 계산하면 안 된다.
-6. 깊은 rollout이 실패해도 실제 legal root 행동을 잃으면 안 된다.
-7. planning depth가 깊어질수록 [compounding model error](Model-Based-RL-and-World-Models)가 커진다.
+6. 깊은 rollout이 실패해도 실제 legal 탐색의 첫 행동 행동을 잃으면 안 된다.
+7. 계획 depth가 깊어질수록 [compounding model error](Model-Based-RL-and-World-Models)가 커진다.
 
-즉 current [Imagination](Imagination)은 **확률적 planning semantics + reliability constraints + structural computation**의 조합이다.
+즉 현재 [Imagination](Imagination)은 **확률적 계획 semantics + 신뢰도 constraints + structural computation**의 조합이다.
 
 ---
 
@@ -143,7 +143,7 @@ V_{chance}=\sum_i p_iV_i
 
 ## Decision node
 
-Predicted state에서 다음 행동은 [에이전트(agent)](Reinforcement-Learning)가 선택할 수 있다.
+Predicted 상태에서 다음 행동은 [에이전트(agent)](Reinforcement-Learning)가 선택할 수 있다.
 
 ```text
 predicted S'
@@ -230,7 +230,7 @@ Decision → Chance → Decision → Chance → ...
 
 # 7. Prophecy는 어떤 역할인가?
 
-[Prophecy](Prophecy)는 각 행동 뒤의 stochastic public future distribution을 만든다.
+[Prophecy](Prophecy)는 각 행동 뒤의 확률적 [공개된(public)](State-Representation) future distribution을 만든다.
 
 ```text
 (S,A)
@@ -242,7 +242,7 @@ Prophecy
 
 [Imagination](Imagination)은 이 predicted states를 tree node로 사용한다.
 
-[Prophecy(미래 예측 모델)](Prophecy)가 틀리면 planner가 아무리 수학적으로 올바른 backup을 해도 잘못된 미래를 최적화할 수 있다.
+[Prophecy(미래 예측 모델)](Prophecy)가 틀리면 계획기가 아무리 수학적으로 올바른 backup을 해도 잘못된 미래를 최적화할 수 있다.
 
 이를 [model exploitation](Model-Based-RL-and-World-Models) 문제라고 볼 수 있다.
 
@@ -261,7 +261,7 @@ S0 → Ŝ1 → Ŝ2 → Ŝ3
                  Critic
 ```
 
-Current [Critic](Critic)은 relational [GRU](GRU-and-Sequence-Models) 기반 discounted sparse-누적 보상 estimator다.
+Current [Critic](Critic)은 [관계 기반(relational)](Relational-Representation-and-Generalization) [GRU](GRU-and-Sequence-Models) 기반 discounted sparse-누적 보상 estimator다.
 
 즉:
 
@@ -318,7 +318,7 @@ deeper = always better
 
 형태의 combinatorial growth를 생각할 수 있다.
 
-실제 planner는:
+실제 계획기는:
 
 - beam width
 - outcome sample count
@@ -332,7 +332,7 @@ deeper = always better
 
 # 11. Root preservation
 
-깊은 branch가 unreliable하거나 prune되어도 **실제로 가능한 root 행동 자체가 사라지면 안 된다.**
+깊은 branch가 unreliable하거나 prune되어도 **실제로 가능한 탐색의 첫 행동 행동 자체가 사라지면 안 된다.**
 
 예:
 
@@ -408,7 +408,7 @@ GET route-44
 17 relational roots
 ```
 
-같은 structural root의 [Prophecy](Prophecy)/[Critic(미래 가치 평가기)](Critic) 계산을 한 번만 수행하고 concrete aliases에 결과를 fan-out할 수 있다.
+같은 structural 탐색의 첫 행동의 [Prophecy](Prophecy)/[Critic(미래 가치 평가기)](Critic) 계산을 한 번만 수행하고 concrete aliases에 결과를 fan-out할 수 있다.
 
 ```text
 compute identity   = relational
@@ -435,7 +435,7 @@ GET /route_31
 
 같은 [실제 실행 행동(concrete action)](State-Representation)을 요구한다.
 
-따라서 structural dedup은 **계산 공유**이지 행동 identity 병합이 아니다.
+따라서 structural dedup은 **계산 공유**이지 행동 [식별 방식(identity)](State-Representation) 병합이 아니다.
 
 이 구분은 [Relational Representation & Generalization](Relational-Representation-and-Generalization)에서 핵심적으로 다룬다.
 
@@ -443,7 +443,7 @@ GET /route_31
 
 # 15. Prophecy reliability gate
 
-World model은 완벽하지 않다.
+World 학습 모델은 완벽하지 않다.
 
 먼저:
 
@@ -453,7 +453,7 @@ World model은 완벽하지 않다.
 
 를 본다.
 
-[Calibration](Calibration) reliability가 부족하면 aggressive override를 허용하지 않는다.
+[Calibration](Calibration) 신뢰도가 부족하면 aggressive 기본 행동 덮어쓰기를 허용하지 않는다.
 
 중요:
 
@@ -471,7 +471,7 @@ Prediction이 매우 reliable한 실패 branch일 수도 있다.
 
 # 16. Global coverage gate
 
-현재 행동 surface 전체에서 [Prophecy](Prophecy)가 거의 모르는 상태라면 planner를 통째로 비활성화할 수 있다.
+현재 행동 surface 전체에서 [Prophecy](Prophecy)가 거의 모르는 상태라면 계획기를 통째로 비활성화할 수 있다.
 
 ```text
 model coverage < threshold
@@ -479,9 +479,9 @@ model coverage < threshold
 → Policy fallback
 ```
 
-이는 "새로운 state를 절대 탐색하지 않는다"는 뜻이 아니라:
+이는 "새로운 상태를 절대 탐색하지 않는다"는 뜻이 아니라:
 
-> **모르는 [세계 모델(world model)](Model-Based-RL-and-World-Models)을 이용해 실제 [Policy](Policy)를 override하지 않는다.**
+> **모르는 [세계 모델(world model)](Model-Based-RL-and-World-Models)을 이용해 실제 [Policy](Policy)를 기본 행동 덮어쓰기하지 않는다.**
 
 는 뜻이다.
 
@@ -489,7 +489,7 @@ model coverage < threshold
 
 # 17. Per-root reliability gate
 
-Global coverage가 충분해도 특정 root는 low reliability일 수 있다.
+Global coverage가 충분해도 특정 탐색의 첫 행동는 low 신뢰도일 수 있다.
 
 ```text
 root A reliability 0.8
@@ -497,27 +497,27 @@ root B reliability 0.1
 root C reliability 0.7
 ```
 
-B가 [Critic](Critic) value는 높더라도 prediction 자체가 unreliable하면 final override candidate에서 제외할 수 있다.
+B가 [Critic](Critic) 가치는 높더라도 [예측(prediction)](Terminology-Guide) 자체가 unreliable하면 final 기본 행동 덮어쓰기 candidate에서 제외할 수 있다.
 
 ---
 
 # 18. Policy root도 reliable해야 하는 이유
 
-Alternative와 [Policy](Policy)를 비교하려면 둘 다 같은 수준의 model evidence가 필요하다.
+Alternative와 [Policy](Policy)를 비교하려면 둘 다 같은 수준의 학습 모델 [증거(evidence)](Evidence-Matrix)가 필요하다.
 
 ```text
 V_alt - V_policy
 ```
 
-에서 `V_policy`의 underlying prediction이 unreliable하면 advantage가 의미 없을 수 있다.
+에서 `V_policy`의 underlying 예측이 unreliable하면 advantage가 의미 없을 수 있다.
 
-그래서 current gate는 [Policy](Policy) branch도 reliability를 요구한다.
+그래서 현재 판정 관문는 [Policy](Policy) branch도 신뢰도를 요구한다.
 
 ---
 
 # 19. Local Critic support gate
 
-[Prophecy](Prophecy) prediction이 reliable해도 [Critic](Critic)이 predicted state/행동 region을 본 적 없을 수 있다.
+[Prophecy](Prophecy) 예측이 reliable해도 [Critic](Critic)이 predicted 상태/행동 region을 본 적 없을 수 있다.
 
 ```text
 Prophecy reliable
@@ -545,7 +545,7 @@ critic_ready = True
 
 는 [Critic](Critic) 전체가 어느 정도 학습됐다는 뜻이다.
 
-하지만 current query가 higher-level [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) region이면:
+하지만 현재 query가 higher-level [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) region이면:
 
 ```text
 local support = low
@@ -553,7 +553,7 @@ local support = low
 
 일 수 있다.
 
-Search는 이런 [OOD](Critic-Support-and-OOD) artifact를 적극적으로 고를 수 있기 때문에 local evidence가 필요하다.
+Search는 이런 [OOD](Critic-Support-and-OOD) artifact를 적극적으로 고를 수 있기 때문에 local 증거가 필요하다.
 
 자세히: [Critic, Support & OOD](Critic-Support-and-OOD)
 
@@ -561,7 +561,7 @@ Search는 이런 [OOD](Critic-Support-and-OOD) artifact를 적극적으로 고�
 
 # 21. Intervention advantage
 
-Planner가 찾은 best reliable/supported root와 [Policy](Policy) root를 비교한다.
+Planner가 찾은 best reliable/supported 탐색의 첫 행동와 [Policy](Policy) 탐색의 첫 행동를 비교한다.
 
 ```math
 \Delta V=V_{candidate}-V_{policy}
@@ -569,7 +569,7 @@ Planner가 찾은 best reliable/supported root와 [Policy](Policy) root를 비�
 
 Candidate가 다르더라도 `ΔV`가 너무 작으면 noise일 수 있다.
 
-그래서 fixed [실제 행동 개입(intervention)](Imagination) margin `m`을 둔다.
+그래서 fixed [실제 행동 개입(intervention)](Imagination) [최소 차이 기준(margin)](Imagination) `m`을 둔다.
 
 ```math
 \Delta V\ge m
@@ -590,9 +590,9 @@ Policy value    = 0.501
 Candidate value = 0.503
 ```
 
-같은 작은 차이로 매번 행동을 바꾸면 planner가 unstable할 수 있다.
+같은 작은 차이로 매번 행동을 바꾸면 계획기가 unstable할 수 있다.
 
-Margin은 작은 value noise에 대한 robustness 역할을 한다.
+Margin은 작은 가치 noise에 대한 robustness 역할을 한다.
 
 하지만 너무 크면 useful candidate도 막으므로 [hyperparameter ablation](Ablation-Benchmarking-and-Reproducibility)이 필요하다.
 
@@ -613,9 +613,9 @@ Margin은 작은 value noise에 대한 robustness 역할을 한다.
 
 진짜 실제 행동 개입은 **6번**이다.
 
-Candidate가 잠깐 생겼다가 gate에서 취소된 것을 실제 행동 개입으로 세면 planner 효과를 과대평가한다.
+Candidate가 잠깐 생겼다가 판정 관문에서 취소된 것을 실제 행동 개입으로 세면 계획기 효과를 과대평가한다.
 
-따라서 current diagnostic은:
+따라서 현재 [진단 실험(diagnostic)](Evidence-Matrix)은:
 
 - plan count
 - switch candidate count
@@ -629,7 +629,7 @@ Candidate가 잠깐 생겼다가 gate에서 취소된 것을 실제 행동 개�
 
 # 24. Same-checkpoint OFF/ON 비교
 
-현재 [Imagination](Imagination)의 순수 marginal effect를 측정하는 핵심 protocol:
+현재 [Imagination](Imagination)의 순수 marginal effect를 측정하는 핵심 실험 규칙:
 
 ```text
 one training run
@@ -639,7 +639,7 @@ frozen AASSR checkpoint
 OFF eval      ON eval
 ```
 
-Training 중부터 [Imagination](Imagination) 실제 행동 개입을 켜면 training trajectory가 달라진다.
+Training 중부터 [Imagination](Imagination) 실제 행동 개입을 켜면 [학습(training)](Terminology-Guide) trajectory가 달라진다.
 
 ```text
 OFF-trained model
@@ -647,9 +647,9 @@ vs
 ON-trained model
 ```
 
-은 planner 효과뿐 아니라 data-distribution 효과까지 섞인다.
+은 계획기 효과뿐 아니라 data-distribution 효과까지 섞인다.
 
-그래서 current main comparison은 [same-checkpoint evaluation](Ablation-Benchmarking-and-Reproducibility)을 사용한다.
+그래서 현재 main comparison은 [same-checkpoint evaluation](Ablation-Benchmarking-and-Reproducibility)을 사용한다.
 
 ---
 
@@ -666,7 +666,7 @@ world-model error
 
 이 가능하다.
 
-다른 [model-based RL](Model-Based-RL-and-World-Models) 알고리즘에서는 imagined learning을 정당하게 사용할 수 있지만, AASSR current main experiment는 **planning effect를 깨끗하게 분리**하기 위해 persistent [Policy](Policy) update를 막는다.
+다른 [model-based RL](Model-Based-RL-and-World-Models) 알고리즘에서는 imagined learning을 정당하게 사용할 수 있지만, AASSR 현재 main experiment는 **계획 effect를 깨끗하게 분리**하기 위해 persistent [Policy](Policy) update를 막는다.
 
 ---
 
@@ -704,7 +704,7 @@ Repaired run에서는 [Imagination](Imagination)이 더 이상 inert하지 않�
 
 였다.
 
-여러 실제 행동 개입이 `403/404/429` 같은 bad public outcome으로 이어졌고 direct success-producing 실제 행동 개입은 확인되지 않았다.
+여러 실제 행동 개입이 `403/404/429` 같은 bad 공개된 outcome으로 이어졌고 direct success-producing 실제 행동 개입은 확인되지 않았다.
 
 즉 병목이:
 
@@ -753,7 +753,7 @@ planner decision quality
 
 # 29. Failure mode: Model error exploitation
 
-Planner는 많은 candidate 중 가장 높은 value를 찾는다.
+Planner는 많은 candidate 중 가장 높은 가치를 찾는다.
 
 그 과정에서 세계 모델의 작은 오류를 찾아낼 수 있다.
 
@@ -765,32 +765,32 @@ but model predicts rare amazing future
 
 대응:
 
-- stochastic 확률 질량
+- 확률적 확률 질량
 - [Calibration](Calibration)
-- [상태 코드까지 고려하는(status-aware)](Calibration) model
+- [상태 코드까지 고려하는(status-aware)](Calibration) 학습 모델
 - controlled horizon
 
 ---
 
 # 30. Failure mode: OOD Critic exploitation
 
-[Prophecy](Prophecy) future가 plausible해도 [Critic](Critic)이 해당 region에서 근거 없는 high value를 낼 수 있다.
+[Prophecy](Prophecy) future가 plausible해도 [Critic](Critic)이 해당 region에서 근거 없는 high 가치를 낼 수 있다.
 
 대응:
 
 - [local Critic support](Critic-Support-and-OOD)
-- fail-closed fallback
+- [근거가 부족하면 보수적으로 거부하는(fail-closed)](Critic-Support-and-OOD) [기본 경로로 돌아가기(fallback)](Imagination)
 
 ---
 
 # 31. Failure mode: Over-pruning
 
-Reliability/beam/pruning이 너무 강하면 좋은 root가 사라질 수 있다.
+Reliability/beam/pruning이 너무 강하면 좋은 탐색의 첫 행동가 사라질 수 있다.
 
 대응:
 
-- root preservation
-- separate root eligibility vs deep expansion
+- 탐색의 첫 행동 preservation
+- separate 탐색의 첫 행동 eligibility vs deep expansion
 - pass/suppression [평가지표(metric)](Ablation-Benchmarking-and-Reproducibility) 분석
 
 ---
@@ -801,7 +801,7 @@ Reliability/beam/pruning이 너무 강하면 좋은 root가 사라질 수 있다
 
 - compute 폭발
 - tiny-probability branches 증가
-- [OOD](Critic-Support-and-OOD) state 증가
+- [OOD](Critic-Support-and-OOD) 상태 증가
 
 가 가능하다.
 
@@ -816,7 +816,7 @@ Reliability/beam/pruning이 너무 강하면 좋은 root가 사라질 수 있다
 
 # 33. Failure mode: Planner inertia
 
-모든 gate가 너무 보수적이거나 [Critic](Critic) value가 모두 비슷하면 실제 행동 개입이 0이 된다.
+모든 판정 관문가 너무 보수적이거나 [Critic](Critic) 가치가 모두 비슷하면 실제 행동 개입이 0이 된다.
 
 가능한 원인:
 
@@ -824,7 +824,7 @@ Reliability/beam/pruning이 너무 강하면 좋은 root가 사라질 수 있다
 - [Calibration(예측 신뢰도 보정)](Calibration) sample 부족
 - [Critic](Critic) sparse target starvation
 - [국소 데이터 근거(local support)](Critic-Support-and-OOD) 부족
-- 실제 행동 개입 margin 과도함
+- 실제 행동 개입 최소 차이 기준 과도함
 
 따라서:
 
@@ -832,9 +832,9 @@ Reliability/beam/pruning이 너무 강하면 좋은 root가 사라질 수 있다
 intervention = 0
 ```
 
-만 보고 planner 코드가 죽었다고 결론내리면 안 된다.
+만 보고 계획기 코드가 죽었다고 결론내리면 안 된다.
 
-Gate reason별 diagnostic이 필요하다.
+Gate reason별 진단 실험이 필요하다.
 
 ---
 
@@ -892,11 +892,11 @@ Advantage margin
 
 # 36. Imagination과 Skill
 
-[Skill](Skills)은 여러 primitive 행동을 relational macro처럼 재사용할 수 있다.
+[Skill](Skills)은 여러 primitive 행동을 관계 기반 macro처럼 재사용할 수 있다.
 
-Planner가 [Skill(성공 절차 재사용)](Skills)을 행동 후보로 다룰 때 그 내부 primitive sequence에도 stochastic future가 존재할 수 있다.
+Planner가 [Skill(성공 절차 재사용)](Skills)을 행동 후보로 다룰 때 그 내부 primitive sequence에도 확률적 future가 존재할 수 있다.
 
-Current [Skill](Skills) [Prophecy](Prophecy)는 여러 stochastic outcome을 작은 beam으로 유지한다.
+Current [Skill](Skills) [Prophecy](Prophecy)는 여러 확률적 outcome을 작은 beam으로 유지한다.
 
 관련 배경: [Hierarchical RL & Skills](Hierarchical-RL-and-Skills)
 
@@ -927,11 +927,11 @@ Current-generation에는 다음과 같은 engineering optimization이 중요하�
 
 - depth-batched [Prophecy](Prophecy)
 - batched [Critic](Critic) scoring
-- structural root dedup
+- structural 탐색의 첫 행동 dedup
 - cache reuse
 - GPU-friendly tensor path
 
-이러한 최적화는 **planning semantics를 바꾸지 않고 같은 계산을 더 효율적으로 실행**하는 것을 목표로 한다.
+이러한 최적화는 **계획 semantics를 바꾸지 않고 같은 계산을 더 효율적으로 실행**하는 것을 목표로 한다.
 
 관련 기초: [Neural Networks & Optimization](Neural-Networks-and-Optimization)
 
@@ -950,7 +950,7 @@ Current-generation에는 다음과 같은 engineering optimization이 중요하�
 
 - global coverage failures
 - low-reliability roots
-- policy-root reliability failures
+- policy-root 신뢰도 failures
 - 국소 데이터 근거 failures
 - insufficient-advantage suppressions
 
@@ -959,13 +959,13 @@ Current-generation에는 다음과 같은 engineering optimization이 중요하�
 - switch candidates
 - final 실제 행동 개입s
 - changed 행동s
-- direct success 실제 행동 개입s
+- direct [성공(success)](Terminology-Guide) 실제 행동 개입s
 - bad-status 실제 행동 개입s
 
 ## Final task metric
 
-- 같은 체크포인트 OFF success
-- 같은 체크포인트 ON success
+- 같은 체크포인트 OFF 성공
+- 같은 체크포인트 ON 성공
 - paired scenario improvements/[회귀 검증(regression)](Ablation-Benchmarking-and-Reproducibility)s
 
 [Proxy metric과 final metric](Ablation-Benchmarking-and-Reproducibility)을 분리한다.
@@ -985,7 +985,7 @@ H7. 위 gate들이 너무 보수적이어서 useful intervention을 모두 막�
 H8. 최종적으로 같은 frozen checkpoint에서 Full이 no-Imagination보다 실제 success를 높이는가?
 ```
 
-H1~H7은 mechanism/diagnostic이고 H8이 최종 planner-benefit claim이다.
+H1~H7은 mechanism/진단 실험이고 H8이 최종 planner-benefit [연구 주장(claim)](Evidence-Matrix)이다.
 
 ---
 
@@ -1013,7 +1013,7 @@ structural root dedup / decision optimization
 
 # 42. 한 문장 요약
 
-> **[Imagination](Imagination)은 stochastic 세계 모델의 미래를 chance expectation과 decision max로 전개한 뒤, [예측 신뢰도(prediction reliability)](Calibration)·가치 평가 데이터 근거·value advantage가 모두 충분할 때만 실제 [Policy](Policy) 행동을 바꾸는 fail-closed counterfactual planner다.**
+> **[Imagination](Imagination)은 확률적 세계 모델의 미래를 chance expectation과 decision max로 전개한 뒤, [예측 신뢰도(prediction reliability)](Calibration)·가치 평가 데이터 근거·가치 advantage가 모두 충분할 때만 실제 [Policy](Policy) 행동을 바꾸는 근거가 부족하면 보수적으로 거부하는 counterfactual 계획기다.**
 
 ---
 

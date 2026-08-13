@@ -92,7 +92,7 @@ Environment가 내부적으로 알고 있는 것
 Agent가 observation으로 볼 수 있는 것
 ```
 
-환경 simulator가 hidden session TTL, hidden workflow stage, 정답 target identity를 알고 있다고 해서 learner에게 그 정보를 주면 안 된다.
+환경 simulator가 [숨겨진(hidden)](MDP-and-POMDP) session TTL, 숨겨진 workflow stage, 정답 target [식별 방식(identity)](State-Representation)를 알고 있다고 해서 [학습 주체(learner)](Terminology-Guide)에게 그 정보를 주면 안 된다.
 
 이 경계는 [Causality, Leakage and Evaluation](Causality-Leakage-and-Evaluation)에서 더 깊게 다룬다.
 
@@ -100,7 +100,7 @@ Agent가 observation으로 볼 수 있는 것
 
 # 4. State
 
-**State**는 환경의 현재 상황을 기술하는 정보다.
+**[상태(State)](State-Representation)**는 환경의 현재 상황을 기술하는 정보다.
 
 이론적 [MDP](MDP-and-POMDP#2-mdp-markov-decision-process)에서는 `S_t`가 미래를 예측하는 데 필요한 모든 정보를 포함한다고 가정한다.
 
@@ -116,7 +116,7 @@ P(S_{t+1}\mid S_t,A_t)
 
 하지만 실제 에이전트가 이 완전한 상태를 항상 볼 수 있는 것은 아니다.
 
-AASSR에서는 **환경의 hidden true state**와 **에이전트가 가진 public [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)**을 의도적으로 구분한다.
+AASSR에서는 **환경의 숨겨진 [실제 환경 상태(true state)](MDP-and-POMDP)**와 **에이전트가 가진 [공개된(public)](State-Representation) [관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)**을 의도적으로 구분한다.
 
 관련 페이지:
 
@@ -147,19 +147,19 @@ Agent
 
 가 된다.
 
-AASSR의 `response-causal public observation contract`는 learner가 실제 response에서 인과적으로 알 수 있는 정보만 사용하도록 제한한다.
+AASSR의 `response-causal public observation contract`는 학습 주체가 실제 [응답(response)](State-Representation)에서 인과적으로 알 수 있는 정보만 사용하도록 제한한다.
 
 예:
 
 - 실제로 발견한 route 관계
-- 실제로 관측한 HTTP status
+- 실제로 관측한 HTTP [상태 코드(status)](Terminology-Guide)
 - 실제 legal [행동(action)](Reinforcement-Learning) surface
 
 반면 다음은 직접 관측으로 주지 않는다.
 
 - 정답 route
-- hidden countdown
-- hidden [난이도 조절 학습(curriculum)](Curriculum-Learning) level
+- 숨겨진 countdown
+- 숨겨진 [난이도 조절 학습(curriculum)](Curriculum-Learning) level
 - 미래 결과
 
 ---
@@ -168,7 +168,7 @@ AASSR의 `response-causal public observation contract`는 learner가 실제 resp
 
 **[행동(Action)](Reinforcement-Learning)**은 에이전트가 환경에 가하는 선택이다.
 
-AASSR에서는 두 수준의 행동 identity를 구분한다.
+AASSR에서는 두 수준의 행동 식별 방식를 구분한다.
 
 ```text
 Concrete action
@@ -209,7 +209,7 @@ r_t \in \mathbb{R}
 
 AASSR의 핵심은 보상를 자주 주지 않는다는 것이다.
 
-대표 외부 보상 contract:
+대표 외부 보상 [명세(contract)](Current-Status):
 
 ```text
 success       +1
@@ -292,7 +292,7 @@ AASSR [Critic](Critic)의 discounted sparse-누적 보상 target을 이해하려
 a=\pi(s)
 ```
 
-AASSR의 [Policy](Policy)는 relational [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) 기반 행동 점수와 별도 [정보 가치 잔차(information residual)](Policy)을 이용해 기본 행동을 정한다.
+AASSR의 [Policy](Policy)는 [관계 기반(relational)](Relational-Representation-and-Generalization) [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD) 기반 행동 점수와 별도 [정보 가치 잔차(information residual)](Policy)을 이용해 기본 행동을 정한다.
 
 중요한 점:
 
@@ -320,7 +320,7 @@ Q^\pi(s,a)=\mathbb{E}_\pi[G_t\mid S_t=s,A_t=a]
 
 [DQN](Q-Learning-DQN-and-TD)은 `Q(s,a)`를 근사한다.
 
-AASSR [Critic](Critic)도 넓은 의미에서는 미래 누적 보상을 근사하는 value estimator지만, 입력과 학습 계약이 [Policy](Policy) [DQN](Q-Learning-DQN-and-TD)과 다르다.
+AASSR [Critic](Critic)도 넓은 의미에서는 미래 누적 보상을 근사하는 [가치(value)](Value-Functions-and-Bellman-Equation) estimator지만, 입력과 학습 계약이 [Policy](Policy) [DQN](Q-Learning-DQN-and-TD)과 다르다.
 
 관련 페이지:
 
@@ -377,7 +377,7 @@ AASSR의 stalled/rate-limit/reset 관련 설계는 [Replay Buffer and Episode Bo
 
 # 14. Model-Free RL
 
-**Model-free RL**은 환경 dynamics `P(S'|S,A)`를 명시적으로 학습해 계획하지 않고, policy나 value를 직접 학습하는 계열이다.
+**Model-free RL**은 환경 [환경의 상태 변화 규칙(dynamics)](Model-Based-RL-and-World-Models) `P(S'|S,A)`를 명시적으로 학습해 계획하지 않고, policy나 가치를 직접 학습하는 계열이다.
 
 대표 예:
 
@@ -385,7 +385,7 @@ AASSR의 stalled/rate-limit/reset 관련 설계는 [Replay Buffer and Episode Bo
 - [DQN](Q-Learning-DQN-and-TD)
 - 많은 actor-critic 방법
 
-AASSR의 기본 [Policy](Policy) [DQN](Q-Learning-DQN-and-TD)은 model-free component다.
+AASSR의 기본 [Policy](Policy) [DQN](Q-Learning-DQN-and-TD)은 model-free [구성요소(component)](Research-Architecture)다.
 
 ```text
 State → Q-values → Action
@@ -405,7 +405,7 @@ State → Q-values → Action
 
 # 15. Model-Based RL
 
-**[모델 기반 강화학습(Model-based RL)](Model-Based-RL-and-World-Models)**은 환경의 상태 전이이나 보상를 모델링하고 그 모델을 이용해 planning을 수행한다.
+**[모델 기반 강화학습(Model-based RL)](Model-Based-RL-and-World-Models)**은 환경의 상태 전이이나 보상를 모델링하고 그 모델을 이용해 [계획(planning)](Counterfactual-Planning-and-Search)을 수행한다.
 
 ```text
 현재 state
@@ -443,7 +443,7 @@ Critic = long-horizon value estimator
 
 ## Off-policy
 
-다른 behavior policy에서 나온 과거 경험도 현재 learner가 재사용할 수 있다.
+다른 behavior policy에서 나온 과거 경험도 현재 학습 주체가 재사용할 수 있다.
 
 Q-learning/[DQN](Q-Learning-DQN-and-TD)은 대표적인 off-policy 계열이다.
 
@@ -476,11 +476,11 @@ AASSR에서도 실제 상태 전이을 replay해 [Policy](Policy), [Prophecy(미
 
 # 18. 학습과 Planning은 다르다
 
-**Learning**은 경험을 이용해 model/[Policy](Policy)/[Critic](Critic)의 파라미터나 통계를 바꾸는 과정이다.
+**Learning**은 경험을 이용해 [학습 모델(model)](Terminology-Guide)/[Policy](Policy)/[Critic](Critic)의 파라미터나 통계를 바꾸는 과정이다.
 
 **Planning**은 현재 가진 모델을 이용해 행동 전에 미래를 계산하는 과정이다.
 
-AASSR current protocol에서는 이 구분이 매우 중요하다.
+AASSR [현재(current)](Current-Status) [실험 규칙(protocol)](Ablation-Benchmarking-and-Reproducibility)에서는 이 구분이 매우 중요하다.
 
 ```text
 Real transitions
@@ -491,7 +491,7 @@ Imagined transitions
   → real truth처럼 persistent learner를 직접 학습시키지 않음
 ```
 
-이 경계를 통해 model hallucination이 자기 자신을 학습시키는 문제를 줄인다.
+이 경계를 통해 학습 모델 hallucination이 자기 자신을 학습시키는 문제를 줄인다.
 
 ---
 

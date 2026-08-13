@@ -222,7 +222,7 @@ flowchart TD
 
 ## 상태 ≠ 관측 ≠ 표현
 
-**환경 상태(state)**는 실제 세계의 전체 상황이다.
+**환경 상태([상태(state)](State-Representation))**는 실제 세계의 전체 상황이다.
 
 **관측([관측(observation)](MDP-and-POMDP))**은 그중 에이전트가 실제로 볼 수 있는 정보다.
 
