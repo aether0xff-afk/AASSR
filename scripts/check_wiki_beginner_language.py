@@ -6,14 +6,18 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from koreanize_wiki_prose import TERMS  # noqa: E402
+from koreanize_wiki_common_jargon import COMMON_TERMS  # noqa: E402
 
 WIKI = Path("wiki")
 PROTECTED = re.compile(r"(`[^`]*`|!?\[[^\]]*\]\([^\n)]*\))")
+ALL_TERMS = {**COMMON_TERMS, **TERMS}
 TERMS_RE = re.compile(
-    "|".join(
+    r"(?<![A-Za-z0-9_-])(?:"
+    + "|".join(
         re.escape(term)
-        for term in sorted(TERMS, key=lambda x: (-len(x), x))
+        for term in sorted(ALL_TERMS, key=lambda x: (-len(x), x))
     )
+    + r")(?![A-Za-z0-9_-])"
 )
 
 
@@ -52,13 +56,16 @@ def main() -> int:
         print("Beginner-language wiki lint failed.")
         print("Bare technical English remains in visible prose. Use Korean-first prose,")
         print("or make the English term an explicit Markdown link/inline-code identifier.")
-        for item in failures[:200]:
+        for item in failures[:300]:
             print(item)
-        if len(failures) > 200:
-            print(f"... and {len(failures) - 200} more")
+        if len(failures) > 300:
+            print(f"... and {len(failures) - 300} more")
         return 1
 
-    print(f"Beginner-language wiki lint passed for {checked} published Markdown pages.")
+    print(
+        f"Beginner-language wiki lint passed for {checked} published Markdown pages "
+        f"across {len(ALL_TERMS)} mapped technical terms."
+    )
     return 0
 
 
