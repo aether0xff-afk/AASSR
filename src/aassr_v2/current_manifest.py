@@ -7,6 +7,14 @@ from .current_core_manifest import CURRENT_CORE_COMPONENTS, CURRENT_CORE_VERSION
 
 CURRENT_GENERATION_VERSION = "aassr-current-generation-v3-pre10k-audited"
 
+# Version the immutable research/training semantics independently from code and
+# architecture revisions. Performance and dependency-boundary refactors may
+# change the Git commit or implementation layout without silently claiming a
+# different reward/seed/replay/update/exploration/curriculum/gate contract.
+CURRENT_SCIENTIFIC_CONTRACT_VERSION = (
+    "aassr-pre10k-scientific-training-contract-v1"
+)
+
 # Sole compatibility source of truth for the active post-v0.4 assembled runtime.
 # This mixed mapping is retained for existing checkpoints/tests. New architecture
 # code should use CURRENT_CORE_COMPONENTS plus the active runtime plugin manifest
@@ -77,8 +85,13 @@ CURRENT_COMPONENTS: Mapping[str, str] = {
     "imagined_action_identity": "one-action-per-relational-legal-slot",
     "root_execution_identity": "concrete-execution-structural-compute-dedup",
     "unknown_role_contract": "known-unobserved-entities-explicitly-unknown",
-    "checkpoint_contract": "fresh-process-portable-frozen-evaluation-v2",
-    "provenance_contract": "architecture-version+exact-git-commit",
+    "checkpoint_contract": (
+        "fresh-process-portable-frozen-evaluation-v3-exact-provenance"
+    ),
+    "provenance_contract": (
+        "git-commit+core-version+plugin-id-version+architecture-version+"
+        "scientific-contract-version"
+    ),
     "exploration_scaling_contract": "budget-normalized-explicitly-reported",
 }
 
@@ -92,6 +105,7 @@ CURRENT_RUNTIME_ASSEMBLY: Mapping[str, str] = {
     "plugin_version": "pentest-http-plugin-v1",
     "plugin_manifest": "aassr_v2.plugins.current_pentest.PENTEST_PLUGIN_COMPONENTS",
     "assembler": "aassr_v2.current_entrypoint.build_current_pentest_aassr_core",
+    "scientific_contract_version": CURRENT_SCIENTIFIC_CONTRACT_VERSION,
 }
 
 LEGACY_COMPONENTS_ACTIVE: tuple[str, ...] = ()
@@ -102,5 +116,6 @@ __all__ = (
     "CURRENT_CORE_VERSION",
     "CURRENT_GENERATION_VERSION",
     "CURRENT_RUNTIME_ASSEMBLY",
+    "CURRENT_SCIENTIFIC_CONTRACT_VERSION",
     "LEGACY_COMPONENTS_ACTIVE",
 )

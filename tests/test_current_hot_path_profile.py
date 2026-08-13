@@ -121,7 +121,18 @@ def test_hot_path_profiler_is_observationally_equivalent_to_reference() -> None:
     assert validator["expected_vector_calls"] == 0
 
 
-def test_main_summary_exposes_phase_scoped_hot_path_profile(tmp_path) -> None:
+def test_main_summary_exposes_phase_scoped_hot_path_profile(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "aassr_v2.pentest_current_generation_main.resolve_git_commit",
+        lambda: "checkpoint-test-sha",
+    )
+    monkeypatch.setattr(
+        "aassr_v2.current_run_artifacts.resolve_clean_checkpoint_source_commit",
+        lambda declared_git_commit=None: str(declared_git_commit),
+    )
     result = run_current_generation_condition(
         tmp_path,
         research_seed=7,

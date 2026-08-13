@@ -129,7 +129,13 @@ def run_current_episode(
     """
 
     stage = TRANSFER_STAGES[int(stage_index)]
-    world = TransferDiagnosticWorld(int(scenario_seed), stage=stage)
+    plugin = getattr(agent, "runtime_plugin", None)
+    factory = getattr(plugin, "environment_factory", None)
+    world = (
+        factory(scenario_seed=int(scenario_seed), stage=stage)
+        if callable(factory)
+        else TransferDiagnosticWorld(int(scenario_seed), stage=stage)
+    )
     agent.begin_episode()
     counters_before = _counter_snapshot(agent)
 

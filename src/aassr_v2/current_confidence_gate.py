@@ -55,7 +55,19 @@ def _action_confidences(
     cache: dict[tuple[Any, ...], float] = {}
     output: dict[str, float] = {}
     for action in actions:
-        key = _confidence_cache_key(state, action)
+        representation = getattr(agent, "representation", None)
+        key = (
+            ("skill", str(action.target))
+            if action.verb_name == SKILL_VERB
+            else (
+                "primitive",
+                (
+                    representation.action_structure(state, action)
+                    if representation is not None
+                    else relational_action_key(state, action)
+                ),
+            )
+        )
         if key not in cache:
             raw = float(agent.skill_prophecy.confidence(state, action))
             cache[key] = max(0.0, min(1.0, raw))

@@ -4,7 +4,7 @@ from collections import Counter
 from dataclasses import dataclass, replace
 from statistics import fmean
 from types import SimpleNamespace
-from typing import Any, Hashable, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Hashable, Iterable, Mapping, Sequence
 import random
 
 from .action_plugins import PluginOutcome
@@ -40,6 +40,9 @@ from .prophecy import ProphecyStep
 from .replay import ReplayBuffer
 from .skills import SKILL_VERB, Skill, SkillLibrary
 from .types import Action, Prediction, StateSnapshot, TransitionTrace
+
+if TYPE_CHECKING:
+    from .current_plugin_api import CurrentRepresentationBinding
 
 
 CURRENT_GENERATION_VERSION = "aassr-current-generation-v1"
@@ -186,6 +189,64 @@ class RelationalInvariantDQN(DeduplicatedRelationalDQN):
     def encode_state(state: StateSnapshot) -> tuple[float, ...]:
         return relational_state_vector(state)
 
+    def action_features(
+        self,
+        state: StateSnapshot,
+        action: Action,
+    ) -> tuple[float, ...]:
+        return relational_action_key(state, action)
+
+    def observe(
+        self,
+        before: StateSnapshot,
+        action: Action,
+        outcome: PluginOutcome,
+        *,
+        reward: float,
+    ) -> None:
+        terminal = self._consume_episode_boundary() or not outcome.snapshot.available_actions
+        raw_next = tuple(outcome.snapshot.available_actions)
+        next_features, _ = self._deduplicate(outcome.snapshot, raw_next)
+        self.raw_next_actions_stored += len(raw_next)
+        self.unique_next_features_stored += len(next_features)
+        self.replay.append(
+            (
+                self.encode_state(before),
+                self.action_features(before, action),
+                float(reward),
+                self.encode_state(outcome.snapshot),
+                next_features,
+                terminal,
+            )
+        )
+        self.environment_steps += 1
+        if len(self.replay) >= max(self.batch_size, self.warmup_steps):
+            self._train_step()
+
+
+def bind_relational_dqn_representation(
+    dqn: RelationalInvariantDQN,
+    representation: CurrentRepresentationBinding,
+) -> RelationalInvariantDQN:
+    """Bind state/action encoders to one DQN instance, never to a module."""
+
+    dqn.encode_state = representation.state_vector
+    dqn.action_features = representation.action_structure
+
+    def deduplicate(
+        state: StateSnapshot,
+        actions: Sequence[Action],
+    ) -> tuple[tuple[tuple[float, ...], ...], tuple[int, ...]]:
+        unique: dict[tuple[float, ...], int] = {}
+        indices: list[int] = []
+        for action in actions:
+            features = representation.action_structure(state, action)
+            indices.append(unique.setdefault(features, len(unique)))
+        return tuple(unique), tuple(indices)
+
+    dqn._deduplicate = deduplicate
+    return dqn
+
 
 class CurrentRelationalPolicy:
     """Sparse-reward DQN Policy plus a separate learned information residual.
@@ -204,11 +265,13 @@ class CurrentRelationalPolicy:
         dqn: RelationalInvariantDQN,
         *,
         information_learning_rate: float = 0.2,
+        representation: CurrentRepresentationBinding | None = None,
     ) -> None:
         self.dqn = dqn
+        self.representation = representation
         self.information_learning_rate = float(information_learning_rate)
         self._information: dict[
-            tuple[tuple[float, ...], tuple[float, ...]], RunningValue
+            tuple[Hashable, tuple[float, ...]], RunningValue
         ] = {}
         self._skill_values: dict[str, RunningValue] = {}
 
@@ -224,21 +287,21 @@ class CurrentRelationalPolicy:
         if action.verb_name == SKILL_VERB:
             return RunningValue()
         return self._information_entry_for_state_key(
-            relational_state_key(state),
+            self._state_key(state),
             state,
             action,
         )
 
     def _information_entry_for_state_key(
         self,
-        state_key: tuple[float, ...],
+        state_key: Hashable,
         state: StateSnapshot,
         action: Action,
     ) -> RunningValue:
         """Look up one primitive residual using a precomputed state key."""
 
         return self._information.get(
-            (state_key, relational_action_key(state, action)),
+            (state_key, self._action_key(state, action)),
             RunningValue(),
         )
 
@@ -266,7 +329,7 @@ class CurrentRelationalPolicy:
             self.dqn.score_actions(state, primitive) if primitive else ()
         )
         information_state_key = (
-            relational_state_key(state) if primitive else ()
+            self._state_key(state) if primitive else ()
         )
         by_signature = {
             action.signature: value
@@ -332,7 +395,7 @@ class CurrentRelationalPolicy:
     ) -> None:
         if action.verb_name == SKILL_VERB:
             return
-        key = (relational_state_key(state), relational_action_key(state, action))
+        key = (self._state_key(state), self._action_key(state, action))
         entry = self._information.setdefault(key, RunningValue())
         entry.observe(float(value), learning_rate=self.information_learning_rate)
 
@@ -348,6 +411,20 @@ class CurrentRelationalPolicy:
             return
         entry = self._skill_values.setdefault(str(action.target), RunningValue())
         entry.observe(float(target), learning_rate=self.information_learning_rate)
+
+    def _state_key(self, state: StateSnapshot) -> Hashable:
+        if self.representation is not None:
+            return self.representation.state_key(state)
+        return relational_state_key(state)
+
+    def _action_key(
+        self,
+        state: StateSnapshot,
+        action: Action,
+    ) -> tuple[float, ...]:
+        if self.representation is not None:
+            return self.representation.action_structure(state, action)
+        return relational_action_key(state, action)
 
     def diagnostics(self) -> dict[str, int | float]:
         return {
@@ -611,8 +688,10 @@ class ReplayRelationalCalibratedProphecy:
     def __getattr__(self, name: str) -> Any:
         return getattr(self.base, name)
 
-    @staticmethod
-    def _key(state: StateSnapshot, action: Action) -> tuple[float, ...]:
+    def _key(self, state: StateSnapshot, action: Action) -> tuple[float, ...]:
+        representation = getattr(self.base, "representation", None)
+        if representation is not None:
+            return representation.action_structure(state, action)
         return relational_action_key(state, action)
 
     @staticmethod
@@ -872,6 +951,7 @@ class RelationalSkillLibrary(SkillLibrary):
         *,
         promotion_successes: int = 2,
         maximum_length: int = 12,
+        representation: CurrentRepresentationBinding | None = None,
     ) -> None:
         super().__init__(
             promotion_successes=promotion_successes,
@@ -881,13 +961,18 @@ class RelationalSkillLibrary(SkillLibrary):
             tuple[tuple[float, ...], ...], _RelationalSkillCandidate
         ] = {}
         self._templates: dict[str, tuple[tuple[float, ...], ...]] = {}
+        self.representation = representation
 
-    @staticmethod
     def _trace_templates(
+        self,
         traces: Sequence[TransitionTrace],
     ) -> tuple[tuple[float, ...], ...]:
         return tuple(
-            relational_action_key(trace.before, trace.action)
+            (
+                self.representation.action_structure(trace.before, trace.action)
+                if self.representation is not None
+                else relational_action_key(trace.before, trace.action)
+            )
             for trace in traces
         )
 
@@ -973,7 +1058,11 @@ class RelationalSkillLibrary(SkillLibrary):
             action
             for action in state.available_actions
             if action.verb_name != SKILL_VERB
-            and relational_action_key(state, action) == target
+            and (
+                self.representation.action_structure(state, action)
+                if self.representation is not None
+                else relational_action_key(state, action)
+            ) == target
         ]
         if not candidates:
             return None
@@ -1098,13 +1187,29 @@ class RelationalContextualSkillAwareProphecy(ContextualSkillAwareProphecy):
 
 
 class _RelationalCriticEncoder:
-    feature_size = AGENT_STATE_SIZE * 2 + ACTION_FEATURE_SIZE + 1
+    def __init__(self, representation: CurrentRepresentationBinding | None = None) -> None:
+        self.representation = representation
+        self.feature_size = (
+            representation.state_size * 2 + representation.action_feature_size + 1
+            if representation is not None
+            else AGENT_STATE_SIZE * 2 + ACTION_FEATURE_SIZE + 1
+        )
 
     def encode(self, transition: CriticTransition) -> tuple[float, ...]:
+        state_vector = (
+            self.representation.state_vector
+            if self.representation is not None
+            else relational_state_vector
+        )
+        action_structure = (
+            self.representation.action_structure
+            if self.representation is not None
+            else relational_action_key
+        )
         return (
-            relational_state_vector(transition.before)
-            + relational_action_key(transition.before, transition.action)
-            + relational_state_vector(transition.after)
+            state_vector(transition.before)
+            + action_structure(transition.before, transition.action)
+            + state_vector(transition.after)
             + (max(0.0, min(1.0, float(transition.prophecy_confidence))),)
         )
 
@@ -1112,12 +1217,28 @@ class _RelationalCriticEncoder:
 class RelationalGRUBranchCritic(GRUBranchCritic):
     name = "current-relational-gru-branch-critic"
 
-    def __init__(self, seed: int) -> None:
+    def __init__(
+        self,
+        seed: int,
+        *,
+        representation: CurrentRepresentationBinding | None = None,
+    ) -> None:
+        state_vector = (
+            representation.state_vector
+            if representation is not None
+            else relational_state_vector
+        )
+        state_size = representation.state_size if representation is not None else AGENT_STATE_SIZE
+        action_size = (
+            representation.action_feature_size
+            if representation is not None
+            else ACTION_FEATURE_SIZE
+        )
         super().__init__(
-            relational_state_vector,
-            AGENT_STATE_SIZE,
+            state_vector,
+            state_size,
             hidden_units=64,
-            action_feature_size=ACTION_FEATURE_SIZE,
+            action_feature_size=action_size,
             batch_size=16,
             replay_capacity=4_000,
             gradient_steps_per_episode=2,
@@ -1125,7 +1246,7 @@ class RelationalGRUBranchCritic(GRUBranchCritic):
         )
         # Same dimensionality as the base encoder, but action identity is now
         # structural instead of raw-signature hashing.
-        self.encoder = _RelationalCriticEncoder()
+        self.encoder = _RelationalCriticEncoder(representation)
 
 
 @dataclass(frozen=True, slots=True)

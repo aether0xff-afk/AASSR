@@ -3,17 +3,115 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Mapping as MappingABC
 from pathlib import Path
+import subprocess
 from typing import Any, Mapping
 
 from .autonomous_agent_core import RunningValue
 from .current_entrypoint import build_current_pentest_aassr_core
-from .current_manifest import CURRENT_GENERATION_VERSION
+from .current_core_manifest import CURRENT_CORE_VERSION
+from .current_manifest import (
+    CURRENT_GENERATION_VERSION,
+    CURRENT_RUNTIME_ASSEMBLY,
+    CURRENT_SCIENTIFIC_CONTRACT_VERSION,
+)
 from .replay import ReplayTransition
 from .skills import Skill
 from .types import Action, StateSnapshot
 
 
-CURRENT_FROZEN_CHECKPOINT_VERSION = "aassr-current-frozen-checkpoint-v2-portable"
+CURRENT_FROZEN_CHECKPOINT_VERSION = (
+    "aassr-current-frozen-checkpoint-v3-exact-provenance"
+)
+LEGACY_CURRENT_FROZEN_CHECKPOINT_VERSION = (
+    "aassr-current-frozen-checkpoint-v2-portable"
+)
+
+
+def _require_exact_git_commit(value: object, *, label: str) -> str:
+    commit = str(value).strip() if value is not None else ""
+    if not commit or commit.lower() == "unknown":
+        raise ValueError(f"{label} must be an exact, non-'unknown' Git commit")
+    return commit
+
+
+def resolve_clean_checkpoint_source_commit(
+    declared_git_commit: str | None = None,
+) -> str:
+    """Resolve an exact commit and reject non-canonical dirty source trees."""
+
+    try:
+        head_result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        status_result = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=normal"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise RuntimeError(
+            "canonical checkpoint provenance requires a readable Git worktree"
+        ) from exc
+
+    head = _require_exact_git_commit(
+        head_result.stdout,
+        label="Git HEAD",
+    )
+    if status_result.stdout.strip():
+        raise RuntimeError(
+            "canonical checkpoint provenance requires a clean Git worktree"
+        )
+    if declared_git_commit is not None:
+        declared = _require_exact_git_commit(
+            declared_git_commit,
+            label="declared git_commit",
+        )
+        if declared != head:
+            raise ValueError(
+                f"declared git_commit does not match Git HEAD: {declared!r} != {head!r}"
+            )
+    return head
+
+
+def _current_runtime_provenance(
+    agent: object,
+    *,
+    git_commit: str,
+) -> dict[str, str]:
+    """Return exact runtime identity after verifying the assembled agent."""
+
+    expected = {
+        "architecture_version": CURRENT_GENERATION_VERSION,
+        "core_version": CURRENT_CORE_VERSION,
+        "plugin_id": str(CURRENT_RUNTIME_ASSEMBLY["plugin_id"]),
+        "plugin_version": str(CURRENT_RUNTIME_ASSEMBLY["plugin_version"]),
+    }
+    actual = {
+        "architecture_version": getattr(agent, "current_generation_version", None),
+        "core_version": getattr(agent, "current_core_version", None),
+        "plugin_id": getattr(agent, "current_plugin_id", None),
+        "plugin_version": getattr(agent, "current_plugin_version", None),
+    }
+    for field, expected_value in expected.items():
+        if actual[field] != expected_value:
+            raise ValueError(
+                "cannot checkpoint a non-canonical current runtime: "
+                f"{field} {actual[field]!r} != {expected_value!r}"
+            )
+    return {
+        **expected,
+        "scientific_contract_version": CURRENT_SCIENTIFIC_CONTRACT_VERSION,
+        "git_commit": _require_exact_git_commit(
+            git_commit,
+            label="checkpoint git_commit",
+        ),
+    }
 
 
 def _model_state_dicts(models: Any) -> list[dict[str, Any]]:
@@ -212,12 +310,12 @@ def current_frozen_checkpoint_payload(
     replay = agent.evaluator.replay
     critic = agent.critic
     support_rows = getattr(agent, "_critic_support_rows", {})
+    provenance = _current_runtime_provenance(agent, git_commit=git_commit)
 
     return {
         "checkpoint_version": CURRENT_FROZEN_CHECKPOINT_VERSION,
         "checkpoint_scope": "frozen-evaluation-only",
-        "architecture_version": CURRENT_GENERATION_VERSION,
-        "git_commit": str(git_commit),
+        **provenance,
         "research_seed": int(research_seed),
         "transition_budget": int(transition_budget),
         "requested_imagination": bool(agent.requested_imagination),
@@ -314,6 +412,7 @@ def save_current_frozen_checkpoint(
 ) -> Path:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
+    git_commit = resolve_clean_checkpoint_source_commit(git_commit)
     payload = current_frozen_checkpoint_payload(
         agent,
         research_seed=research_seed,
@@ -324,37 +423,123 @@ def save_current_frozen_checkpoint(
     return target
 
 
-def restore_current_frozen_checkpoint(
+def _load_trusted_local_checkpoint(
     path: str | Path,
     *,
-    device: str = "cpu",
-    allow_tf32: bool = True,
-    expected_git_commit: str | None = None,
-) -> object:
-    """Rebuild the canonical runtime and restore a frozen research checkpoint."""
+    device: str,
+) -> Mapping[str, Any]:
+    """Deserialize a trusted local artifact.
+
+    ``weights_only=False`` is required because the portable payload includes
+    Python randomizer states and other non-tensor primitives. PyTorch pickle
+    deserialization may execute code, so callers must never pass an untrusted or
+    remotely supplied checkpoint to this module.
+    """
+
     try:
         import torch
     except ImportError as exc:  # pragma: no cover
         raise RuntimeError("restoring current checkpoint requires torch") from exc
 
-    payload = torch.load(
+    return torch.load(
         Path(path),
         map_location=device,
         weights_only=False,
     )
-    if payload.get("checkpoint_version") != CURRENT_FROZEN_CHECKPOINT_VERSION:
-        raise ValueError("unsupported current frozen checkpoint version")
+
+
+def _validate_common_checkpoint_contract(payload: Mapping[str, Any]) -> None:
     if payload.get("checkpoint_scope") != "frozen-evaluation-only":
         raise ValueError("current checkpoint does not declare frozen-evaluation scope")
+
+
+def _validate_exact_current_provenance(
+    payload: Mapping[str, Any],
+    *,
+    expected_git_commit: str,
+) -> None:
+    if payload.get("checkpoint_version") != CURRENT_FROZEN_CHECKPOINT_VERSION:
+        raise ValueError(
+            "unsupported canonical current frozen checkpoint version; trusted "
+            "legacy v2 artifacts require "
+            "restore_trusted_legacy_current_frozen_checkpoint()"
+        )
+    _validate_common_checkpoint_contract(payload)
+    expected = {
+        "architecture_version": CURRENT_GENERATION_VERSION,
+        "core_version": CURRENT_CORE_VERSION,
+        "plugin_id": str(CURRENT_RUNTIME_ASSEMBLY["plugin_id"]),
+        "plugin_version": str(CURRENT_RUNTIME_ASSEMBLY["plugin_version"]),
+        "scientific_contract_version": CURRENT_SCIENTIFIC_CONTRACT_VERSION,
+        "git_commit": expected_git_commit,
+    }
+    for field, expected_value in expected.items():
+        actual = payload.get(field)
+        if actual != expected_value:
+            raise ValueError(
+                f"checkpoint {field} mismatch: {actual!r} != {expected_value!r}"
+            )
+
+
+def _validate_trusted_legacy_v2_provenance(
+    payload: Mapping[str, Any],
+    *,
+    expected_git_commit: str,
+) -> None:
+    if payload.get("checkpoint_version") != LEGACY_CURRENT_FROZEN_CHECKPOINT_VERSION:
+        raise ValueError("trusted legacy restore accepts only portable v2 checkpoints")
+    _validate_common_checkpoint_contract(payload)
     if payload.get("architecture_version") != CURRENT_GENERATION_VERSION:
         raise ValueError(
             "checkpoint architecture mismatch: "
             f"{payload.get('architecture_version')!r} != {CURRENT_GENERATION_VERSION!r}"
         )
-    if expected_git_commit is not None and str(payload.get("git_commit")) != str(
-        expected_git_commit
-    ):
+    if payload.get("git_commit") != expected_git_commit:
         raise ValueError("checkpoint git commit does not match requested runtime")
+
+
+def _validate_built_runtime_provenance(
+    agent: object,
+    payload: Mapping[str, Any],
+) -> None:
+    """Reject assembly/manifest drift before applying any checkpoint state."""
+
+    expected = {
+        "architecture_version": payload.get(
+            "architecture_version",
+            CURRENT_GENERATION_VERSION,
+        ),
+        "core_version": payload.get("core_version", CURRENT_CORE_VERSION),
+        "plugin_id": payload.get(
+            "plugin_id",
+            str(CURRENT_RUNTIME_ASSEMBLY["plugin_id"]),
+        ),
+        "plugin_version": payload.get(
+            "plugin_version",
+            str(CURRENT_RUNTIME_ASSEMBLY["plugin_version"]),
+        ),
+    }
+    actual = {
+        "architecture_version": getattr(agent, "current_generation_version", None),
+        "core_version": getattr(agent, "current_core_version", None),
+        "plugin_id": getattr(agent, "current_plugin_id", None),
+        "plugin_version": getattr(agent, "current_plugin_version", None),
+    }
+    for field, expected_value in expected.items():
+        if actual[field] != expected_value:
+            raise ValueError(
+                "built runtime provenance mismatch before state restore: "
+                f"{field} {actual[field]!r} != {expected_value!r}"
+            )
+
+
+def _restore_validated_current_frozen_payload(
+    payload: Mapping[str, Any],
+    *,
+    device: str,
+    allow_tf32: bool,
+) -> object:
+    """Restore state only after the public entrypoint validates provenance."""
 
     agent = build_current_pentest_aassr_core(
         seed=int(payload["research_seed"]),
@@ -363,6 +548,7 @@ def restore_current_frozen_checkpoint(
         device=device,
         allow_tf32=bool(allow_tf32),
     )
+    _validate_built_runtime_provenance(agent, payload)
     configured_margin = float(
         payload.get("agent_config", {}).get(
             "imagination_intervention_margin",
@@ -463,12 +649,92 @@ def restore_current_frozen_checkpoint(
     return agent
 
 
+def restore_current_frozen_checkpoint(
+    path: str | Path,
+    *,
+    expected_git_commit: str,
+    device: str = "cpu",
+    allow_tf32: bool = True,
+) -> object:
+    """Restore a trusted local checkpoint with exact canonical provenance.
+
+    The expected Git commit is deliberately mandatory because a checkpoint
+    cannot prove that the caller is running the intended source revision. Core,
+    plugin, architecture and scientific-contract identities are checked against
+    the canonical runtime before any agent or model state is constructed.
+
+    This function uses ``torch.load(weights_only=False)`` and therefore accepts
+    only trusted local artifacts; pickle-based loading can execute code.
+    """
+
+    expected_commit = _require_exact_git_commit(
+        expected_git_commit,
+        label="expected_git_commit",
+    )
+    expected_commit = resolve_clean_checkpoint_source_commit(expected_commit)
+    payload = _load_trusted_local_checkpoint(path, device=device)
+    _validate_exact_current_provenance(
+        payload,
+        expected_git_commit=expected_commit,
+    )
+    return _restore_validated_current_frozen_payload(
+        payload,
+        device=device,
+        allow_tf32=allow_tf32,
+    )
+
+
+def restore_trusted_legacy_current_frozen_checkpoint(
+    path: str | Path,
+    *,
+    expected_git_commit: str,
+    device: str = "cpu",
+    allow_tf32: bool = True,
+    allow_noncanonical_source: bool = False,
+) -> object:
+    """Explicitly restore a trusted portable-v2 artifact lacking v3 provenance.
+
+    Legacy v2 recorded architecture and Git commit but not core/plugin/scientific
+    versions. Calling this function is the explicit compatibility acknowledgement
+    for those absent fields; the identities that v2 did record remain fail-closed.
+    By default, the expected commit must also equal a clean current Git HEAD.
+    ``allow_noncanonical_source=True`` explicitly waives only that current-source
+    check for historical reproduction; the non-empty expected commit must still
+    exactly match the payload. New artifacts must use
+    :func:`restore_current_frozen_checkpoint`.
+
+    This function uses ``torch.load(weights_only=False)`` and therefore accepts
+    only trusted local artifacts; pickle-based loading can execute code.
+    """
+
+    expected_commit = _require_exact_git_commit(
+        expected_git_commit,
+        label="expected_git_commit",
+    )
+    if not allow_noncanonical_source:
+        expected_commit = resolve_clean_checkpoint_source_commit(expected_commit)
+    payload = _load_trusted_local_checkpoint(path, device=device)
+    _validate_trusted_legacy_v2_provenance(
+        payload,
+        expected_git_commit=expected_commit,
+    )
+    return _restore_validated_current_frozen_payload(
+        payload,
+        device=device,
+        allow_tf32=allow_tf32,
+    )
+
+
 def checkpoint_manifest(payload: Mapping[str, Any]) -> dict[str, Any]:
     """Small JSON-safe manifest for artifact provenance without loading tensors."""
     return {
         "checkpoint_version": payload["checkpoint_version"],
         "checkpoint_scope": payload["checkpoint_scope"],
         "architecture_version": payload["architecture_version"],
+        "core_version": payload["core_version"],
+        "plugin_id": payload["plugin_id"],
+        "plugin_version": payload["plugin_version"],
+        "scientific_contract_version": payload["scientific_contract_version"],
         "git_commit": payload["git_commit"],
         "research_seed": payload["research_seed"],
         "transition_budget": payload["transition_budget"],

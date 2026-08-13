@@ -183,6 +183,13 @@ class AuthorizedAssessmentPlugin(SchemaOnlyPlugin):
 
     The plugin does not generate exploits or shell commands. A caller-supplied
     transport must enforce authorization and map abstract calls to tools.
+
+    Targets and resources are separate authorization scopes. Every action is
+    bound to one exact allowlisted target. ``read`` additionally requires the
+    requested resource to be explicitly allowlisted for that target; resource
+    names are opaque identifiers and never act as target aliases or prefixes.
+    Runtime actions must use the canonical schema parameters; legacy action
+    fields and unrecognized parameter aliases are rejected before transport.
     """
 
     plugin_id = "authorized-assessment"
@@ -192,11 +199,57 @@ class AuthorizedAssessmentPlugin(SchemaOnlyPlugin):
         transport: CommandTransport,
         *,
         allowlisted_targets: Iterable[str],
+        allowlisted_resources: Mapping[str, Iterable[str]] | None = None,
     ) -> None:
         super().__init__(transport)
-        self.allowlisted_targets = frozenset(
-            allowlisted_targets
+        self.allowlisted_targets = self._exact_string_set(
+            allowlisted_targets,
+            scope_name="target",
         )
+        resource_scopes = (
+            {} if allowlisted_resources is None else allowlisted_resources
+        )
+        if not isinstance(resource_scopes, Mapping):
+            raise TypeError("resource allowlist must be a mapping")
+        non_string_targets = [
+            target
+            for target in resource_scopes
+            if type(target) is not str
+        ]
+        if non_string_targets:
+            raise TypeError("resource allowlist target keys must be strings")
+        unknown_targets = {
+            target
+            for target in resource_scopes
+            if target not in self.allowlisted_targets
+        }
+        if unknown_targets:
+            raise ValueError(
+                "resource allowlist contains non-allowlisted targets: "
+                f"{sorted(unknown_targets)!r}"
+            )
+        self.allowlisted_resources = {
+            target: self._exact_string_set(
+                resources,
+                scope_name=f"resource for target {target!r}",
+            )
+            for target, resources in resource_scopes.items()
+        }
+
+    @staticmethod
+    def _exact_string_set(
+        values: Iterable[str],
+        *,
+        scope_name: str,
+    ) -> frozenset[str]:
+        if isinstance(values, (str, bytes)):
+            raise TypeError(f"{scope_name} allowlist must be an iterable of strings")
+        normalized: set[str] = set()
+        for value in values:
+            if type(value) is not str:
+                raise TypeError(f"{scope_name} allowlist entries must be strings")
+            normalized.add(value)
+        return frozenset(normalized)
 
     def schemas(self) -> tuple[ActionSchema, ...]:
         return (
@@ -240,6 +293,11 @@ class AuthorizedAssessmentPlugin(SchemaOnlyPlugin):
                 "read",
                 (
                     ParameterSpec(
+                        "target",
+                        "target",
+                        "identifier",
+                    ),
+                    ParameterSpec(
                         "resource",
                         "resource",
                         "identifier",
@@ -249,17 +307,121 @@ class AuthorizedAssessmentPlugin(SchemaOnlyPlugin):
         )
 
     def execute(self, action: Action) -> PluginOutcome:
-        target = action.parameters.get(
-            "target",
-            action.parameters.get("endpoint"),
-        )
+        # ``Action.verb_name`` intentionally stringifies generic core verbs. Do
+        # not use it for an authorization decision: a non-string object with a
+        # crafted ``__str__`` must not become an assessment command.
+        if type(action.verb) is not str:
+            return PluginOutcome(
+                self._state,
+                error=True,
+                error_code="action_not_allowlisted",
+            )
+        verb = action.verb
+        scope_parameter = {
+            "scan": "target",
+            "connect": "endpoint",
+            "read": "target",
+        }.get(verb)
+        if scope_parameter is None:
+            return PluginOutcome(
+                self._state,
+                error=True,
+                error_code="action_not_allowlisted",
+            )
+        if any(type(name) is not str for name in action.parameters):
+            return PluginOutcome(
+                self._state,
+                error=True,
+                error_code="parameter_not_allowlisted",
+            )
+        expected_schema_id = f"{self.plugin_id}:{verb}"
+        metadata_plugin_id = action.metadata.get("plugin_id")
         if (
-            target is not None
-            and str(target) not in self.allowlisted_targets
+            metadata_plugin_id is not None
+            and (
+                type(metadata_plugin_id) is not str
+                or metadata_plugin_id != self.plugin_id
+            )
         ):
+            return PluginOutcome(
+                self._state,
+                error=True,
+                error_code="action_not_allowlisted",
+            )
+        metadata_schema_id = action.metadata.get("schema_id")
+        if (
+            metadata_schema_id is not None
+            and (
+                type(metadata_schema_id) is not str
+                or metadata_schema_id != expected_schema_id
+            )
+        ):
+            return PluginOutcome(
+                self._state,
+                error=True,
+                error_code="action_not_allowlisted",
+            )
+        if any(
+            value is not None
+            for value in (action.target, action.tool, action.destination)
+        ):
+            return PluginOutcome(
+                self._state,
+                error=True,
+                error_code="parameter_not_allowlisted",
+            )
+        target = action.parameters.get(scope_parameter)
+        if target is None:
+            return PluginOutcome(
+                self._state,
+                error=True,
+                error_code="target_scope_required",
+            )
+        if type(target) is not str or target not in self.allowlisted_targets:
             return PluginOutcome(
                 self._state,
                 error=True,
                 error_code="target_not_allowlisted",
             )
+        target_scope = target
+        if verb == "read":
+            resource = action.parameters.get("resource")
+            if resource is None:
+                return PluginOutcome(
+                    self._state,
+                    error=True,
+                    error_code="resource_scope_required",
+                )
+            allowed = self.allowlisted_resources.get(
+                target_scope,
+                frozenset(),
+            )
+            if type(resource) is not str or resource not in allowed:
+                return PluginOutcome(
+                    self._state,
+                    error=True,
+                    error_code="resource_not_allowlisted",
+                )
+        schema = next(
+            candidate
+            for candidate in self.schemas()
+            if candidate.action_id == verb
+        )
+        if schema.validate(action.parameters):
+            return PluginOutcome(
+                self._state,
+                error=True,
+                error_code="parameter_not_allowlisted",
+            )
+        for parameter in schema.parameters:
+            if (
+                parameter.value_type == "identifier"
+                and parameter.name in action.parameters
+                and type(action.parameters[parameter.name]) is not str
+            ):
+                return PluginOutcome(
+                    self._state,
+                    error=True,
+                    error_code="parameter_not_allowlisted",
+                )
         return super().execute(action)

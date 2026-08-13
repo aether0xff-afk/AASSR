@@ -3,12 +3,12 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-import subprocess
 from typing import Any, Sequence
 
 from .current_checkpoint import (
     checkpoint_manifest,
     current_frozen_checkpoint_payload,
+    resolve_clean_checkpoint_source_commit,
 )
 from .current_entrypoint import CURRENT_INTERVENTION_MARGIN
 from .current_manifest import CURRENT_COMPONENTS, CURRENT_GENERATION_VERSION
@@ -19,22 +19,9 @@ RUN_MANIFEST_VERSION = "aassr-current-run-manifest-v1"
 
 
 def resolve_git_commit() -> str:
-    """Return the exact source revision without requiring GitHub/network access."""
+    """Return the exact clean source revision without GitHub/network access."""
     explicit = os.environ.get("GITHUB_SHA") or os.environ.get("AASSR_GIT_COMMIT")
-    if explicit:
-        return str(explicit).strip()
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        value = result.stdout.strip()
-        return value or "unknown"
-    except (OSError, subprocess.SubprocessError):
-        return "unknown"
+    return resolve_clean_checkpoint_source_commit(explicit)
 
 
 def write_run_manifest(
@@ -94,6 +81,7 @@ def save_training_checkpoint(
     git_commit: str,
 ) -> tuple[Path, Path]:
     """Save before diagnostics so evaluation failures never force retraining."""
+    git_commit = resolve_clean_checkpoint_source_commit(git_commit)
     checkpoint_path = output / "aassr_frozen_training_checkpoint.pt"
     payload = current_frozen_checkpoint_payload(
         agent,

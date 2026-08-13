@@ -4,7 +4,7 @@ from collections import deque
 from dataclasses import dataclass
 from statistics import fmean
 from types import SimpleNamespace
-from typing import Any, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 import random
 
 from .current_generation import relational_action_key
@@ -19,6 +19,9 @@ from .current_relational_state import relational_state_vector_v2
 from .pentest_agent_main_test import ACTION_FEATURE_SIZE, AGENT_STATE_SIZE
 from .skills import SKILL_VERB
 from .types import Action, Prediction, StateSnapshot
+
+if TYPE_CHECKING:
+    from .current_plugin_api import CurrentRepresentationBinding
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,6 +78,7 @@ class RelationalStochasticProphecy:
         seed: int,
         device: str = "cpu",
         config: RelationalProphecyConfig | None = None,
+        representation: CurrentRepresentationBinding | None = None,
     ) -> None:
         try:
             import torch
@@ -84,10 +88,20 @@ class RelationalStochasticProphecy:
         self.torch = torch
         self.nn = nn
         self.config = config or RelationalProphecyConfig()
+        self.representation = representation
         self.device = torch.device(device)
         torch.manual_seed(int(seed))
-        self.input_size = AGENT_STATE_SIZE + ACTION_FEATURE_SIZE
-        self.output_size = REL_DESCRIPTOR_SIZE + ACTION_SLOT_COUNT + TERMINAL_CLASSES
+        self.input_size = (
+            representation.state_size + representation.action_feature_size
+            if representation is not None
+            else AGENT_STATE_SIZE + ACTION_FEATURE_SIZE
+        )
+        descriptor_size = (
+            representation.descriptor_size
+            if representation is not None
+            else REL_DESCRIPTOR_SIZE
+        )
+        self.output_size = descriptor_size + ACTION_SLOT_COUNT + TERMINAL_CLASSES
         self.models = [
             nn.Sequential(
                 nn.Linear(self.input_size, self.config.hidden_units),
@@ -129,7 +143,12 @@ class RelationalStochasticProphecy:
         )
 
     def _input(self, state: StateSnapshot, action: Action) -> tuple[float, ...]:
-        values = relational_state_vector_v2(state) + relational_action_key(state, action)
+        values = (
+            self.representation.state_vector(state)
+            + self.representation.action_structure(state, action)
+            if self.representation is not None
+            else relational_state_vector_v2(state) + relational_action_key(state, action)
+        )
         if len(values) != self.input_size:
             raise ValueError("relational world-model input size drift")
         return values
@@ -154,9 +173,17 @@ class RelationalStochasticProphecy:
     ) -> None:
         if action.verb_name == SKILL_VERB:
             return
-        model_input, next_descriptor, next_mask, next_terminal = transition_target(
-            state, action, actual_next_state
-        )
+        if self.representation is None:
+            model_input, next_descriptor, next_mask, next_terminal = transition_target(
+                state, action, actual_next_state
+            )
+        else:
+            from .current_relational_codec import legal_action_mask, terminal_class
+
+            model_input = self._input(state, action)
+            next_descriptor = self.representation.state_descriptor(actual_next_state)
+            next_mask = legal_action_mask(actual_next_state)
+            next_terminal = terminal_class(actual_next_state)
         if model_input != self._input(state, action):
             raise AssertionError("relational Prophecy train input contract drift")
         self.replay.append(
@@ -173,6 +200,7 @@ class RelationalStochasticProphecy:
             self._train_step()
 
     def _train_step(self) -> None:
+        descriptor_size = self.output_size - ACTION_SLOT_COUNT - TERMINAL_CLASSES
         for model_index, (model, optimizer) in enumerate(
             zip(self.models, self.optimizers, strict=True)
         ):
@@ -186,8 +214,8 @@ class RelationalStochasticProphecy:
                 for _ in range(self.config.batch_size)
             ]
             output = model(self._tensor([row[0] for row in batch]))
-            descriptor_logits = output[:, :REL_DESCRIPTOR_SIZE]
-            mask_start = REL_DESCRIPTOR_SIZE
+            descriptor_logits = output[:, :descriptor_size]
+            mask_start = descriptor_size
             mask_end = mask_start + ACTION_SLOT_COUNT
             mask_logits = output[:, mask_start:mask_end]
             terminal_logits = output[:, mask_end:]
@@ -227,10 +255,11 @@ class RelationalStochasticProphecy:
             return self.torch.stack([model(inputs) for model in self.models], dim=0)
 
     def _confidence(self, outputs: Any) -> Any:
-        mask_start = REL_DESCRIPTOR_SIZE
+        descriptor_size = self.output_size - ACTION_SLOT_COUNT - TERMINAL_CLASSES
+        mask_start = descriptor_size
         mask_end = mask_start + ACTION_SLOT_COUNT
         parts = (
-            self.torch.sigmoid(outputs[:, :, :REL_DESCRIPTOR_SIZE]),
+            self.torch.sigmoid(outputs[:, :, :descriptor_size]),
             self.torch.sigmoid(outputs[:, :, mask_start:mask_end]),
             self.torch.softmax(outputs[:, :, mask_end:], dim=-1),
         )
@@ -271,7 +300,11 @@ class RelationalStochasticProphecy:
             source = f"{self.name}:empirical-outcome-{index}"
             predictions.append(
                 RelationalPrediction(
-                    decode_relational_state_v2(
+                    (
+                        self.representation.decode_state
+                        if self.representation is not None
+                        else decode_relational_state_v2
+                    )(
                         next_descriptor,
                         next_mask,
                         scaffold=state,
@@ -320,10 +353,11 @@ class RelationalStochasticProphecy:
 
         outputs = self._forward(states, actions)
         confidence = self._confidence(outputs).detach().cpu().tolist()
-        mask_start = REL_DESCRIPTOR_SIZE
+        descriptor_size = self.output_size - ACTION_SLOT_COUNT - TERMINAL_CLASSES
+        mask_start = descriptor_size
         mask_end = mask_start + ACTION_SLOT_COUNT
         descriptors = self.torch.sigmoid(
-            outputs[:, :, :REL_DESCRIPTOR_SIZE]
+            outputs[:, :, :descriptor_size]
         ).detach().cpu().tolist()
         masks = self.torch.sigmoid(
             outputs[:, :, mask_start:mask_end]
@@ -356,7 +390,11 @@ class RelationalStochasticProphecy:
                 source = f"{self.name}:member-{member}"
                 predictions.append(
                     RelationalPrediction(
-                        decode_relational_state_v2(
+                        (
+                            self.representation.decode_state
+                            if self.representation is not None
+                            else decode_relational_state_v2
+                        )(
                             descriptors[member][row_index],
                             masks[member][row_index],
                             scaffold=state,

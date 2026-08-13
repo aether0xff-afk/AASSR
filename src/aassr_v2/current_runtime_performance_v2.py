@@ -121,18 +121,29 @@ def install_fused_prophecy_ensemble_inference(base: object) -> object:
     ) -> Any:
         encoded: dict[int, tuple[Any, tuple[float, ...]]] = {}
         inputs: list[tuple[float, ...]] = []
+        representation = getattr(self, "representation", None)
+        state_vector = (
+            representation.state_vector
+            if representation is not None
+            else relational_state_vector_v2
+        )
+        action_structure = (
+            representation.action_structure
+            if representation is not None
+            else relational_action_key
+        )
         for state, action in zip(states, actions, strict=True):
             identity = id(state)
             cached = encoded.get(identity)
             if cached is None or cached[0] is not state:
-                cached = (state, relational_state_vector_v2(state))
+                cached = (state, state_vector(state))
                 encoded[identity] = cached
                 if hasattr(self, "performance_state_encode_cache_misses"):
                     self.performance_state_encode_cache_misses += 1
             else:
                 if hasattr(self, "performance_state_encode_cache_hits"):
                     self.performance_state_encode_cache_hits += 1
-            values = cached[1] + relational_action_key(state, action)
+            values = cached[1] + action_structure(state, action)
             if len(values) != self.input_size:
                 raise ValueError("relational mixture input size drift")
             inputs.append(values)

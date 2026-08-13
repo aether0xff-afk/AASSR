@@ -13,7 +13,7 @@ from .current_hardware import install_hardware_dqn
 from .current_hot_path_profile import install_current_hot_path_profiler
 from .current_manifest import CURRENT_COMPONENTS
 from .current_planner import CurrentFullyBatchedImaginationTree
-from .current_plugin_api import bind_current_core_plugin_boundary
+from .current_plugin_api import CurrentRuntimePlugin, bind_current_core_plugin_boundary
 from .current_repair import install_current_repairs
 from .current_root_dedup import install_structural_root_dedup
 from .current_runtime_performance_policy import (
@@ -35,6 +35,7 @@ def _enable_current_full_batching(agent: CurrentStandalonePentestAASSRAgent) -> 
         agent.current_batched_prophecy,
         config=old.config,
         scorer=old.scorer,
+        representation=getattr(agent, "representation", None),
     )
     planner._state_key = old._state_key
     agent.planner = planner
@@ -43,8 +44,9 @@ def _enable_current_full_batching(agent: CurrentStandalonePentestAASSRAgent) -> 
     agent.current_critic_batching = True
 
 
-def build_current_pentest_aassr_core(
+def build_current_aassr_core(
     *,
+    plugin: CurrentRuntimePlugin,
     seed: int = 0,
     train_transitions: int = 10_000,
     use_imagination: bool = True,
@@ -54,7 +56,7 @@ def build_current_pentest_aassr_core(
     profile_hot_path: bool = False,
     enable_performance_optimizations: bool = True,
 ) -> CurrentStandalonePentestAASSRAgent:
-    """Assemble the current AASSR core with the pentest runtime plugin.
+    """Assemble the current AASSR core with one explicit runtime plugin.
 
     The algorithmic AASSR core owns Policy, Prophecy/Imagination roles, Critic,
     Knowledge, Skills, ASEQ and reliability gates. ``CURRENT_PENTEST_PLUGIN`` owns
@@ -78,14 +80,12 @@ def build_current_pentest_aassr_core(
             "entrypoint for historical scalar reproduction"
         )
 
-    plugin = CURRENT_PENTEST_PLUGIN
-    plugin.install_contract()
-
     agent = build_current_standalone_pentest_aassr_core(
         seed=int(seed),
         train_transitions=int(train_transitions),
         use_imagination=bool(use_imagination),
         device=device,
+        representation=plugin.representation,
     )
     agent.config = replace(
         agent.config,
@@ -124,3 +124,29 @@ def build_current_pentest_aassr_core(
         install_current_hot_path_profiler(agent)
     bind_current_core_plugin_boundary(agent, plugin)
     return agent
+
+
+def build_current_pentest_aassr_core(
+    *,
+    seed: int = 0,
+    train_transitions: int = 10_000,
+    use_imagination: bool = True,
+    device: str = "cpu",
+    enable_batching: bool = True,
+    allow_tf32: bool = True,
+    profile_hot_path: bool = False,
+    enable_performance_optimizations: bool = True,
+) -> CurrentStandalonePentestAASSRAgent:
+    """Canonical pentest assembly; domain behavior comes only from its plugin."""
+
+    return build_current_aassr_core(
+        plugin=CURRENT_PENTEST_PLUGIN,
+        seed=seed,
+        train_transitions=train_transitions,
+        use_imagination=use_imagination,
+        device=device,
+        enable_batching=enable_batching,
+        allow_tf32=allow_tf32,
+        profile_hot_path=profile_hot_path,
+        enable_performance_optimizations=enable_performance_optimizations,
+    )

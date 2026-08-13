@@ -37,8 +37,14 @@ class ReturnAwareHardwareRelationalGRUBranchCritic(
     name = "hardware-relational-gru-root-discounted-sparse-return-v5-active-replay-support"
     value_center = 0.0
 
-    def __init__(self, seed: int, *, device: str = "cpu") -> None:
-        super().__init__(seed, device=device)
+    def __init__(
+        self,
+        seed: int,
+        *,
+        device: str = "cpu",
+        representation: object | None = None,
+    ) -> None:
+        super().__init__(seed, device=device, representation=representation)
         self._next_final_return = 0.0
         self._next_gamma = 1.0
         self.replay = deque(maxlen=CRITIC_REPLAY_CAPACITY)

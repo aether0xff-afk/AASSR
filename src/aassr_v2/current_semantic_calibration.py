@@ -39,11 +39,17 @@ CALIBRATION_CACHE_LIMIT = 20_000
 def probability_weighted_semantic_score(
     predictions: Sequence[Prediction],
     actual: StateSnapshot,
+    *,
+    prediction_score: Any | None = None,
 ) -> float:
     """Expected semantic correctness under the model's stochastic outcome mass."""
     materialized = tuple(predictions)
     if not materialized:
         return 0.0
+    if prediction_score is None:
+        from .current_relational_state_v3 import semantic_prediction_score_v3
+
+        prediction_score = semantic_prediction_score_v3
     raw = [
         max(0.0, float(getattr(item, "outcome_probability", 1.0)))
         for item in materialized
@@ -54,7 +60,7 @@ def probability_weighted_semantic_score(
     else:
         weights = [value / total for value in raw]
     return sum(
-        weight * semantic_prediction_score((prediction,), actual)
+        weight * prediction_score((prediction,), actual)
         for weight, prediction in zip(weights, materialized, strict=True)
     )
 
@@ -152,13 +158,24 @@ def _public_state_distance(left: StateSnapshot, right: StateSnapshot) -> float:
 
 
 class SemanticPredictionValidator:
-    def __init__(self, *, samples: int = 3, recent_limit: int = 64) -> None:
+    def __init__(
+        self,
+        *,
+        samples: int = 3,
+        recent_limit: int = 64,
+        prediction_score: Any | None = None,
+    ) -> None:
         self.samples = int(samples)
         self.recent_limit = int(recent_limit)
         self.cache_hits = 0
         self.cache_misses = 0
         self.batch_calls = 0
         self.expected_vector_calls = 0
+        if prediction_score is None:
+            from .current_relational_state_v3 import semantic_prediction_score_v3
+
+            prediction_score = semantic_prediction_score_v3
+        self.prediction_score = prediction_score
 
     def evaluate(
         self,
@@ -176,7 +193,11 @@ class SemanticPredictionValidator:
         )
         self.batch_calls += 1
         scores = [
-            probability_weighted_semantic_score(predictions, item.next_state)
+            probability_weighted_semantic_score(
+                predictions,
+                item.next_state,
+                prediction_score=self.prediction_score,
+            )
             for item, predictions in zip(selected, rows, strict=True)
         ]
         return ValidationScore(len(scores), fmean(scores))
@@ -203,12 +224,14 @@ class SemanticCalibratedProphecy:
         minimum_count: int = 8,
         evaluation_limit: int = 48,
         refresh_stride: int = 32,
+        representation: object | None = None,
     ) -> None:
         self.base = base
         self.replay = replay
         self.minimum_count = int(minimum_count)
         self.evaluation_limit = int(evaluation_limit)
         self.refresh_stride = int(refresh_stride)
+        self.representation = representation
         self._frozen_holdout: tuple[ReplayTransition, ...] | None = None
         self._cache: dict[tuple[Any, ...], float] = {}
         self.refreshes = 0
@@ -244,7 +267,22 @@ class SemanticCalibratedProphecy:
         self._cache[key] = value
 
     def _calibration(self, state: StateSnapshot, action: Action) -> float:
-        action_key = relational_action_key(state, action)
+        action_structure = (
+            self.representation.action_structure
+            if self.representation is not None
+            else relational_action_key
+        )
+        state_key = (
+            self.representation.state_key
+            if self.representation is not None
+            else relational_state_key_v3
+        )
+        prediction_score = (
+            self.representation.prediction_score
+            if self.representation is not None
+            else semantic_prediction_score
+        )
+        action_key = action_structure(state, action)
         source = (
             self._frozen_holdout
             if self._frozen_holdout is not None
@@ -253,12 +291,12 @@ class SemanticCalibratedProphecy:
         items = tuple(
             item
             for item in source
-            if relational_action_key(item.state, item.action) == action_key
+            if action_structure(item.state, item.action) == action_key
         )
         revision = int(self.base.gradient_updates)
         cache_key = (
             action_key,
-            relational_state_key_v3(state),
+            state_key(state),
             len(items) // max(1, self.refresh_stride),
             revision // max(1, self.refresh_stride),
         )
@@ -285,7 +323,11 @@ class SemanticCalibratedProphecy:
             self.batch_refreshes += 1
             self.batch_rows += len(selected)
             scores = tuple(
-                probability_weighted_semantic_score(predictions, item.next_state)
+                probability_weighted_semantic_score(
+                    predictions,
+                    item.next_state,
+                    prediction_score=prediction_score,
+                )
                 for item, predictions in zip(selected, rows, strict=True)
             )
             total = sum(locality)

@@ -500,6 +500,87 @@ def test_external_plugins_are_dry_run_and_allowlisted() -> None:
     ).error
 
 
+def test_assessment_read_requires_target_and_resource_scope() -> None:
+    transport = DryRunTransport()
+    assessment = AuthorizedAssessmentPlugin(
+        transport,
+        allowlisted_targets=("lab.local",),
+        allowlisted_resources={
+            "lab.local": ("report/current",),
+        },
+    )
+    read = next(
+        schema
+        for schema in assessment.schemas()
+        if schema.action_id == "read"
+    )
+
+    resource_only = Action(
+        "read",
+        parameters={"resource": "outside.local"},
+    )
+    assert (
+        assessment.execute(resource_only).error_code
+        == "target_scope_required"
+    )
+
+    outside = read.build(
+        {
+            "target": "outside.local",
+            "resource": "report/current",
+        }
+    )
+    assert (
+        assessment.execute(outside).error_code
+        == "target_not_allowlisted"
+    )
+
+    unknown_resource = read.build(
+        {
+            "target": "lab.local",
+            "resource": "report/private",
+        }
+    )
+    assert (
+        assessment.execute(unknown_resource).error_code
+        == "resource_not_allowlisted"
+    )
+    assert transport.calls == []
+
+    allowed = read.build(
+        {
+            "target": "lab.local",
+            "resource": "report/current",
+        }
+    )
+    assert not assessment.execute(allowed).error
+    assert transport.calls == [
+        (
+            "read",
+            {
+                "target": "lab.local",
+                "resource": "report/current",
+            },
+        )
+    ]
+
+
+def test_assessment_resource_scope_cannot_name_an_unknown_target() -> None:
+    transport = DryRunTransport()
+    try:
+        AuthorizedAssessmentPlugin(
+            transport,
+            allowlisted_targets=("lab.local",),
+            allowlisted_resources={
+                "outside.local": ("report/current",),
+            },
+        )
+    except ValueError as exc:
+        assert "non-allowlisted targets" in str(exc)
+    else:
+        raise AssertionError("unknown target resource scope was accepted")
+
+
 def test_ablation_matrices_cover_all_requested_components() -> None:
     imagination = imagination_ablation_matrix()
     representation = representation_ablation_matrix()

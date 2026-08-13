@@ -58,6 +58,7 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
         seed: int,
         device: str = "cpu",
         config: RelationalMixtureProphecyConfig | None = None,
+        representation: object | None = None,
     ) -> None:
         config = config or RelationalMixtureProphecyConfig()
         if config.mixture_components <= 1:
@@ -65,11 +66,25 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
 
         # Reuse the audited replay/input/outcome bookkeeping from the relational
         # base class, then replace only its deterministic heads with mixture heads.
-        super().__init__(seed=int(seed), device=device, config=config)
+        super().__init__(
+            seed=int(seed),
+            device=device,
+            config=config,
+            representation=representation,
+        )
         self.config: RelationalMixtureProphecyConfig = config
-        self.input_size = AGENT_STATE_SIZE + ACTION_FEATURE_SIZE
+        self.input_size = (
+            representation.state_size + representation.action_feature_size
+            if representation is not None
+            else AGENT_STATE_SIZE + ACTION_FEATURE_SIZE
+        )
+        descriptor_size = (
+            representation.descriptor_size
+            if representation is not None
+            else REL_DESCRIPTOR_SIZE
+        )
         self.component_size = (
-            REL_DESCRIPTOR_SIZE + ACTION_SLOT_COUNT + TERMINAL_CLASSES
+            descriptor_size + ACTION_SLOT_COUNT + TERMINAL_CLASSES
         )
         self.output_size = (
             self.config.mixture_components * self.component_size
@@ -92,7 +107,12 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
         self.mixture_prediction_rows = 0
 
     def _input(self, state: StateSnapshot, action: Action) -> tuple[float, ...]:
-        values = relational_state_vector_v2(state) + relational_action_key(state, action)
+        values = (
+            self.representation.state_vector(state)
+            + self.representation.action_structure(state, action)
+            if self.representation is not None
+            else relational_state_vector_v2(state) + relational_action_key(state, action)
+        )
         if len(values) != self.input_size:
             raise ValueError("relational mixture input size drift")
         return values
@@ -106,7 +126,7 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
             self.component_size,
         )
         mixture_logits = output[:, component_end:]
-        descriptor_end = REL_DESCRIPTOR_SIZE
+        descriptor_end = self.component_size - ACTION_SLOT_COUNT - TERMINAL_CLASSES
         mask_end = descriptor_end + ACTION_SLOT_COUNT
         descriptor_logits = components[:, :, :descriptor_end]
         mask_logits = components[:, :, descriptor_end:mask_end]
@@ -359,7 +379,11 @@ class ConditionalMixtureRelationalProphecy(RelationalStochasticProphecy):
             )
             rows.append(
                 RelationalPrediction(
-                    decode_relational_state_v2(
+                    (
+                        self.representation.decode_state
+                        if self.representation is not None
+                        else decode_relational_state_v2
+                    )(
                         candidate["descriptor"],
                         candidate["mask"],
                         scaffold=state,

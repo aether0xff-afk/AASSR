@@ -139,6 +139,22 @@ def install_critic_support_gate(
         return agent
 
     critic = agent.critic
+    representation = getattr(agent, "representation", None)
+    action_structure = (
+        representation.action_structure
+        if representation is not None
+        else relational_action_key
+    )
+    state_descriptor = (
+        representation.state_descriptor
+        if representation is not None
+        else relational_state_descriptor_v3
+    )
+
+    def action_key(state: StateSnapshot, action: Action) -> tuple[Any, ...]:
+        if action.verb_name == SKILL_VERB:
+            return ("skill", str(action.target))
+        return ("primitive", *action_structure(state, action))
     support_rows: dict[
         tuple[Any, ...],
         deque[tuple[tuple[float, ...], int | None]],
@@ -157,10 +173,10 @@ def install_critic_support_gate(
         success: bool,
     ) -> None:
         for transition in trajectory:
-            key = _action_key(transition.before, transition.action)
+            key = action_key(transition.before, transition.action)
             support_rows[key].append(
                 (
-                    tuple(relational_state_descriptor_v3(transition.before)),
+                    tuple(state_descriptor(transition.before)),
                     latest_status_code(transition.before),
                 )
             )
@@ -241,7 +257,7 @@ def install_critic_support_gate(
         action: Action,
     ) -> float:
         del self_critic
-        rows = support_rows.get(_action_key(state, action), ())
+        rows = support_rows.get(action_key(state, action), ())
         if not rows:
             return 0.0
         nearest = min(

@@ -17,6 +17,7 @@ from .current_semantic_calibration import (
     SemanticCalibratedProphecy,
     SemanticPredictionValidator,
 )
+from .current_relational_codec import semantic_prediction_score
 from .current_semantic_evaluator import RelationalAdvancedTransitionEvaluator
 from .current_return_critic import ReturnAwareHardwareRelationalGRUBranchCritic
 from .imagination_tree import ImaginationResult, RootActionEvaluation
@@ -95,6 +96,20 @@ def preserve_root_evaluations(
 def _install_planner_audit(agent: object) -> None:
     original_plan = agent.planner.plan
     counters: Counter[str] = Counter()
+    representation = getattr(agent, "representation", None)
+
+    def structural_action_key(
+        state: StateSnapshot,
+        action: Action,
+    ) -> tuple[Any, ...]:
+        if action.verb_name == SKILL_VERB:
+            return ("skill", str(action.target))
+        structure = (
+            representation.action_structure(state, action)
+            if representation is not None
+            else relational_action_key(state, action)
+        )
+        return ("primitive", *structure)
 
     def audited_plan(
         planner_self: object,
@@ -120,7 +135,7 @@ def _install_planner_audit(agent: object) -> None:
             else ()
         )
         structural_groups = {
-            _structural_action_key(state, item.action) for item in top
+            structural_action_key(state, item.action) for item in top
         }
         ties = len(top)
         group_count = len(structural_groups)
@@ -132,7 +147,7 @@ def _install_planner_audit(agent: object) -> None:
         counters["expected_roots"] += len(state.available_actions)
         counters["evaluated_roots"] += len(result.root_evaluations)
         counters["unique_structural_roots"] += len(
-            {_structural_action_key(state, item.action) for item in result.root_evaluations}
+            {structural_action_key(state, item.action) for item in result.root_evaluations}
         )
         counters["exact_top_ties"] += int(ties > 1)
         counters["exact_top_ties_equivalent_aliases"] += int(
@@ -187,18 +202,31 @@ def install_current_repairs(
 
     old_evaluator = agent.evaluator
     replay = old_evaluator.replay
+    representation = getattr(agent, "representation", None)
     base = RelationalStochasticProphecy(
         seed=int(seed) ^ 0x52454C41,
         device=device,
+        representation=representation,
     )
-    calibrated = SemanticCalibratedProphecy(base, replay)
+    calibrated = SemanticCalibratedProphecy(
+        base,
+        replay,
+        representation=representation,
+    )
     skill = RelationalStochasticSkillProphecy(
         calibrated,
         agent.skills,
         agent.knowledge,
     )
     prophecy = CurrentProphecyView(skill)
-    validator = SemanticPredictionValidator(samples=3)
+    validator = SemanticPredictionValidator(
+        samples=3,
+        prediction_score=(
+            representation.prediction_score
+            if representation is not None
+            else semantic_prediction_score
+        ),
+    )
     evaluator = RelationalAdvancedTransitionEvaluator(
         prophecy,
         replay=replay,
@@ -207,6 +235,7 @@ def install_current_repairs(
         logger=old_evaluator.logger,
         samples=3,
         intrinsic_cap=float(old_evaluator.intrinsic_cap),
+        representation=representation,
     )
 
     agent.base_neural_prophecy = base
@@ -222,12 +251,18 @@ def install_current_repairs(
     batched = RelationalDepthBatchedProphecyView(agent)
     agent.current_batched_prophecy = batched
     agent.planner.prophecy = batched
-    agent.planner._state_key = lambda state: repr(relational_state_key_v2(state))
+    state_key = (
+        representation.state_key
+        if representation is not None
+        else relational_state_key_v2
+    )
+    agent.planner._state_key = lambda state: repr(state_key(state))
     agent.core.prophecy = prophecy
 
     critic = ReturnAwareHardwareRelationalGRUBranchCritic(
         int(seed) ^ 0x43524954,
         device=device,
+        representation=representation,
     )
     agent.critic = critic
     agent.planner.scorer = critic

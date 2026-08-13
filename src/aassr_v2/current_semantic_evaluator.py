@@ -50,6 +50,8 @@ def _normalized_outcome_masses(
 
 def semantic_prediction_uncertainty(
     predictions: Sequence[Prediction],
+    *,
+    state_descriptor: Any = descriptor,
 ) -> float:
     """Relational uncertainty with reliability and outcome mass kept separate.
 
@@ -78,8 +80,8 @@ def semantic_prediction_uncertainty(
         state_distance = fmean(
             abs(a - b)
             for a, b in zip(
-                descriptor(left_state),
-                descriptor(right_state),
+                state_descriptor(left_state),
+                state_descriptor(right_state),
                 strict=True,
             )
         )
@@ -111,8 +113,19 @@ def _action_key(state: StateSnapshot, action: Action) -> tuple[Any, ...]:
 class RelationalActionUnlockValueEstimator:
     """Delayed unlock value keyed by structural action identity, never raw IDs."""
 
-    def __init__(self) -> None:
+    def __init__(self, representation: object | None = None) -> None:
         self._values: dict[tuple[Any, ...], RunningMean] = {}
+        self.representation = representation
+
+    def _key(self, state: StateSnapshot, action: Action) -> tuple[Any, ...]:
+        if action.verb_name == SKILL_VERB:
+            return ("skill", str(action.target))
+        structure = (
+            self.representation.action_structure(state, action)
+            if self.representation is not None
+            else relational_action_key(state, action)
+        )
+        return ("primitive", *structure)
 
     def estimate(
         self,
@@ -120,7 +133,7 @@ class RelationalActionUnlockValueEstimator:
         actions: Iterable[Action],
     ) -> float:
         return sum(
-            self._values.get(_action_key(state, action), RunningMean()).mean
+            self._values.get(self._key(state, action), RunningMean()).mean
             for action in actions
         )
 
@@ -132,7 +145,7 @@ class RelationalActionUnlockValueEstimator:
     ) -> None:
         for action in actions:
             self._values.setdefault(
-                _action_key(state, action),
+                self._key(state, action),
                 RunningMean(),
             ).observe(float(future_return))
 
@@ -158,6 +171,7 @@ class RelationalAdvancedTransitionEvaluator(AdvancedTransitionEvaluator):
         logger: object | None = None,
         samples: int = 3,
         intrinsic_cap: float = 1.0,
+        representation: object | None = None,
     ) -> None:
         super().__init__(
             prophecy,
@@ -168,9 +182,12 @@ class RelationalAdvancedTransitionEvaluator(AdvancedTransitionEvaluator):
             samples=samples,
             intrinsic_cap=intrinsic_cap,
         )
-        self.relational_unlock_estimator = RelationalActionUnlockValueEstimator()
+        self.relational_unlock_estimator = RelationalActionUnlockValueEstimator(
+            representation
+        )
         self.unlock_estimator = self.relational_unlock_estimator
         self._recent_pairs: list[tuple[Any, ...]] = []
+        self.representation = representation
 
     def execute(
         self,
@@ -187,7 +204,30 @@ class RelationalAdvancedTransitionEvaluator(AdvancedTransitionEvaluator):
             action,
             knowledge_before,
         )
-        uncertainty_before = semantic_prediction_uncertainty(context_predictions)
+        state_descriptor = (
+            self.representation.state_descriptor
+            if self.representation is not None
+            else descriptor
+        )
+        prediction_score = (
+            self.representation.prediction_score
+            if self.representation is not None
+            else semantic_prediction_score
+        )
+        state_key = (
+            self.representation.state_key
+            if self.representation is not None
+            else relational_state_key_v2
+        )
+        action_structure = (
+            self.representation.action_structure
+            if self.representation is not None
+            else relational_action_key
+        )
+        uncertainty_before = semantic_prediction_uncertainty(
+            context_predictions,
+            state_descriptor=state_descriptor,
+        )
 
         # The validator itself uses only its most recent `recent_limit` rows. Keep
         # the anti-hindsight snapshot frozen before environment.step(), but copy
@@ -203,11 +243,11 @@ class RelationalAdvancedTransitionEvaluator(AdvancedTransitionEvaluator):
 
         outcome = environment.step(action)
         actual = outcome.snapshot
-        latest_before = semantic_prediction_score(
+        latest_before = prediction_score(
             predictions_without_context,
             actual,
         )
-        context_score = semantic_prediction_score(
+        context_score = prediction_score(
             context_predictions,
             actual,
         )
@@ -241,8 +281,11 @@ class RelationalAdvancedTransitionEvaluator(AdvancedTransitionEvaluator):
             action,
             knowledge_before,
         )
-        uncertainty_after = semantic_prediction_uncertainty(predictions_after)
-        latest_after = semantic_prediction_score(predictions_after, actual)
+        uncertainty_after = semantic_prediction_uncertainty(
+            predictions_after,
+            state_descriptor=state_descriptor,
+        )
+        latest_after = prediction_score(predictions_after, actual)
         holdout_after = self.validator.evaluate(
             self.prophecy,
             holdout_reference,
@@ -251,8 +294,12 @@ class RelationalAdvancedTransitionEvaluator(AdvancedTransitionEvaluator):
         knowledge.apply(entries, outcome.removed_facts)
 
         repeat_key = (
-            relational_state_key_v2(before),
-            _action_key(before, action),
+            state_key(before),
+            (
+                ("skill", str(action.target))
+                if action.verb_name == SKILL_VERB
+                else ("primitive", *action_structure(before, action))
+            ),
         )
         repeat_penalty = 1.0 if repeat_key in self._recent_pairs[-16:] else 0.0
         self._recent_pairs.append(repeat_key)

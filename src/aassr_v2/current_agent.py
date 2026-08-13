@@ -6,7 +6,7 @@ from math import log, sqrt
 import random
 import re
 from types import SimpleNamespace
-from typing import Any, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence
 
 from .action_plugins import PluginOutcome
 from .autonomous_agent_core import ActionDecision
@@ -16,6 +16,7 @@ from .current_generation import (
     RelationalGRUBranchCritic,
     RelationalInvariantDQN,
     RelationalSkillLibrary,
+    bind_relational_dqn_representation,
 )
 from .current_manifest import (
     CURRENT_COMPONENTS,
@@ -34,15 +35,15 @@ from .knowledge import KnowledgeEntry, KnowledgeStore
 from .learning import AdvancedEvaluation, AdvancedTransitionEvaluator
 from .native_batching import DepthBatchedImaginationTree
 from .neural_delta_prophecy import NeuralDeltaConfig
-from .pentest_agent_main_test import ACTION_FEATURE_SIZE, HttpAgentCodec
-from .pentest_curriculum_causal import OBSERVATION_CONTRACT
-from .pentest_curriculum_schedule import semantic_fingerprint
 from .policy import PolicyMemory
 from .prophecy import ProphecyStep
 from .replay import ReplayBuffer
 from .semantic_control import SemanticSelfLoopASEQ
 from .skills import SKILL_VERB, Skill
 from .types import Action, Prediction, StateSnapshot, TransitionTrace
+
+if TYPE_CHECKING:
+    from .current_plugin_api import CurrentRepresentationBinding
 
 
 @dataclass(frozen=True, slots=True)
@@ -390,6 +391,7 @@ class CurrentStandalonePentestAASSRAgent:
         use_imagination: bool = True,
         device: str = "cpu",
         config: CurrentAgentConfig | None = None,
+        representation: CurrentRepresentationBinding,
     ) -> None:
         self.config = config or CurrentAgentConfig()
         self.current_generation_version = CURRENT_GENERATION_VERSION
@@ -400,9 +402,10 @@ class CurrentStandalonePentestAASSRAgent:
         self.randomizer = random.Random(int(seed) ^ 0xA441)
         self._decision_index = 0
         self._imagination_diagnostics: Counter[str] = Counter()
+        self.representation = representation
 
         self.knowledge = KnowledgeStore()
-        self.skills = RelationalSkillLibrary()
+        self.skills = RelationalSkillLibrary(representation=representation)
         self.feature_memory = OnlineFeatureMemory()
         self.goals = GoalSet(
             {
@@ -422,12 +425,16 @@ class CurrentStandalonePentestAASSRAgent:
             int(seed) ^ 0xD1A6,
             train_transitions=int(train_transitions),
         )
-        self.policy = CurrentRelationalPolicy(self.dqn)
+        bind_relational_dqn_representation(self.dqn, representation)
+        self.policy = CurrentRelationalPolicy(
+            self.dqn,
+            representation=representation,
+        )
 
         self.base_neural_prophecy = FullyRelationalNeuralDeltaProphecy(
-            HttpAgentCodec(),
+            representation.state_codec_factory(),
             config=NeuralDeltaConfig(
-                action_feature_size=ACTION_FEATURE_SIZE,
+                action_feature_size=representation.action_feature_size,
                 hidden_units=128,
                 ensemble_size=3,
                 replay_capacity=50_000,
@@ -439,6 +446,7 @@ class CurrentStandalonePentestAASSRAgent:
             ),
             seed=int(seed) ^ 0x4E455552,
             device=device,
+            representation=representation,
         )
         replay = ReplayBuffer()
         self.calibrated_prophecy = FrozenReplayRelationalCalibratedProphecy(
@@ -459,7 +467,10 @@ class CurrentStandalonePentestAASSRAgent:
             replay=replay,
         )
 
-        self.critic = RelationalGRUBranchCritic(int(seed) ^ 0x43524954)
+        self.critic = RelationalGRUBranchCritic(
+            int(seed) ^ 0x43524954,
+            representation=representation,
+        )
         self.current_batched_prophecy = CurrentDepthBatchedProphecyView(self)
         self.planner = DepthBatchedImaginationTree(
             self.policy,
@@ -476,7 +487,8 @@ class CurrentStandalonePentestAASSRAgent:
             ),
             scorer=self.critic,
         )
-        self.planner._state_key = lambda state: repr(semantic_fingerprint(state))
+        semantic_identity = representation.semantic_state_identity
+        self.planner._state_key = lambda state: repr(semantic_identity(state))
         self.current_depth_batching = True
 
         # Compatibility shape for diagnostics/tests that historically accessed
@@ -694,12 +706,7 @@ class CurrentStandalonePentestAASSRAgent:
         )
 
     def _validate_snapshot(self, state: StateSnapshot) -> None:
-        actual = state.metadata.get("observation_contract")
-        if actual != OBSERVATION_CONTRACT:
-            raise ValueError(
-                "current AASSR observation contract mismatch: "
-                f"expected {OBSERVATION_CONTRACT!r}, got {actual!r}"
-            )
+        self.representation.validate_observation(state)
 
     def begin_episode(self, *, clear_knowledge: bool | None = None) -> None:
         if clear_knowledge is None:
@@ -723,7 +730,7 @@ class CurrentStandalonePentestAASSRAgent:
         state: StateSnapshot,
     ) -> tuple[StateSnapshot, Any, int, bool]:
         self._validate_snapshot(state)
-        semantic = semantic_fingerprint(state)
+        semantic = self.representation.semantic_state_identity(state)
         augmented = self.skills.augment_state(state)
         filtered, guarded, fallback = self.aseq.filter_state(
             augmented,
@@ -1014,7 +1021,7 @@ class CurrentStandalonePentestAASSRAgent:
             self.skills.record_failure(skill_id)
 
         raw_after = environment.snapshot()
-        semantic_after = semantic_fingerprint(raw_after)
+        semantic_after = self.representation.semantic_state_identity(raw_after)
         self.aseq.observe(
             decision.semantic_state,
             selected,
@@ -1145,7 +1152,7 @@ class CurrentStandalonePentestAASSRAgent:
             "aseq": self.aseq.diagnostics(),
             "imagination": self.imagination_diagnostics(),
             "prophecy": prophecy,
-            "observation_contract": OBSERVATION_CONTRACT,
+            "observation_contract": self.representation.observation_contract,
             "preserve_knowledge_across_episodes": self.config.preserve_knowledge_across_episodes,
             "critic_ready": self.critic_ready,
             "critic": {
@@ -1170,10 +1177,18 @@ def build_current_standalone_pentest_aassr_core(
     train_transitions: int = 10_000,
     use_imagination: bool = True,
     device: str = "cpu",
+    representation: CurrentRepresentationBinding | None = None,
 ) -> CurrentStandalonePentestAASSRAgent:
+    if representation is None:
+        # Compatibility construction still selects the pentest plugin explicitly;
+        # the assembly class itself has no HTTP/environment implementation import.
+        from .plugins.current_pentest import PENTEST_REPRESENTATION
+
+        representation = PENTEST_REPRESENTATION
     return CurrentStandalonePentestAASSRAgent(
         seed=int(seed),
         train_transitions=int(train_transitions),
         use_imagination=bool(use_imagination),
         device=device,
+        representation=representation,
     )

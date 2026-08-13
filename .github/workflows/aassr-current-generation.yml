@@ -6,6 +6,7 @@ on:
   pull_request:
     paths:
       - "src/aassr_v2/current_*.py"
+      - "src/aassr_v2/plugins/**/*.py"
       - "src/aassr_v2/dreamerv3_*.py"
       - "src/aassr_v2/pentest_current_generation_*.py"
       - "src/aassr_v2/__init__.py"
@@ -13,6 +14,7 @@ on:
       - "scripts/run_dreamerv3_current_baseline.py"
       - "scripts/assemble_pentest_current_generation_suite.py"
       - "scripts/run_pentest_current_generation_smoke.py"
+      - "scripts/run_imagination_gate_*.py"
       - "scripts/run_repaired_imagination_*.py"
       - "scripts/analyze_repaired_imagination_trace.py"
       - "tests/test_current_*.py"
@@ -44,7 +46,11 @@ jobs:
         run: |
           python -m py_compile \
             src/aassr_v2/current_generation.py \
+            src/aassr_v2/current_architecture_layers.py \
+            src/aassr_v2/current_core_manifest.py \
             src/aassr_v2/current_manifest.py \
+            src/aassr_v2/current_plugin_api.py \
+            src/aassr_v2/plugins/current_pentest.py \
             src/aassr_v2/current_runtime.py \
             src/aassr_v2/current_agent.py \
             src/aassr_v2/current_hardware.py \
@@ -86,6 +92,7 @@ jobs:
             scripts/run_dreamerv3_current_baseline.py \
             scripts/assemble_pentest_current_generation_suite.py \
             scripts/run_pentest_current_generation_smoke.py \
+            scripts/run_imagination_gate_ablation.py \
             scripts/run_repaired_imagination_validation_v2.py \
             scripts/run_repaired_imagination_final.py \
             scripts/analyze_repaired_imagination_trace.py
@@ -117,6 +124,15 @@ jobs:
             tests/test_current_probability_contract.py \
             tests/test_current_latent_contracts.py \
             tests/test_current_checkpoint.py
+
+      - name: Architecture, plugin isolation, and final-audit contracts
+        run: |
+          pytest -q \
+            tests/test_current_architecture_layers.py \
+            tests/test_current_core_plugin_boundary.py \
+            tests/test_current_imagination_gate_ablation_metadata.py \
+            tests/test_current_torch_thread_policy.py \
+            tests/test_authorized_assessment_scope.py
 
       - name: Performance-only equivalence and replay contracts
         run: |
@@ -195,7 +211,7 @@ jobs:
           assert components["prophecy_status_inference"] == "softmax-categorical-realized-one-hot"
           assert components["prophecy_outcome_mass"] == "complete-before-expected-return-backup"
           assert components["imagination_intervention_margin"] == "fixed-0.05-scaling-contract"
-          assert components["checkpoint_contract"] == "fresh-process-portable-frozen-evaluation-v2"
+          assert components["checkpoint_contract"] == "fresh-process-portable-frozen-evaluation-v3-exact-provenance"
           diagnostics = result["diagnostics"]
           assert diagnostics["canonical_runtime"] == "current_standalone"
           assert diagnostics["policy"]["dqn:gradient_updates"] > 0
@@ -270,7 +286,7 @@ jobs:
           assert CURRENT_COMPONENTS["chance_objective"] == "expected-external-sparse-return"
           assert CURRENT_COMPONENTS["hidden_pressure_contract"] == "audit-and-session-countdown-masked"
           assert CURRENT_COMPONENTS["public_response_contract"] == "latest-http-status-preserved"
-          assert CURRENT_COMPONENTS["checkpoint_contract"] == "fresh-process-portable-frozen-evaluation-v2"
+          assert CURRENT_COMPONENTS["checkpoint_contract"] == "fresh-process-portable-frozen-evaluation-v3-exact-provenance"
           assert "same-device" in CURRENT_COMPONENTS["hardware"]
           assert aassr_v2.build_pentest_aassr_core is build_current_pentest_aassr_core
           agent = build_current_pentest_aassr_core(seed=7, train_transitions=64, use_imagination=True, device="cpu")

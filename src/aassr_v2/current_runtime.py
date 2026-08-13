@@ -35,6 +35,7 @@ class FullyRelationalNeuralDeltaProphecy(CurrentNeuralDeltaProphecy):
     name = "current-relational-state-action-neural-delta"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        representation = kwargs.pop("representation", None)
         state_cache_capacity = int(
             kwargs.pop("state_encoding_cache_capacity", 256)
         )
@@ -44,6 +45,7 @@ class FullyRelationalNeuralDeltaProphecy(CurrentNeuralDeltaProphecy):
         if state_cache_capacity <= 0 or input_cache_capacity <= 0:
             raise ValueError("current encoding cache capacities must be positive")
         super().__init__(*args, **kwargs)
+        self.representation = representation
         self.batch_host_transfer_groups = 0
         self.batch_host_transfer_rows = 0
         self.state_encoding_cache_capacity = state_cache_capacity
@@ -84,7 +86,11 @@ class FullyRelationalNeuralDeltaProphecy(CurrentNeuralDeltaProphecy):
             return cached[1]
 
         self.state_encoding_cache_misses += 1
-        encoded = relational_state_vector(state)
+        encoded = (
+            self.representation.state_vector(state)
+            if self.representation is not None
+            else relational_state_vector(state)
+        )
         if cached is not None:
             # Defensive only: the strong reference above makes live id reuse
             # impossible, but never accept a mismatched object as a cache hit.
@@ -114,7 +120,11 @@ class FullyRelationalNeuralDeltaProphecy(CurrentNeuralDeltaProphecy):
         self.model_input_cache_misses += 1
         encoded = self._cached_relational_state_vector(
             state
-        ) + relational_action_key(state, action)
+        ) + (
+            self.representation.action_structure(state, action)
+            if self.representation is not None
+            else relational_action_key(state, action)
+        )
         if cached is not None:
             del self._model_input_cache[key]
         self._model_input_cache[key] = (state, action, encoded)

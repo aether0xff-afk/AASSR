@@ -34,7 +34,19 @@ def _memoized_relational_coverage(
         return 1.0
     cache: dict[tuple[Any, ...], float] = {}
     for action in materialized:
-        key = _coverage_cache_key(state, action)
+        representation = getattr(getattr(self, "base", None), "representation", None)
+        key = (
+            ("skill", str(action.target))
+            if action.verb_name == SKILL_VERB
+            else (
+                "primitive",
+                (
+                    representation.action_structure(state, action)
+                    if representation is not None
+                    else relational_action_key(state, action)
+                ),
+            )
+        )
         if key not in cache:
             cache[key] = float(self.confidence(state, action))
     return sum(cache.values()) / len(cache)

@@ -2,6 +2,7 @@
 
 import sys
 import types
+import warnings as _warnings
 
 
 # ``resource`` is POSIX-only, but several benchmark modules are importable on
@@ -144,10 +145,6 @@ from .current_entrypoint import build_current_pentest_aassr_core
 CurrentPentestAASSRAgent = CurrentStandalonePentestAASSRAgent
 build_pentest_aassr_core = build_current_pentest_aassr_core
 
-# Historical generic/full construction remains available for reproduction. New
-# pentest experiments must not use this compatibility name.
-build_full_aassr_core = build_legacy_v040_full_aassr_core
-
 from .knowledge import (
     KnowledgeDelta,
     KnowledgeEntry,
@@ -211,6 +208,28 @@ from .paper_protocol import (
     validate_paper_config,
 )
 from .paper_runner import PaperArtifacts, run_paper_suite
+
+
+# Keep the historical unqualified constructor source-compatible without eagerly
+# advertising it as a current API. New/reproduction code should select either the
+# canonical ``build_pentest_aassr_core`` or an explicit ``build_legacy_v040_*``
+# name. Remove this shim only in a declared compatibility-breaking release.
+_LEGACY_COMPAT_ALIASES = {
+    "build_full_aassr_core": build_legacy_v040_full_aassr_core,
+}
+
+
+def __getattr__(name: str) -> object:
+    if name in _LEGACY_COMPAT_ALIASES:
+        _warnings.warn(
+            f"aassr_v2.{name} is a legacy v0.4 compatibility alias; use "
+            "build_legacy_v040_full_aassr_core explicitly",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return _LEGACY_COMPAT_ALIASES[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [name for name in globals() if not name.startswith("_")]
 

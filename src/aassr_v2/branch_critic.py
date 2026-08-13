@@ -118,7 +118,6 @@ class ParentTransitionCritic:
         self.gradient_steps_per_episode = int(gradient_steps_per_episode)
         self.randomizer = random.Random(seed)
         torch.manual_seed(seed)
-        torch.set_num_threads(1)
         self.model = nn.Sequential(
             nn.Linear(self.encoder.feature_size, hidden_units),
             nn.SiLU(),
@@ -244,7 +243,6 @@ class GRUBranchCritic:
         self.gradient_steps_per_episode = int(gradient_steps_per_episode)
         self.randomizer = random.Random(seed)
         torch.manual_seed(seed)
-        torch.set_num_threads(1)
         self.gru = nn.GRUCell(self.encoder.feature_size, self.hidden_units)
         self.output = nn.Linear(self.hidden_units, 1)
         self.optimizer = torch.optim.Adam(

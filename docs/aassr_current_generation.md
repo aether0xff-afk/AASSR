@@ -35,6 +35,12 @@ from aassr_v2.current_entrypoint import build_current_pentest_aassr_core
 
 이 두 current pentest 경로는 동일한 현행 runtime을 가리킵니다.
 
+과거 v0.4 constructor는 재현을 위해
+`build_legacy_v040_full_aassr_core`와
+`build_legacy_v040_pentest_aassr_core`라는 명시적 이름으로만 새 코드에서
+사용합니다. `build_full_aassr_core`는 기존 import를 깨지 않기 위한 deprecated
+compatibility alias이며 wildcard public API에는 포함되지 않습니다.
+
 ## Active stack
 
 현재 `current_manifest.py` 기준 구성은 다음과 같습니다.
@@ -297,6 +303,37 @@ no-Imagination     Full
 ```
 
 두 AASSR evaluation 사이에 재학습이 일어나면 안 됩니다.
+
+### Frozen checkpoint provenance와 신뢰 경계
+
+새 frozen checkpoint는 Git commit, core version, plugin id/version,
+architecture version, scientific-contract version을 모두 기록합니다. Canonical
+restore는 caller가 exact Git commit을 명시해야 하며 여섯 필드 중 하나라도
+현재 runtime과 다르면 state를 적용하기 전에 fail-closed 합니다.
+
+```python
+from aassr_v2.current_checkpoint import restore_current_frozen_checkpoint
+
+agent = restore_current_frozen_checkpoint(
+    "runs/aassr_frozen_training_checkpoint.pt",
+    expected_git_commit="<exact checkpoint commit>",
+    device="cpu",
+)
+```
+
+Portable v2 artifact에는 core/plugin/scientific version이 없으므로 canonical
+restore로 열 수 없습니다. 꼭 필요한 로컬 재현에서만
+`restore_trusted_legacy_current_frozen_checkpoint`를 명시적으로 사용합니다.
+기본값은 legacy restore도 clean current HEAD와 exact commit 일치를 요구합니다.
+과거 commit을 checkout할 수 없는 별도 재현 환경에서는 trusted local artifact에
+한해 `allow_noncanonical_source=True`를 명시할 수 있습니다. 이 override는 현재
+checkout 검사만 생략하며, caller가 제공한 non-unknown commit과 payload commit의
+exact equality 및 architecture/version 검사는 계속 강제합니다.
+
+두 restore 경로는 payload의 Python randomizer state 때문에
+`torch.load(weights_only=False)`를 사용합니다. 이 모드는 pickle code execution
+위험이 있으므로 직접 생성하고 보관한 **trusted local artifact에만** 사용하며,
+다운로드했거나 출처가 불명확한 checkpoint에는 사용하지 않습니다.
 
 ## DreamerV3 비교
 

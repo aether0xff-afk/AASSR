@@ -139,7 +139,6 @@ class TransitionPrefixProphecy:
         self.config = config or TransitionPrefixConfig()
         self.randomizer = random.Random(seed)
         torch.manual_seed(seed)
-        torch.set_num_threads(1)
         network = _PrefixNetwork(torch, nn, codec.dimension, self.config)
         self.model = network.model
         self.optimizer = torch.optim.Adam(

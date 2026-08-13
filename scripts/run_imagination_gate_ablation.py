@@ -41,6 +41,15 @@ ABLATION_VERSION = "imagination-gate-coverage-penalty-v1"
 DEFAULT_LAMBDAS = (1.0, 0.5, 0.25, 0.0)
 
 
+def _gate_contract_formula(intervention_margin: float) -> str:
+    """Describe the configured gate without changing its executable values."""
+
+    return (
+        f"required_advantage = {float(intervention_margin):g} + "
+        "lambda * (1 - coverage); coverage eligibility remains unchanged"
+    )
+
+
 def _percentile(values: Sequence[float], fraction: float) -> float | None:
     if not values:
         return None
@@ -381,9 +390,8 @@ def run_gate_ablation(
             "intervention_margin": float(agent.config.imagination_intervention_margin),
             "ablated_parameter": "imagination_uncertainty_margin",
             "values": [float(value) for value in uncertainty_margins],
-            "formula": (
-                "required_advantage = 0.10 + lambda * (1 - coverage); "
-                "coverage eligibility remains unchanged"
+            "formula": _gate_contract_formula(
+                agent.config.imagination_intervention_margin
             ),
         },
         "diagnostic_stage_indices": list(map(int, diagnostic_stage_indices)),

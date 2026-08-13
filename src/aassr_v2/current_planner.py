@@ -38,6 +38,7 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self.representation = kwargs.pop("representation", None)
         super().__init__(*args, **kwargs)
         self.policy_batch_calls = 0
         self.policy_batch_rows = 0
@@ -68,7 +69,20 @@ class CurrentFullyBatchedImaginationTree(DepthBatchedImaginationTree):
         seen: set[tuple[Any, ...]] = set()
         duplicate_count = 0
         for scored in ranked:
-            key = _structural_action_key(state, scored.action)
+            key = (
+                ("skill", str(scored.action.target))
+                if scored.action.verb_name == SKILL_VERB
+                else (
+                    "primitive",
+                    *(
+                        getattr(self, "representation", None).action_structure(
+                            state, scored.action
+                        )
+                        if getattr(self, "representation", None) is not None
+                        else relational_action_key(state, scored.action)
+                    ),
+                )
+            )
             if key in seen:
                 duplicate_count += 1
                 continue

@@ -26,6 +26,22 @@ def install_structural_root_dedup(agent: object) -> object:
         return agent
 
     counters: Counter[str] = Counter()
+    representation = getattr(agent, "representation", None)
+    state_key = (
+        representation.state_key
+        if representation is not None
+        else relational_state_key_v3
+    )
+    action_structure = (
+        representation.action_structure
+        if representation is not None
+        else relational_action_key
+    )
+
+    def action_key(state: object, action: object) -> tuple[Any, ...]:
+        if getattr(action, "verb_name", None) == SKILL_VERB:
+            return ("skill", str(getattr(action, "target", "")))
+        return ("primitive", *action_structure(state, action))
     prophecy_view = agent.current_batched_prophecy
     original_predict_step_batch = prophecy_view.predict_step_batch
 
@@ -55,8 +71,8 @@ def install_structural_root_dedup(agent: object) -> object:
                 key = ("skill-row", index)
             else:
                 key = (
-                    relational_state_key_v3(state),
-                    _action_key(state, action),
+                    state_key(state),
+                    action_key(state, action),
                 )
             target = unique_index.get(key)
             if target is None:
@@ -116,9 +132,9 @@ def install_structural_root_dedup(agent: object) -> object:
                 key = ("nonroot", index)
             else:
                 key = (
-                    relational_state_key_v3(node.state),
-                    _action_key(node.state, scored_action.action),
-                    relational_state_key_v3(after),
+                    state_key(node.state),
+                    action_key(node.state, scored_action.action),
+                    state_key(after),
                     round(float(confidence), 8),
                 )
             target = unique_index.get(key)

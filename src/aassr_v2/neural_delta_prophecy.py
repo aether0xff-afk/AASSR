@@ -102,7 +102,6 @@ class NeuralDeltaProphecy:
         self.config = config or NeuralDeltaConfig()
         self.randomizer = random.Random(seed)
         torch.manual_seed(seed)
-        torch.set_num_threads(1)
         try:
             torch.use_deterministic_algorithms(True, warn_only=True)
         except TypeError:  # pragma: no cover

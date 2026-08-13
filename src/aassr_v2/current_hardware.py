@@ -8,9 +8,9 @@ from .current_generation import (
     CurrentRelationalPolicy,
     RelationalGRUBranchCritic,
     RelationalInvariantDQN,
+    bind_relational_dqn_representation,
     relational_state_key,
 )
-from .pentest_curriculum_env import relational_action_features
 from .policy import ScoredAction
 from .skills import SKILL_VERB
 from .types import Action, StateSnapshot
@@ -168,7 +168,7 @@ class HardwareRelationalInvariantDQN(RelationalInvariantDQN):
             state_rows.append(cached[1])
 
         keys = tuple(
-            state_values + relational_action_features(state, action)
+            state_values + self.action_features(state, action)
             for state_values, state, action in zip(
                 state_rows,
                 states,
@@ -308,7 +308,13 @@ class HardwareCurrentRelationalPolicy(CurrentRelationalPolicy):
                 for action in state.available_actions
             )
             information_state_key = (
-                relational_state_key(state) if has_primitives else ()
+                (
+                    self._state_key(state)
+                    if self.representation is not None
+                    else relational_state_key(state)
+                )
+                if has_primitives
+                else ()
             )
             rows = []
             for action in state.available_actions:
@@ -344,8 +350,14 @@ class HardwareRelationalGRUBranchCritic(RelationalGRUBranchCritic):
 
     name = "hardware-relational-gru-branch-critic"
 
-    def __init__(self, seed: int, *, device: str = "cpu") -> None:
-        super().__init__(seed)
+    def __init__(
+        self,
+        seed: int,
+        *,
+        device: str = "cpu",
+        representation: object | None = None,
+    ) -> None:
+        super().__init__(seed, representation=representation)
         self.device = self.torch.device(device)
         learning_rate = float(self.optimizer.param_groups[0]["lr"])
         self.gru.to(self.device)
@@ -529,10 +541,17 @@ def install_hardware_dqn(
         train_transitions=int(train_transitions),
         device=info.resolved_device,
     )
-    policy = HardwareCurrentRelationalPolicy(dqn)
+    representation = getattr(agent, "representation", None)
+    if representation is not None:
+        bind_relational_dqn_representation(dqn, representation)
+    policy = HardwareCurrentRelationalPolicy(
+        dqn,
+        representation=representation,
+    )
     critic = HardwareRelationalGRUBranchCritic(
         int(seed) ^ 0x43524954,
         device=info.resolved_device,
+        representation=representation,
     )
     agent.dqn = dqn
     agent.policy = policy

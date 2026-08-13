@@ -2,9 +2,42 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from types import MethodType, SimpleNamespace
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Hashable, Mapping, Protocol, Sequence
 
 from .current_core_manifest import CURRENT_CORE_COMPONENTS, CURRENT_CORE_VERSION
+from .types import Action, Prediction, StateSnapshot
+
+
+class StateCodecProtocol(Protocol):
+    """Domain codec consumed by a concrete world-model implementation."""
+
+    def encode(self, state: StateSnapshot) -> Sequence[float]: ...
+
+
+@dataclass(frozen=True, slots=True)
+class CurrentRepresentationBinding:
+    """Immutable, runtime-scoped environment representation contract.
+
+    The binding contains behavior rather than changing imported module globals.
+    Two runtimes can therefore select different representations in one process
+    without either installation changing the other runtime.
+    """
+
+    binding_id: str
+    observation_contract: str
+    state_size: int
+    action_feature_size: int
+    state_codec_factory: Callable[[], StateCodecProtocol]
+    validate_observation: Callable[[StateSnapshot], None]
+    state_vector: Callable[[StateSnapshot], tuple[float, ...]]
+    state_key: Callable[[StateSnapshot], Hashable]
+    semantic_state_identity: Callable[[StateSnapshot], Hashable]
+    action_structure: Callable[[StateSnapshot, Action], tuple[float, ...]]
+    decode_state: Callable[..., StateSnapshot]
+    prediction_score: Callable[[Sequence[Prediction], StateSnapshot], float]
+    state_descriptor: Callable[[StateSnapshot], tuple[float, ...]]
+    descriptor_size: int
+    diagnostics: Mapping[str, str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,8 +53,9 @@ class CurrentRuntimePlugin:
     plugin_id: str
     version: str
     components: Mapping[str, str]
-    install_contract: Callable[[], None]
+    representation: CurrentRepresentationBinding
     install_world_model: Callable[..., object]
+    environment_factory: Callable[..., object]
 
 
 class CurrentAASSRCoreView:
@@ -84,6 +118,8 @@ def bind_current_core_plugin_boundary(
         plugin_id=str(plugin.plugin_id),
         version=str(plugin.version),
         components=dict(plugin.components),
+        representation=plugin.representation,
+        environment_factory=plugin.environment_factory,
     )
     agent.current_core_version = CURRENT_CORE_VERSION
     agent.current_core_components = dict(CURRENT_CORE_COMPONENTS)
@@ -104,6 +140,13 @@ def bind_current_core_plugin_boundary(
             "id": self.current_plugin_id,
             "version": self.current_plugin_version,
             "components": dict(self.current_plugin_components),
+            "representation": {
+                "id": plugin.representation.binding_id,
+                **dict(plugin.representation.diagnostics),
+            },
+            "environment_factory": (
+                "plugin-provided" if plugin.environment_factory is not None else "unbound"
+            ),
         }
         result["core_plugin_boundary"] = True
         return result

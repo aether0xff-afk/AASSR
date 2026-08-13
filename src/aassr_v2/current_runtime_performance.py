@@ -44,7 +44,13 @@ def _install_indexed_calibration(calibrated: object) -> None:
         state: StateSnapshot,
         action: Action,
     ) -> tuple[Any, tuple[Any, ...]]:
-        action_key = relational_action_key(state, action)
+        representation = getattr(self, "representation", None)
+        action_structure = (
+            representation.action_structure
+            if representation is not None
+            else relational_action_key
+        )
+        action_key = action_structure(state, action)
         frozen = getattr(self, "_frozen_holdout", None)
         if frozen is not None:
             source = frozen
@@ -69,7 +75,7 @@ def _install_indexed_calibration(calibrated: object) -> None:
         if revision != self._performance_holdout_index_key:
             grouped: dict[Any, list[Any]] = defaultdict(list)
             for item in source:
-                grouped[relational_action_key(item.state, item.action)].append(item)
+                grouped[action_structure(item.state, item.action)].append(item)
             self._performance_holdout_index = {
                 key: tuple(values) for key, values in grouped.items()
             }
@@ -81,10 +87,21 @@ def _install_indexed_calibration(calibrated: object) -> None:
 
     def calibration(self: object, state: StateSnapshot, action: Action) -> float:
         action_key, items = indexed_items(self, state, action)
+        representation = getattr(self, "representation", None)
+        state_key = (
+            representation.state_key
+            if representation is not None
+            else relational_state_key_v3
+        )
+        prediction_score = (
+            representation.prediction_score
+            if representation is not None
+            else None
+        )
         revision = int(self.base.gradient_updates)
         cache_key = (
             action_key,
-            relational_state_key_v3(state),
+            state_key(state),
             len(items) // max(1, self.refresh_stride),
             revision // max(1, self.refresh_stride),
         )
@@ -111,7 +128,11 @@ def _install_indexed_calibration(calibrated: object) -> None:
             self.batch_refreshes += 1
             self.batch_rows += len(selected)
             scores = tuple(
-                probability_weighted_semantic_score(predictions, item.next_state)
+                probability_weighted_semantic_score(
+                    predictions,
+                    item.next_state,
+                    prediction_score=prediction_score,
+                )
                 for item, predictions in zip(selected, rows, strict=True)
             )
             total = sum(locality)
@@ -181,16 +202,27 @@ def _install_status_mixture_fast_path(base: object) -> None:
     ) -> Any:
         encoded: dict[int, tuple[StateSnapshot, tuple[float, ...]]] = {}
         inputs: list[tuple[float, ...]] = []
+        representation = getattr(self, "representation", None)
+        state_vector = (
+            representation.state_vector
+            if representation is not None
+            else relational_state_vector_v2
+        )
+        action_structure = (
+            representation.action_structure
+            if representation is not None
+            else relational_action_key
+        )
         for state, action in zip(states, actions, strict=True):
             identity = id(state)
             cached = encoded.get(identity)
             if cached is None or cached[0] is not state:
-                cached = (state, relational_state_vector_v2(state))
+                cached = (state, state_vector(state))
                 encoded[identity] = cached
                 self.performance_state_encode_cache_misses += 1
             else:
                 self.performance_state_encode_cache_hits += 1
-            values = cached[1] + relational_action_key(state, action)
+            values = cached[1] + action_structure(state, action)
             if len(values) != self.input_size:
                 raise ValueError("relational mixture input size drift")
             inputs.append(values)

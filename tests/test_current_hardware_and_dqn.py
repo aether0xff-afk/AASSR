@@ -263,7 +263,18 @@ def test_current_experiment_condition_contract_has_four_conditions() -> None:
     )
 
 
-def test_tiny_current_main_materializes_all_four_conditions(tmp_path) -> None:
+def test_tiny_current_main_materializes_all_four_conditions(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "aassr_v2.pentest_current_generation_main.resolve_git_commit",
+        lambda: "checkpoint-test-sha",
+    )
+    monkeypatch.setattr(
+        "aassr_v2.current_run_artifacts.resolve_clean_checkpoint_source_commit",
+        lambda declared_git_commit=None: str(declared_git_commit),
+    )
     result = run_current_generation_condition(
         tmp_path,
         research_seed=7,

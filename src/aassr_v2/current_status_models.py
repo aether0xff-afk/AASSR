@@ -15,6 +15,7 @@ from .current_relational_state_v3 import (
     STATUS_START_INDEX,
     decode_relational_state_v3,
     latest_status_vector,
+    semantic_prediction_score_v3,
 )
 from .current_semantic_calibration import (
     RelationalDepthBatchedProphecyView,
@@ -656,15 +657,28 @@ def install_status_supervised_world_model(
     base = model_class(
         seed=int(seed) ^ 0x52454C41,
         device=device,
+        representation=getattr(agent, "representation", None),
     )
-    calibrated = SemanticCalibratedProphecy(base, replay)
+    representation = getattr(agent, "representation", None)
+    calibrated = SemanticCalibratedProphecy(
+        base,
+        replay,
+        representation=representation,
+    )
     skill = RelationalStochasticSkillProphecy(
         calibrated,
         agent.skills,
         agent.knowledge,
     )
     prophecy = CurrentProphecyView(skill)
-    validator = SemanticPredictionValidator(samples=3)
+    validator = SemanticPredictionValidator(
+        samples=3,
+        prediction_score=(
+            representation.prediction_score
+            if representation is not None
+            else semantic_prediction_score_v3
+        ),
+    )
     evaluator = RelationalAdvancedTransitionEvaluator(
         prophecy,
         replay=replay,
@@ -673,6 +687,7 @@ def install_status_supervised_world_model(
         logger=old_evaluator.logger,
         samples=3,
         intrinsic_cap=float(old_evaluator.intrinsic_cap),
+        representation=representation,
     )
 
     agent.base_neural_prophecy = base
