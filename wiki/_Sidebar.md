@@ -5,6 +5,7 @@
 - **[처음 읽는 사람을 위한 안내서](Beginner-Guide)**
 - **[AASSR 5분 설명](AASSR-in-5-Minutes)**
 - **[한국어 중심 용어 안내서](Terminology-Guide)**
+- **[연구·개발 영어 해설](Research-Jargon-Guide)**
 - [개념 지도](Concept-Index)
 - [짧은 용어 사전](Glossary)
 - **[홈](Home)**
