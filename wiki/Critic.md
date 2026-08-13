@@ -1,30 +1,30 @@
-# Critic
+# Critic — 미래 가치 평가기
 
-Critic은 AASSR의 [Imagination](Imagination)에서 **예측된 미래가 실제 [sparse task objective](Sparse-Reward-and-Credit-Assignment) 관점에서 얼마나 가치 있는지** 평가한다.
+[Critic(미래 가치 평가기)](Critic)은 AASSR의 [Imagination](Imagination)에서 **예측된 미래가 실제 [sparse task objective](Sparse-Reward-and-Credit-Assignment) 관점에서 얼마나 가치 있는지** 평가한다.
 
-현재 Critic은 relational [GRU](GRU-and-Sequence-Models) 기반이며, 실제 episode에서 얻은 [discounted sparse return](Value-Functions-and-Bellman-Equation)을 학습한다.
+현재 [Critic](Critic)은 [관계 기반(relational)](Relational-Representation-and-Generalization) [GRU](GRU-and-Sequence-Models) 기반이며, 실제 [한 번의 문제 풀이 구간(episode)](Terminology-Guide)에서 얻은 [discounted sparse return](Value-Functions-and-Bellman-Equation)을 학습한다.
 
-> [!IMPORTANT]
+> [!**중요**]
 > 현재 manifest 계약: `relational-gru-discounted-sparse-return+zero-memory-decision-suffixes+batched-train-v3`  
 > 핵심 구현: `src/aassr_v2/current_return_critic.py`  
-> OOD support: `src/aassr_v2/current_critic_support.py`
+> [학습 분포 밖(OOD)](Critic-Support-and-OOD) [데이터 근거(support)](Critic-Support-and-OOD): `src/aassr_v2/current_critic_support.py`
 
 ---
 
 # 0. 먼저 알아두면 좋은 개념
 
-- [Value Functions & Bellman Equation](Value-Functions-and-Bellman-Equation) — return, discount factor, value
-- [GRU & Sequence Models](GRU-and-Sequence-Models) — recurrent hidden state, sequence encoding, suffix training
-- [Relational Representation & Generalization](Relational-Representation-and-Generalization) — unseen identifier transfer
-- [Critic, Support & OOD](Critic-Support-and-OOD) — interpolation, extrapolation, local support
-- [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability) — value와 reliability/support의 차이
-- [Replay Buffer & Episode Boundaries](Replay-Buffer-and-Episode-Boundaries) — success/failure/truncation과 target semantics
+- [Value Functions & Bellman Equation](Value-Functions-and-Bellman-Equation) — [누적 보상(return)](Value-Functions-and-Bellman-Equation), [미래 보상의 할인율(discount)](Value-Functions-and-Bellman-Equation) [실험에서 바꾸어 보는 요인(factor)](Ablation-Benchmarking-and-Reproducibility), [가치(value)](Value-Functions-and-Bellman-Equation)
+- [GRU & Sequence Models](GRU-and-Sequence-Models) — [과거 정보를 이어가는 순환형(recurrent)](GRU-and-Sequence-Models) [숨은 환경 상태(hidden state)](MDP-and-POMDP), [순서열(sequence)](GRU-and-Sequence-Models) [학습용 수치 표현으로 바꾸는 인코딩(encoding)](State-Representation), [후속 구간(suffix)](GRU-and-Sequence-Models) [학습(training)](Terminology-Guide)
+- [Relational Representation & Generalization](Relational-Representation-and-Generalization) — [학습 중 보지 못한(unseen)](Relational-Representation-and-Generalization) [식별자(identifier)](State-Representation) [전이(transfer)](Relational-Representation-and-Generalization)
+- [Critic, Support & OOD](Critic-Support-and-OOD) — interpolation, [학습 범위 밖으로 값을 추정하는 외삽(extrapolation)](Critic-Support-and-OOD), [국소 데이터 근거(local support)](Critic-Support-and-OOD)
+- [Stochasticity, Uncertainty & Probability](Stochasticity-Uncertainty-and-Probability) — 가치와 [신뢰도(reliability)](Calibration)/데이터 근거의 차이
+- [Replay Buffer & Episode Boundaries](Replay-Buffer-and-Episode-Boundaries) — [성공(success)](Terminology-Guide)/[실패(failure)](Replay-Buffer-and-Episode-Boundaries)/[외부 제한 종료(truncation)](Replay-Buffer-and-Episode-Boundaries)과 [대상 또는 학습 목표값(target)](Terminology-Guide) [의미 규칙(semantics)](State-Representation)
 
 ---
 
 # 1. 연구 질문
 
-> **실제 성공과 실패가 드문 환경에서 학습한 return model이 Imagination branch의 장기 가치를 구분할 수 있는가? 그리고 현재 state/action에서 그 값을 믿을 실제 근거가 있는지 구분할 수 있는가?**
+> **실제 성공과 실패가 드문 환경에서 학습한 누적 보상 [학습 모델(model)](Terminology-Guide)이 [Imagination(가상 미래 탐색)](Imagination) [갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)의 장기 가치를 구분할 수 있는가? 그리고 현재 [상태(state)](State-Representation)/[행동(action)](Reinforcement-Learning)에서 그 값을 믿을 실제 근거가 있는지 구분할 수 있는가?**
 
 [Prophecy](Prophecy)는:
 
@@ -34,7 +34,7 @@ Critic은 AASSR의 [Imagination](Imagination)에서 **예측된 미래가 실제
 
 를 예측한다.
 
-Critic은:
+[Critic](Critic)은:
 
 ```text
 그 미래는 최종 task return 관점에서 얼마나 좋은가?
@@ -56,9 +56,9 @@ value prediction
 
 # 2. Reward와 Critic target
 
-Critic은 사람이 만든 intermediate score를 학습하지 않는다.
+[Critic](Critic)은 사람이 만든 [중간(intermediate)](Sparse-Reward-and-Credit-Assignment) [평가 점수(score)](Terminology-Guide)를 학습하지 않는다.
 
-기본 external outcome:
+기본 [환경이 주는 외부(external)](Terminology-Guide) [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability):
 
 ```text
 success       +1
@@ -67,7 +67,7 @@ truncation     0
 ordinary       0
 ```
 
-따라서 Critic은 **실제 sparse task return**을 미래 sequence에 연결한다.
+따라서 [Critic](Critic)은 **실제 [드문 보상만 있는(sparse)](Sparse-Reward-and-Credit-Assignment) [연구 과제(task)](Sparse-Reward-Problem) 누적 보상**을 미래 순서열에 연결한다.
 
 이것은 [reward shaping](Sparse-Reward-and-Credit-Assignment)과 다르다.
 
@@ -75,13 +75,13 @@ ordinary       0
 route 발견 +0.2
 ```
 
-같은 hand-crafted intermediate reward를 target에 추가하는 구조가 아니다.
+같은 hand-crafted 중간 [보상(reward)](Sparse-Reward-and-Credit-Assignment)를 대상/목표값에 추가하는 구조가 아니다.
 
 ---
 
 # 3. Reward와 Return은 다르다
 
-현재 reward가 `0`이어도 몇 단계 뒤 성공한다면 현재 state의 장기 value는 양수일 수 있다.
+현재 보상가 `0`이어도 몇 단계 뒤 성공한다면 현재 상태의 장기 가치는 양수일 수 있다.
 
 ```text
 S0 → 0
@@ -90,13 +90,13 @@ S2 → 0
 S3 → +1
 ```
 
-Return:
+[누적 보상(Return)](Value-Functions-and-Bellman-Equation):
 
 ```math
 G_t=R_{t+1}+\gamma R_{t+2}+\gamma^2R_{t+3}+\cdots
 ```
 
-AASSR Critic은 이런 **장기 sparse-return structure**를 학습한다.
+AASSR [Critic](Critic)은 이런 **장기 sparse-누적 보상 [구조(structure)](Research-Architecture)**를 학습한다.
 
 자세히: [Value Functions & Bellman Equation](Value-Functions-and-Bellman-Equation)
 
@@ -104,7 +104,7 @@ AASSR Critic은 이런 **장기 sparse-return structure**를 학습한다.
 
 # 4. Discounted return
 
-어떤 decision point에서 terminal까지 `n` transitions가 남았고 최종 reward만 존재한다고 단순화하면:
+어떤 [의사결정(decision)](Chance-and-Decision-Nodes) [지점(point)](Terminology-Guide)에서 [에피소드 종료(terminal)](Replay-Buffer-and-Episode-Boundaries)까지 `n` [상태 전이(transition)](MDP-and-POMDP)s가 남았고 최종 보상만 존재한다고 단순화하면:
 
 ```math
 G_s=R_{final}\gamma^{n-1}
@@ -112,9 +112,9 @@ G_s=R_{final}\gamma^{n-1}
 
 이다.
 
-따라서 같은 `+1` success라도 더 빠른 성공은 더 큰 discounted return을 가질 수 있다.
+따라서 같은 `+1` 성공라도 더 빠른 성공은 더 큰 [미래 보상을 시간에 따라 할인한(discounted)](Value-Functions-and-Bellman-Equation) 누적 보상을 가질 수 있다.
 
-반대로 true failure `-1`도 거리에 따라 discount된다.
+반대로 true 실패 `-1`도 거리에 따라 할인율된다.
 
 `γ`가 왜 필요한지는 [discount factor](Value-Functions-and-Bellman-Equation)에서 설명한다.
 
@@ -122,9 +122,9 @@ G_s=R_{final}\gamma^{n-1}
 
 # 5. 왜 별도 Critic이 필요한가?
 
-Policy DQN도 `Q(s,a)`를 학습한다.
+[Policy(정책 모델)](Policy) [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD)도 `Q(s,a)`를 학습한다.
 
-그런데 왜 Critic이 또 필요한가?
+그런데 왜 [Critic](Critic)이 또 필요한가?
 
 ```text
 Policy DQN
@@ -134,19 +134,19 @@ Critic
 → predicted/imagined transition sequence의 long-horizon sparse return 평가
 ```
 
-즉 두 value estimator의 **input contract와 사용 위치**가 다르다.
+즉 두 가치 [값을 추정하는 모델(estimator)](Terminology-Guide)의 **[입력(input)](Terminology-Guide) [명세(contract)](Current-Status)와 사용 위치**가 다르다.
 
-[Policy](Policy)는 기본 행동 선택기이고 Critic은 [planner leaf/branch evaluator](Counterfactual-Planning-and-Search)에 가깝다.
+[Policy](Policy)는 기본 행동 선택기이고 [Critic](Critic)은 [planner leaf/branch evaluator](Counterfactual-Planning-and-Search)에 가깝다.
 
 ---
 
 # 6. 왜 GRU인가?
 
-단일 `(state, action)`만으로는 최근 transition flow가 가진 문맥을 충분히 표현하지 못할 수 있다.
+단일 `(state, action)`만으로는 최근 상태 전이 flow가 가진 문맥을 충분히 표현하지 못할 수 있다.
 
-[POMDP](MDP-and-POMDP)에서는 과거 history가 hidden condition을 추론하는 데 도움이 되기도 한다.
+[POMDP](MDP-and-POMDP)에서는 과거 [기록(history)](Development-History)가 [숨겨진(hidden)](MDP-and-POMDP) [실험 조건(condition)](Ablation-Benchmarking-and-Reproducibility)을 추론하는 데 도움이 되기도 한다.
 
-[GRU](GRU-and-Sequence-Models)는 sequence를 hidden representation으로 압축한다.
+[GRU](GRU-and-Sequence-Models)는 순서열를 숨겨진 [표현(representation)](Relational-Representation-and-Generalization)으로 압축한다.
 
 ```text
 (S0,A0,S1)
@@ -174,15 +174,15 @@ KnowledgeStore
 = 실제 response에서 획득한 explicit fact + provenance
 ```
 
-[Knowledge](Knowledge)는 어떤 fact를 언제 알았는지 추적할 수 있지만 GRU hidden vector는 직접 해석하기 어렵다.
+[Knowledge](Knowledge)는 어떤 [실제로 관측한 사실(fact)](Causality-Leakage-and-Evaluation)를 언제 알았는지 추적할 수 있지만 [GRU(게이트 순환 유닛)](GRU-and-Sequence-Models) 숨겨진 [수치 벡터(vector)](Neural-Networks-and-Optimization)는 직접 해석하기 어렵다.
 
-둘은 서로 다른 memory mechanism이다.
+둘은 서로 다른 [기억(memory)](GRU-and-Sequence-Models) [작동 원리(mechanism)](Evidence-Matrix)이다.
 
 ---
 
 # 8. Zero-memory planning 문제
 
-Imagination은 episode 시작점에서만 호출되지 않는다.
+[Imagination](Imagination)은 한 번의 문제 풀이 구간 시작점에서만 호출되지 않는다.
 
 ```text
 real trajectory
@@ -191,21 +191,21 @@ S0 → S1 → S2 → S3
            여기서 planning 시작 가능
 ```
 
-그런데 Critic이 training에서 항상 episode 시작부터 hidden memory를 누적했다고 하자.
+그런데 [Critic](Critic)이 학습에서 항상 한 번의 문제 풀이 구간 시작부터 숨겨진 기억를 누적했다고 하자.
 
 ```text
 training:
 h0 → h1 → h2 → h3
 ```
 
-실제 planner가 `S2`에서 갑자기 시작하면 `h2`를 갖고 있지 않을 수 있다.
+실제 [계획기(planner)](Counterfactual-Planning-and-Search)가 `S2`에서 갑자기 시작하면 `h2`를 갖고 있지 않을 수 있다.
 
 ```text
 inference:
 zero hidden + S2
 ```
 
-Training과 inference의 recurrent-state contract가 달라진다.
+[학습(Training)](Reinforcement-Learning)과 [학습된 모델로 값을 계산하는 추론(inference)](Neural-Networks-and-Optimization)의 recurrent-state 명세가 달라진다.
 
 이 문제는 [GRU & Sequence Models](GRU-and-Sequence-Models)에서 일반적으로 설명한다.
 
@@ -213,7 +213,7 @@ Training과 inference의 recurrent-state contract가 달라진다.
 
 # 9. Decision suffix training
 
-이를 맞추기 위해 현재 Critic은 한 real episode에서 모든 decision suffix를 만든다.
+이를 맞추기 위해 현재 [Critic](Critic)은 한 [실제 환경에서 관측된(real)](Research-Jargon-Guide) 한 번의 문제 풀이 구간에서 모든 의사결정 후속 구간를 만든다.
 
 ```text
 S0 → S1 → S2 → S3 → terminal
@@ -224,15 +224,15 @@ suffix 2: S2 → S3
 suffix 3: S3
 ```
 
-각 suffix는 **zero recurrent memory**에서 시작하는 독립 training example이 된다.
+각 후속 구간는 **zero 순환형 기억**에서 시작하는 독립 학습 example이 된다.
 
-따라서 어떤 current decision state에서 planner가 시작해도 training condition과 더 잘 맞는다.
+따라서 어떤 [현재(current)](Current-Status) 의사결정 상태에서 계획기가 시작해도 학습 실험 조건과 더 잘 맞는다.
 
 ---
 
 # 10. Prefix마다 root-return target
 
-한 suffix 안에서 sequence가 점점 길어질 때 current design은 해당 suffix의 root sparse-return target을 유지하도록 학습한다.
+한 후속 구간 안에서 순서열가 점점 길어질 때 현재 [설계(design)](Design-Rationale)은 해당 후속 구간의 [탐색의 첫 행동(root)](Imagination) sparse-누적 보상 대상/목표값을 유지하도록 학습한다.
 
 개념적으로:
 
@@ -245,13 +245,13 @@ prefix [S1,S2]       → γ²
 prefix [S1,S2,S3]    → γ²
 ```
 
-목표는 Critic이 **현재 planning root에서 시작했을 때의 future return**을 sequence context가 늘어나면서 계속 추정하도록 만드는 것이다.
+목표는 [Critic](Critic)이 **현재 [계획(planning)](Counterfactual-Planning-and-Search) 탐색의 첫 행동에서 시작했을 때의 [미래(future)](Counterfactual-Planning-and-Search) 누적 보상**을 순서열 [문맥 정보(context)](GRU-and-Sequence-Models)가 늘어나면서 계속 추정하도록 만드는 것이다.
 
 ---
 
 # 11. Critic input과 relational identity
 
-Critic은 concrete route/profile/object 이름 자체보다 [relational transition feature](Relational-Representation-and-Generalization)를 사용한다.
+[Critic](Critic)은 [실제 개체를 구분하는(concrete)](State-Representation) route/profile/object 이름 자체보다 [relational transition feature](Relational-Representation-and-Generalization)를 사용한다.
 
 목표:
 
@@ -261,7 +261,7 @@ training seed의 route-12에서 배운 가치 구조
 unseen seed의 같은 역할 route-31에 transfer
 ```
 
-이것은 [ASEQ](ASEQ)가 concrete semantic identity를 유지하는 이유와 반대처럼 보일 수 있다.
+이것은 [ASEQ](ASEQ)가 실제 개체를 구분하는 [의미 기준(semantic)](State-Representation) [식별 방식(identity)](State-Representation)를 유지하는 이유와 반대처럼 보일 수 있다.
 
 하지만 목적이 다르다.
 
@@ -279,9 +279,9 @@ Critic
 
 # 12. Function approximation의 장점과 위험
 
-Neural Critic은 training sample과 비슷한 input에 generalize할 수 있다.
+Neural [Critic](Critic)은 학습 [표본(sample)](Ablation-Benchmarking-and-Reproducibility)과 비슷한 입력에 generalize할 수 있다.
 
-하지만 training support 밖에서도 항상 숫자를 출력한다.
+하지만 학습 데이터 근거 밖에서도 항상 숫자를 출력한다.
 
 ```text
 in-distribution
@@ -297,9 +297,9 @@ out-of-distribution
 
 # 13. Confidence는 Critic value feature가 아니다
 
-현재 confidence-gate repair의 중요한 원칙이다.
+현재 confidence-gate [문제 수정(repair)](Development-History)의 중요한 원칙이다.
 
-Prophecy reliability가 Critic input에 들어가면 network가 다음 shortcut을 배울 수 있다.
+[Prophecy(미래 예측 모델)](Prophecy) 신뢰도가 [Critic](Critic) 입력에 들어가면 [신경망(network)](Neural-Networks-and-Optimization)가 다음 [정답 정보를 우회적으로 이용하는 지름길(shortcut)](Causality-Leakage-and-Evaluation)을 배울 수 있다.
 
 ```text
 confidence 높음
@@ -316,7 +316,7 @@ confidence 높음
 
 이다.
 
-그래서 current 구조는 기존 tensor shape를 유지하되 confidence feature slot을 constant로 중립화한다.
+그래서 현재 구조는 기존 tensor shape를 유지하되 [예측 신뢰 정도(confidence)](Calibration) [학습에 사용하는 특징(feature)](Terminology-Guide) slot을 constant로 중립화한다.
 
 ```text
 Critic ranking = sparse-return value
@@ -329,7 +329,7 @@ Prophecy reliability = eligibility gate
 
 # 14. Global `critic_ready`의 한계
 
-Critic이 충분한 gradient update를 했다는 global flag가 있다고 하자.
+[Critic](Critic)이 충분한 [기울기(gradient)](Neural-Networks-and-Optimization) [학습 갱신(update)](Neural-Networks-and-Optimization)를 했다는 [전체 범위(global)](Terminology-Guide) flag가 있다고 하자.
 
 ```text
 critic_ready = True
@@ -363,11 +363,11 @@ local empirical support
 
 # 15. Local Critic support
 
-현재는 real Critic training transitions를 이용해 query state/action이 실제 training region과 얼마나 가까운지 판단한다.
+현재는 실제 [Critic](Critic) 학습 상태 전이s를 이용해 [조회 또는 질의(query)](Terminology-Guide) 상태/행동이 실제 학습 [상태 공간의 영역(region)](Critic-Support-and-OOD)과 얼마나 가까운지 판단한다.
 
 질문은 하나다.
 
-> **이 Critic value를 비교에 사용할 real training evidence가 충분한가?**
+> **이 [Critic](Critic) 가치를 비교에 사용할 실제 학습 [증거(evidence)](Evidence-Matrix)가 충분한가?**
 
 ```text
 Policy root support 충분?
@@ -381,15 +381,15 @@ Candidate root support 충분?
 
 # 16. Support distance
 
-Support distance는 raw ID의 단순 Euclidean distance가 아니라 **public relational structural region**의 차이를 본다.
+Support [거리(distance)](Critic-Support-and-OOD)는 [가공하지 않은 원본(raw)](State-Representation) ID의 단순 Euclidean 거리가 아니라 **[공개된(public)](State-Representation) 관계 기반 [구조 기반(structural)](Relational-Representation-and-Generalization) 영역**의 차이를 본다.
 
 비교 요소 예:
 
-- workflow progress
-- known route/profile/object counts
-- observed role distributions
-- object-related public facts
-- latest observed public status
+- workflow [진행도(progress)](Terminology-Guide)
+- [이미 알려진(known)](Terminology-Guide) route/profile/object counts
+- [실제로 관측된(observed)](Causality-Leakage-and-Evaluation) [역할(role)](Relational-Representation-and-Generalization) distributions
+- object-related 공개된 facts
+- [가장 최근의(latest)](Current-Status) 관측된 공개된 [상태 코드(status)](Terminology-Guide)
 
 중요한 점:
 
@@ -409,7 +409,7 @@ Critic predicted value 자체는 support distance에 쓰지 않음
 
 # 17. Support confidence
 
-현재 구현은 nearest real sample distance와 sample count를 함께 반영하는 형태다.
+현재 구현은 nearest 실제 표본 거리와 표본 [횟수(count)](Terminology-Guide)를 함께 반영하는 형태다.
 
 개념적 intuition:
 
@@ -421,7 +421,7 @@ e^{-4d_{nearest}}
 \frac{N}{N+4}
 ```
 
-정확한 current parameter는 code를 source of truth로 확인한다.
+정확한 현재 [학습 파라미터(parameter)](Neural-Networks-and-Optimization)는 code를 [최종 기준(source of truth)](Current-Status)로 확인한다.
 
 의미는:
 
@@ -447,7 +447,7 @@ support 높음
 좋은 행동
 ```
 
-실패 branch도 training data가 많으면 support가 높을 수 있다.
+실패 결과 경로도 [학습 데이터(training data)](Terminology-Guide)가 많으면 데이터 근거가 높을 수 있다.
 
 Support는:
 
@@ -457,13 +457,13 @@ Support는:
 
 만 판단한다.
 
-즉 [Calibration](Calibration)과 마찬가지로 **evidence gate**이지 reward/value bonus가 아니다.
+즉 [Calibration](Calibration)과 마찬가지로 **증거 [판정 관문(gate)](Terminology-Guide)**이지 보상/가치 [추가 점수(bonus)](Information-Theory-and-Intrinsic-Motivation)가 아니다.
 
 ---
 
 # 19. Planner에서의 역할
 
-Imagination root evaluation:
+[Imagination](Imagination) 탐색의 첫 행동 [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility):
 
 ```text
 Policy A    : V = 0.1
@@ -481,7 +481,7 @@ support(B)=0.2
 
 라면 `V(B)=0.6`은 [OOD extrapolation](Critic-Support-and-OOD)일 수 있다.
 
-Current design은 이런 경우 B override를 취소하고 Policy를 유지한다.
+[현재(Current)](Current-Status) 설계은 이런 경우 B [기본 행동 덮어쓰기(override)](Imagination)를 취소하고 [Policy](Policy)를 유지한다.
 
 ---
 
@@ -489,18 +489,18 @@ Current design은 이런 경우 B override를 취소하고 Policy를 유지한�
 
 | 값 | 질문 |
 |---|---|
-| Prophecy outcome probability | 이 future outcome이 발생할 mass는? |
-| Prophecy reliability | transition prediction을 믿을 수 있나? |
-| Critic value | 이 future의 sparse return은? |
-| Critic support | 그 value를 믿을 real training evidence가 있나? |
+| [Prophecy](Prophecy) [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability) | 이 미래 환경 결과이 발생할 [확률 질량(mass)](Stochasticity-Uncertainty-and-Probability)는? |
+| [Prophecy](Prophecy) 신뢰도 | 상태 전이 [예측(prediction)](Terminology-Guide)을 믿을 수 있나? |
+| [Critic](Critic) 가치 | 이 미래의 희소한 누적 보상은? |
+| [가치 평가 데이터 근거(Critic support)](Critic-Support-and-OOD) | 그 가치를 믿을 실제 학습 증거가 있나? |
 
-AASSR current repair의 중요한 철학은 **서로 다른 의미를 하나의 confidence score로 합치지 않는 것**이다.
+AASSR 현재 문제 수정의 중요한 철학은 **서로 다른 의미를 하나의 예측 신뢰 정도 평가 점수로 합치지 않는 것**이다.
 
 ---
 
 # 21. 왜 Planner가 Critic OOD를 더 위험하게 만드는가?
 
-Search는 많은 candidate 중 가장 높은 value를 찾는다.
+Search는 많은 [선택 후보(candidate)](Terminology-Guide) 중 가장 높은 가치를 찾는다.
 
 ```text
 branch 1 → 0.1
@@ -509,19 +509,19 @@ branch 3 → 0.3
 branch 4 → 2.8  ← OOD artifact
 ```
 
-Optimization은 우연한 prediction error를 적극적으로 선택할 수 있다.
+Optimization은 우연한 예측 [오차(error)](Loss-Functions-and-Class-Imbalance)를 적극적으로 선택할 수 있다.
 
 이것이 [model exploitation / optimizer's curse](Model-Based-RL-and-World-Models)와 연결된다.
 
-따라서 planning에서 local support가 특히 중요하다.
+따라서 계획에서 국소 데이터 근거가 특히 중요하다.
 
 ---
 
 # 22. 과거 2k diagnostic에서 왜 중요했는가?
 
-Repaired Imagination은 이전에는 inert했지만 이후 실제로 action을 바꾸게 됐다.
+Repaired [Imagination](Imagination)은 이전에는 inert했지만 이후 실제로 행동을 바꾸게 됐다.
 
-그러나 higher-level region에서 **real Critic training support가 부족한 상태**에서도 branch value를 갈라냈고, 많은 override가 실제 error/status로 이어졌다.
+그러나 [여러 기본 행동을 묶는 상위 수준(higher-level)](Hierarchical-RL-and-Skills) 영역에서 **실제 [Critic](Critic) 학습 데이터 근거가 부족한 상태**에서도 결과 경로 가치를 갈라냈고, 많은 기본 행동 덮어쓰기가 실제 오차/상태 코드로 이어졌다.
 
 이 결과가 보여준 것:
 
@@ -533,13 +533,13 @@ Critic is trustworthy here
 
 이다.
 
-Local support gate는 바로 이 failure mode를 겨냥한다.
+[국소 데이터 근거(Local support)](Critic-Support-and-OOD) 판정 관문는 바로 이 실패 [서로 다른 결과 유형(mode)](Mixture-Ensemble-and-Calibration)를 겨냥한다.
 
 ---
 
 # 23. Sparse target starvation
 
-Success/failure trajectory가 너무 적으면 Critic target 대부분이 `0` 근처일 수 있다.
+Success/실패 [경험 경로(trajectory)](Reinforcement-Learning)가 너무 적으면 [Critic](Critic) 대상/목표값 대부분이 `0` 근처일 수 있다.
 
 ```text
 ordinary 0
@@ -548,13 +548,13 @@ ordinary 0
 ...
 ```
 
-그러면 branch 간 return discrimination이 약해진다.
+그러면 결과 경로 간 누적 보상 discrimination이 약해진다.
 
 결과:
 
-- 거의 모든 root value가 비슷함
-- Imagination advantage가 margin을 넘지 못함
-- intervention이 0에 가까워질 수 있음
+- 거의 모든 탐색의 첫 행동 가치가 비슷함
+- [Imagination](Imagination) [다른 선택보다 나은 정도(advantage)](Value-Functions-and-Bellman-Equation)가 [최소 차이 기준(margin)](Imagination)을 넘지 못함
+- [실제 행동 개입(intervention)](Imagination)이 0에 가까워질 수 있음
 
 이 문제의 뿌리는 [sparse reward / credit assignment](Sparse-Reward-and-Credit-Assignment)에 있다.
 
@@ -562,41 +562,41 @@ ordinary 0
 
 # 24. Critic training과 Replay
 
-Critic은 real trajectory를 기반으로 suffix training examples를 만든다.
+[Critic](Critic)은 실제 경험 경로를 기반으로 후속 구간 학습 examples를 만든다.
 
 이때 [episode boundary](Replay-Buffer-and-Episode-Boundaries)가 정확해야 한다.
 
-새 episode state가 이전 episode suffix에 붙으면 실제로 존재하지 않는 return target이 만들어질 수 있다.
+새 한 번의 문제 풀이 구간 상태가 이전 한 번의 문제 풀이 구간 후속 구간에 붙으면 실제로 존재하지 않는 누적 보상 대상/목표값이 만들어질 수 있다.
 
 ```text
 real trajectory continuity
 ```
 
-가 Critic factual basis의 핵심이다.
+가 [Critic](Critic) [실제 사실에 근거한(factual)](Causality-Leakage-and-Evaluation) basis의 핵심이다.
 
 ---
 
 # 25. Critic training loss
 
-Current Critic은 return regression에 [Smooth L1/Huber 계열 loss](Loss-Functions-and-Class-Imbalance)를 사용할 수 있다.
+현재 [Critic](Critic)은 누적 보상 [회귀 검증(regression)](Ablation-Benchmarking-and-Reproducibility)에 [Smooth L1/Huber 계열 loss](Loss-Functions-and-Class-Imbalance)를 사용할 수 있다.
 
-또 [gradient clipping](Neural-Networks-and-Optimization)으로 recurrent training 안정성을 높인다.
+또 [gradient clipping](Neural-Networks-and-Optimization)으로 순환형 학습 안정성을 높인다.
 
-이 loss는:
+이 [학습 손실(loss)](Loss-Functions-and-Class-Imbalance)는:
 
 ```text
 Critic parameter optimization objective
 ```
 
-이지 environment reward 자체가 아니다.
+이지 [환경(environment)](Reinforcement-Learning) 보상 자체가 아니다.
 
 ---
 
 # 26. Batched training/inference
 
-Imagination tree에는 많은 branch가 있다.
+[Imagination](Imagination) [탐색 트리(tree)](Counterfactual-Planning-and-Search)에는 많은 결과 경로가 있다.
 
-Critic을 branch마다 scalar GPU call로 실행하면 overhead가 매우 커질 수 있다.
+[Critic](Critic)을 결과 경로마다 [숫자 하나인 스칼라(scalar)](Neural-Networks-and-Optimization) GPU call로 실행하면 overhead가 매우 커질 수 있다.
 
 ```text
 branch1 → GPU
@@ -605,7 +605,7 @@ branch3 → GPU
 ...
 ```
 
-Current hardware path는 여러 branch를 한 batch로 평가한다.
+현재 hardware [경로(path)](Counterfactual-Planning-and-Search)는 여러 결과 경로를 한 [여러 입력 묶음(batch)](Reproduction)로 평가한다.
 
 ```text
 [branch1, branch2, branch3, ...]
@@ -613,7 +613,7 @@ Current hardware path는 여러 branch를 한 batch로 평가한다.
            GPU
 ```
 
-이것은 [semantics-preserving optimization](Neural-Networks-and-Optimization)이며 Critic target 정의를 바꾸지 않는다.
+이것은 [semantics-preserving optimization](Neural-Networks-and-Optimization)이며 [Critic](Critic) 대상/목표값 정의를 바꾸지 않는다.
 
 ---
 
@@ -621,31 +621,31 @@ Current hardware path는 여러 branch를 한 batch로 평가한다.
 
 ## 27.1 Sparse target starvation
 
-**원인:** 성공/실패 real trajectory 부족.  
-**결과:** 모든 value가 비슷함.  
-**대응:** 더 많은 real frontier experience, curriculum/transfer 개선.
+**원인:** 성공/실패 실제 경험 경로 부족.  
+**결과:** 모든 가치가 비슷함.  
+**대응:** 더 많은 실제 frontier [경험(experience)](Replay-Buffer-and-Episode-Boundaries), [난이도 조절 학습(curriculum)](Curriculum-Learning)/전이 개선.
 
 ## 27.2 OOD extrapolation
 
-**원인:** model이 training support 밖에서도 숫자를 출력.  
-**결과:** planner가 unrealistically high candidate를 선택.  
-**대응:** local support fail-closed.
+**원인:** 학습 모델이 학습 데이터 근거 밖에서도 숫자를 출력.  
+**결과:** 계획기가 unrealistically high 선택 후보를 선택.  
+**대응:** 국소 데이터 근거 [근거가 부족하면 보수적으로 거부하는(fail-closed)](Critic-Support-and-OOD).
 
 ## 27.3 Recurrent-state mismatch
 
-**원인:** full episode hidden memory로 학습하지만 current decision은 zero memory.  
-**대응:** every-decision suffix training.
+**원인:** full 한 번의 문제 풀이 구간 숨겨진 기억로 학습하지만 현재 의사결정은 zero 기억.  
+**대응:** every-decision 후속 구간 학습.
 
 ## 27.4 Confidence leakage
 
-**원인:** Prophecy reliability가 Critic input에 value feature로 들어감.  
-**대응:** confidence-independent encoding.
+**원인:** [Prophecy](Prophecy) 신뢰도가 [Critic](Critic) 입력에 가치 학습 특징로 들어감.  
+**대응:** confidence-independent 인코딩.
 
 ## 27.5 Over-conservative support
 
-**원인:** support threshold가 너무 높음.  
-**결과:** useful novel candidate도 전부 막음.  
-**대응:** intervention-quality ablation으로 threshold 검증.
+**원인:** 데이터 근거 [판정 기준값(threshold)](Terminology-Guide)가 너무 높음.  
+**결과:** useful novel 선택 후보도 전부 막음.  
+**대응:** 실제 행동 개입-quality [구성요소 제거 비교(ablation)](Ablation-Benchmarking-and-Reproducibility)으로 판정 기준값 검증.
 
 ---
 
@@ -653,31 +653,31 @@ Current hardware path는 여러 branch를 한 batch로 평가한다.
 
 ## Model-level
 
-- return regression error
-- positive/negative/zero target 분포
-- sequence-length별 error
-- decision-suffix coverage
+- 누적 보상 회귀 검증 오차
+- positive/negative/zero 대상/목표값 분포
+- sequence-length별 오차
+- decision-suffix [데이터가 어느 영역까지 포함하는지(coverage)](Critic-Support-and-OOD)
 
 ## Support-level
 
-- local support pass rate
-- nearest-support distance
-- sample count
-- suppressed OOD candidate count
+- 국소 데이터 근거 [검사를 통과(pass)](Ablation-Benchmarking-and-Reproducibility) [비율(rate)](Terminology-Guide)
+- nearest-support 거리
+- 표본 횟수
+- suppressed [OOD](Critic-Support-and-OOD) 선택 후보 횟수
 
 ## Planner-level
 
-- candidate value gap
-- support 때문에 취소된 intervention
-- supported intervention error rate
+- 선택 후보 가치 gap
+- 데이터 근거 때문에 취소된 실제 행동 개입
+- supported 실제 행동 개입 오차 비율
 
 ## Agent-level
 
-- no-Imagination 대비 Full success
-- direct success-producing intervention
-- bad-status intervention 감소 여부
+- no-[Imagination](Imagination) 대비 [전체 AASSR 조건(Full)](Experiments) 성공
+- [직접적인(direct)](Terminology-Guide) [실제로 성공을 만들어내는(success-producing)](Experiments) 실제 행동 개입
+- bad-status 실제 행동 개입 감소 여부
 
-높은 Critic regression score가 final success를 자동 보장하지 않는다.
+높은 [Critic](Critic) 회귀 검증 평가 점수가 [최종(final)](Ablation-Benchmarking-and-Reproducibility) 성공를 자동 보장하지 않는다.
 
 [Proxy metric과 task metric](Ablation-Benchmarking-and-Reproducibility)을 분리한다.
 
@@ -717,7 +717,7 @@ src/aassr_v2/current_confidence_gate.py
 
 # 31. 한 문장 요약
 
-> **Critic은 Prophecy가 만든 미래를 실제 sparse return으로 평가하되, 그 숫자가 training evidence 밖의 extrapolation인지 local support로 다시 확인하는 sequence-value model이다.**
+> **[Critic](Critic)은 [Prophecy](Prophecy)가 만든 미래를 실제 희소한 누적 보상으로 평가하되, 그 숫자가 학습 증거 밖의 외삽인지 국소 데이터 근거로 다시 확인하는 sequence-value 학습 모델이다.**
 
 ---
 

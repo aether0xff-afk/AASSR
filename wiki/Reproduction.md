@@ -1,9 +1,9 @@
-# Reproduction
+# 실험 재현 방법 (Reproduction)
 
-이 페이지는 **현재 `main`의 AASSR current-generation을 재현하고, 결과를 연구 evidence로 사용할 수 있는지 확인하는 최소 절차**를 설명한다.
+이 페이지는 **현재 `main`의 AASSR [현재 세대(current-generation)](Current-Status)을 재현하고, 결과를 연구 [증거(evidence)](Evidence-Matrix)로 사용할 수 있는지 확인하는 최소 절차**를 설명한다.
 
-> [!IMPORTANT]
-> Current architecture의 source of truth는 특정 연구 브랜치가 아니라 `main`의 `src/aassr_v2/current_manifest.py`다. 과거 실험을 재현할 때만 해당 historical commit/branch를 명시적으로 checkout한다.
+> [!**중요**]
+> [현재(Current)](Current-Status) [구조(architecture)](Research-Architecture)의 [최종 기준(source of truth)](Current-Status)는 특정 연구 브랜치가 아니라 `main`의 `src/aassr_v2/current_manifest.py`다. 과거 실험을 재현할 때만 해당 [과거 기록(historical)](Development-History) [Git 변경 기록 단위(commit)](Research-Jargon-Guide)/[갈라진 결과 경로(branch)](Chance-and-Decision-Nodes)를 명시적으로 checkout한다.
 
 관련 페이지:
 - [Current Status](Current-Status)
@@ -41,7 +41,7 @@ git checkout main
 git pull --ff-only origin main
 ```
 
-실험 보고서에는 가능하면 실제 실행 commit을 기록한다.
+실험 보고서에는 가능하면 실제 실행 커밋을 기록한다.
 
 ```powershell
 git rev-parse HEAD
@@ -68,7 +68,7 @@ AASSR commit: <40-char SHA>
 가 훨씬 정확하게 재현 가능하기 때문이다.
 
 > [!TIP]
-> 새 실험을 시작한 뒤 `main`이 바뀌어도 같은 run을 재현하려면 시작 commit SHA를 보존한다.
+> 새 실험을 시작한 뒤 `main`이 바뀌어도 같은 [실험 실행(run)](Reproduction)을 재현하려면 시작 커밋 SHA를 보존한다.
 
 ---
 
@@ -90,7 +90,7 @@ python -m pip install -e ".[dev]"
 python -m pip install -e ".[dev]"
 ```
 
-GPU-specific optional dependency가 필요한 runner라면 저장소의 current dependency contract에 맞춰 설치한다.
+GPU-specific optional dependency가 필요한 runner라면 저장소의 [현재(current)](Current-Status) dependency [명세(contract)](Current-Status)에 맞춰 설치한다.
 
 환경 기록 권장:
 
@@ -109,7 +109,7 @@ python -c "import torch; print(torch.__version__); print(torch.cuda.is_available
 
 # 3. Manifest 확인
 
-Current runtime 이름과 legacy component 여부:
+[현재 실행 구조(Current runtime)](Current-Status) 이름과 [구버전 호환 코드(legacy)](Development-History) [구성요소(component)](Research-Architecture) 여부:
 
 ```powershell
 python -c "from aassr_v2.current_manifest import CURRENT_GENERATION_VERSION, CURRENT_COMPONENTS, LEGACY_COMPONENTS_ACTIVE; print(CURRENT_GENERATION_VERSION); print(LEGACY_COMPONENTS_ACTIVE); [print(f'{k}: {v}') for k,v in CURRENT_COMPONENTS.items()]"
@@ -122,7 +122,7 @@ aassr-current-generation-v2
 LEGACY_COMPONENTS_ACTIVE = ()
 ```
 
-그리고 current manifest에는 최소한 다음 계열이 보여야 한다.
+그리고 현재 manifest에는 최소한 다음 계열이 보여야 한다.
 
 ```text
 observation
@@ -154,30 +154,30 @@ python -m compileall -q src tests scripts
 pytest -q
 ```
 
-긴 전체 test가 부담되면 current-generation runner가 사용하는 preflight subset을 우선 사용할 수 있지만, 성능 evidence를 만들기 전에는 current contract에 직접 관련된 regression이 모두 통과해야 한다.
+긴 전체 [검사 또는 테스트(test)](Ablation-Benchmarking-and-Reproducibility)가 부담되면 현재 세대 runner가 사용하는 preflight subset을 우선 사용할 수 있지만, 성능 증거를 만들기 전에는 현재 명세에 직접 관련된 [회귀 검증(regression)](Ablation-Benchmarking-and-Reproducibility)이 모두 통과해야 한다.
 
 특히 확인할 영역:
 
 - [State Representation v3](State-Representation)
-- public HTTP status preservation
-- action-surface reconstruction
-- [Prophecy](Prophecy) multimodal outcome preservation
-- outcome probability normalization
-- status categorical supervision
+- [공개된(public)](State-Representation) HTTP [상태 코드(status)](Terminology-Guide) [의미 보존(preservation)](Ablation-Benchmarking-and-Reproducibility)
+- [행동(action)](Reinforcement-Learning)-surface reconstruction
+- [Prophecy](Prophecy) [여러 결과 형태를 가진(multimodal)](Mixture-Ensemble-and-Calibration) [환경 결과(outcome)](Stochasticity-Uncertainty-and-Probability) 보존
+- [결과 확률(outcome probability)](Stochasticity-Uncertainty-and-Probability) [수치 범위를 맞추는 정규화(normalization)](Neural-Networks-and-Optimization)
+- 상태 코드 [범주형(categorical)](Loss-Functions-and-Class-Imbalance) supervision
 - [Calibration](Calibration)
-- [Chance vs Decision](Chance-and-Decision-Nodes) backup
-- [Critic](Critic) sparse-return contract
+- [Chance vs Decision](Chance-and-Decision-Nodes) [미래 가치를 앞 단계로 되돌려 계산하는 과정(backup)](Value-Functions-and-Bellman-Equation)
+- [Critic](Critic) sparse-[누적 보상(return)](Value-Functions-and-Bellman-Equation) 명세
 - [Local Critic Support](Critic-Support-and-OOD)
-- structural root deduplication
-- same-checkpoint freeze
+- [구조 기반(structural)](Relational-Representation-and-Generalization) [탐색의 첫 행동(root)](Imagination) deduplication
+- [같은 체크포인트(same-checkpoint)](Experiments) freeze
 
-Regression pass는 **성능 향상 evidence가 아니라 구현 contract evidence**다.
+Regression [검사를 통과(pass)](Ablation-Benchmarking-and-Reproducibility)는 **성능 향상 증거가 아니라 구현 명세 증거**다.
 
 ---
 
 # 5. CUDA path 확인
 
-현재 hardware path 검사:
+현재 hardware [경로(path)](Counterfactual-Planning-and-Search) 검사:
 
 ```powershell
 python scripts\check_current_generation_hardware.py --device cuda:0
@@ -191,15 +191,15 @@ torch.cuda.is_available() == True
 
 를 확인하는 것이 아니다.
 
-Policy DQN, relational world model, Critic과 current batching path가 **실제로 요청한 accelerator contract를 사용하고 있는지** 확인한다.
+[Policy(정책 모델)](Policy) [DQN(딥 Q-네트워크)](Q-Learning-DQN-and-TD), [관계 기반(relational)](Relational-Representation-and-Generalization) [세계 모델(world model)](Model-Based-RL-and-World-Models), [Critic(미래 가치 평가기)](Critic)과 현재 [묶음 처리(batching)](Reproduction) 경로가 **실제로 요청한 accelerator 명세를 사용하고 있는지** 확인한다.
 
-성능 benchmark에서 CPU fallback이 일어났다면 runtime 비교를 그대로 사용하면 안 된다.
+성능 [표준 비교 실험(benchmark)](Ablation-Benchmarking-and-Reproducibility)에서 CPU [기본 경로로 돌아가기(fallback)](Imagination)이 일어났다면 [실행 구조(runtime)](Current-Status) 비교를 그대로 사용하면 안 된다.
 
 ---
 
 # 6. Reduced same-checkpoint validation
 
-현재 저장소에는 repaired Imagination validation entrypoint가 있다.
+현재 저장소에는 [문제를 수정한 뒤의(repaired)](Development-History) [Imagination(가상 미래 탐색)](Imagination) [검증(validation)](Ablation-Benchmarking-and-Reproducibility) entrypoint가 있다.
 
 예시:
 
@@ -216,7 +216,7 @@ python scripts\run_repaired_imagination_final.py `
 ```
 
 > [!NOTE]
-> 위 `2048`, `512`, `0.05`, `4`는 **reduced diagnostic 예시**다. 이것을 final benchmark budget과 혼동하지 않는다. 실제 논문/보고서 결과에는 실행 argument 전체와 commit SHA를 함께 기록한다.
+> 위 `2048`, `512`, `0.05`, `4`는 **reduced [진단 실험(diagnostic)](Evidence-Matrix) 예시**다. 이것을 [최종(final)](Ablation-Benchmarking-and-Reproducibility) 표준 비교 실험 [실험에 허용된 전이 수 한도(budget)](Ablation-Benchmarking-and-Reproducibility)과 혼동하지 않는다. 실제 논문/보고서 결과에는 실행 argument 전체와 커밋 SHA를 함께 기록한다.
 
 핵심 구조:
 
@@ -235,22 +235,22 @@ Policy       Imagination
 ## 반드시 확인할 것
 
 - OFF/ON을 따로 재학습하지 않았는가?
-- evaluation 중 persistent learner state가 변하지 않았는가?
-- external reward contract가 동일한가?
-- intervention margin을 결과 보기 전에 고정했는가?
-- transition budget이 real primitive action 기준인가?
+- [평가(evaluation)](Ablation-Benchmarking-and-Reproducibility) 중 [에피소드가 끝나도 유지되는(persistent)](Knowledge) [학습 주체(learner)](Terminology-Guide) [상태(state)](State-Representation)가 변하지 않았는가?
+- [환경이 주는 외부(external)](Terminology-Guide) [보상(reward)](Sparse-Reward-and-Credit-Assignment) 명세가 동일한가?
+- [실제 행동 개입(intervention)](Imagination) [최소 차이 기준(margin)](Imagination)을 결과 보기 전에 고정했는가?
+- [상태 전이(transition)](MDP-and-POMDP) 실험 예산이 [실제 환경에서 관측된(real)](Research-Jargon-Guide) [더 쪼개지 않는 기본 행동 단위(primitive)](Hierarchical-RL-and-Skills) 행동 기준인가?
 
 ---
 
 # 7. Current local comparison
 
-PyTorch current-generation local comparison entrypoint:
+PyTorch 현재 세대 [현재 주변에 한정된 국소적(local)](Critic-Support-and-OOD) [비교(comparison)](Ablation-Benchmarking-and-Reproducibility) entrypoint:
 
 ```text
 scripts/run_pentest_current_generation_main.py
 ```
 
-핵심 condition:
+핵심 [실험 조건(condition)](Ablation-Benchmarking-and-Reproducibility):
 
 ```text
 dqn_raw
@@ -281,13 +281,13 @@ AASSR no-Imagination
 
 # 8. DreamerV3 baseline
 
-External model-based baseline entrypoint:
+External [환경 모델을 사용하는(model-based)](Model-Based-RL-and-World-Models) [비교 기준(baseline)](Ablation-Benchmarking-and-Reproducibility) entrypoint:
 
 ```text
 scripts/run_dreamerv3_current_baseline.py
 ```
 
-Canonical benchmark는 Linux/WSL + JAX/CUDA 환경의 pinned official upstream을 사용한다.
+Canonical 표준 비교 실험는 Linux/WSL + JAX/CUDA 환경의 pinned [공식 구현(official)](Experiments) upstream을 사용한다.
 
 최종 결과에 기록해야 할 것:
 
@@ -301,7 +301,7 @@ action adapter contract
 real primitive transition budget
 ```
 
-CPU/debug smoke는 API와 environment stepping contract 확인용이다.
+CPU/debug smoke는 API와 [환경(environment)](Reinforcement-Learning) stepping 명세 확인용이다.
 
 ```text
 CPU smoke success
@@ -309,7 +309,7 @@ CPU smoke success
 canonical CUDA benchmark result
 ```
 
-외부 baseline의 알고리즘 내부를 AASSR에 맞춰 임의로 수정하면 비교 의미가 달라지므로 변경이 있다면 반드시 별도 condition으로 이름을 바꾼다.
+외부 비교 기준의 알고리즘 내부를 AASSR에 맞춰 임의로 수정하면 비교 의미가 달라지므로 변경이 있다면 반드시 별도 실험 조건으로 이름을 바꾼다.
 
 ---
 
@@ -331,24 +331,24 @@ scripts/assemble_pentest_current_generation_suite.py
 5. aassr_current_full
 ```
 
-Assembler 또는 사람이 확인해야 하는 주요 mismatch:
+Assembler 또는 사람이 확인해야 하는 주요 [서로 맞지 않는 불일치(mismatch)](Causality-Leakage-and-Evaluation):
 
-- source commit
-- research seed
-- transition budget
-- train/eval seed pools
-- stage/tier protocol
+- source 커밋
+- [연구(research)](Research-Questions) [난수 시드(seed)](Ablation-Benchmarking-and-Reproducibility)
+- 상태 전이 실험 예산
+- train/eval 난수 시드 pools
+- stage/tier [실험 규칙(protocol)](Ablation-Benchmarking-and-Reproducibility)
 - final-blind 사용 여부
-- AASSR same-checkpoint 여부
+- AASSR 같은 체크포인트 여부
 - Dreamer upstream/config
-- observation representation version
-- reward contract
+- [관측(observation)](MDP-and-POMDP) [표현(representation)](Relational-Representation-and-Generalization) version
+- 보상 명세
 
 ---
 
 # 10. 결과를 evidence로 쓰면 안 되는 경우
 
-다음 중 하나라도 해당하면 숫자가 나와도 **current performance evidence로 승격하지 않는다.**
+다음 중 하나라도 해당하면 숫자가 나와도 **현재 [성능 증거(performance evidence)](Evidence-Matrix)로 승격하지 않는다.**
 
 ```text
 [ ] regression failure
@@ -384,7 +384,7 @@ Assembler 또는 사람이 확인해야 하는 주요 mismatch:
 
 # 11. Historical reproduction
 
-과거 결과를 재현할 때는 current `main`으로 억지로 재현하지 않는다.
+과거 결과를 재현할 때는 현재 `main`으로 억지로 재현하지 않는다.
 
 예:
 
@@ -392,9 +392,9 @@ Assembler 또는 사람이 확인해야 하는 주요 mismatch:
 2026-08-11 historical Imagination diagnostic
 ```
 
-을 재현하려면 해당 당시 commit/branch와 당시 representation/Prophecy contract를 사용해야 한다.
+을 재현하려면 해당 당시 커밋/결과 경로와 당시 표현/[Prophecy(미래 예측 모델)](Prophecy) 명세를 사용해야 한다.
 
-그 결과를 current performance와 분리해 저장한다.
+그 결과를 현재 [성능(performance)](Ablation-Benchmarking-and-Reproducibility)와 분리해 저장한다.
 
 대표 사례:
 
@@ -405,7 +405,7 @@ Assembler 또는 사람이 확인해야 하는 주요 mismatch:
 
 ## Run report template
 
-실험 결과와 함께 최소한 다음 metadata를 남긴다.
+실험 결과와 함께 최소한 다음 [부가 정보(metadata)](State-Representation)를 남긴다.
 
 ```text
 AASSR commit:
@@ -440,7 +440,7 @@ local-support rejects:
 runtime:
 ```
 
-이 metadata가 있으면 나중에 숫자의 출처와 의미를 훨씬 쉽게 복구할 수 있다.
+이 부가 정보가 있으면 나중에 숫자의 출처와 의미를 훨씬 쉽게 복구할 수 있다.
 
 ---
 

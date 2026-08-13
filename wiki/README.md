@@ -1,113 +1,309 @@
-# AASSR Wiki Source
+# AASSR 위키 원본 문서 안내
 
-이 디렉터리는 AASSR GitHub Wiki의 **version-controlled canonical Markdown source**다.
+이 디렉터리는 AASSR GitHub Wiki에 게시되는 Markdown 문서의 **버전 관리 원본**이다.
 
-> 이 `README.md` 자체는 source-directory 설명서이므로 실제 GitHub Wiki에는 publish하지 않는다. `.github/workflows/sync-github-wiki.yml`이 `wiki/README.md`를 제외한 나머지 `wiki/*.md`를 `${repository}.wiki.git`으로 동기화한다.
+> 이 `README.md` 자체는 위키 제작 규칙을 설명하는 파일이므로 실제 GitHub Wiki에는 게시하지 않는다. `.github/workflows/sync-github-wiki.yml`이 `wiki/README.md`를 제외한 나머지 `wiki/*.md`를 실제 GitHub Wiki 저장소로 동기화한다.
 
-## Source of truth hierarchy
+---
+
+# 이 위키가 누구를 위한 문서인가?
+
+이 위키의 기본 독자는 **강화학습 전공자가 아니다.**
+
+주요 독자는 다음과 같다.
+
+- 인공지능·강화학습을 독학하는 학생
+- 논문을 읽기 시작한 학생 연구자
+- 관련 전공을 하지 않았지만 직접 구현해 보는 아마추어 개발자
+- 개인 프로젝트 수준에서 강화학습을 실험하는 연구자
+- AASSR의 코드를 처음 읽는 외부 기여자
+
+따라서 문서를 쓸 때 다음을 **사전 지식이라고 가정하지 않는다.**
 
 ```text
-Executable architecture contract
+MDP/POMDP를 안다고 가정하지 않는다.
+DQN의 Bellman 식을 안다고 가정하지 않는다.
+world model이라는 말을 안다고 가정하지 않는다.
+OOD라는 약어를 안다고 가정하지 않는다.
+runtime / contract / diagnostic / evidence 같은 개발·연구 영어를 안다고 가정하지 않는다.
+```
+
+전문용어 자체를 없애지는 않는다. 연구 문서와 논문을 읽으려면 정확한 원어도 결국 알아야 하기 때문이다.
+
+대신 순서를 다음처럼 한다.
+
+```text
+한국어로 개념을 이해
+        ↓
+영어 원어를 괄호로 확인
+        ↓
+더 깊은 설명 문서로 이동
+        ↓
+수식과 정확한 코드 명칭 확인
+```
+
+---
+
+# 문서를 쓰는 기본 순서
+
+핵심 개념 페이지는 가능한 한 다음 흐름을 따른다.
+
+```text
+1. 왜 이 문제가 생기는가?
+2. 아주 쉬운 말로 무엇인가?
+3. 일상적인 예나 작은 예제로 보면 어떻게 보이는가?
+4. AASSR에서는 정확히 어떤 역할을 하는가?
+5. 비슷하지만 다른 개념은 무엇인가?
+6. 정확한 수학적 정의는 무엇인가?
+7. 현재 코드에서는 어떻게 구현되어 있는가?
+8. 어떤 실험으로 검증하는가?
+9. 이미 확인된 실패 사례는 무엇인가?
+10. 아직 무엇을 증명하지 못했는가?
+```
+
+**수식이나 코드 이름을 먼저 던지고 나중에 뜻을 설명하지 않는다.**
+
+---
+
+# 영어 전문용어 표기 규칙
+
+## 규칙 1. 일반 영어 전문용어는 한국어가 먼저다
+
+좋지 않은 예:
+
+```text
+OOD에서 local support가 부족하면 override를 막는다.
+```
+
+권장 예:
+
+```text
+학습 때 충분히 보지 못한 영역(OOD)에서는
+가치 평가를 뒷받침하는 실제 데이터 근거(local support)가 부족할 수 있다.
+이때는 기본 행동을 강제로 바꾸는 것(override)을 허용하지 않는다.
+```
+
+## 규칙 2. 처음 등장할 때 원어와 링크를 함께 준다
+
+예:
+
+```markdown
+[희소 보상(sparse reward)](Sparse-Reward-and-Credit-Assignment)
+[관계 기반 표현(relational representation)](Relational-Representation-and-Generalization)
+[학습 분포 밖(OOD, Out-of-Distribution)](Critic-Support-and-OOD)
+```
+
+## 규칙 3. 같은 페이지에서 반복될 때는 한국어를 우선한다
+
+처음 한 번 정확한 영어 원어를 알려줬다면 이후 문장은 한국어로 읽히는 것이 기본이다.
+
+## 규칙 4. AASSR 고유 모듈 이름은 유지하되 역할을 붙인다
+
+다음 이름은 코드와 연구에서 고유 이름으로 쓰이므로 유지할 수 있다.
+
+```text
+Policy
+Knowledge
+Prophecy
+Calibration
+Critic
+Imagination
+ASEQ
+Skills
+```
+
+하지만 독자가 처음 만나는 곳에서는 다음처럼 쓴다.
+
+```text
+Policy(기본 정책 모델)
+Prophecy(미래 예측 모델)
+Calibration(예측 신뢰도 보정)
+Critic(미래 가치 평가기)
+Imagination(가상 미래 탐색)
+```
+
+그리고 해당 상세 페이지 링크를 건다.
+
+## 규칙 5. 코드 식별자는 번역하지 않는다
+
+실제 코드와 일치해야 하는 이름은 그대로 둔다.
+
+```text
+`current_manifest.py`
+`build_current_pentest_aassr_core`
+`critic_support_gate`
+```
+
+대신 주변 문장에서 그 이름이 무엇을 의미하는지 설명한다.
+
+## 규칙 6. 약어만 던지지 않는다
+
+첫 등장에서는 뜻을 풀어 쓴다.
+
+```text
+POMDP → 부분 관측 마르코프 의사결정 과정
+OOD → 학습 분포 밖(Out-of-Distribution)
+GRU → 과거 순서 정보를 기억하는 순환 신경망 구조
+TD → 다음 상태의 추정값을 이용해 현재 값을 학습하는 시간차 학습
+```
+
+---
+
+# 설명의 깊이 규칙
+
+문서가 길어지는 것은 문제가 아니다.
+
+짧지만 독자가 이해하지 못하는 문서보다, **독자가 필요한 깊이까지 내려갈 수 있는 긴 문서**를 선호한다.
+
+다만 한 페이지에서 모든 것을 설명해 중복시키지는 않는다.
+
+```text
+본문
+→ 지금 문장을 이해하는 데 필요한 최소 설명
+
+링크된 개념 문서
+→ 더 쉬운 예와 수식, 이론
+
+AASSR 구성요소 문서
+→ 현재 구현과 연구 설계
+
+실험 문서
+→ 실제 검증 방법과 결과
+```
+
+즉 위키를 하나의 연결된 교과서처럼 만든다.
+
+---
+
+# 현재 구조의 최종 기준
+
+여러 문서가 충돌할 경우 실제 AASSR 현재 구조는 다음 파일을 최우선으로 확인한다.
+
+```text
+src/aassr_v2/current_manifest.py
+```
+
+그 다음 문서의 역할은 다음과 같다.
+
+```text
+실제 실행 구조의 최종 기준
 → src/aassr_v2/current_manifest.py
 
-Research wiki source
+연구 위키의 버전 관리 원본
 → wiki/*.md
 
-Published GitHub Wiki
+실제로 게시된 GitHub Wiki
 → AASSR.wiki.git
 ```
 
-현재 문서는 **`main`의 current-generation runtime**을 기준으로 작성한다.
+특정 연구 브랜치에서 시험 중인 구현은 `main`에 합쳐지기 전까지 현재 위키 구조로 승격하지 않는다.
 
-특정 연구 브랜치에서 실험 중인 구현은 `main`에 merge되기 전까지 current Wiki architecture로 승격하지 않는다.
-
-과거 v0.4/초기 Prophecy/Imagination/effect-composition 계열은 [Development History](Development-History.md) 또는 별도 historical diagnostic 페이지에 분리한다.
+과거 버전과 과거 실패 실험은 [개발 역사](Development-History.md) 또는 별도의 과거 진단 페이지로 분리한다.
 
 ---
 
-## Main entry pages
+# 처음 읽는 사람을 위한 주요 입구
 
-1. [Home](Home.md)
-2. [AASSR in 5 Minutes](AASSR-in-5-Minutes.md)
-3. [Concept Index](Concept-Index.md)
-4. [Research Questions](Research-Questions.md)
-5. [Evidence Matrix](Evidence-Matrix.md)
-6. [Research Architecture](Research-Architecture.md)
-7. [Experiments](Experiments.md)
-8. [Current Status](Current-Status.md)
-9. [Reproduction](Reproduction.md)
-10. [Glossary](Glossary.md)
+1. [처음 읽는 사람을 위한 안내서](Beginner-Guide.md)
+2. [AASSR 5분 설명](AASSR-in-5-Minutes.md)
+3. [한국어 중심 용어 안내서](Terminology-Guide.md)
+4. [연구·개발 영어 해설](Research-Jargon-Guide.md)
+5. [개념 지도](Concept-Index.md)
+6. [연구 질문](Research-Questions.md)
+7. [연구 질문-증거 연결표](Evidence-Matrix.md)
+8. [연구 구조](Research-Architecture.md)
+9. [실험 설계와 결과](Experiments.md)
+10. [현재 연구 상태](Current-Status.md)
+11. [실험 재현 방법](Reproduction.md)
+12. [짧은 용어 사전](Glossary.md)
 
-Historical evidence:
+과거 증거와 실패 기록:
 
-- [Historical Imagination Diagnostic — 2026-08-11](Historical-Imagination-Diagnostic-2026-08-11.md)
-- [Development History](Development-History.md)
+- [2026-08-11 Imagination 실패 진단](Historical-Imagination-Diagnostic-2026-08-11.md)
+- [개발 역사](Development-History.md)
 
 ---
 
-## Documentation rules
+# 연구 문서 작성 규칙
 
-### 1. Current architecture와 historical evidence를 섞지 않는다
-
-```text
-Current
-= main의 manifest/code contract
-
-Historical
-= 과거 commit/checkpoint에서 얻은 mechanism/failure evidence
-```
-
-### 2. 구현과 성능을 구분한다
+## 1. 현재 구조와 과거 증거를 섞지 않는다
 
 ```text
-implemented
-!= regression-validated
-!= mechanism evidence
-!= reduced performance evidence
-!= multi-seed performance evidence
-!= final blind evidence
+현재
+= main의 current_manifest.py에 기록된 실제 활성 구조
+
+과거 기록
+= 이전 commit/checkpoint에서 얻은 메커니즘·성능·실패 증거
 ```
 
-### 3. 중요한 전문용어는 내부 링크를 건다
+## 2. 구현과 성능 증명을 구분한다
 
-짧은 정의는 [Glossary](Glossary.md), 긴 일반 개념은 [Concept Index](Concept-Index.md), AASSR-specific 구현은 해당 Core Mechanism 페이지로 연결한다.
+```text
+구조가 구현됨
+!= 회귀 테스트로 구조가 검증됨
+!= 좁은 메커니즘 효과가 관측됨
+!= 작은 규모에서 성능이 관측됨
+!= 여러 난수 시드에서 성능 차이가 확인됨
+!= 최종 비공개 평가에서 확인됨
+```
 
-### 4. 숫자에는 evidence class를 붙인다
+## 3. 중요한 전문용어에는 설명 또는 내부 링크를 건다
+
+짧은 뜻은 [용어 안내서](Terminology-Guide.md), 연구·개발 영어는 [연구·개발 영어 해설](Research-Jargon-Guide.md), 긴 일반 개념은 [개념 지도](Concept-Index.md), AASSR 고유 구현은 해당 구성요소 페이지로 연결한다.
+
+## 4. 숫자에는 어떤 종류의 증거인지 붙인다
 
 예:
 
 ```text
-24/24 → 0/24 stalled
-= ASEQ mechanism diagnostic
+24/24 제자리 반복 → 0/24
+= ASEQ의 반복 억제 메커니즘을 보는 진단 결과
 
-4/20 vs 4/20, 86 interventions
-= 2026-08-11 historical root-cause diagnostic
+4/20 대 4/20, 행동 변경 86회
+= 2026-08-11의 과거 Imagination 실패 원인 진단
 ```
 
-### 5. Claim은 Evidence Matrix와 맞아야 한다
+숫자만 떼어 현재 성능처럼 인용하지 않는다.
 
-각 연구 질문의 H1/H0, metrics, 현재 claim boundary는 [Evidence Matrix](Evidence-Matrix.md)에서 관리한다.
+## 5. 연구 주장은 증거 연결표와 맞아야 한다
 
----
-
-## Status legend
-
-- 🟢 **Active** — current runtime contract
-- 🟡 **Experimental** — current 구현이지만 performance claim 검증 중
-- 🔵 **Evidence** — 특정 controlled diagnostic에서 mechanism evidence 존재
-- ⚪ **Pending** — current performance/final evidence 전
-- 🕰️ **Historical** — 과거 architecture/checkpoint evidence
+각 연구 질문의 대립 가설·귀무 가설, 평가지표, 현재 증거, 아직 말하면 안 되는 범위는 [연구 질문-증거 연결표](Evidence-Matrix.md)에서 관리한다.
 
 ---
 
-## Publishing
+# 상태 표시
 
-`main`의 `wiki/**`가 바뀌면 `Sync GitHub Wiki` GitHub Actions workflow가 자동으로 published Wiki를 갱신한다.
+- 🟢 **현재 사용 중** — 현재 실제 실행 구조에 포함됨
+- 🟡 **검증 중** — 구현되어 있지만 최종 성능 주장은 아직 검증 중
+- 🔵 **메커니즘 증거 있음** — 특정 진단 실험에서 의도한 현상이 관측됨
+- ⚪ **아직 남음** — 현재 세대에서 충분한 성능 또는 최종 증거가 없음
+- 🕰️ **과거 기록** — 이전 구조·체크포인트의 결과
+
+---
+
+# 자동 검사
+
+이 위키는 새 문서가 다시 영어 전문용어 중심의 전공자 메모체로 돌아가지 않도록 자동 검사를 둔다.
+
+현재 검사기는 다음을 확인한다.
+
+- 내부 위키 링크가 실제 페이지를 가리키는가?
+- 현재 문서에 과거 구조 이름이 잘못 남아 있지 않은가?
+- 현재 실행 구조의 핵심 명세와 문서가 맞는가?
+- 등록된 기술 영어가 본문에 설명이나 링크 없이 그대로 남지 않았는가?
+
+자동 검사는 사람이 읽었을 때의 자연스러움을 완전히 대신할 수 없다. 따라서 Home, 입문 안내서, 5분 설명, 현재 연구 상태 같은 주요 입구 문서는 사람이 직접 읽어 문장 흐름도 검토한다.
+
+---
+
+# 게시 방식
+
+`main`의 `wiki/**`가 바뀌면 `Sync GitHub Wiki` GitHub Actions 작업이 자동으로 실제 Wiki를 갱신한다.
 
 특수 페이지:
 
-- `_Sidebar.md` — Wiki navigation sidebar
-- `_Footer.md` — 공통 footer navigation
-- `Home.md` — Wiki landing page
+- `_Sidebar.md` — 위키 왼쪽 탐색 메뉴
+- `_Footer.md` — 모든 페이지 아래의 공통 이동 링크
+- `Home.md` — 위키 첫 화면
 
-`README.md`는 publish 대상에서 제외한다.
+`README.md`는 실제 위키 게시 대상에서 제외한다.

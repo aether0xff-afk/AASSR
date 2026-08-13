@@ -10,7 +10,7 @@
 
 **신경망:** [Neural Networks](Neural-Networks-and-Optimization) · [Loss/Class Imbalance](Loss-Functions-and-Class-Imbalance) · [GRU](GRU-and-Sequence-Models)
 
-**World Model:** [Model-Based RL](Model-Based-RL-and-World-Models) · [Probability/Uncertainty](Stochasticity-Uncertainty-and-Probability) · [Mixture/Ensemble/Calibration](Mixture-Ensemble-and-Calibration) · [Prophecy](Prophecy) · [Calibration](Calibration)
+**[세계 모델(World Model)](Model-Based-RL-and-World-Models):** [Model-Based RL](Model-Based-RL-and-World-Models) · [Probability/Uncertainty](Stochasticity-Uncertainty-and-Probability) · [Mixture/Ensemble/Calibration](Mixture-Ensemble-and-Calibration) · [Prophecy](Prophecy) · [Calibration](Calibration)
 
 **Planning:** [Counterfactual Planning](Counterfactual-Planning-and-Search) · [Chance vs Decision](Chance-and-Decision-Nodes) · [Critic](Critic) · [Critic/OOD Support](Critic-Support-and-OOD) · [Imagination](Imagination)
 
