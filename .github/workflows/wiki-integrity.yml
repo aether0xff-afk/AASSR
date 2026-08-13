@@ -5,12 +5,16 @@ on:
     paths:
       - "wiki/**"
       - "scripts/check_wiki_integrity.py"
+      - "scripts/check_wiki_beginner_language.py"
+      - "scripts/koreanize_wiki_prose.py"
       - ".github/workflows/wiki-integrity.yml"
       - ".github/workflows/sync-github-wiki.yml"
   pull_request:
     paths:
       - "wiki/**"
       - "scripts/check_wiki_integrity.py"
+      - "scripts/check_wiki_beginner_language.py"
+      - "scripts/koreanize_wiki_prose.py"
       - ".github/workflows/wiki-integrity.yml"
       - ".github/workflows/sync-github-wiki.yml"
   workflow_dispatch:
@@ -28,3 +32,5 @@ jobs:
           python-version: "3.11"
       - name: Check internal Wiki links and current-document markers
         run: python scripts/check_wiki_integrity.py
+      - name: Check beginner-friendly Korean-first prose
+        run: python scripts/check_wiki_beginner_language.py
