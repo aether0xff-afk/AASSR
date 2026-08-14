@@ -10,7 +10,6 @@ from ..autonomous_agent_core import (
     AutonomousLearningAgent,
 )
 from ..branch_critic import CriticTransition
-from ..knowledge import KnowledgeEntry, KnowledgeStore
 from ..neural_delta_prophecy import NeuralDeltaConfig
 from ..semantic_control import SemanticSelfLoopASEQ
 from ..skills import SKILL_VERB
@@ -174,7 +173,11 @@ class AASSRCoreRuntime:
         self.aseq = SemanticSelfLoopASEQ(
             repeat_threshold=self.config.aseq_repeat_threshold
         )
-        self.knowledge = KnowledgeStore()
+        # Canonical Knowledge for the new Core is representation.public_knowledge.
+        # It is Core-owned, directly affects state representation/candidate
+        # construction, and follows the same episode persistence contract.  Do
+        # not maintain a second legacy KnowledgeStore that no active learner
+        # consumes.
         self._episode_traces: list[TransitionTrace] = []
         self._critic_trajectory: list[tuple[StateSnapshot, Action, StateSnapshot, float]] = []
         self._selected_skill_steps: list[tuple[StateSnapshot, Action, int]] = []
@@ -202,8 +205,6 @@ class AASSRCoreRuntime:
         self.representation.begin_episode(
             preserve=self.config.preserve_knowledge_across_episodes
         )
-        if not self.config.preserve_knowledge_across_episodes:
-            self.knowledge = KnowledgeStore()
         self.aseq.reset_episode()
         self.agent.discard_episode()
         self._episode_traces.clear()
@@ -256,23 +257,6 @@ class AASSRCoreRuntime:
             semantic_state=semantic,
             guarded_candidates=guarded,
             all_guarded_fallback=fallback,
-        )
-
-    def _apply_knowledge(self, trace_id: str, outcome: Any) -> None:
-        unlocked = tuple(getattr(outcome, "unlocked_actions", ()))
-        enabled = tuple(item.signature for item in unlocked)
-        entries = tuple(
-            KnowledgeEntry(
-                key=fact,
-                value=True,
-                source_trace_id=trace_id,
-                enabled_action_signatures=enabled,
-            )
-            for fact in getattr(outcome, "added_facts", frozenset())
-        )
-        self.knowledge.apply(
-            entries,
-            getattr(outcome, "removed_facts", frozenset()),
         )
 
     def _flush_pending_dqn(self, *, terminal: bool) -> None:
@@ -349,7 +333,6 @@ class AASSRCoreRuntime:
             error=bool(outcome.error),
             real_reward=reward,
         )
-        self._apply_knowledge(trace_id, outcome)
 
         if training:
             observation_metrics = self.agent.observe(before, action, outcome)
@@ -505,6 +488,7 @@ class AASSRCoreRuntime:
 
     def diagnostics(self) -> dict[str, Any]:
         critic = self.critic.stats()
+        knowledge = dict(self.representation.public_knowledge.diagnostics())
         return {
             "core_version": CORE_VERSION,
             "plugin_contract": PLUGIN_CONTRACT_VERSION,
@@ -519,9 +503,11 @@ class AASSRCoreRuntime:
                 "state_size": self.representation.state_size,
                 "action_feature_size": self.representation.action_feature_size,
                 **dict(self.representation.experience.diagnostics()),
-                "public_knowledge": dict(
-                    self.representation.public_knowledge.diagnostics()
-                ),
+            },
+            "knowledge": {
+                "owner": "core-public-memory",
+                "consumed_by": "representation+candidate-generation",
+                **knowledge,
             },
             "policy": self.policy.diagnostics(),
             "prophecy": {
@@ -542,7 +528,6 @@ class AASSRCoreRuntime:
                 **dict(self._imagination_diagnostics),
             },
             "aseq": self.aseq.diagnostics(),
-            "knowledge_entries": len(self.knowledge.values()),
             "skills": self.skills.diagnostics(),
         }
 
