@@ -90,4 +90,10 @@ def test_core_runtime_uses_only_minimal_contract() -> None:
     diagnostics = core.diagnostics()
     assert diagnostics["plugin"]["id"] == "two-choice-real-contract"
     assert diagnostics["representation"]["owner"] == "core"
+    assert diagnostics["knowledge"]["owner"] == "core-public-memory"
+    assert diagnostics["knowledge"]["consumed_by"] == (
+        "representation+candidate-generation"
+    )
+    assert diagnostics["knowledge"]["values:entity"] > 0
+    assert not hasattr(core, "knowledge")
     assert diagnostics["imagination"]["valid_treatment"] is False
