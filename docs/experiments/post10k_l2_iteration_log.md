@@ -135,30 +135,52 @@ This supports the claim that current observation/memory loses useful public nega
 
 ## Iteration 4 — do not mark an object as globally tried when the profile itself was invalid
 
+### Changed variable
+
+Hold Iteration 2 probe priority and Iteration 3 negative route/profile memory fixed. If a `request_object` response contains `request_profile_not_applicable`, undo only a newly-added `tried_object` mark for that object. Preserve any tried state that existed before the invalid-profile request.
+
+### Result
+
+| Metric | Iteration 3 | Iteration 4 | Delta |
+| --- | ---: | ---: | ---: |
+| Success | 1/8 | 1/8 | 0 |
+| Success rate | 0.125 | 0.125 | 0 |
+| Failures | 0 | 0 | 0 |
+| Truncations | 7 | 7 | 0 |
+| Mean transitions | 90.75 | 91.125 | +0.375 |
+| Mean ASEQ guards | 64.375 | 64.0 | -0.375 |
+| Mean unknown attempts | 7.875 | 8.875 | +1.0 |
+| Alias states | 353 | 356 | +3 |
+
+Mechanism counters:
+
+- 42 invalid-profile object events
+- 10 newly-added global tried-object marks prevented
+- 32 pre-existing tried-object states preserved
+- 301 legitimate object-request events left unchanged
+
+### Decision
+
+**REJECT as a major L2 cause.** The semantic bookkeeping issue exists, but preventing it had no measurable effect on success and almost no effect on aggregate behavior. Iteration 4 is therefore not carried into later experiments.
+
+## Iteration 5 — hand off from forced probing after positive read-profile discovery
+
 ### Hypothesis
 
-Current `ResponseMemory.observe` adds every `object_id` from every `request_object` action to the global `tried_objects` set before it knows whether the selected profile was applicable. Therefore an attempt such as:
-
-`wrong-profile + object-X -> request_profile_not_applicable`
-
-can still make later actions treat `object-X` as already tried. At L1 this is mostly harmless because there is essentially one relevant profile candidate. At L2, profile candidates multiply, so trying the target object under a wrong profile can poison the later relational state for the correct profile.
-
-This is a stronger L1->L2-specific explanation than raw candidate identity alone: the memory relation `tried(object)` is too coarse and should depend on whether the request actually tested the object semantics.
+Iteration 2's forced unknown-profile probe scaffold was useful for exposing the missing negative-response memory, but it can become counterproductive after the environment has already returned a positive `observed_profile_role:*:read` fact. At that point the agent has crossed the key L2 discovery boundary, yet remaining decoy profiles can keep the diagnostic scaffold forcing additional unknown probes instead of allowing the canonical Policy to exploit the newly discovered read/workflow information.
 
 ### Single changed variable
 
-Hold Iteration 2 probe priority and Iteration 3 negative route/profile memory fixed. Change only this bookkeeping rule during frozen diagnosis:
+Return to Iteration 3 as the comparison baseline; Iteration 4 is rejected and removed.
 
-- if a `request_object` response contains public fact `request_profile_not_applicable`, that attempt must **not newly add** its `object_id` to `tried_objects`;
-- if the object had already been legitimately tried before that invalid-profile action, keep the existing tried state;
-- every non-`request_profile_not_applicable` object request keeps the original bookkeeping.
-
-No hidden profile identity, target identity, or oracle information is read.
+- Before any public `observed_profile_role:*:read` fact exists, keep Iteration 3 behavior exactly: forced unknown-profile probe priority plus negative route/profile memory.
+- After a public read-profile role is observed, stop only the forced-probe priority scaffold and return action selection to the canonical frozen Policy.
+- Negative route/profile memory remains active and unchanged.
 
 ### Interpretation
 
-- A material success increase over Iteration 3: global object-tried pollution from invalid profile probes is a major L2 defect.
-- Similar 1/8 but clear counter activity: the bookkeeping is semantically wrong but not the main remaining bottleneck; move downstream to positive read-profile/target discovery retention.
-- Little/no prevented pollution: reject this as a major explanation.
+- Handoff fires and success rises materially over 1/8: the diagnostic scaffold was masking a positive milestone; the canonical design needs a principled explore-to-exploit transition rather than permanent candidate probing.
+- Handoff fires but success stays near 1/8: move downstream to whether target/workflow positive semantics are represented and selected correctly.
+- Handoff rarely or never fires: the remaining bottleneck is earlier — finding the valid read-profile/target combination itself.
 
-Do not change canonical runtime until this single-variable diagnostic is observed.
+This remains diagnostic-only; no canonical runtime code is modified.
