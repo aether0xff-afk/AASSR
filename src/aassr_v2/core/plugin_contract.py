@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+import math
+from numbers import Real
 from types import MappingProxyType
 from typing import Any, Mapping, Protocol
 
@@ -245,10 +247,44 @@ def validate_observation(schema: PluginSchema, observation: PluginObservation) -
                 )
 
 
+# Plugin diagnostics are observability-only.  These names are consumed by the
+# Core adapter as control channels and therefore must never be shadowable by a
+# plugin-provided diagnostics mapping.
+RESERVED_PLUGIN_DIAGNOSTIC_KEYS: frozenset[str] = frozenset(
+    {"external_reward", "terminated", "truncated"}
+)
+
+
 def validate_step_result(schema: PluginSchema, result: PluginStepResult) -> None:
+    """Validate the mechanical Plugin -> Core control boundary.
+
+    This intentionally validates shape and control-channel integrity only.  It
+    never decides whether an observation or action is useful for the task.
+    """
+
     if not isinstance(result, PluginStepResult):
         raise TypeError("plugin reset/step must return PluginStepResult")
     validate_observation(schema, result.observation)
+
+    if not isinstance(result.reward, Real) or isinstance(result.reward, bool):
+        raise TypeError("plugin reward must be a real number")
+    if not math.isfinite(float(result.reward)):
+        raise ValueError("plugin reward must be finite")
+
+    for name in ("terminated", "truncated", "error"):
+        if not isinstance(getattr(result, name), bool):
+            raise TypeError(f"plugin {name} must be bool")
+    if result.terminated and result.truncated:
+        raise ValueError("a step cannot be both terminated and truncated")
+    if result.error_code is not None and not isinstance(result.error_code, str):
+        raise TypeError("plugin error_code must be str or None")
+
+    collisions = RESERVED_PLUGIN_DIAGNOSTIC_KEYS.intersection(result.diagnostics)
+    if collisions:
+        raise ValueError(
+            "plugin diagnostics may not shadow Core control channels: "
+            + ", ".join(sorted(collisions))
+        )
 
 
 class MinimalRuntimePlugin(Protocol):
