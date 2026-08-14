@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Any, Sequence
+import hashlib
+from typing import Any, Callable, Sequence
 
 from ..skills import SKILL_VERB, Skill
 from ..types import Action, Prediction, StateSnapshot, TransitionTrace
 from .representation import SchemaDrivenRepresentation
+
+
+PrimitiveValueFn = Callable[[StateSnapshot, Action], float]
 
 
 @dataclass(slots=True)
@@ -20,18 +24,29 @@ class _CoreSkillCandidate:
 
 
 class CoreRelationalSkillLibrary:
-    """Reuse learned action *structure* rather than environment identifiers."""
+    """Reuse learned action *structure* rather than environment identifiers.
+
+    A structural Skill may match several concrete actions in a new state.  The
+    library must not silently ground that ambiguity by lexicographic identifier.
+    When a Core Policy value function is supplied, the currently learned value
+    chooses the concrete grounding. Exact value ties use a deterministic seeded
+    rank whose seed contains no concrete action signature.
+    """
 
     def __init__(
         self,
         representation: SchemaDrivenRepresentation,
         *,
+        primitive_value: PrimitiveValueFn | None = None,
+        seed: int = 0,
         promotion_successes: int = 2,
         maximum_length: int = 12,
     ) -> None:
         if promotion_successes <= 0 or maximum_length <= 0:
             raise ValueError("skill thresholds must be positive")
         self.representation = representation
+        self.primitive_value = primitive_value
+        self.seed = int(seed)
         self.promotion_successes = int(promotion_successes)
         self.maximum_length = int(maximum_length)
         self._candidates: dict[
@@ -41,6 +56,9 @@ class CoreRelationalSkillLibrary:
         self._templates: dict[str, tuple[tuple[float, ...], ...]] = {}
         self._skills: dict[str, Skill] = {}
         self._next_id = 1
+        self.ambiguous_groundings = 0
+        self.value_groundings = 0
+        self.symmetric_groundings = 0
 
     def _trace_templates(
         self,
@@ -121,6 +139,28 @@ class CoreRelationalSkillLibrary:
     def template_length(self, skill_id: str) -> int:
         return len(self._templates[skill_id])
 
+    def _symmetric_tie_index(
+        self,
+        *,
+        skill_id: str,
+        step_index: int,
+        state: StateSnapshot,
+        candidate_count: int,
+    ) -> int:
+        semantic = self.representation.semantic_state_identity(state)
+        payload = (
+            self.seed,
+            skill_id,
+            int(step_index),
+            semantic,
+            int(candidate_count),
+        )
+        digest = hashlib.blake2b(
+            repr(payload).encode("utf-8"),
+            digest_size=16,
+        ).digest()
+        return int.from_bytes(digest, "big") % max(1, int(candidate_count))
+
     def resolve_primitive(
         self,
         skill_id: str,
@@ -131,15 +171,44 @@ class CoreRelationalSkillLibrary:
         if templates is None or not 0 <= index < len(templates):
             return None
         target = templates[index]
-        candidates = [
+        candidates = tuple(
             action
             for action in state.available_actions
             if action.verb_name != SKILL_VERB
             and self.representation.action_structure(state, action) == target
-        ]
+        )
         if not candidates:
             return None
-        return min(candidates, key=lambda action: action.signature)
+        if len(candidates) == 1:
+            return candidates[0]
+
+        self.ambiguous_groundings += 1
+        ordered = tuple(sorted(candidates, key=lambda action: action.signature))
+        tied = ordered
+        if self.primitive_value is not None:
+            scored = tuple(
+                (action, float(self.primitive_value(state, action)))
+                for action in ordered
+            )
+            best = max(value for _, value in scored)
+            tied = tuple(
+                action
+                for action, value in scored
+                if abs(value - best) <= 1e-12
+            )
+            if len(tied) < len(ordered):
+                self.value_groundings += 1
+        if len(tied) == 1:
+            return tied[0]
+
+        self.symmetric_groundings += 1
+        choice = self._symmetric_tie_index(
+            skill_id=skill_id,
+            step_index=index,
+            state=state,
+            candidate_count=len(tied),
+        )
+        return tied[choice]
 
     def actions_for(self, state: StateSnapshot) -> tuple[Action, ...]:
         rows = []
@@ -168,6 +237,9 @@ class CoreRelationalSkillLibrary:
             "candidates": len(self._candidates),
             "templates": len(self._templates),
             "promoted": len(self._skills),
+            "ambiguous_groundings": self.ambiguous_groundings,
+            "value_groundings": self.value_groundings,
+            "symmetric_groundings": self.symmetric_groundings,
         }
 
 
