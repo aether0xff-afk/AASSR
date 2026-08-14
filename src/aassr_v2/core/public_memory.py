@@ -2,10 +2,17 @@ from __future__ import annotations
 
 from dataclasses import replace
 import hashlib
+import random
 from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
-from .plugin_contract import PluginObservation, PluginStepResult, TemporalKind, ValueKind
+from .plugin_contract import (
+    ActionCommand,
+    PluginObservation,
+    PluginStepResult,
+    TemporalKind,
+    ValueKind,
+)
 from .representation import (
     CoreExperienceMemory,
     SchemaDrivenRepresentation,
@@ -42,12 +49,7 @@ def _evidence_tokens(schema, observation: PluginObservation) -> tuple[str, ...]:
 
 
 class EpisodicCoreExperienceMemory(CoreExperienceMemory):
-    """Concrete-action evidence is local unless the experiment opts to preserve it.
-
-    Neural weights and structural knowledge persist across episodes. Concrete
-    candidate IDs may be renamed or acquire different hidden meaning after a
-    reset, so candidate-local statistics must not silently leak across episodes.
-    """
+    """Concrete-action evidence is local unless explicitly preserved."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -71,12 +73,7 @@ class EpisodicCoreExperienceMemory(CoreExperienceMemory):
 
 
 class CorePublicKnowledge:
-    """Generic memory of publicly observed typed values.
-
-    Concrete values are retained only so the Core can act on things it actually
-    observed earlier. The learned transfer vector sees type/count structure,
-    not the concrete identifiers themselves.
-    """
+    """Generic memory of publicly observed typed values."""
 
     def __init__(self, *, per_kind_capacity: int = 512) -> None:
         self.per_kind_capacity = int(per_kind_capacity)
@@ -111,16 +108,14 @@ class CorePublicKnowledge:
             field = fields.get(name)
             if field is None:
                 continue
-
             if field.kind is ValueKind.SET:
                 try:
                     materialized = tuple(raw)
                 except TypeError:
                     materialized = (raw,)
-                item_kind = field.item_kind
-                if item_kind is not None:
+                if field.item_kind is not None:
                     for item in materialized:
-                        self._remember_value(item_kind, item)
+                        self._remember_value(field.item_kind, item)
             elif field.kind in {
                 ValueKind.BOOLEAN,
                 ValueKind.SCALAR,
@@ -138,6 +133,10 @@ class CorePublicKnowledge:
         bucket = self._values[kind]
         keys = sorted(bucket)
         return tuple(bucket[key] for key in keys[: max(1, int(limit))])
+
+    def all_values(self, kind: ValueKind) -> tuple[Any, ...]:
+        bucket = self._values[kind]
+        return tuple(bucket[key] for key in sorted(bucket))
 
     def structural_vector(self, size: int) -> tuple[float, ...]:
         vector = [0.0] * int(size)
@@ -171,15 +170,32 @@ class CorePublicKnowledge:
 
 
 class MemoryBackedRepresentation(SchemaDrivenRepresentation):
-    """Canonical Core representation with Core-owned public and local memory."""
+    """Canonical Core representation with Core-owned public and local memory.
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    Bounded candidate surfaces are sampled by a Core-owned episode seed rather
+    than taking the lexicographically first concrete identifiers. This removes a
+    hidden preference for names while keeping a repeated state stable inside an
+    episode.
+    """
+
+    def __init__(
+        self,
+        *args: Any,
+        candidate_seed: int = 0,
+        **kwargs: Any,
+    ) -> None:
         if kwargs.get("experience") is None:
             kwargs["experience"] = EpisodicCoreExperienceMemory()
         super().__init__(*args, **kwargs)
         self.public_knowledge = CorePublicKnowledge()
+        self.candidate_seed = int(candidate_seed)
+        self.episode_index = 0
+        self.candidate_sampling_events = 0
+        self.last_candidate_population = 0
+        self.last_candidate_surface = 0
 
     def begin_episode(self, *, preserve: bool = False) -> None:
+        self.episode_index += 1
         if not preserve:
             self.public_knowledge.clear()
         begin = getattr(self.experience, "begin_episode", None)
@@ -193,6 +209,77 @@ class MemoryBackedRepresentation(SchemaDrivenRepresentation):
             tuple(left + right for left, right in zip(current, memory, strict=True))
         )
 
+    def _selection_seed(self, label: str, cardinalities: Sequence[int]) -> int:
+        # The seed deliberately excludes concrete candidate values. The chosen
+        # subset therefore has no lexical/name preference; under renaming its
+        # distribution stays symmetric. Public knowledge revision changes the
+        # surface only when genuinely new evidence appears.
+        payload = (
+            self.candidate_seed,
+            self.episode_index,
+            self.public_knowledge.revision,
+            label,
+            tuple(int(value) for value in cardinalities),
+        )
+        digest = hashlib.blake2b(
+            repr(payload).encode("utf-8"),
+            digest_size=16,
+        ).digest()
+        return int.from_bytes(digest, "big")
+
+    def _all_candidate_values(
+        self,
+        observation: PluginObservation,
+        *,
+        kind: ValueKind,
+        enum_values: Sequence[str] = (),
+    ) -> tuple[Any, ...]:
+        merged: dict[str, Any] = {}
+        for value in enum_values:
+            merged[_stable_json(value)] = value
+        if not enum_values:
+            fields = self.schema.observation_map
+            for name, raw in observation.values.items():
+                field = fields.get(name)
+                if field is None:
+                    continue
+                if field.kind is kind:
+                    merged[_stable_json(raw)] = raw
+                elif field.kind is ValueKind.SET and field.item_kind is kind:
+                    try:
+                        materialized = tuple(raw)
+                    except TypeError:
+                        materialized = (raw,)
+                    for item in materialized:
+                        merged[_stable_json(item)] = item
+            for value in self.public_knowledge.all_values(kind):
+                merged[_stable_json(value)] = value
+        return tuple(merged[key] for key in sorted(merged))
+
+    def _sample_candidate_values(
+        self,
+        observation: PluginObservation,
+        *,
+        kind: ValueKind,
+        enum_values: Sequence[str],
+        limit: int,
+        label: str,
+    ) -> tuple[Any, ...]:
+        values = self._all_candidate_values(
+            observation,
+            kind=kind,
+            enum_values=enum_values,
+        )
+        limit = max(1, int(limit))
+        if len(values) <= limit:
+            return values
+        randomizer = random.Random(
+            self._selection_seed(label, (len(values), limit))
+        )
+        indices = sorted(randomizer.sample(range(len(values)), limit))
+        self.candidate_sampling_events += 1
+        return tuple(values[index] for index in indices)
+
     def _candidate_values(
         self,
         observation: PluginObservation,
@@ -201,27 +288,111 @@ class MemoryBackedRepresentation(SchemaDrivenRepresentation):
         enum_values: Sequence[str] = (),
         limit: int = 8,
     ) -> tuple[Any, ...]:
-        if enum_values:
-            return super()._candidate_values(
-                observation,
-                kind=kind,
-                enum_values=enum_values,
-                limit=limit,
-            )
-        merged: dict[str, Any] = {
-            _stable_json(value): value
-            for value in super()._candidate_values(
-                observation,
-                kind=kind,
-                limit=limit,
-            )
-        }
-        for value in self.public_knowledge.values(kind, limit=limit):
-            merged[_stable_json(value)] = value
-        return tuple(
-            merged[key]
-            for key in sorted(merged)[: max(1, int(limit))]
+        return self._sample_candidate_values(
+            observation,
+            kind=kind,
+            enum_values=enum_values,
+            limit=limit,
+            label=f"kind:{kind.value}",
         )
+
+    @staticmethod
+    def _decode_product_index(
+        index: int,
+        rows: Sequence[Sequence[Any]],
+    ) -> tuple[Any, ...]:
+        values: list[Any] = [None] * len(rows)
+        remainder = int(index)
+        for slot in range(len(rows) - 1, -1, -1):
+            size = len(rows[slot])
+            remainder, position = divmod(remainder, size)
+            values[slot] = rows[slot][position]
+        return tuple(values)
+
+    def synthesize_commands(
+        self,
+        observation: PluginObservation,
+        *,
+        per_parameter_limit: int = 8,
+        total_limit: int = 128,
+    ) -> tuple[ActionCommand, ...]:
+        """Create a bounded, name-unbiased concrete command surface."""
+
+        blocks: list[tuple[Any, tuple[tuple[Any, ...], ...], int]] = []
+        total_population = 0
+        for spec in self.schema.actions:
+            rows: list[tuple[Any, ...]] = []
+            impossible = False
+            for parameter in spec.parameters:
+                candidates = list(
+                    self._sample_candidate_values(
+                        observation,
+                        kind=parameter.kind,
+                        enum_values=parameter.enum_values,
+                        limit=per_parameter_limit,
+                        label=f"{spec.action_id}:{parameter.name}",
+                    )
+                )
+                if not parameter.required:
+                    candidates.insert(0, None)
+                if not candidates:
+                    impossible = True
+                    break
+                rows.append(tuple(candidates))
+            if impossible:
+                continue
+            count = 1
+            for row in rows:
+                count *= len(row)
+            blocks.append((spec, tuple(rows), count))
+            total_population += count
+
+        self.last_candidate_population = total_population
+        if total_population <= 0:
+            self.last_candidate_surface = 0
+            return ()
+
+        limit = min(max(1, int(total_limit)), total_population)
+        if total_population <= limit:
+            chosen = tuple(range(total_population))
+        else:
+            randomizer = random.Random(
+                self._selection_seed(
+                    "command-surface",
+                    tuple(block[2] for block in blocks) + (limit,),
+                )
+            )
+            chosen = tuple(sorted(randomizer.sample(range(total_population), limit)))
+            self.candidate_sampling_events += 1
+
+        commands: dict[str, ActionCommand] = {}
+        offsets: list[int] = []
+        cursor = 0
+        for _, _, count in blocks:
+            offsets.append(cursor)
+            cursor += count
+
+        for global_index in chosen:
+            block_index = 0
+            while (
+                block_index + 1 < len(blocks)
+                and global_index >= offsets[block_index + 1]
+            ):
+                block_index += 1
+            spec, rows, _ = blocks[block_index]
+            local_index = global_index - offsets[block_index]
+            selected = self._decode_product_index(local_index, rows) if rows else ()
+            arguments = {
+                parameter.name: value
+                for parameter, value in zip(spec.parameters, selected, strict=True)
+                if value is not None
+            }
+            command = ActionCommand(spec.action_id, arguments)
+            key = f"{command.action_id}:{_stable_json(dict(command.arguments))}"
+            commands[key] = command
+
+        self.last_candidate_surface = len(commands)
+        return tuple(commands[key] for key in sorted(commands))
 
     def semantic_observation_identity(
         self,
@@ -252,6 +423,8 @@ class MemoryBackedRepresentation(SchemaDrivenRepresentation):
             {
                 "core_semantic_identity": semantic_identity,
                 "core_public_knowledge_revision": self.public_knowledge.revision,
+                "core_candidate_population": self.last_candidate_population,
+                "core_candidate_surface": self.last_candidate_surface,
             }
         )
         return replace(snapshot, metadata=metadata)
