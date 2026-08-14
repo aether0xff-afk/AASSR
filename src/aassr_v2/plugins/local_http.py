@@ -32,7 +32,7 @@ LOCAL_HTTP_PLUGIN_VERSION = "minimal-public-io-v1"
 
 
 class _PublicHtmlParser(HTMLParser):
-    """Extract only browser-visible mechanical affordances."""
+    """Extract browser-visible mechanical affordances from one response."""
 
     def __init__(self, base_url: str) -> None:
         super().__init__(convert_charrefs=True)
@@ -52,14 +52,12 @@ class _PublicHtmlParser(HTMLParser):
             self.links.add(urljoin(self.base_url, str(values["href"])))
             return
         if lowered == "form":
-            action = urljoin(
-                self.base_url,
-                str(values.get("action") or self.base_url),
-            )
-            method = str(values.get("method") or "GET").upper()
             self._active_form = {
-                "action": action,
-                "method": method,
+                "action": urljoin(
+                    self.base_url,
+                    str(values.get("action") or self.base_url),
+                ),
+                "method": str(values.get("method") or "GET").upper(),
                 "inputs": [],
             }
             return
@@ -75,7 +73,7 @@ class _PublicHtmlParser(HTMLParser):
 
 
 class _SameOriginRedirectHandler(HTTPRedirectHandler):
-    """Prevent urllib from escaping loopback through an HTTP redirect."""
+    """Reject a redirect before urllib can leave the configured loopback origin."""
 
     def __init__(self, validator) -> None:
         super().__init__()
@@ -104,12 +102,12 @@ class LocalHttpConfig:
 
 
 class LocalHttpPlugin:
-    """Minimal loopback-only real network plugin.
+    """Minimal loopback-only real HTTP I/O plugin.
 
-    The plugin knows wire syntax and public response types. It does not classify
-    pages, infer useful links, rank commands, filter failures, shape rewards, or
-    provide a world model. The Core receives the same public bytes a simple
-    client could observe.
+    The plugin owns only HTTP mechanics. It does not accumulate discovered links,
+    infer page roles, rank requests, install models, or retain problem-solving
+    knowledge. CookieJar state is retained because cookies are part of HTTP
+    transport/session mechanics required to perform later requests.
     """
 
     def __init__(self, config: LocalHttpConfig | str) -> None:
@@ -127,9 +125,7 @@ class LocalHttpPlugin:
             HTTPCookieProcessor(self._jar),
             _SameOriginRedirectHandler(self._validate_same_origin),
         )
-        self._known_links: set[str] = {self.config.base_url}
         self._last_result: PluginStepResult | None = None
-
         self._schema = PluginSchema(
             plugin_id=LOCAL_HTTP_PLUGIN_ID,
             version=LOCAL_HTTP_PLUGIN_VERSION,
@@ -169,14 +165,14 @@ class LocalHttpPlugin:
                     ValueKind.SET,
                     TemporalKind.STATE,
                     item_kind=ValueKind.ENTITY,
-                    description="응답에서 기계적으로 발견한 URL 집합",
+                    description="현재 응답에서 기계적으로 발견한 URL 집합",
                 ),
                 ObservationField(
                     "form_payload_templates",
                     ValueKind.SET,
                     TemporalKind.STATE,
                     item_kind=ValueKind.TEXT,
-                    description="공개 form input 이름으로 만든 빈 payload 형식",
+                    description="현재 응답 form input 이름으로 만든 빈 payload 형식",
                 ),
                 ObservationField(
                     "latency_ms",
@@ -223,9 +219,7 @@ class LocalHttpPlugin:
             raise ValueError("local HTTP plugin requires http or https")
         host = (parsed.hostname or "").lower()
         if host not in {"localhost", "127.0.0.1", "::1"}:
-            raise ValueError(
-                "local HTTP plugin is intentionally loopback-only"
-            )
+            raise ValueError("local HTTP plugin is intentionally loopback-only")
         return parsed
 
     def _validate_same_origin(self, value: str) -> str:
@@ -242,9 +236,10 @@ class LocalHttpPlugin:
         }
 
     def reset(self, *, seed: int | None = None) -> PluginStepResult:
+        # The plugin does not own hidden server state; seed is intentionally not
+        # translated into a task-specific reset rule.
         del seed
         self._jar.clear()
-        self._known_links = {self.config.base_url}
         result = PluginStepResult(
             observation=PluginObservation(
                 values={
@@ -253,29 +248,31 @@ class LocalHttpPlugin:
                     "headers": {},
                     "body": "",
                     "cookies": {},
-                    "links": tuple(sorted(self._known_links)),
+                    "links": (),
                     "form_payload_templates": (),
                     "latency_ms": 0.0,
                 }
-            ),
+            )
         )
         self._last_result = result
         return result
 
-    def _public_forms(
+    def _public_affordances(
         self,
         *,
         current_url: str,
         body: str,
-    ) -> tuple[str, ...]:
+    ) -> tuple[tuple[str, ...], tuple[str, ...]]:
         parser = _PublicHtmlParser(current_url)
         try:
             parser.feed(body)
         except Exception:
-            return ()
+            return (), ()
+
+        links: set[str] = set()
         for link in parser.links:
             try:
-                self._known_links.add(self._validate_same_origin(link))
+                links.add(self._validate_same_origin(link))
             except ValueError:
                 continue
 
@@ -283,7 +280,7 @@ class LocalHttpPlugin:
         for form in parser.forms:
             action = str(form["action"])
             try:
-                self._known_links.add(self._validate_same_origin(action))
+                links.add(self._validate_same_origin(action))
             except ValueError:
                 continue
             names = tuple(
@@ -294,10 +291,8 @@ class LocalHttpPlugin:
                 )
             )
             if names:
-                payloads.add(
-                    urlencode({name: "" for name in names})
-                )
-        return tuple(sorted(payloads))
+                payloads.add(urlencode({name: "" for name in names}))
+        return tuple(sorted(links)), tuple(sorted(payloads))
 
     @staticmethod
     def _header_truth(value: str | None) -> bool:
@@ -317,11 +312,7 @@ class LocalHttpPlugin:
         url = self._validate_same_origin(str(command.arguments["url"]))
         body_arg = command.arguments.get("body")
         data = None if body_arg is None else str(body_arg).encode("utf-8")
-        request = Request(
-            url,
-            data=data,
-            method=method,
-        )
+        request = Request(url, data=data, method=method)
         if data is not None:
             request.add_header(
                 "Content-Type",
@@ -349,6 +340,7 @@ class LocalHttpPlugin:
             response_url = str(response.geturl())
             response_body = response.read().decode("utf-8", errors="replace")
         except HTTPError as exc:
+            # 4xx/5xx is a public environment result, not an internal Core error.
             response_status = int(exc.code)
             response_headers = {
                 str(key).lower(): str(value)
@@ -362,14 +354,10 @@ class LocalHttpPlugin:
             response_body = str(exc)
 
         latency_ms = (time.perf_counter() - started) * 1000.0
-        payloads = self._public_forms(
+        links, payloads = self._public_affordances(
             current_url=response_url,
             body=response_body,
         )
-        try:
-            self._known_links.add(self._validate_same_origin(response_url))
-        except ValueError:
-            pass
 
         reward = 0.0
         terminated = False
@@ -390,28 +378,25 @@ class LocalHttpPlugin:
         if terminated:
             truncated = False
 
-        observation = PluginObservation(
-            values={
-                "current_url": response_url,
-                "status": response_status,
-                "headers": response_headers,
-                "body": response_body,
-                "cookies": self._cookies(),
-                "links": tuple(sorted(self._known_links)),
-                "form_payload_templates": payloads,
-                "latency_ms": latency_ms,
-            }
-        )
         result = PluginStepResult(
-            observation=observation,
+            observation=PluginObservation(
+                values={
+                    "current_url": response_url,
+                    "status": response_status,
+                    "headers": response_headers,
+                    "body": response_body,
+                    "cookies": self._cookies(),
+                    "links": links,
+                    "form_payload_templates": payloads,
+                    "latency_ms": latency_ms,
+                }
+            ),
             reward=reward,
             terminated=terminated,
             truncated=truncated,
             error=error,
             error_code=error_code,
-            diagnostics={
-                "wire_plugin": "loopback-only",
-            },
+            diagnostics={"wire_plugin": "loopback-only"},
         )
         self._last_result = result
         return result
