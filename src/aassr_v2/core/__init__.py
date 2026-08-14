@@ -27,9 +27,9 @@ from .representation import (
     CoreExperienceMemory,
     CoreRepresentationConfig,
     PluginEnvironmentAdapter,
-    SchemaDrivenRepresentation,
     SchemaDrivenStateCodec,
 )
+from .schema_representation import SchemaDrivenRepresentation
 from .runtime import (
     AASSRCoreRuntime,
     CORE_VERSION,
