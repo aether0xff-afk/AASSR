@@ -113,6 +113,23 @@ Core가 직접 후보를 만들도록 옮긴 뒤에도, 후보가 너무 많을 
 
 이 수정은 의미 판단을 Plugin에 주지 않고 오히려 Plugin 권한을 더 축소한다.
 
+### 12. localhost 계측용 reward/termination header가 learner observation에도 노출되고 있었다
+
+로컬 실제 HTTP 실험은 서버가 `X-AASSR-Reward`, `X-AASSR-Terminated`, `X-AASSR-Truncated` 같은 전용 header로 외부 reward와 episode 경계를 harness에 전달한다. 기존 `LocalHttpPlugin`은 이 값을 제어 신호로 소비하면서 동시에 일반 `headers` observation에도 그대로 넣고 있었다.
+
+그러면 learner가 환경의 일반 공개 정보와 실험 계측용 제어 채널을 구분하지 못한다. 특히 Prophecy가 terminal을 예측할 때 harness가 붙인 이름 자체를 shortcut으로 사용할 가능성이 생긴다.
+
+**판정:** 실제 환경 정보와 연구 harness 제어 채널의 경계 불완전.
+
+**수정:**
+
+- configured reward/termination/truncation header는 외부 제어 신호로만 소비
+- learner가 받는 일반 `headers` observation에서는 해당 header를 제거
+- 다른 실제 공개 header는 그대로 보존
+- real socket regression test에서 reward/termination은 전달되지만 제어 header는 observation에 없음을 검증
+
+이 수정은 환경의 의미를 Plugin이 해석한 것이 아니라, **연구 harness 자체가 만든 제어 채널을 관찰 데이터와 분리한 것**이다.
+
 ## 새 경계에서 유지한 것
 
 - ASEQ의 정확한 `S → A → S` 반복 억제 의미
@@ -130,6 +147,7 @@ Core가 직접 후보를 만들도록 옮긴 뒤에도, 후보가 너무 많을 
 - Plugin observation에 전략적 action-candidate channel이 없음
 - Plugin diagnostics가 reward/termination 제어 신호를 덮어쓰지 못함
 - 비정상/비유한 reward와 잘못된 제어 flag 형식 차단
+- localhost harness control header가 learner observation에 노출되지 않음
 - Core가 공개 typed value를 기억해 다음 후보 생성에 사용할 수 있음
 - episode reset 시 Core 공개 기억이 초기화됨
 - concrete 후보별 경험이 기본적으로 episode-local임
@@ -141,7 +159,7 @@ Core가 직접 후보를 만들도록 옮긴 뒤에도, 후보가 너무 많을 
 - 외부 redirect 차단
 - Plugin이 이전 페이지의 발견 link를 기억하지 않음
 
-2026-08-14의 control-boundary hardening 이후 `aassr-core-minimal-plugin` push CI에서 `boundary`와 `core-runtime-cpu` 두 job이 모두 통과했다.
+2026-08-14 control-boundary 및 control-header hardening 이후 `aassr-core-minimal-plugin` push CI에서 `boundary`와 `core-runtime-cpu` 두 job이 모두 통과했다.
 
 ## 실제 loopback 학습 smoke
 
