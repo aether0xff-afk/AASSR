@@ -52,7 +52,7 @@ jobs:
           python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.2"
       - name: Run Core runtime smoke
         run: pytest -q tests/test_core_runtime_smoke.py
-      - name: Run loopback HTTP end-to-end smoke
+      - name: Run real loopback HTTP learning smoke
         shell: bash
         run: |
           python examples/local_http_lab/server.py --port 8765 > /tmp/aassr-local-lab.log 2>&1 &
@@ -71,11 +71,29 @@ jobs:
           PY
           python scripts/run_local_http_core.py \
             --base-url http://127.0.0.1:8765 \
-            --episodes 4 \
+            --episodes 28 \
             --max-steps 12 \
             --device cpu \
             --output runs/local_http_core_smoke.json
-          test -s runs/local_http_core_smoke.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('runs/local_http_core_smoke.json')
+          result = json.loads(path.read_text(encoding='utf-8'))
+          diagnostics = result['diagnostics']
+          assert diagnostics['plugin']['id'] == 'local-http-minimal-v1'
+          assert diagnostics['representation']['owner'] == 'core'
+          assert diagnostics['policy']['dqn:gradient_updates'] > 0
+          assert diagnostics['prophecy']['gradient_updates'] > 0
+          assert diagnostics['critic']['gradient_updates'] > 0
+          assert diagnostics['representation']['episodes'] == 28
+          print(
+              'real learning updates:',
+              diagnostics['policy']['dqn:gradient_updates'],
+              diagnostics['prophecy']['gradient_updates'],
+              diagnostics['critic']['gradient_updates'],
+          )
+          PY
           cp /tmp/aassr-local-lab.log runs/aassr-local-lab.log || true
       - uses: actions/upload-artifact@v4
         if: always()
