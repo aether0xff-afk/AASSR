@@ -1,0 +1,29 @@
+{
+  "version": "post10k-step4-invalid-profile-does-not-mark-object-tried-v1",
+  "checkpoint_git_commit": "500ff175ca089fdf6bd4e822a1fdabdef7b1b69e",
+  "scenario_seeds": [92001, 92002, 92003, 92004, 92005, 92006, 92007, 92008],
+  "experimental": {
+    "episodes": 8,
+    "successes": 1,
+    "success_rate": 0.125,
+    "failures": 0,
+    "truncations": 7,
+    "stalls": 0,
+    "mean_transitions": 91.125,
+    "mean_requests": 91.125,
+    "mean_aseq_guards": 64.0,
+    "mean_unknown_attempts": 8.875,
+    "mean_unique_unknown_concrete": 6.375,
+    "mean_unique_unknown_structural": 2.375,
+    "alias_states": 356
+  },
+  "object_trial_memory_diagnostics": {
+    "invalid_profile_object_events": 42,
+    "legitimate_object_request_events": 301,
+    "preexisting_tried_object_preserved": 32,
+    "prevented_new_global_tried_object": 10,
+    "worlds_wrapped": 8
+  },
+  "decision": "rejected_as_major_l2_cause",
+  "reason": "The bookkeeping issue was observed and prevented 10 new tried-object contaminations, but success remained 1/8 and aggregate behavior stayed essentially identical to Iteration 3."
+}
