@@ -73,6 +73,22 @@ class MyPlugin:
 
 플러그인은 후보 명령 목록을 반환하지 않는다. Core가 `ActionSpec`과 공개 관찰의 자료형을 이용해 후보를 생성한다.
 
+## 제어 신호와 관찰은 분리한다
+
+`PluginStepResult.reward`, `terminated`, `truncated`, `error`는 Core 실행을 제어하는 표준 채널이다. 연구 harness나 프로토콜이 이 값을 별도의 전송 필드/헤더로 운반하더라도, **그 전송용 제어 값 자체를 다시 일반 observation에 중복 노출하면 안 된다.**
+
+예를 들어 localhost HTTP 연구 harness가 `X-AASSR-Reward`라는 전용 header로 외부 reward를 운반한다면:
+
+```text
+X-AASSR-Reward
+  → PluginStepResult.reward        허용
+  → observation["headers"]         금지
+```
+
+일반 환경이 실제로 공개하는 다른 header는 그대로 관찰할 수 있다. 금지되는 것은 **연구 harness가 만든 제어 채널을 learner-visible world data로 재노출하는 것**이다. 이렇게 해야 reward/terminal 정보를 이름만 보고 맞히는 shortcut을 막을 수 있다.
+
+또한 `diagnostics`는 관찰이나 제어 신호가 아니다. `external_reward`, `terminated`, `truncated` 같은 예약 제어 key를 diagnostics로 덮어쓸 수 없으며, `validate_step_result()`가 이 경계를 검사한다.
+
 ## 자료형
 
 - `BOOLEAN`: 참/거짓
