@@ -27,12 +27,23 @@ class MyPlugin:
         version="v1",
         observations=(
             ObservationField("screen_text", ValueKind.TEXT),
-            ObservationField("objects", ValueKind.SET, item_kind=ValueKind.ENTITY),
+            ObservationField(
+                "objects",
+                ValueKind.SET,
+                item_kind=ValueKind.ENTITY,
+                value_space="object-id",
+            ),
         ),
         actions=(
             ActionSpec(
                 "use",
-                parameters=(ActionParameter("target", ValueKind.ENTITY),),
+                parameters=(
+                    ActionParameter(
+                        "target",
+                        ValueKind.ENTITY,
+                        value_space="object-id",
+                    ),
+                ),
             ),
         ),
     )
@@ -53,6 +64,7 @@ class MyPlugin:
 
 - 행동의 이름/매개변수/자료형 정의
 - 관찰 채널과 자료형 정의
+- **기계적으로 호환되는 값의 공간(`value_space`) 정의**
 - 실제 환경과 통신
 - **현재 응답/현재 관찰**에서 기계적으로 보이는 값을 전달
 - 환경이 원래 주는 reward/terminated/truncated 전달
@@ -72,6 +84,62 @@ class MyPlugin:
 마지막 항목이 중요하다. 예를 들어 HTTP Plugin이 이전 페이지에서 본 링크를 계속 들고 있는 것은 "어떻게 HTTP 요청을 보내는가"가 아니라 "이전에 무엇을 발견했는가"라는 문제 해결 기억이다. 이런 기억은 `CorePublicKnowledge`가 담당한다. 반면 쿠키는 다음 HTTP 요청을 실제로 수행하기 위한 프로토콜 상태이므로 Plugin에 있어도 된다.
 
 플러그인은 후보 명령 목록을 반환하지 않는다. Core가 `ActionSpec`과 공개 관찰의 자료형을 이용해 후보를 생성한다.
+
+## `value_space`: 의미가 아니라 기계적 호환성
+
+`ValueKind`만으로는 부족할 때가 있다. 예를 들어 웹 환경에서 다음 값은 둘 다 `TEXT`다.
+
+```text
+응답 본문 HTML      → TEXT
+POST form payload  → TEXT
+```
+
+자료형만 같다고 응답 본문 전체를 POST body 후보로 쓰면 잘못된 행동 문법이 된다. 같은 문제는 서로 다른 종류의 `ENTITY`에서도 생길 수 있다.
+
+이때 `value_space`를 사용한다.
+
+```python
+ObservationField(
+    "links",
+    ValueKind.SET,
+    item_kind=ValueKind.ENTITY,
+    value_space="url",
+)
+
+ActionParameter(
+    "url",
+    ValueKind.ENTITY,
+    value_space="url",
+)
+```
+
+`value_space`가 말하는 것은 오직 다음뿐이다.
+
+> "이 값은 이 프로토콜 슬롯에 **형식상 넣을 수 있다**."
+
+따라서 다음처럼 써도 된다.
+
+```text
+url
+object-id
+form-payload
+motor-channel
+board-coordinate
+```
+
+하지만 다음처럼 쓰면 안 된다.
+
+```text
+correct-url
+promising-object
+bad-profile
+target-id
+progress-action
+```
+
+후자는 기계적 호환성이 아니라 **문제의 의미/정답을 Plugin이 주입하는 것**이므로 계약 위반이다.
+
+`value_space=None`이면 이전 계약과의 호환성을 위해 같은 `ValueKind`끼리 후보가 만들어진다. 새 Plugin은 서로 다른 기계적 값 공간이 섞일 가능성이 있다면 명시적으로 `value_space`를 선언하는 것을 권장한다.
 
 ## 제어 신호와 관찰은 분리한다
 
@@ -117,7 +185,10 @@ Core는 `COUNTER`와 `MEASUREMENT` 변화만으로 semantic state가 달라졌�
 python scripts/audit_core_boundary.py
 pytest -q \
   tests/test_minimal_plugin_contract.py \
+  tests/test_plugin_result_control_boundary.py \
   tests/test_core_episode_scope.py \
+  tests/test_core_candidate_sampling.py \
+  tests/test_core_value_spaces.py \
   tests/test_core_boundary_static.py \
   tests/test_local_http_plugin.py
 ```
