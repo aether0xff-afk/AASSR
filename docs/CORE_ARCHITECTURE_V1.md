@@ -11,59 +11,62 @@
 
 Plugin은 후보의 가치, 정답/오답, 진전, 역할, world model, shaping reward를 제공하지 않는다.
 
-## 2. 확정된 Core 구성요소
+## 2. 확정된 Core 구성요소와 실행 순서
 
 ```text
-                       ┌──────────────────────┐
-                       │      REAL WORLD      │
-                       └──────────┬───────────┘
-                                  │ public I/O
-                                  ▼
-                       ┌──────────────────────┐
-                       │        Plugin        │
-                       │ schema + typed data  │
-                       │ real command I/O     │
-                       └──────────┬───────────┘
-                                  │ PluginStepResult
-                                  ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                            AASSR CORE                               │
-│                                                                      │
-│  Boundary                                                            │
-│  ┌──────────────┐      ┌──────────────┐                              │
-│  │PluginContract│ ───▶ │ Transition   │                              │
-│  └──────────────┘      └──────┬───────┘                              │
-│                                │                                      │
-│  World state                    ▼                                      │
-│  ┌──────────────┐      ┌──────────────┐      ┌──────────────────┐    │
-│  │  Knowledge   │ ───▶ │ActionSurface │ ───▶ │ Representation   │    │
-│  │ public/evid. │      │ candidates   │      │ S / A / semantic │    │
-│  └──────┬───────┘      └──────────────┘      └────────┬─────────┘    │
-│         │                                               │              │
-│         └──────────────────────────────┬────────────────┘              │
-│                                        ▼                               │
-│  Decision / learning                                                   │
-│  ┌────────┐   ┌──────────┐   ┌────────┐   ┌────────┐                  │
-│  │ Policy │   │ Prophecy │   │ Critic │   │ Skills │                  │
-│  └───┬────┘   └────┬─────┘   └───┬────┘   └───┬────┘                  │
-│      │             │             │            │                       │
-│      │             └──────┬──────┘            │                       │
-│      │                    ▼                   │                       │
-│      │              ┌────────────┐            │                       │
-│      └─────────────▶│Imagination │◀───────────┘                       │
-│                     └─────┬──────┘                                    │
-│                           │ optional intervention                      │
-│                     ┌─────▼──────┐                                    │
-│                     │    ASEQ    │*                                   │
-│                     └─────┬──────┘                                    │
-│                           ▼                                           │
-│                        action                                         │
-│                                                                      │
-│  Runtime = lifecycle/orchestration only                              │
-└──────────────────────────────────────────────────────────────────────┘
+REAL WORLD
+   │ public I/O
+   ▼
+Plugin
+   │ PluginStepResult
+   ▼
+PluginContract / Transition
+   │
+   ▼
+Knowledge
+   │
+   ├──────────────┐
+   ▼              │
+ActionSurface     │
+   │              │
+   ▼              │
+Representation ◀─┘
+   │
+   ▼
+Skills augment action surface
+   │
+   ▼
+ASEQ exact S→A→S guard
+   │
+   ▼
+Policy base decision
+   │
+   ▼
+Imagination gate
+   ├─ not ready ─────────────────────────────┐
+   │                                         │
+   └─ ready → Prophecy → Critic → compare ──┤
+                                             ▼
+                                         final action
+                                             │
+                                             ▼
+                                           Plugin
+                                             │
+                                             ▼
+                                      real Transition
+                                             │
+                 ┌───────────────────────────┼───────────────────────────┐
+                 ▼                           ▼                           ▼
+             Knowledge                  Policy/Prophecy              Critic/Skills
+                 │                           │                           │
+                 └───────────────────────────┴──────────────┬────────────┘
+                                                            ▼
+                                                   ASEQ records (S,A,S')
+
+Runtime wraps the whole lifecycle and owns orchestration only.
 ```
 
-`*` 실제 실행 순서에서는 Skills가 primitive/macro action surface를 보강한 뒤 ASEQ가 반복 self-loop 후보를 guard하고, Policy가 기본 결정을 만든다. Imagination은 준비 조건이 충족된 경우 Policy의 기본 결정을 대체할 수 있다. 그림은 의존 관계를 단순화해 표시한다.
+이 순서는 고정한다. **ASEQ는 Policy/Imagination이 판단하기 전에 후보 surface를 guard한다.** Imagination은 ASEQ를 통과한 후보들에 대해 Policy의 기본 결정을 유지하거나 대체할 수 있다.
 
 ## 3. 각 구성요소의 책임
 
