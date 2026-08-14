@@ -35,6 +35,7 @@ jobs:
             tests/test_core_episode_scope.py \
             tests/test_core_candidate_sampling.py \
             tests/test_core_value_spaces.py \
+            tests/test_core_skill_grounding.py \
             tests/test_core_boundary_static.py \
             tests/test_local_http_plugin.py
 
