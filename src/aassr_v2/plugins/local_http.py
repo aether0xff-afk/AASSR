@@ -108,6 +108,10 @@ class LocalHttpPlugin:
     infer page roles, rank requests, install models, or retain problem-solving
     knowledge. CookieJar state is retained because cookies are part of HTTP
     transport/session mechanics required to perform later requests.
+
+    Reward/termination transport headers are consumed as standardized environment
+    control signals and are deliberately removed from the learner-visible header
+    observation. This keeps benchmark instrumentation separate from world data.
     """
 
     def __init__(self, config: LocalHttpConfig | str) -> None:
@@ -146,7 +150,7 @@ class LocalHttpPlugin:
                     "headers",
                     ValueKind.MAPPING,
                     TemporalKind.EVENT,
-                    description="공개 응답 헤더",
+                    description="공개 응답 헤더(환경 제어용 예약 헤더 제외)",
                 ),
                 ObservationField(
                     "body",
@@ -233,6 +237,23 @@ class LocalHttpPlugin:
         return {
             str(cookie.name): str(cookie.value)
             for cookie in self._jar
+        }
+
+    def _control_header_names(self) -> frozenset[str]:
+        return frozenset(
+            {
+                self.config.reward_header.lower(),
+                self.config.termination_header.lower(),
+                self.config.truncation_header.lower(),
+            }
+        )
+
+    def _public_headers(self, headers: Mapping[str, str]) -> Mapping[str, str]:
+        reserved = self._control_header_names()
+        return {
+            str(key): str(value)
+            for key, value in headers.items()
+            if str(key).lower() not in reserved
         }
 
     def reset(self, *, seed: int | None = None) -> PluginStepResult:
@@ -383,7 +404,7 @@ class LocalHttpPlugin:
                 values={
                     "current_url": response_url,
                     "status": response_status,
-                    "headers": response_headers,
+                    "headers": self._public_headers(response_headers),
                     "body": response_body,
                     "cookies": self._cookies(),
                     "links": links,
