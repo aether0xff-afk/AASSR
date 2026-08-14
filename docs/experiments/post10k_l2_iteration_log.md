@@ -100,33 +100,65 @@ This moves the main suspicion from generic Policy exploration to **lossy respons
 
 ## Iteration 3 — preserve one negative route/profile response fact
 
+### Changed variable
+
+Iteration 2 probe priority is held fixed. After observing `request_profile_not_applicable` for one `request_object(route, profile, object)`, remember the public negative pair `(route, profile)` for the remainder of that episode and suppress other `request_object` actions with that same pair while alternatives exist.
+
+### Result
+
+| Metric | Iteration 2 | Iteration 3 | Delta |
+| --- | ---: | ---: | ---: |
+| Success | 0/8 | 1/8 | +1 |
+| Success rate | 0.0 | 0.125 | +0.125 |
+| Failures | inferred lockout-dominated | 0 | improved |
+| Truncations | 0 | 7 | +7 |
+| Mean transitions | 59.0 | 90.75 | +31.75 |
+| Mean ASEQ guards | 37.125 | 64.375 | +27.25 |
+| Mean unknown attempts | 12.375 | 7.875 | -4.5 |
+| Alias states | 99 | 353 | +254 |
+
+Mechanism counters:
+
+- 42 negative-response events
+- 42 new invalid route/profile pairs
+- 352 negative-memory filter events
+- 5142 filtered follow-up actions
+- 62 forced probe choices under the fixed Iteration-2 scaffold
+
+### Decision
+
+**KEEP as a supported defect signal, but do not yet promote the diagnostic filter to canonical AASSR.**
+
+The change produced the first L2 success in this sequence and eliminated observed failure episodes, while the remaining seven episodes survived longer and ended by truncation. With only eight development seeds, 1/8 is not enough to claim the problem is solved, but the mechanism fired strongly and the failure mode changed in the predicted direction.
+
+This supports the claim that current observation/memory loses useful public negative route/profile semantics. Another downstream defect remains because seven episodes still exhaust their budget.
+
+## Iteration 4 — do not mark an object as globally tried when the profile itself was invalid
+
 ### Hypothesis
 
-When an unknown profile receives the public response `request_profile_not_applicable` on a route, that response establishes that the same profile should not be retried on the same route merely with a different object ID. Current ASEQ guards exact `(S,A)` self-loops, but different object IDs create different concrete actions; exact-action memory therefore cannot generalize this negative route/profile evidence.
+Current `ResponseMemory.observe` adds every `object_id` from every `request_object` action to the global `tried_objects` set before it knows whether the selected profile was applicable. Therefore an attempt such as:
+
+`wrong-profile + object-X -> request_profile_not_applicable`
+
+can still make later actions treat `object-X` as already tried. At L1 this is mostly harmless because there is essentially one relevant profile candidate. At L2, profile candidates multiply, so trying the target object under a wrong profile can poison the later relational state for the correct profile.
+
+This is a stronger L1->L2-specific explanation than raw candidate identity alone: the memory relation `tried(object)` is too coarse and should depend on whether the request actually tested the object semantics.
 
 ### Single changed variable
 
-Frozen diagnostic only: after observing `request_profile_not_applicable` for one `request_object(route, profile, object)`, remember only the public negative pair `(route, profile)` for the remainder of that episode and suppress other `request_object` actions with that same `(route, profile)` pair while alternatives exist.
+Hold Iteration 2 probe priority and Iteration 3 negative route/profile memory fixed. Change only this bookkeeping rule during frozen diagnosis:
 
-This is not an oracle: it never reads the hidden correct profile, target object, or scenario role. It uses only the response body the mock HTTP server actually returned for the executed action.
+- if a `request_object` response contains public fact `request_profile_not_applicable`, that attempt must **not newly add** its `object_id` to `tried_objects`;
+- if the object had already been legitimately tried before that invalid-profile action, keep the existing tried state;
+- every non-`request_profile_not_applicable` object request keeps the original bookkeeping.
 
-### Explicitly unchanged
-
-- environment dynamics and difficulty
-- checkpoint weights
-- state/action neural encodings
-- Policy values and ranking among remaining actions
-- reward
-- ASEQ implementation
-- Prophecy
-- Critic
-- Imagination disabled
-- scenario seeds and episode cap
+No hidden profile identity, target identity, or oracle information is read.
 
 ### Interpretation
 
-- Success increase and lower lockout/failure pressure: missing route/profile negative-response memory is a major L2 defect.
-- Fewer repeated bad-profile probes but still 0/8: negative memory matters but another downstream issue remains; next inspect whether positive profile-role discovery is learned/retained correctly.
-- Little/no filtering: the hypothesis is wrong or the relevant negative response is not occurring where expected.
+- A material success increase over Iteration 3: global object-tried pollution from invalid profile probes is a major L2 defect.
+- Similar 1/8 but clear counter activity: the bookkeeping is semantically wrong but not the main remaining bottleneck; move downstream to positive read-profile/target discovery retention.
+- Little/no prevented pollution: reject this as a major explanation.
 
-Do not promote the diagnostic filter itself to canonical AASSR. A positive result would justify a principled response-semantic memory representation in the plugin/observation boundary.
+Do not change canonical runtime until this single-variable diagnostic is observed.
