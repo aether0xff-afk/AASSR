@@ -14,6 +14,7 @@ FORBIDDEN_IMPORT_PARTS = (
     "plugins.",
     ".plugins",
     "current_pentest",
+    "action_plugins",
 )
 FORBIDDEN_CORE_TOKENS = (
     "http",
@@ -31,6 +32,7 @@ FORBIDDEN_TRANSITIVE_MODULE_PARTS = (
     "benchmark",
     "curriculum",
     ".plugins",
+    "action_plugins",
 )
 
 
