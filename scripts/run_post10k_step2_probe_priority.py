@@ -18,6 +18,7 @@ from scripts import run_post10k_checkpoint_diagnostic as base
 
 
 VERSION = "post10k-step2-unknown-object-profile-probe-priority-v1"
+DEFAULT_BASELINE = REPO_ROOT / "docs" / "experiments" / "post10k_l2_baseline_reference.json"
 
 
 def _unknown_object_profile_probe(state: object, action: object) -> bool:
@@ -41,8 +42,6 @@ def _install_probe_priority(agent: object) -> Counter[str]:
         epsilon: float,
         exploration_bonus: float,
     ):
-        # Frozen evaluation uses epsilon=0. Preserve any accidental exploratory
-        # reuse exactly rather than changing train-time behavior.
         if float(epsilon) != 0.0:
             return original_select(
                 state,
@@ -72,11 +71,6 @@ def _install_probe_priority(agent: object) -> Counter[str]:
             int(counters.get("probe_candidates_max", 0)), len(probes)
         )
 
-        # Compute the canonical global action only for diagnosis. The changed
-        # scientific variable is class priority: if the canonical winner lies
-        # outside the unknown object-profile probe subset, execute the best
-        # existing Policy-ranked probe instead. Scores and ordering inside that
-        # subset remain untouched.
         canonical = original_select(
             state,
             randomizer=randomizer,
@@ -116,7 +110,7 @@ def _load_baseline(path: Path, seeds: tuple[int, ...]) -> dict[str, Any]:
         raise ValueError(f"baseline seed mismatch: {baseline_seeds!r} != {seeds!r}")
     baseline = data.get("baseline")
     if not isinstance(baseline, dict):
-        raise ValueError("baseline summary does not contain a baseline object")
+        raise ValueError("baseline reference does not contain a baseline object")
     return dict(baseline)
 
 
@@ -129,11 +123,7 @@ def main() -> None:
         )
     )
     parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument(
-        "--baseline-summary",
-        type=Path,
-        default=Path("runs/post10k_l2_diagnostic_seed7/summary.json"),
-    )
+    parser.add_argument("--baseline-summary", type=Path, default=DEFAULT_BASELINE)
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -151,7 +141,7 @@ def main() -> None:
     if not args.checkpoint.is_file():
         parser.error(f"checkpoint not found: {args.checkpoint}")
     if not args.baseline_summary.is_file():
-        parser.error(f"baseline summary not found: {args.baseline_summary}")
+        parser.error(f"baseline reference not found: {args.baseline_summary}")
 
     seeds = tuple(int(value) for value in args.scenario_seeds)
     baseline = _load_baseline(args.baseline_summary, seeds)
