@@ -1,0 +1,41 @@
+{
+  "version": "post10k-step6-positive-route-profile-applicability-v1",
+  "scenario_seeds": [92001, 92002, 92003, 92004, 92005, 92006, 92007, 92008],
+  "experimental": {
+    "alias_states": 365,
+    "episodes": 8,
+    "failures": 1,
+    "filter_events": 0,
+    "mean_aseq_guards": 65.625,
+    "mean_requests": 92.25,
+    "mean_transitions": 92.25,
+    "mean_unique_unknown_concrete": 6.375,
+    "mean_unique_unknown_structural": 2.375,
+    "mean_unknown_attempts": 7.875,
+    "shadow_disagreements": 0,
+    "shadow_plans": 0,
+    "stalls": 0,
+    "success_rate": 0.0,
+    "successes": 0,
+    "truncations": 7
+  },
+  "positive_profile_memory_diagnostics": {
+    "active_positive_pairs": 1,
+    "iteration3_already_positive_pair": 16,
+    "new_positive_pairs": 8,
+    "positive_pair_candidates_max": 3,
+    "positive_pair_candidates_total": 184,
+    "positive_pair_no_available_candidate": 249,
+    "positive_pair_priority_opportunities": 89,
+    "positive_pair_priority_overrides": 73,
+    "positive_response_events": 31
+  },
+  "negative_profile_memory_diagnostics": {
+    "active_invalid_pairs": 5,
+    "filter_events": 364,
+    "filtered_actions": 4950,
+    "negative_response_events": 42,
+    "new_invalid_pairs": 42
+  },
+  "decision": "reject_as_repair_but_refine_target_handoff_boundary"
+}
