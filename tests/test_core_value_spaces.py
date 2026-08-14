@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import pytest
+
 from aassr_v2.core import (
     ActionParameter,
     ActionSpec,
     ObservationField,
     PluginObservation,
     PluginSchema,
+    SchemaDrivenRepresentation,
     TemporalKind,
     ValueKind,
 )
@@ -99,9 +102,20 @@ def test_value_space_extension_preserves_historical_positional_fields() -> None:
     assert parameter.value_space is None
 
 
-def test_same_python_kind_does_not_cross_mechanical_value_spaces() -> None:
-    representation = MemoryBackedRepresentation(SCHEMA, candidate_seed=7)
-    representation.begin_episode()
+@pytest.mark.parametrize(
+    "representation_factory",
+    (
+        lambda: SchemaDrivenRepresentation(SCHEMA),
+        lambda: MemoryBackedRepresentation(SCHEMA, candidate_seed=7),
+    ),
+)
+def test_same_python_kind_does_not_cross_mechanical_value_spaces(
+    representation_factory,
+) -> None:
+    representation = representation_factory()
+    begin = getattr(representation, "begin_episode", None)
+    if callable(begin):
+        begin()
     commands = _pairs(
         representation,
         PluginObservation(
