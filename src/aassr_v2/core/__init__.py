@@ -4,6 +4,11 @@ The Core learns task meaning. Environment plugins are intentionally restricted
 to command syntax, public data types, and real I/O.
 """
 
+from .manifest import (
+    CORE_COMPONENTS,
+    PLUGIN_ALLOWED_AUTHORITIES,
+    PLUGIN_FORBIDDEN_AUTHORITIES,
+)
 from .plugin_contract import (
     ActionCommand,
     ActionParameter,
@@ -17,17 +22,13 @@ from .plugin_contract import (
     ValueKind,
     validate_minimal_plugin,
 )
+from .public_memory import CorePublicKnowledge, MemoryBackedRepresentation
 from .representation import (
     CoreExperienceMemory,
     CoreRepresentationConfig,
     PluginEnvironmentAdapter,
     SchemaDrivenRepresentation,
     SchemaDrivenStateCodec,
-)
-from .manifest import (
-    CORE_COMPONENTS,
-    PLUGIN_ALLOWED_AUTHORITIES,
-    PLUGIN_FORBIDDEN_AUTHORITIES,
 )
 from .runtime import (
     AASSRCoreRuntime,
@@ -50,7 +51,9 @@ __all__ = (
     "ValueKind",
     "validate_minimal_plugin",
     "CoreExperienceMemory",
+    "CorePublicKnowledge",
     "CoreRepresentationConfig",
+    "MemoryBackedRepresentation",
     "PluginEnvironmentAdapter",
     "SchemaDrivenRepresentation",
     "SchemaDrivenStateCodec",
