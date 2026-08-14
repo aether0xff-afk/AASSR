@@ -1,0 +1,28 @@
+{
+  "version": "post10k-step5-read-profile-handoff-v1",
+  "scenario_seeds": [92001, 92002, 92003, 92004, 92005, 92006, 92007, 92008],
+  "comparison": "Iteration 3 plus read-role handoff of forced probing",
+  "experimental": {
+    "episodes": 8,
+    "successes": 1,
+    "success_rate": 0.125,
+    "failures": 0,
+    "truncations": 7,
+    "stalls": 0,
+    "mean_transitions": 90.75,
+    "mean_requests": 90.75,
+    "mean_aseq_guards": 64.375,
+    "mean_unknown_attempts": 7.875,
+    "mean_unique_unknown_concrete": 6.375,
+    "mean_unique_unknown_structural": 2.375,
+    "alias_states": 353
+  },
+  "handoff_diagnostics": {
+    "probe_opportunities": 63,
+    "forced_probe_choices_before_read": 62,
+    "overridden_nonprobe_choices_before_read": 62,
+    "canonical_already_probe": 1,
+    "read_role_handoff_states": 0
+  },
+  "decision": "rejected as a remaining L2 explanation; no state simultaneously had an observed read role and remaining unknown probe candidates, and aggregate behavior was byte-for-byte identical to Iteration 3"
+}
