@@ -9,9 +9,35 @@ from .plugin_contract import PluginObservation, PluginStepResult, TemporalKind, 
 from .representation import (
     SchemaDrivenRepresentation,
     _add_hashed,
+    _bounded_scalar,
     _normalized,
     _stable_json,
 )
+
+
+def _evidence_tokens(schema, observation: PluginObservation) -> tuple[str, ...]:
+    """Normalize public evidence without treating volatile measurements as state."""
+
+    rows: list[str] = []
+    fields = schema.observation_map
+    for name, raw in sorted(observation.values.items()):
+        field = fields.get(name)
+        if field is None or field.temporal in {
+            TemporalKind.COUNTER,
+            TemporalKind.MEASUREMENT,
+        }:
+            continue
+        if field.temporal is TemporalKind.EVENT and field.kind is ValueKind.MAPPING:
+            mapping = raw if isinstance(raw, Mapping) else {}
+            rows.append(
+                f"{name}:keys:{_stable_json(tuple(sorted(str(key) for key in mapping)))}"
+            )
+            continue
+        if field.temporal is TemporalKind.EVENT and field.kind is ValueKind.SCALAR:
+            rows.append(f"{name}:scalar:{round(_bounded_scalar(raw), 3)}")
+            continue
+        rows.append(f"{name}:{_stable_json(raw)}")
+    return tuple(rows)
 
 
 class CorePublicKnowledge:
@@ -74,10 +100,7 @@ class CorePublicKnowledge:
             }:
                 self._remember_value(field.kind, raw)
 
-            if field.temporal in {TemporalKind.COUNTER, TemporalKind.MEASUREMENT}:
-                continue
-            token = f"{name}:{_stable_json(raw)}"
-            self._semantic_evidence.add(token)
+        self._semantic_evidence.update(_evidence_tokens(schema, observation))
 
         if len(self._semantic_evidence) > before:
             self.revision += 1
@@ -166,9 +189,23 @@ class MemoryBackedRepresentation(SchemaDrivenRepresentation):
             for key in sorted(merged)[: max(1, int(limit))]
         )
 
+    def semantic_observation_identity(
+        self,
+        observation: PluginObservation,
+    ) -> tuple[tuple[str, str], ...]:
+        # EVENT values are evidence, not persistent world state. New event
+        # evidence changes public_knowledge.revision once; repeated identical
+        # evidence no longer defeats semantic self-loop detection.
+        fields = self.schema.observation_map
+        return tuple(
+            (name, _stable_json(value))
+            for name, value in sorted(observation.values.items())
+            if name in fields and fields[name].temporal is TemporalKind.STATE
+        )
+
     def semantic_observation_fingerprint(self, observation: PluginObservation) -> str:
-        identity = self.semantic_observation_identity(observation)
-        return hashlib.sha256(repr(identity).encode("utf-8")).hexdigest()
+        evidence = _evidence_tokens(self.schema, observation)
+        return hashlib.sha256(repr(evidence).encode("utf-8")).hexdigest()
 
     def to_snapshot(self, result: PluginStepResult):
         observation = result.observation
