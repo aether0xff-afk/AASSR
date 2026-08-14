@@ -68,7 +68,7 @@ AASSR이 특정 pentest 시뮬레이터를 잘 푸는 코드가 아니라 환경
 
 최초 smoke artifact에서 실제 transition 30개에 대해 experience의 novel-outcome revision도 30번 증가했다. `latency_ms`, 매 요청마다 달라질 수 있는 header 값 같은 공개 측정치가 raw observation fingerprint에 들어가면서 동일한 문제 상태도 매번 다른 결과처럼 취급될 수 있었다.
 
-이 구조는 ASEQ의 semantic self-loop 판단까지 약하게 만들 수 있다. "요청 횟수/시간이 달라졌다"는 이유만으로 `S → A → S`가 아닌 것처럼 보이면 사용자가 고정한 ASEQ 의미와 맞지 않는다.
+이 구조는 ASEQ의 semantic self-loop 판단까지 약하게 만들 수 있다. "요청 횟수/시간이 달라졌다"는 이유만으로 `S → A → S`가 아닌 것처럼 보이면 사용자와 연구에서 고정한 ASEQ 의미와 맞지 않는다.
 
 **수정:**
 
@@ -78,6 +78,22 @@ AASSR이 특정 pentest 시뮬레이터를 잘 푸는 코드가 아니라 환경
 - mapping 형태 EVENT는 volatile value 전체가 아니라 공개 key 구조를 기본 evidence로 사용
 
 이 규칙은 `core/public_memory.py`에 있고 테스트로 고정한다.
+
+### 9. Concrete 후보별 경험이 episode를 넘어 누수될 수 있었다
+
+새 Core의 첫 구현에서는 concrete action signature별 실제 경험 통계가 runtime 전체에 남았다. 그런데 환경 reset 뒤 같은 문자열 ID가 다른 숨은 의미를 가질 수 있는 환경에서는 이전 episode의 후보별 평가가 다음 episode에 그대로 전달될 수 있다.
+
+**판정:** 일반 Core의 기본값으로는 너무 강한 기억이며 rename/generalization 실험을 오염시킬 수 있다.
+
+**수정:** concrete 후보별 경험은 기본적으로 `episode-local`로 변경했다. DQN/Prophecy/Critic/Skills 같은 구조적 학습은 계속 유지하지만, concrete ID에 묶인 시도/결과 통계는 episode 시작 시 초기화한다. 명시적으로 `preserve_knowledge_across_episodes`를 선택한 실험에서만 보존한다.
+
+### 10. 후보 수 제한이 concrete 이름의 사전순 편향을 만들 수 있었다
+
+Core가 직접 후보를 만들도록 옮긴 뒤에도, 후보가 너무 많을 때 정렬된 concrete ID의 앞부분만 자르면 이름 자체가 선택 확률에 영향을 주게 된다. 이는 과거 signature lexicographic tie 문제를 다른 위치에서 다시 만드는 셈이다.
+
+**판정:** Core가 후보를 소유하더라도 concrete 이름에 전략적 우선순위가 생기면 안 된다.
+
+**수정:** bounded candidate surface는 Core가 episode/evidence 기반 seed로 표본화한다. 표본화 seed에 concrete 후보 이름을 넣지 않고 후보 수/구조만 사용한다. 같은 episode의 같은 공개 evidence에서는 후보 표면이 안정적으로 유지되며, 사전순 앞부분을 고르는 방식은 제거했다.
 
 ## 새 경계에서 유지한 것
 
@@ -96,11 +112,66 @@ AASSR이 특정 pentest 시뮬레이터를 잘 푸는 코드가 아니라 환경
 - Plugin observation에 전략적 action-candidate channel이 없음
 - Core가 공개 typed value를 기억해 다음 후보 생성에 사용할 수 있음
 - episode reset 시 Core 공개 기억이 초기화됨
+- concrete 후보별 경험이 기본적으로 episode-local임
+- 후보 수 제한이 concrete 이름의 사전순 앞부분을 선택하지 않음
+- 같은 episode/같은 evidence에서 bounded 후보 표면이 안정적임
 - counter/measurement 변화가 semantic state를 가짜로 바꾸지 않음
 - 같은 semantic `S → A → S`가 threshold 뒤 ASEQ에서 실제로 guard됨
 - loopback 실제 socket I/O
 - 외부 redirect 차단
 - Plugin이 이전 페이지의 발견 link를 기억하지 않음
+
+## 실제 loopback 학습 smoke
+
+구조 분리만 해 놓고 실제 학습 경로가 죽어 있는지 확인하기 위해, `127.0.0.1`의 실제 `ThreadingHTTPServer`를 띄우고 `LocalHttpPlugin`을 통해 28 episode의 CPU 학습 smoke를 실행했다.
+
+완료된 CI run에서 관찰된 값:
+
+```text
+episodes                 28
+real transitions        216
+positive episodes         1
+negative episodes        17
+zero episodes            10
+DQN gradient updates     89
+Prophecy observations   181
+Prophecy updates         54
+Critic episodes          28
+Critic transitions      216
+Critic updates           26
+Calibration refreshes    43
+ASEQ guard events          3
+```
+
+이 결과로 주장할 수 있는 것은 제한적이다.
+
+**확인된 것:**
+- Python 객체 내부에서 HTTP를 흉내 내는 simulator가 아니라 실제 loopback socket I/O가 사용됨
+- 새 최소 Plugin → Core adapter → Policy/Prophecy/Critic 학습 경로가 실제로 연결됨
+- DQN, Prophecy, Critic의 parameter update가 실제 발생함
+- Core가 공개 정보를 기억하고 행동 후보를 다시 구성할 수 있음
+
+**이 결과로 주장하지 않는 것:**
+- 새 Core의 성공률이 높음
+- 기존 10k runtime보다 성능이 좋음
+- 일반화가 증명됨
+- Imagination이 성능을 높임
+
+해당 smoke에서 Imagination은 요청되어 있었지만 Critic 신뢰 조건이 충족되지 않아 실제 planner treatment가 활성화되지 않았다. 따라서 Imagination 성능 증거로 사용하지 않는다.
+
+## 기존 10k 경로 보존
+
+기존 `current_*`, `plugins/current_pentest.py`, pentest simulator 계열은 삭제하거나 새 Core에 맞춰 조용히 의미를 바꾸지 않는다. 기존 10k checkpoint와 post-10k 진단을 정확히 재현하기 위한 historical path로 유지한다.
+
+따라서 현재 연구 증거는 분리한다.
+
+```text
+historical evidence
+  = 기존 pentest-coupled runtime / 10k checkpoint 결과
+
+new architecture evidence
+  = 최소 Plugin 계약 / Core 독립성 / 실제 localhost I/O 및 학습 경로
+```
 
 ## 아직 증명되지 않은 것
 
@@ -110,14 +181,15 @@ AASSR이 특정 pentest 시뮬레이터를 잘 푸는 코드가 아니라 환경
 - localhost 환경에서 장기 의존성을 이미 안정적으로 해결한다.
 - 새 일반 표현이 충분한 전이/일반화 능력을 가진다.
 - simulator가 과거 L2 실패의 모든 원인이었다.
+- 새 Core에서 Imagination의 실질적 성능 기여가 확인됐다.
 
-이것들은 구조 분리 후 별도의 실험으로 검증해야 한다.
+이것들은 구조 분리 후 별도의 통제 실험으로 검증해야 한다.
 
-## 연구 경로
+## 다음 연구 경로
 
-1. 최소 Plugin 계약과 Core 경계 CI 통과
-2. 실제 loopback HTTP 통신 smoke test
-3. 작은 localhost sparse-reward 서비스에서 학습 동작 확인
-4. 난도를 하나씩 증가시키며 Core 자체 병목 측정
-5. 필요하면 simulator를 단위/회귀 테스트에만 사용
-6. 충분한 근거가 쌓인 뒤 기존 10k 증거와 별도 세대로 비교
+1. 최소 Plugin 계약과 Core 경계 CI를 상시 유지
+2. localhost 실제 환경의 난도를 한 축씩 증가
+3. Core의 representation / Knowledge / Policy / Prophecy / Critic 병목을 각각 분리해 측정
+4. Imagination은 실제 planner run과 intervention이 발생한 조건에서만 ON/OFF 비교
+5. simulator는 단위/회귀/고장 주입과 historical reproduction에 사용
+6. 충분한 근거가 쌓인 뒤 새 Core 세대의 성능/일반화 주장을 별도 benchmark로 검증
