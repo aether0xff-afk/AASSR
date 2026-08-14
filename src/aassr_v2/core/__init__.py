@@ -30,6 +30,7 @@ from .representation import (
     SchemaDrivenStateCodec,
 )
 from .schema_representation import SchemaDrivenRepresentation
+from .transition import CoreTransitionOutcome
 from .runtime import (
     AASSRCoreRuntime,
     CORE_VERSION,
@@ -53,6 +54,7 @@ __all__ = (
     "CoreExperienceMemory",
     "CorePublicKnowledge",
     "CoreRepresentationConfig",
+    "CoreTransitionOutcome",
     "MemoryBackedRepresentation",
     "PluginEnvironmentAdapter",
     "SchemaDrivenRepresentation",
