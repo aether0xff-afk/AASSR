@@ -1,0 +1,29 @@
+{
+  "version": "post10k-step2-reference-v1",
+  "checkpoint_git_commit": "500ff175ca089fdf6bd4e822a1fdabdef7b1b69e",
+  "scenario_seeds": [92001, 92002, 92003, 92004, 92005, 92006, 92007, 92008],
+  "experimental": {
+    "alias_states": 99,
+    "episodes": 8,
+    "filter_events": 0,
+    "mean_aseq_guards": 37.125,
+    "mean_requests": 59.0,
+    "mean_transitions": 59.0,
+    "mean_unique_unknown_concrete": 6.125,
+    "mean_unique_unknown_structural": 2.0,
+    "mean_unknown_attempts": 12.375,
+    "shadow_disagreements": 0,
+    "shadow_plans": 0,
+    "stalls": 0,
+    "success_rate": 0.0,
+    "successes": 0,
+    "truncations": 0
+  },
+  "probe_diagnostics": {
+    "forced_probe_choices": 99,
+    "overridden_nonprobe_choices": 99,
+    "probe_candidates_max": 15,
+    "probe_candidates_total": 1245,
+    "probe_opportunities": 99
+  }
+}
