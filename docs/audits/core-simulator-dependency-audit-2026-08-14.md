@@ -130,6 +130,65 @@ Core가 직접 후보를 만들도록 옮긴 뒤에도, 후보가 너무 많을 
 
 이 수정은 환경의 의미를 Plugin이 해석한 것이 아니라, **연구 harness 자체가 만든 제어 채널을 관찰 데이터와 분리한 것**이다.
 
+### 13. 같은 자료형이라는 이유만으로 서로 다른 프로토콜 값이 섞일 수 있었다
+
+최소 Plugin 계약의 초기 버전은 `TEXT`, `ENTITY` 같은 `ValueKind`만으로 후보 매개변수를 만들었다. 하지만 실제 환경에서 같은 Python/표현 자료형이라고 같은 행동 슬롯에 넣을 수 있는 것은 아니다.
+
+예를 들어 HTTP에서는:
+
+```text
+응답 HTML              TEXT
+form payload template  TEXT
+```
+
+둘 다 `TEXT`지만 응답 HTML 전체를 POST body 후보로 사용하는 것은 기계적으로 잘못된 조합이다. `ENTITY`도 URL, object ID, 장치 ID처럼 서로 다른 프로토콜 공간이 섞일 수 있다.
+
+**판정:** task 의미 문제가 아니라 행동 문법의 타입 체계가 너무 거칠었다.
+
+**수정:**
+
+- `ObservationField`와 `ActionParameter`에 선택적 `value_space` 추가
+- `value_space`는 "형식상 같은 슬롯에 넣을 수 있는가"만 표현
+- `url`, `form-payload`, `object-id` 같은 기계적 이름은 허용
+- `correct-url`, `bad-profile`, `target-id` 같은 전략적/정답 의미는 금지
+- Core 후보 생성과 `CorePublicKnowledge` 재사용이 같은 `value_space` 안에서만 일어나도록 수정
+- 기존 positional 생성자의 의미가 바뀌지 않도록 새 필드를 과거 필드 뒤에 추가
+- 일반 `SchemaDrivenRepresentation`과 active `MemoryBackedRepresentation` 둘 다 회귀 테스트
+
+이 수정은 Plugin에게 행동 우선순위를 주는 것이 아니라 **플레이 가능한 값의 형식**만 더 정확히 말하게 한다.
+
+### 14. 새 Core가 과거 Plugin framework의 `PluginOutcome`에 남아 의존하고 있었다
+
+새 `core/representation.py`와 `core/dqn.py`는 환경 의미를 사용하지 않았지만, transition 결과 객체를 과거 `action_plugins.PluginOutcome`에서 가져오고 있었다. 새 Core/Plugin 경계를 만들고도 타입 소유권 일부가 legacy plugin framework에 남아 있었던 셈이다.
+
+**판정:** 기능상 도메인 누출은 아니지만 새로운 Core의 소유권 경계가 불완전.
+
+**수정:**
+
+- `core/transition.py`에 환경 중립 `CoreTransitionOutcome` 추가
+- Plugin adapter와 DQN은 Core-owned outcome만 사용
+- `scripts/audit_core_boundary.py`에서 `action_plugins` direct/transitive dependency를 금지
+- 기존 historical path의 `action_plugins`는 그대로 보존
+
+CI의 Core boundary audit가 이 금지 조건에서도 통과했다.
+
+### 15. Skill의 구조적 행동이 여러 concrete 후보와 맞으면 다시 사전순 ID를 골랐다
+
+`CoreRelationalSkillLibrary.resolve_primitive()`는 structural template과 맞는 concrete 행동이 여러 개일 때 `min(action.signature)`를 사용했다. 이는 일반 Policy 후보 선택에서 제거했던 lexicographic concrete-ID 편향을 Skills 안에서 다시 만들었다.
+
+**판정:** rename/generalization 철학과 불일치. 특히 성공 ASeq를 다른 episode/환경 구조에 재사용할 때 Skill이 이름 순서 때문에 다른 행동을 실행할 수 있다.
+
+**수정:**
+
+- ambiguous Skill grounding은 현재 **학습된 Core Policy value**로 concrete 후보를 고름
+- 정확한 value tie는 concrete signature를 seed에 넣지 않는 Core-seeded symmetric tie로 처리
+- runtime이 `self.policy.value`를 Skill grounding에 연결
+- `ambiguous_groundings`, `value_groundings`, `symmetric_groundings` 진단 추가
+- 높은 학습 가치 후보가 lexicographic 뒤에 있어도 선택되는 회귀 테스트 추가
+- 동일 value에서는 여러 Core seed에서 처음 이름만 고정 선택하지 않는 회귀 테스트 추가
+
+이 변경은 Skill에 도메인 규칙을 넣는 것이 아니라, **Core가 이미 학습한 Policy를 사용해 structural Skill을 현재 concrete 세계에 grounding**하는 것이다.
+
 ## 새 경계에서 유지한 것
 
 - ASEQ의 정확한 `S → A → S` 반복 억제 의미
@@ -143,23 +202,27 @@ Core가 직접 후보를 만들도록 옮긴 뒤에도, 후보가 너무 많을 
 새 CI는 다음을 별도 gate로 검사한다.
 
 - Core direct/transitive environment import 차단
+- 과거 `action_plugins` framework로의 Core 역의존 차단
 - Plugin 권한 초과 차단
 - Plugin observation에 전략적 action-candidate channel이 없음
 - Plugin diagnostics가 reward/termination 제어 신호를 덮어쓰지 못함
 - 비정상/비유한 reward와 잘못된 제어 flag 형식 차단
 - localhost harness control header가 learner observation에 노출되지 않음
+- 같은 `ValueKind`라도 다른 `value_space` 값이 행동 슬롯에서 섞이지 않음
+- Core 공개 기억도 기계적 `value_space`를 보존함
 - Core가 공개 typed value를 기억해 다음 후보 생성에 사용할 수 있음
 - episode reset 시 Core 공개 기억이 초기화됨
 - concrete 후보별 경험이 기본적으로 episode-local임
 - 후보 수 제한이 concrete 이름의 사전순 앞부분을 선택하지 않음
 - 같은 episode/같은 evidence에서 bounded 후보 표면이 안정적임
+- Skill grounding이 lexicographic concrete ID를 우선하지 않음
 - counter/measurement 변화가 semantic state를 가짜로 바꾸지 않음
 - 같은 semantic `S → A → S`가 threshold 뒤 ASEQ에서 실제로 guard됨
 - loopback 실제 socket I/O
 - 외부 redirect 차단
 - Plugin이 이전 페이지의 발견 link를 기억하지 않음
 
-2026-08-14 control-boundary 및 control-header hardening 이후 `aassr-core-minimal-plugin` push CI에서 `boundary`와 `core-runtime-cpu` 두 job이 모두 통과했다.
+2026-08-14의 `value_space`, Core-owned transition, Skill grounding 수정 이후에도 `aassr-core-minimal-plugin`의 `boundary`와 `core-runtime-cpu` 두 job이 모두 통과했다.
 
 ## 실제 loopback 학습 smoke
 
