@@ -119,3 +119,46 @@ def test_local_plugin_blocks_external_redirect_before_following_it() -> None:
         server.shutdown()
         server.server_close()
         thread.join(timeout=2.0)
+
+
+class ControlHeaderHandler(BaseHTTPRequestHandler):
+    def do_GET(self):  # noqa: N802
+        body = b"<p>terminal result</p>"
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("X-AASSR-Reward", "1")
+        self.send_header("X-AASSR-Terminated", "1")
+        self.send_header("X-Public-Note", "visible")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, format, *args):
+        del format, args
+
+
+def test_control_headers_are_not_learner_visible_observations() -> None:
+    server, thread = _serve(ControlHeaderHandler)
+    try:
+        port = server.server_address[1]
+        base = f"http://127.0.0.1:{port}"
+        plugin = LocalHttpPlugin(base)
+        plugin.reset()
+        result = plugin.step(
+            ActionCommand("request", {"method": "GET", "url": f"{base}/"})
+        )
+
+        assert result.reward == 1.0
+        assert result.terminated is True
+        headers = {
+            str(key).lower(): str(value)
+            for key, value in result.observation.values["headers"].items()
+        }
+        assert headers["x-public-note"] == "visible"
+        assert "x-aassr-reward" not in headers
+        assert "x-aassr-terminated" not in headers
+        assert "x-aassr-truncated" not in headers
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2.0)
