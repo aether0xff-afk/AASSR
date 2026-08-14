@@ -66,8 +66,10 @@ class ObservationField:
     temporal: TemporalKind = TemporalKind.STATE
     enum_values: tuple[str, ...] = ()
     item_kind: ValueKind | None = None
-    value_space: str | None = None
     description: str = ""
+    # Appended after the historical fields so old positional construction keeps
+    # exactly the same meaning.
+    value_space: str | None = None
 
     def __post_init__(self) -> None:
         if not self.name:
@@ -87,8 +89,10 @@ class ActionParameter:
     kind: ValueKind
     required: bool = True
     enum_values: tuple[str, ...] = ()
-    value_space: str | None = None
     description: str = ""
+    # Appended after the historical fields so old positional construction keeps
+    # exactly the same meaning.
+    value_space: str | None = None
 
     def __post_init__(self) -> None:
         if not self.name:
