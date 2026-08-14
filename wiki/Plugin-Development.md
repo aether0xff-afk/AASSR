@@ -9,6 +9,7 @@ AASSR의 새 Plugin 원칙은 간단하다.
 ```text
 행동 문법 선언
 + 관찰 자료형 선언
++ 기계적 값 호환성 선언
 + 실제 환경 I/O
 + 외부 보상/종료 신호 전달
 ```
@@ -30,6 +31,57 @@ AASSR의 새 Plugin 원칙은 간단하다.
 마지막 항목은 통신 상태와 구분해야 한다. HTTP 쿠키처럼 다음 요청을 실제로 수행하기 위해 필요한 프로토콜 상태는 Plugin에 둘 수 있다. 하지만 "이전 페이지에서 어떤 링크를 발견했다" 같은 탐색 기억은 Core가 보관해야 한다.
 
 새 계약에서는 Plugin이 후보 명령 목록도 반환하지 않는다. Core가 행동 스키마와 공개 관찰값의 자료형, 그리고 Core가 직접 축적한 공개 지식을 이용해 후보를 만든다.
+
+## `value_space`: 같은 자료형 안에서 기계적 호환성만 구분
+
+`TEXT`, `ENTITY` 같은 자료형만으로는 실제 행동 매개변수를 안전하게 만들기 어려울 수 있다.
+
+웹 예시:
+
+```text
+응답 HTML              TEXT / response-body
+form payload template  TEXT / form-payload
+
+현재 URL               ENTITY / url
+페이지에서 발견한 URL   ENTITY / url
+객체 식별자             ENTITY / object-id
+```
+
+둘 다 `TEXT` 또는 `ENTITY`라고 해서 서로 아무 슬롯에나 넣을 수 있는 것은 아니다. 그래서 관찰과 행동 매개변수에 선택적으로 `value_space`를 선언할 수 있다.
+
+```python
+ObservationField(
+    "links",
+    ValueKind.SET,
+    item_kind=ValueKind.ENTITY,
+    value_space="url",
+)
+
+ActionParameter(
+    "url",
+    ValueKind.ENTITY,
+    value_space="url",
+)
+```
+
+이 값이 알려주는 것은 **기계적인 호환성뿐**이다.
+
+```text
+"url" 값은 "url" 매개변수에 넣을 수 있다.
+```
+
+다음과 같은 전략적 의미는 절대 넣으면 안 된다.
+
+```text
+correct-url
+likely-target
+bad-choice
+progress-route
+```
+
+그런 이름은 Plugin이 task meaning을 미리 알려주는 것이므로 AASSR의 학습 결과로 인정할 수 없다.
+
+`value_space`를 생략한 기존 Plugin은 이전처럼 같은 `ValueKind`를 사용한다. 새 Plugin에서는 서로 다른 프로토콜 값 공간이 같은 자료형을 공유한다면 `value_space`를 쓰는 것이 안전하다.
 
 ## 제어 신호는 일반 관찰과 분리한다
 
@@ -60,10 +112,24 @@ class MyPlugin:
         plugin_id="my-env",
         version="v1",
         observations=(
-            ObservationField("objects", ValueKind.SET, item_kind=ValueKind.ENTITY),
+            ObservationField(
+                "objects",
+                ValueKind.SET,
+                item_kind=ValueKind.ENTITY,
+                value_space="object-id",
+            ),
         ),
         actions=(
-            ActionSpec("use", (ActionParameter("target", ValueKind.ENTITY),)),
+            ActionSpec(
+                "use",
+                (
+                    ActionParameter(
+                        "target",
+                        ValueKind.ENTITY,
+                        value_space="object-id",
+                    ),
+                ),
+            ),
         ),
     )
 
