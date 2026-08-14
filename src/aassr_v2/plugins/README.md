@@ -4,7 +4,9 @@
 
 핵심 규칙:
 
-> 플러그인은 세계의 문법만 알려주고, 세계의 의미는 Core가 배운다.
+> **플러그인은 세계의 문법만 알려주고, 세계의 의미는 Core가 배운다.**
+
+Plugin은 플레이 방법과 현재 공개된 정보의 자료형을 전달하는 얇은 I/O 계층이다. 문제를 풀기 위한 기억, 의미 해석, 후보 선택은 Core의 책임이다.
 
 ## 최소 구현
 
@@ -42,7 +44,8 @@ class MyPlugin:
 
     def step(self, command):
         # command를 실제 환경 프로토콜로 실행한다.
-        # 의미 해석, 행동 순위화, shaping reward는 하지 않는다.
+        # 현재 공개 결과만 반환한다.
+        # 의미 해석, 발견 이력, 행동 순위화, shaping reward는 넣지 않는다.
         ...
 ```
 
@@ -51,8 +54,10 @@ class MyPlugin:
 - 행동의 이름/매개변수/자료형 정의
 - 관찰 채널과 자료형 정의
 - 실제 환경과 통신
-- 공개 결과 전달
+- **현재 응답/현재 관찰**에서 기계적으로 보이는 값을 전달
 - 환경이 원래 주는 reward/terminated/truncated 전달
+- 통신을 수행하는 데 필요한 프로토콜 상태 유지
+  - 예: HTTP CookieJar, 연결 세션, 로봇 통신 핸들
 
 ## 금지되는 작업
 
@@ -62,6 +67,9 @@ class MyPlugin:
 - 정답/오답/target/진전 등 task 의미 라벨
 - 실패 응답을 보고 후보를 플러그인에서 제거
 - 내부 reward 추가
+- **이전 관찰에서 발견한 대상/링크/후보를 문제 해결 지식으로 누적**
+
+마지막 항목이 중요하다. 예를 들어 HTTP Plugin이 이전 페이지에서 본 링크를 계속 들고 있는 것은 "어떻게 HTTP 요청을 보내는가"가 아니라 "이전에 무엇을 발견했는가"라는 문제 해결 기억이다. 이런 기억은 `CorePublicKnowledge`가 담당한다. 반면 쿠키는 다음 HTTP 요청을 실제로 수행하기 위한 프로토콜 상태이므로 Plugin에 있어도 된다.
 
 플러그인은 후보 명령 목록을 반환하지 않는다. Core가 `ActionSpec`과 공개 관찰의 자료형을 이용해 후보를 생성한다.
 
@@ -76,13 +84,26 @@ class MyPlugin:
 - `MAPPING`: 공개 key/value 구조
 - `BYTES`: 공개 바이트 데이터
 
-`TemporalKind.COUNTER`와 `MEASUREMENT`는 Core의 semantic self-loop identity에서 제외된다. 이것은 플러그인이 중요도를 정하는 것이 아니라 해당 값의 **기계적 수명/성질**을 알리는 것이다.
+## 시간적 종류
+
+관찰값의 **의미**가 아니라 기계적인 수명만 선언한다.
+
+- `STATE`: 현재 세계 상태의 일부로 지속되는 공개 값
+- `EVENT`: 한 응답/한 사건에서 관찰된 공개 증거
+- `COUNTER`: 요청 횟수처럼 누적되는 숫자
+- `MEASUREMENT`: 지연 시간처럼 측정 때마다 흔들릴 수 있는 값
+
+Core는 `COUNTER`와 `MEASUREMENT` 변화만으로 semantic state가 달라졌다고 판단하지 않는다. `EVENT`는 새 공개 증거로 기억할 수 있지만 동일 증거 반복은 새 진전으로 세지 않는다.
 
 ## 검사
 
 ```bash
 python scripts/audit_core_boundary.py
-pytest -q tests/test_minimal_plugin_contract.py tests/test_core_boundary_static.py
+pytest -q \
+  tests/test_minimal_plugin_contract.py \
+  tests/test_core_episode_scope.py \
+  tests/test_core_boundary_static.py \
+  tests/test_local_http_plugin.py
 ```
 
-실제 네트워크 예시는 `aassr_v2.plugins.local_http.LocalHttpPlugin`을 참고한다. 이 플러그인은 loopback 주소만 허용하며 공개 HTTP 데이터를 자료형 그대로 전달한다.
+실제 네트워크 예시는 `aassr_v2.plugins.local_http.LocalHttpPlugin`을 참고한다. 이 플러그인은 loopback 주소만 허용하며, 각 HTTP 응답에서 현재 공개된 데이터만 자료형 그대로 전달한다.
