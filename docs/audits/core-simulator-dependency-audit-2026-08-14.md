@@ -56,6 +56,29 @@ AASSR이 특정 pentest 시뮬레이터를 잘 푸는 코드가 아니라 환경
 
 **수정:** 새 canonical builder는 `aassr_v2.core.build_aassr_core(plugin, ...)`이며 어떤 환경 플러그인도 같은 계약으로 연결한다.
 
+### 7. 첫 localhost smoke에서 Plugin 쪽에 문제 해결 기억이 남아 있었다
+
+최초 `LocalHttpPlugin` 구현은 이전 응답에서 발견한 link를 `_known_links`에 누적했다. 통신 자체를 위해 CookieJar를 유지하는 것과 달리, "전에 무엇을 발견했는가"는 문제 해결 기억이다.
+
+**판정:** Plugin 권한 초과.
+
+**수정:** Plugin은 현재 응답에서 기계적으로 추출한 link/form만 반환한다. 과거에 공개된 entity를 다음 판단까지 유지하는 기능은 `CorePublicKnowledge`로 이동했다.
+
+### 8. 첫 localhost smoke에서 volatile 값이 semantic progress처럼 보였다
+
+최초 smoke artifact에서 실제 transition 30개에 대해 experience의 novel-outcome revision도 30번 증가했다. `latency_ms`, 매 요청마다 달라질 수 있는 header 값 같은 공개 측정치가 raw observation fingerprint에 들어가면서 동일한 문제 상태도 매번 다른 결과처럼 취급될 수 있었다.
+
+이 구조는 ASEQ의 semantic self-loop 판단까지 약하게 만들 수 있다. "요청 횟수/시간이 달라졌다"는 이유만으로 `S → A → S`가 아닌 것처럼 보이면 사용자가 고정한 ASEQ 의미와 맞지 않는다.
+
+**수정:**
+
+- `STATE`: 현재 semantic state identity에 사용
+- `EVENT`: 공개 evidence로 기억하되 동일 evidence 반복은 새 진전으로 세지 않음
+- `COUNTER`, `MEASUREMENT`: semantic identity와 evidence revision에서 제외
+- mapping 형태 EVENT는 volatile value 전체가 아니라 공개 key 구조를 기본 evidence로 사용
+
+이 규칙은 `core/public_memory.py`에 있고 테스트로 고정한다.
+
 ## 새 경계에서 유지한 것
 
 - ASEQ의 정확한 `S → A → S` 반복 억제 의미
@@ -64,6 +87,21 @@ AASSR이 특정 pentest 시뮬레이터를 잘 푸는 코드가 아니라 환경
 - 실제 transition만 학습 사실로 사용하는 원칙
 - Imagination이 실제로 실행되지 않았으면 ON/OFF 성능 실험을 유효한 treatment로 보지 않는 진단
 
+## 현재 자동 검사
+
+새 CI는 다음을 별도 gate로 검사한다.
+
+- Core direct/transitive environment import 차단
+- Plugin 권한 초과 차단
+- Plugin observation에 전략적 action-candidate channel이 없음
+- Core가 공개 typed value를 기억해 다음 후보 생성에 사용할 수 있음
+- episode reset 시 Core 공개 기억이 초기화됨
+- counter/measurement 변화가 semantic state를 가짜로 바꾸지 않음
+- 같은 semantic `S → A → S`가 threshold 뒤 ASEQ에서 실제로 guard됨
+- loopback 실제 socket I/O
+- 외부 redirect 차단
+- Plugin이 이전 페이지의 발견 link를 기억하지 않음
+
 ## 아직 증명되지 않은 것
 
 이번 감사로 다음은 증명되지 않는다.
@@ -71,6 +109,7 @@ AASSR이 특정 pentest 시뮬레이터를 잘 푸는 코드가 아니라 환경
 - 새 Core가 기존 10k pentest runtime보다 성능이 높다.
 - localhost 환경에서 장기 의존성을 이미 안정적으로 해결한다.
 - 새 일반 표현이 충분한 전이/일반화 능력을 가진다.
+- simulator가 과거 L2 실패의 모든 원인이었다.
 
 이것들은 구조 분리 후 별도의 실험으로 검증해야 한다.
 
