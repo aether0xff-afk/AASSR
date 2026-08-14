@@ -1,0 +1,38 @@
+{
+  "version": "post10k-step3-negative-route-profile-memory-v1",
+  "checkpoint_git_commit": "500ff175ca089fdf6bd4e822a1fdabdef7b1b69e",
+  "scenario_seeds": [92001, 92002, 92003, 92004, 92005, 92006, 92007, 92008],
+  "experimental": {
+    "alias_states": 353,
+    "episodes": 8,
+    "failures": 0,
+    "filter_events": 0,
+    "mean_aseq_guards": 64.375,
+    "mean_requests": 90.75,
+    "mean_transitions": 90.75,
+    "mean_unique_unknown_concrete": 6.375,
+    "mean_unique_unknown_structural": 2.375,
+    "mean_unknown_attempts": 7.875,
+    "shadow_disagreements": 0,
+    "shadow_plans": 0,
+    "stalls": 0,
+    "success_rate": 0.125,
+    "successes": 1,
+    "truncations": 7
+  },
+  "negative_profile_memory_diagnostics": {
+    "active_invalid_pairs": 5,
+    "filter_events": 352,
+    "filtered_actions": 5142,
+    "negative_response_events": 42,
+    "new_invalid_pairs": 42
+  },
+  "probe_diagnostics": {
+    "canonical_already_probe": 1,
+    "forced_probe_choices": 62,
+    "overridden_nonprobe_choices": 62,
+    "probe_candidates_max": 15,
+    "probe_candidates_total": 489,
+    "probe_opportunities": 63
+  }
+}
