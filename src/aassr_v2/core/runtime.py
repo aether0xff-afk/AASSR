@@ -154,7 +154,11 @@ class AASSRCoreRuntime:
             self.agent.holdout,
             self.representation,
         )
-        self.skills = CoreRelationalSkillLibrary(self.representation)
+        self.skills = CoreRelationalSkillLibrary(
+            self.representation,
+            primitive_value=self.policy.value,
+            seed=self.seed ^ 0x534B494C,
+        )
         self.prophecy = CoreSkillAwareProphecy(
             self.calibrated_prophecy,
             self.skills,
