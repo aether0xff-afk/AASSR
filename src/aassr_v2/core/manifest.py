@@ -13,7 +13,7 @@ CORE_COMPONENTS: Mapping[str, str] = {
     "policy": "external-reward-dqn+separate-information-residual-v1",
     "prophecy": "core-owned-neural-delta-ensemble-v1",
     "calibration": "real-transition-holdout-v1",
-    "knowledge": "public-observation-provenance-store-v1",
+    "knowledge": "core-owned-public-typed-memory+candidate-reuse-v2",
     "aseq": "semantic-exact-self-loop-guard-v3",
     "skills": "structural-action-template-v1",
     "critic": "signed-sparse-return-gru-v1",
