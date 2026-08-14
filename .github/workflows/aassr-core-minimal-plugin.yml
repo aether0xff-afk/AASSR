@@ -1,0 +1,111 @@
+name: aassr-core-minimal-plugin
+
+on:
+  pull_request:
+  push:
+    branches: [main, agent/core-plugin-minimal-contract-refactor]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install portable dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e ".[dev]"
+      - name: Compile
+        run: python -m compileall -q src tests scripts examples
+      - name: Audit Core boundary
+        run: python scripts/audit_core_boundary.py
+      - name: Run minimal Plugin and real socket tests
+        run: |
+          pytest -q \
+            tests/test_minimal_plugin_contract.py \
+            tests/test_plugin_result_control_boundary.py \
+            tests/test_core_episode_scope.py \
+            tests/test_core_candidate_sampling.py \
+            tests/test_core_value_spaces.py \
+            tests/test_core_knowledge_transfer.py \
+            tests/test_core_skill_grounding.py \
+            tests/test_core_boundary_static.py \
+            tests/test_local_http_plugin.py
+
+  core-runtime-cpu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install Core with PyTorch CPU
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e ".[dev]"
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.2"
+      - name: Run Core runtime smoke
+        run: pytest -q tests/test_core_runtime_smoke.py
+      - name: Run real loopback HTTP learning smoke
+        shell: bash
+        run: |
+          python examples/local_http_lab/server.py --port 8765 > /tmp/aassr-local-lab.log 2>&1 &
+          server_pid=$!
+          trap 'kill $server_pid 2>/dev/null || true' EXIT
+          python - <<'PY'
+          import time, urllib.request
+          for _ in range(40):
+              try:
+                  urllib.request.urlopen('http://127.0.0.1:8765/', timeout=0.2).read()
+                  break
+              except Exception:
+                  time.sleep(0.1)
+          else:
+              raise SystemExit('local service did not start')
+          PY
+          python scripts/run_local_http_core.py \
+            --base-url http://127.0.0.1:8765 \
+            --episodes 28 \
+            --max-steps 12 \
+            --device cpu \
+            --output runs/local_http_core_smoke.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('runs/local_http_core_smoke.json')
+          result = json.loads(path.read_text(encoding='utf-8'))
+          diagnostics = result['diagnostics']
+          assert diagnostics['plugin']['id'] == 'local-http-minimal-v1'
+          assert diagnostics['representation']['owner'] == 'core'
+          assert diagnostics['knowledge']['owner'] == 'core-public-memory'
+          assert diagnostics['knowledge']['transfer_evidence'] > 0
+          assert diagnostics['policy']['dqn:gradient_updates'] > 0
+          assert diagnostics['prophecy']['gradient_updates'] > 0
+          assert diagnostics['critic']['gradient_updates'] > 0
+          assert diagnostics['representation']['episodes'] == 28
+          print(
+              'real learning updates:',
+              diagnostics['policy']['dqn:gradient_updates'],
+              diagnostics['prophecy']['gradient_updates'],
+              diagnostics['critic']['gradient_updates'],
+          )
+          PY
+          cp /tmp/aassr-local-lab.log runs/aassr-local-lab.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: local-http-core-smoke
+          path: |
+            runs/local_http_core_smoke.json
+            runs/aassr-local-lab.log
+          if-no-files-found: warn

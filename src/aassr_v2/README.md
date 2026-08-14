@@ -1,35 +1,41 @@
 # `aassr_v2` 소스 구조
 
-이 패키지에는 현행 runtime과 과거 연구 구현이 함께 있습니다. **현행 여부는 파일의 생성 시점이 아니라 import 경로로 판단합니다.**
+## 새 환경 독립 Core
 
-## 현행 핵심
+새 연구 아키텍처의 source of truth는 `src/aassr_v2/core/`다.
 
-- `current_manifest.py` — 활성 component 계약
-- `current_entrypoint.py` — 유일한 canonical pentest builder
-- `current_agent.py` — current standalone agent
-- `current_relational_state_v3.py` — 공개 relational state v3
-- `current_status_models.py` — status-balanced conditional-mixture Prophecy
-- `current_return_critic.py` — sparse-return Critic
-- `current_critic_support.py` — local real-training OOD/support gate
-- `current_confidence_gate.py` — prediction reliability gate
-- `current_root_dedup.py` — structural root compute dedup
-- `current_planner.py` — current batched Imagination planner
-- `current_decision_optimization.py` — current decision hot path
-- `pentest_current_generation_main.py` — canonical 학습/평가 protocol
+- `core/manifest.py` — Core와 Plugin의 권한 계약
+- `core/plugin_contract.py` — 최소 Plugin API
+- `core/representation.py` — 자료형 기반 표현과 저수준 concrete 경험 기반
+- `core/public_memory.py` — Core 공개 지식, episode-local concrete 경험, 후보 생성/제한
+- `core/dqn.py` — Core Policy와 DQN
+- `core/prophecy_model.py` — Core Prophecy와 holdout calibration
+- `core/critic.py` — signed sparse-return Critic
+- `core/skills_core.py` — structural Skills
+- `core/runtime.py` — 환경 독립 실행 루프와 canonical `build_aassr_core()`
 
-## 환경/프로토콜
+Plugin은 `src/aassr_v2/plugins/`에 둔다.
 
-- `pentest_transfer_stages.py` — transfer stages와 adaptive curriculum
-- `pentest_curriculum_env.py` — in-process pentest environment
-- `current_protocol.py` — current episode/evaluation protocol
+- `plugins/local_http.py` — 최소 계약을 따르는 loopback 실제 HTTP 예시
+- `plugins/README.md` — 새 Plugin 제작법
+- `plugins/current_pentest.py` — **기존 10k runtime 재현용 broad Plugin. 새 제작 예시로 사용하지 않음.**
 
-## Baseline
+새 Plugin은 상태 표현, 후보 행동 목록, 의미 라벨, 문제 해결 기억, world model을 소유하지 않는다. `ActionSpec`과 공개 자료형만 제공하고 실제 I/O를 수행한다.
 
-- `current_dqn_baseline.py` — Raw/Relational DQN controls
-- `dreamerv3_baseline.py`, `dreamerv3_external.py`, `dreamerv3_hardware.py` — official DreamerV3 비교 경로
+## 과거 current-generation 경로
 
-## 과거 연구 구현
+`current_agent.py`, `current_entrypoint.py`, `current_generation.py`, `current_relational_state*.py`, `current_status_models.py`, `pentest_*`는 기존 10k 체크포인트와 연구 기록을 재현하기 위해 유지한다.
 
-v0.4, Neural Delta 이전 세대, GridPush, ToolGrid, Imagination v2, paper experiment 관련 모듈은 재현성을 위해 남아 있습니다. 새 현행 코드에서 이들을 암묵적으로 다시 활성화하면 안 됩니다.
+이 경로는 새 최소 Plugin 철학보다 더 넓은 환경 권한을 사용하므로, 새 Core 변경 시 암묵적으로 import하지 않는다.
 
-최종 활성 목록은 항상 `CURRENT_COMPONENTS`와 `LEGACY_COMPONENTS_ACTIVE`를 확인하세요.
+## 경계 검사
+
+```bash
+python scripts/audit_core_boundary.py
+```
+
+`src/aassr_v2/core/`에서 특정 환경 모듈/어휘가 발견되거나 전이 import가 환경/simulator 쪽으로 들어가면 실패한다.
+
+## 핵심 원칙
+
+> **Plugin은 세계의 문법만 제공하고, 의미와 기억과 후보 선택은 Core가 담당한다.**

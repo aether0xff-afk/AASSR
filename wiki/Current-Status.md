@@ -1,320 +1,99 @@
-# Current Status
+# 현재 상태
 
-> 마지막 정리 기준: **2026-08-11**  
-> Current runtime: `aassr-current-generation-v2`  
-> Research branch: `agent/imagination-gate-ablation`
+업데이트: 2026-08-14
 
-이 페이지는 “코드에 구현된 것”, “짧은 regression으로 검증된 것”, “실제 성능 실험으로 확인된 것”을 분리한다.
+## 30초 요약
 
----
+AASSR의 새 연구 구조는 **Core 우선 + 최소 Plugin 계약**으로 구현되었다. 현재 작업은 Draft PR #41에서 검증 중이며 기존 10k pentest runtime은 과거 증거 재현용으로 그대로 보존한다.
 
-# 1. 한눈에 보기
+새 원칙:
 
-| 영역 | 구현 | 구조 검증 | 성능 evidence | 현재 판단 |
-|---|---|---|---|---|
-| Response-causal observation | ✅ | ✅ | ✅ | 🟢 Active |
-| Relational representation | ✅ | ✅ | 일부 | 🟢 Active |
-| ASEQ self-loop guard | ✅ | ✅ | ✅ | 🟢 Active |
-| Relational DQN Policy | ✅ | ✅ | 진행 중 | 🟢 Active |
-| Episode-local Knowledge | ✅ | ✅ | 부분적 | 🟢 Active |
-| Stochastic Prophecy v3 | ✅ | ✅ | 새 장기 검증 전 | 🟡 Experimental |
-| Status-aware calibration | ✅ | ✅ | 새 장기 검증 전 | 🟡 Experimental |
-| Sparse-return GRU Critic | ✅ | ✅ | 2k에서 override 가능 확인 | 🟡 Experimental |
-| Local Critic support | ✅ | ✅ | 새 장기 검증 전 | 🟡 Experimental |
-| Imagination tree | ✅ | ✅ | 행동 변경 확인, 성능 향상 미확인 | 🟡 Experimental |
-| Structural root dedup | ✅ | ✅ | 새 benchmark runtime 검증 전 | 🟡 Experimental |
-| Skill | ✅ | regression 존재 | 제한적 | 🟡 Experimental |
-| DreamerV3 official baseline | adapter ✅ | smoke/contract ✅ | canonical CUDA result 전 | 🟡 Experimental |
-| Five-condition final suite | assembler ✅ | contract ✅ | full run 전 | ⚪ Pending |
-| Final blinded evaluation | protocol 방향 존재 | — | ❌ | ⚪ Not run |
+> Plugin은 플레이 방법과 공개 정보의 종류만 제공한다. 의미 발견, 관계 학습, 기억, 행동 선택, 예측과 상상은 Core가 담당한다.
 
----
+## 새 환경 독립 Core
 
-# 2. 지금 확실하게 말할 수 있는 것
+- `src/aassr_v2/core/plugin_contract.py` — 최소 Plugin 권한
+- `src/aassr_v2/core/representation.py` — 자료형 기반 Core 표현의 저수준 기반
+- `src/aassr_v2/core/public_memory.py` — 공개 정보 기억, episode-local concrete 경험, 후보 생성
+- `src/aassr_v2/core/dqn.py` — 외부 sparse reward Policy/DQN + 별도 정보 가치
+- `src/aassr_v2/core/prophecy_model.py` — Core 소유 Prophecy/Calibration
+- `src/aassr_v2/core/critic.py` — signed sparse-return Critic
+- `src/aassr_v2/core/skills_core.py` — concrete 이름이 아닌 구조 기반 Skills
+- `src/aassr_v2/core/runtime.py` — 환경 독립 실행 루프
+- `src/aassr_v2/plugins/local_http.py` — 최소 계약을 따르는 loopback 실제 HTTP Plugin
+- `scripts/audit_core_boundary.py` — Core의 직접/간접 환경 의존성 정적 감사
 
-## 2.1 Benchmark는 agent 평가용으로 사용 가능
+## 감사 중 추가로 잡힌 문제
 
-HTTP in-process benchmark는 40 evaluation seeds에서 다음 조건을 통과했다.
+구조를 만든 뒤 첫 실제 localhost smoke를 다시 보면서 두 가지를 추가로 발견해 수정했다.
 
-- Oracle 100% across tiers
-- Random은 사실상 0%
-- Response-guided는 Easy 100%, Medium 30%, Hard 20%
-- seed별 난도 편차 존재
-- target-ID 순서 shortcut 제거
-- 실제 network/shell 없음
+1. **Plugin이 이전 페이지의 링크를 기억하고 있었다.**
+   - 통신을 위한 CookieJar는 Plugin에 남겼다.
+   - 이전에 무엇을 발견했는가는 문제 해결 기억이므로 Core의 `CorePublicKnowledge`로 이동했다.
 
-따라서 benchmark 자체가 너무 쉽거나 구조적으로 불가능한 환경은 아니다.
+2. **지연 시간과 매번 달라지는 응답 값이 가짜 semantic progress를 만들 수 있었다.**
+   - `STATE`, `EVENT`, `COUNTER`, `MEASUREMENT`를 분리했다.
+   - counter/measurement 변화만으로 semantic state가 바뀌지 않는다.
+   - 같은 EVENT 반복도 새 진전으로 세지 않는다.
 
-## 2.2 ASEQ는 관측된 self-loop를 제거한다
+3. **후보 수 제한이 concrete 이름의 사전순 앞부분을 고르는 편향을 만들 수 있었다.**
+   - 후보 제한은 Plugin이 아니라 Core가 담당한다.
+   - 사전순 앞부분 절단을 제거하고 episode seed 기반 bounded sampling으로 교체했다.
+   - 같은 episode의 같은 공개 증거에서는 후보 표면이 안정적으로 유지된다.
 
-재학습 없는 L1 diagnostic에서:
+4. **concrete 후보별 경험이 episode를 넘어 남을 수 있었다.**
+   - 같은 문자열 ID가 reset 뒤 다른 숨은 의미를 가질 가능성이 있으므로 기본값은 episode-local로 변경했다.
+   - 명시적으로 지식 보존 실험을 선택할 때만 유지한다.
 
-```text
-raw greedy stalled        24 / 24
-exact ASEQ stalled         0 / 24
-```
+## 실제 localhost 학습 smoke
 
-따라서 현재 ASEQ의 최소 self-loop guard는 명확한 기능 evidence가 있다.
+`LocalHttpPlugin`은 Python 객체로 HTTP를 흉내 내는 simulator가 아니라 실제 `127.0.0.1` 소켓을 통해 로컬 웹 서비스와 통신한다.
 
-## 2.3 Imagination은 이제 실제 행동을 바꿀 수 있다
-
-2026-08-11 2k same-checkpoint validation:
+현재 CI smoke 조건:
 
 ```text
-plans                 297
-switch candidates     218
-actual interventions   86
-changed actions         86
+28 episodes
+max 12 steps / episode
+CPU PyTorch
+실제 loopback HTTP
 ```
 
-즉 과거의 “planner는 돌지만 Policy와 항상 tie라 행동을 못 바꿈” 병목은 적어도 이 run에서는 사라졌다.
-
----
-
-# 3. 아직 확실하게 말할 수 없는 것
-
-## 3.1 Imagination이 성능을 높이는가?
-
-아직 아니다.
-
-2k validation:
+관찰된 결과:
 
 ```text
-no-Imagination : 4 / 20
-Full           : 4 / 20
+real transitions       216
+DQN gradient updates    89
+Prophecy updates        54
+Critic updates          26
+positive episodes        1
+negative episodes       17
+zero episodes           10
 ```
 
-Full에는 true failure가 2회 있었고, intervention 86회 중 58회가 error였다.
+이 결과의 의미는 **새 Core가 실제 네트워크 I/O 위에서 Policy/Prophecy/Critic 학습 업데이트까지 실제로 수행했다**는 것이다. 성공률이나 평균 return을 성능 증거로 사용하면 안 된다. 이 smoke는 exploration 중인 짧은 구조 검증이며 성능 벤치마크가 아니다.
 
-따라서 “Imagination is active”는 맞지만 “Imagination improves success”는 아직 증명되지 않았다.
+Imagination은 이 smoke에서도 Critic 신뢰 조건이 아직 충족되지 않아 실제 treatment가 활성화되지 않았다. 따라서 이 결과로 Imagination 성능을 판단하지 않는다.
 
-## 3.2 Current AASSR이 DQN보다 최종적으로 좋은가?
+## 기존 10k 결과의 위치
 
-아직 current-generation five-condition result가 완성되지 않았다.
+기존 10k checkpoint와 post-10k pentest 진단은 삭제하지 않는다. 그것은 **기존 pentest-coupled runtime에 대한 historical evidence**다.
 
-과거 세대의 AASSR 결과를 가져와 current-generation의 최종 성능 주장으로 쓰지 않는다.
+특히 10k에서 no-Imagination과 Full 결과가 같았던 것은 Imagination이 실제로 0회 실행된 조건이었으므로 "Imagination이 효과 없다"는 증거가 아니다.
 
-## 3.3 DreamerV3보다 좋은가?
+## 지금 말할 수 있는 것
 
-아직 canonical DreamerV3 CUDA baseline과 동일 protocol aggregate가 완성되지 않았다.
+- 새 Plugin API에는 representation/world-model/전략 필터 권한이 없다.
+- Plugin은 후보 행동 목록을 제공하지 않는다.
+- 공개 정보 기억과 concrete 후보 경험은 Core가 담당한다.
+- 새 Core 경계의 직접/간접 simulator 의존성은 자동 검사 대상이다.
+- 실제 loopback I/O에서 DQN/Prophecy/Critic 학습 업데이트가 발생했다.
+- 기존 10k 재현 경로는 변경하지 않았다.
 
----
+## 아직 말하면 안 되는 것
 
-# 4. 2k validation에서 발견된 문제
+- 새 Core가 기존 10k보다 성능이 높다.
+- simulator가 과거 실패의 모든 원인이었다.
+- localhost smoke만으로 AASSR 일반성이 증명됐다.
+- Imagination이 새 Core에서 성능을 높인다.
 
-## 4.1 Decision-critical HTTP status가 relational v2에서 사라짐
-
-당시 raw observation에는 `403`, `404`, `429` 같은 public status가 있었지만 relational state가 이를 명시적으로 보존하지 않았다.
-
-결과적으로 “방금 위험 신호가 관측됐다”는 정보가 world model / Critic input에서 약해질 수 있었다.
-
-## 4.2 Semantic calibration이 실제 위험을 충분히 벌점 주지 못함
-
-2k run에서 probability-weighted semantic quality가 약 `0.916`, terminal match가 약 `0.991`이었는데도 intervention은 나빴다.
-
-즉 global semantic similarity는 높지만 decision-critical error channel을 놓치는 metric blind spot이 있었다.
-
-## 4.3 Critic이 training support 밖에서 너무 자신 있게 override
-
-training successes는 L0에 집중되고 curriculum focus도 L1까지만 갔는데 Full은 L3에서 86회 override했다.
-
-이것은 다음 둘을 분리해야 함을 보여줬다.
-
-```text
-Critic trained globally
-vs
-current state/action locally supported
-```
-
-## 4.4 Root alias가 너무 많아 계산 낭비
-
-L3에서 대략:
-
-```text
-concrete root actions     ~172
-relational root structures ~17
-```
-
-구조적으로 같은 concrete alias를 매번 world-model/critic에 넣는 것은 계산 낭비다.
-
----
-
-# 5. 현재 코드에 이미 반영된 repair
-
-`current_manifest.py` 기준 현재 contract는 2k run 당시보다 한 단계 더 나아가 있다.
-
-## 5.1 Relational state v3
-
-```text
-relational-public-structural-v3
-+ latest-http-status
-```
-
-- public response status 보존
-- hidden audit pressure는 계속 마스킹
-- hidden session countdown도 계속 마스킹
-
-즉 누락된 public signal만 복원하고 hidden leakage를 다시 열지 않는다.
-
-## 5.2 Prophecy v3
-
-```text
-relational-stochastic-world-model-v3-status-supervised
-```
-
-예측 대상에 public HTTP status를 명시적으로 포함하고 status supervision을 별도 objective로 둔다.
-
-## 5.3 Status-aware calibration
-
-```text
-semantic-probability-holdout-calibration-v3-status-aware
-```
-
-403/404/429 같은 response-status error가 semantic quality에서 무시되지 않도록 한다.
-
-## 5.4 Local Critic support gate
-
-```text
-local-real-training-support-fail-closed-v1
-```
-
-현재 state/action이 Critic 실제 training data에서 충분히 지원되지 않으면 override를 허용하지 않는다.
-
-이 support score는 value bonus나 reward가 아니다.
-
-## 5.5 Structural root compute dedup
-
-```text
-concrete execution
-+
-structural compute dedup
-```
-
-같은 relational legal slot을 공유하는 concrete alias는 한 번만 imagination 계산하고 결과를 fan-out한다.
-
----
-
-# 6. 현재 Imagination 계약
-
-현재 planner가 지켜야 하는 핵심 invariant:
-
-### Chance backup
-
-```text
-환경 outcome -> probability-weighted expectation
-```
-
-### Decision backup
-
-```text
-future agent actions -> max
-```
-
-### Reliability
-
-```text
-reliability는 gate 용도
-value bonus로 사용하지 않음
-```
-
-### Failure semantics
-
-```text
-success       +1
-truncation     0
-true failure  -1
-```
-
-### Root preservation
-
-모든 real root action은 평가 가능해야 한다. deep branch pruning 때문에 root 전체가 사라지면 안 된다.
-
-### Same-checkpoint comparison
-
-training-time Imagination intervention은 끄고, 하나의 frozen AASSR checkpoint를 OFF/ON으로 평가한다.
-
----
-
-# 7. Current five-condition suite
-
-최종 비교 예정 row:
-
-1. `dqn_raw`
-2. `dqn_relational`
-3. `dreamerv3_relational`
-4. `aassr_current_no_imagination`
-5. `aassr_current_full`
-
-research seed 하나에서 학습되는 checkpoint는 4개다.
-
-```text
-Raw DQN
-Relational DQN
-DreamerV3
-AASSR
-```
-
-AASSR OFF/ON은 같은 checkpoint다.
-
-10k 기준 nominal real training transitions:
-
-```text
-4 checkpoints * 10,000
-= 40,000 per research seed
-```
-
----
-
-# 8. 다음 validation gate
-
-현재 코드 상태에서 바로 full-scale 성능 주장을 하면 안 된다.
-
-순서는 다음과 같다.
-
-```text
-[1] current-generation unit/regression gates
-        |
-        v
-[2] target CUDA hardware check
-        |
-        v
-[3] short real-environment smoke
-        |
-        v
-[4] repaired reduced AASSR validation
-        |
-        v
-[5] official DreamerV3 reduced JAX/CUDA run
-        |
-        v
-[6] reduced five-condition assembly
-        |
-        v
-[7] protocol freeze
-        |
-        v
-[8] full main
-        |
-        v
-[9] final blinded evaluation
-```
-
-## 다음 reduced AASSR run에서 특히 볼 것
-
-단순 success만 보면 안 된다.
-
-- L2/L3에서 local Critic support가 실제로 fail-closed하는지
-- intervention count가 0으로 다시 붕괴하지 않는지
-- intervention error rate가 58/86에서 유의미하게 내려가는지
-- status prediction accuracy
-- 403/404/429 뒤의 action switching behavior
-- structural root dedup으로 Full runtime이 얼마나 줄었는지
-- no-Imagination vs Full same-checkpoint success/failure
-
----
-
-# 9. 현재 연구의 정확한 한 문장
-
-> **AASSR current-generation은 sparse-reward 환경에서 relational DQN, empirical ASEQ, stochastic relational world model, sparse-return Critic, multi-step Imagination을 하나의 closed loop로 통합했고, Imagination이 실제 Policy 행동을 바꿀 수 있음까지 확인했다. 현재는 그 행동 변경을 신뢰할 수 있는 상태/행동 영역에 제한하고 실제 성능 향상으로 연결되는지 검증 중이다.**
-
-이 문장보다 강한 성능 주장은 다음 reduced/final evidence 이후에 업데이트한다.
+이 주장은 이후 별도의 통제된 실험으로 검증해야 한다.

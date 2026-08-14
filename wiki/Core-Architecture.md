@@ -1,505 +1,65 @@
-# Core Architecture
+# AASSR Core Architecture
 
-이 페이지는 **현재 AASSR current-generation runtime의 실제 구조**를 설명한다.
+이 페이지는 2026-08-14에 고정한 **최소 Plugin 경계 이후의 새 Core 구조**를 설명한다.
 
-> [!WARNING]
-> 저장소에는 과거 실험 재현을 위한 `OnlineGRUProphecy`, `SemanticContextualPolicy`, old effect-composition, AASSR v0.4 경로가 남아 있다. 현재 runtime의 source of truth는 `src/aassr_v2/current_manifest.py`이며, `LEGACY_COMPONENTS_ACTIVE`는 비어 있어야 한다.
+> **Plugin은 세계의 문법만 알려주고, 세계의 의미는 AASSR Core가 스스로 배운다.**
 
-## 1. Current-generation component map
+기존 10k pentest runtime(`current_*`, `plugins/current_pentest.py`)은 체크포인트와 과거 실험 재현을 위해 남아 있지만 새 Core 설계의 기준은 아니다.
 
-현재 manifest 기준 세대 이름:
-
-```text
-aassr-current-generation-v2
-```
-
-주요 구성요소는 다음과 같다.
-
-| Layer | Current contract | 역할 |
-|---|---|---|
-| Observation | `response_causal_observation_v3` | agent가 실제로 볼 수 있는 정보만 노출 |
-| ASEQ | `semantic-self-loop-empirical-v3` | 경험적으로 확인된 self-loop 억제 |
-| Policy | `relational-invariant-dqn+information-residual-v1` | 현재 행동 가치 + 정보 가치 |
-| Policy state | `relational-public-structural-v3+latest-http-status` | rename-invariant public state |
-| Policy action | `relational-role-features-v1` | concrete ID 대신 역할 관계 |
-| Prophecy | `relational-stochastic-world-model-v3-status-supervised` | 확률적 다음 상태 예측 |
-| Calibration | `semantic-probability-holdout-calibration-v3-status-aware` | 예측 신뢰도 측정 |
-| Knowledge | `episode-local-response-knowledge-context-v1` | 현재 episode에서 얻은 응답 지식 |
-| Critic | `relational-gru-discounted-sparse-return` 계열 | 미래 sparse return 평가 |
-| Critic support | `local-real-training-support-fail-closed-v1` | OOD override 방지 |
-| Imagination | `root-preserving-parallel-universe-tree-v6` 계열 | chance/decision 분리 미래 탐색 |
-| Skills | `relational-aseq-template-v1` | 반복 성공 ASeq의 재사용 |
-| Training Imagination | `disabled-same-checkpoint` | 학습 중 개입 없음, 평가에서만 OFF/ON 비교 |
-
----
-
-## 2. 전체 데이터 흐름
+## 전체 구조
 
 ```mermaid
 flowchart TD
-    ENV[Environment] --> OBS[response_causal_observation_v3]
-    OBS --> CS[Concrete semantic state]
-    OBS --> RS[Relational public state v3]
-
-    CS --> ASEQ[ASEQ memory / self-loop guard]
-    RS --> POL[Relational DQN Policy]
-    RS --> KNOW[Episode-local Knowledge]
-
-    ASEQ --> CAND[Legal candidate set]
-    POL --> CAND
-
-    CAND --> PROP[Stochastic Prophecy]
-    KNOW --> PROP
-    RS --> PROP
-
-    PROP --> CAL[Semantic reliability calibration]
-    PROP --> IMG[Imagination tree]
-    CAL --> IMG
-
-    IMG --> CRT[GRU sparse-return Critic]
-    CRT --> SUP[Local Critic support gate]
-    SUP --> GATE[Policy override gate]
-
-    GATE --> ACT[One concrete real action]
-    ACT --> ENV
-
-    ENV --> REAL[Real transition S,A,S']
-    REAL --> ASEQ
-    REAL --> POL
-    REAL --> PROP
-    REAL --> CRT
-    REAL --> KNOW
+    ENV[실제 환경] --> PLUG[Plugin: 행동 문법 / 공개 자료형 / 실제 I/O]
+    PLUG --> REP[Core 표현 계층]
+    REP --> KNOW[Knowledge]
+    REP --> POL[Policy]
+    REP --> PROP[Prophecy]
+    POL --> ACT[행동 후보]
+    PROP --> CAL[Calibration]
+    CAL --> IMG[Imagination]
+    IMG --> CRIT[Critic]
+    CRIT --> GATE[신뢰도 Gate]
+    GATE --> EXEC[실제 행동]
+    EXEC --> PLUG
+    EXEC --> ASEQ[ASEQ: 정확한 S→A→S 반복만 억제]
+    EXEC --> SKILL[Skills]
 ```
 
-핵심 원칙은 **상상은 계획에만 쓰이고, 학습의 사실 근거는 real transition**이라는 것이다.
+## Plugin 경계
 
----
+Plugin은 `PluginSchema`로 행동 형식과 관찰 자료형만 선언한다. Plugin이 상태 벡터, 행동 구조, 의미 역할, world model, 행동 우선순위를 정의할 수 없다.
 
-# 3. Observation contract
+Core는 공개 관찰에서 자료형에 맞는 값을 모아 후보 명령을 구성한다. 따라서 Plugin이 정답 후보만 골라주는 경로가 없다.
 
-현재 pentest runtime은 `response_causal_observation_v3`를 사용한다.
+자세한 내용: [[플러그인 제작법|Plugin-Development]]
 
-목표는 simulator 내부 정답을 모델에게 흘리지 않는 것이다.
+## Core의 책임
 
-## 노출되는 정보의 예
+### Knowledge
+실제 transition에서 관찰한 공개 정보와 출처를 저장한다.
 
-- 실제 응답에서 관측 가능한 public facts
-- discovered route/profile/object 관계
-- 현재 available action surface
-- session/CSRF의 존재 여부처럼 agent가 직접 확인한 상태
-- self-counted request usage
-- self-observed workflow progress
-- **latest public HTTP status**
+### Policy
+외부 sparse reward를 학습하는 DQN과 별도의 내부 정보 가치 신호를 사용한다. Plugin은 내부 보상을 만들 수 없다.
 
-현재 relational state v3는 HTTP status를 다음 public channel로 보존한다.
+### Prophecy
+Core가 만든 일반 표현으로 다음 상태를 학습한다. 환경 전용 Prophecy head를 Plugin이 주입하지 않는다.
 
-```text
-200 / 302 / 400 / 401 / 403 / 404 / 409 / 429
-```
+### Calibration
+실제 transition 기반 holdout으로 예측 신뢰도를 확인한다.
 
-## 의도적으로 숨기는 정보
+### Critic
+실제 episode sparse return을 학습한다. 새 Core의 Critic은 부호가 있는 return을 그대로 다룬다.
 
-- 정확한 hidden audit pressure
-- 정확한 hidden session countdown
-- hidden workflow depth
-- scenario 내부 정답 action
-- target 정답 label
-- future state
-- hidden curriculum metadata를 통한 shortcut
+### Imagination
+Prophecy의 미래를 실제 행동 전에 비교한다. Critic 지원과 예측 coverage가 부족하면 fail-closed한다. 실제 planner run이 0이면 ON/OFF 실험을 유효한 Imagination 성능 비교로 표시하지 않는다.
 
-즉 world model이 예측해야 할 것을 observation에서 몰래 제공하지 않는다.
+### ASEQ
+`S → A → S`가 같은 semantic state에서 반복된 경우만 억제한다. `S → A → S'`에서 `S' != S`이면 합법이다. 모든 행동이 guard되면 원래 행동 집합으로 되돌아간다.
 
----
+### Skills
+성공한 행동열을 Core 표현의 구조적 template으로 저장하고 현재 상태의 행동과 다시 대응시킨다.
 
-# 4. 두 종류의 state identity
+## 현재 증거 수준
 
-현재 AASSR을 이해할 때 가장 중요한 설계 중 하나다.
-
-## 4.1 Concrete semantic identity
-
-사용처:
-
-- ASEQ
-- episode-local exact repetition 판단
-- concrete cycle detection
-
-예를 들어 같은 역할을 가진 두 route라도 실제 episode에서 서로 다른 route라면 구분한다.
-
-```text
-route-12 != route-31
-```
-
-이 구분이 없으면 서로 다른 대상을 같은 self-loop로 잘못 막을 수 있다.
-
-## 4.2 Relational transfer identity
-
-사용처:
-
-- Policy
-- Prophecy
-- Critic
-- Skill
-- relational DQN baseline
-- DreamerV3 adapter
-
-여기서는 concrete 이름보다 관측된 관계를 본다.
-
-```text
-Scenario A: route-12 = catalog-like route
-Scenario B: route-31 = catalog-like route
-
-=> same relational role
-```
-
-이 덕분에 seed가 바뀌어 ID가 전부 rename되어도 구조가 같으면 transfer할 수 있다.
-
----
-
-# 5. Policy
-
-현재 Policy는 **relational DQN + separate information-value residual**이다.
-
-개념적으로:
-
-```text
-Q_total(S,A)
- = Q_task(S,A)
- + information_residual(S,A)
-```
-
-단, information residual은 외부 reward를 바꾸는 reward shaping이 아니다. 외부 task reward는 끝까지 다음 그대로 유지한다.
-
-```text
-success       +1
-true failure  -1
-otherwise      0
-```
-
-Policy state/action input 모두 relational representation을 사용한다.
-
-## 왜 raw DQN baseline도 따로 두는가?
-
-최종 비교에서 representation 자체의 효과와 AASSR 구조의 효과를 분리하기 위해서다.
-
-```text
-dqn_raw
-   |
-   | representation effect
-   v
-dqn_relational
-   |
-   | AASSR non-Imagination stack
-   v
-aassr_current_no_imagination
-   |
-   | Imagination marginal effect
-   v
-aassr_current_full
-```
-
----
-
-# 6. Knowledge
-
-Knowledge는 **episode-local response knowledge**다.
-
-중요한 방법론 경계:
-
-```text
-행동 전 알고 있던 Knowledge
-        |
-        v
-(S, A) prediction
-        |
-        v
-real response
-        |
-        v
-새 Knowledge 획득
-```
-
-방금 transition 결과에서 얻은 정보를 다시 그 transition의 행동 전 예측에 넣으면 hindsight leak이 된다. 현재 구조는 이를 허용하지 않는다.
-
-Evaluation 중 response에서 얻는 episode-local Knowledge는 사용할 수 있지만 persistent learning state를 바꾸면 안 된다.
-
----
-
-# 7. Prophecy: stochastic relational world model
-
-현재 Prophecy는 과거 deterministic concrete delta model이 아니다.
-
-입력:
-
-```text
-relational public state
-+
-relational action
-+
-allowed pre-existing Knowledge context
-```
-
-출력:
-
-```text
-possible next relational state(s)
-+
-legal-action mask
-+
-latest HTTP status
-+
-terminal class
-```
-
-terminal class는 네 종류로 분리한다.
-
-1. `active`
-2. `success`
-3. `true failure`
-4. `truncation`
-
-## 왜 mixture가 필요한가?
-
-같은 public state/action에서도 hidden seed condition 때문에 여러 결과가 나올 수 있다.
-
-결정론적 평균 하나만 예측하면:
-
-```text
-실제 가능한 상태 A
-실제 가능한 상태 B
-        |
-        v
-존재하지 않는 평균 상태 C
-```
-
-가 될 수 있다.
-
-그래서 current model은 conditional mixture를 사용해 multimodal future를 표현한다.
-
-## Probability와 reliability 분리
-
-각 예측 branch에는 최소 두 의미가 있다.
-
-```text
-outcome_probability
-    = 이 환경 결과가 나올 확률 질량
-
-prediction reliability
-    = world model 예측을 얼마나 신뢰하는가
-```
-
-Planner의 chance backup은 전자를 사용하고, gate는 후자를 신뢰도 조건으로 사용한다.
-
-신뢰도를 미래 가치에 보너스로 더하지 않는다.
-
----
-
-# 8. Semantic calibration
-
-Calibration은 holdout real transition에서 Prophecy가 얼마나 맞는지 측정한다.
-
-현재 status-aware calibration은 단순 vector distance만 보지 않는다.
-
-평가 대상에는 다음이 포함된다.
-
-- relational semantic next-state quality
-- legal-action mask accuracy
-- terminal class accuracy
-- public HTTP status correctness
-- probability-weighted semantic quality
-
-이 설계가 들어간 이유는 2026-08-11 2k run에서 semantic quality가 높게 보였는데도 `403/404` 같은 decision-critical error를 제대로 반영하지 못한 문제가 발견됐기 때문이다.
-
----
-
-# 9. Critic
-
-현재 Critic은 relational GRU 기반이며 **실제 sparse task return**을 학습한다.
-
-```text
-success       +1
-truncation     0
-true failure  -1
-```
-
-예전처럼 non-success를 전부 `0`으로 두면 실제 실패와 단순 budget truncation을 구분할 수 없다.
-
-## Zero-memory decision suffix training
-
-Imagination은 임의의 현재 real decision point에서 planning을 시작할 수 있다.
-
-따라서 Critic도 trajectory 시작점에서만 학습하면 계약이 맞지 않는다.
-
-현재 학습은 trajectory의 여러 suffix를 학습해 다음 형태를 맞춘다.
-
-```text
-real trajectory
-S0 -> S1 -> S2 -> S3 -> terminal
-
-training roots:
-S0
-S1
-S2
-S3
-```
-
-각 root에서 planning은 zero recurrent memory로 시작할 수 있다.
-
-## Local Critic support gate
-
-`critic_ready=True`는 “Critic이 학습을 한 적 있다”는 뜻이지, 모든 상태를 잘 안다는 뜻은 아니다.
-
-그래서 현재 gate는 다음을 추가로 묻는다.
-
-```text
-현재 relational state/action region이
-실제 Critic training data에서 지원되는가?
-```
-
-지원되지 않으면 **fail closed**하고 Policy override를 허용하지 않는다.
-
-이 support는 value bonus가 아니다.
-
----
-
-# 10. Imagination planner
-
-현재 planner contract는 두 연산을 명확히 분리한다.
-
-## Chance node
-
-환경 outcome은 선택할 수 없다.
-
-```text
-V_chance = sum_i p_i * V_i
-```
-
-## Decision node
-
-다음 행동은 에이전트가 선택할 수 있다.
-
-```text
-V_decision = max_a V(a)
-```
-
-## Root preservation
-
-실제로 실행 가능한 root action은 평가 중 사라지면 안 된다.
-
-깊은 branch가 pruning되더라도 root 자체는 남고 이미 계산한 Critic value로 fallback한다.
-
-## Structural root deduplication
-
-현재 pentest action surface에는 이름만 다른 concrete alias가 매우 많을 수 있다.
-
-예:
-
-```text
-172 concrete actions
-     |
-     v
-~17 relational root structures
-```
-
-현재 planner는 같은 relational structure의 root를 한 번만 계산하고 값을 concrete aliases에 fan-out한다.
-
-실제 concrete identity는 최종 행동 실행 직전에만 bind한다.
-
----
-
-# 11. Skills
-
-Skill은 정답 macro를 사람이 넣는 기능이 아니다.
-
-반복적으로 성공한 ASeq가 동일한 relational goal/structure에서 다시 나타날 때 template 후보로 승격될 수 있다.
-
-```text
-primitive ASeq
-A1 -> A2 -> A3
-
-repeated successful pattern
-        |
-        v
-relational Skill template
-```
-
-새 scenario에서는 concrete ID가 달라질 수 있으므로 template를 현재 concrete action surface에 다시 bind한다.
-
-Skill rollout도 stochastic outcome mass와 reliability를 분리해서 다룬다.
-
----
-
-# 12. Training / Evaluation boundary
-
-AASSR current protocol에서 중요한 원칙:
-
-```text
-Training:
-Imagination intervention OFF
-
-Evaluation A:
-same frozen checkpoint + Imagination OFF
-
-Evaluation B:
-same frozen checkpoint + Imagination ON
-```
-
-따라서 no-Imagination vs Full 비교에서 차이는 planner 사용 여부 하나여야 한다.
-
-Evaluation 전후 persistent learning fingerprint가 바뀌면 methodology violation이다.
-
----
-
-# 13. Hardware path
-
-현재 CUDA device는 다음 모듈이 공유한다.
-
-- DQN Policy
-- stochastic relational world model
-- GRU Critic
-
-주요 batch 최적화:
-
-- 한 Imagination depth의 Policy frontier를 한 batch로 평가
-- primitive world-model branches를 depth 단위 batch 처리
-- predicted outputs bulk host transfer
-- Critic children batch scoring
-- padded/masked episode-batched Critic training
-- DQN Bellman next-action max를 device-side `scatter_reduce(amax)`로 계산
-- frozen holdout calibration batch refresh
-- structural root deduplication
-
-이 최적화는 알고리즘 의미를 바꾸는 것이 아니라 같은 계산을 accelerator-friendly하게 묶는 것이 목표다.
-
----
-
-# 14. 코드 진입점
-
-현재 public builder:
-
-```python
-from aassr_v2 import build_pentest_aassr_core
-```
-
-중요 파일:
-
-```text
-src/aassr_v2/current_manifest.py
-src/aassr_v2/current_entrypoint.py
-src/aassr_v2/current_relational_state_v3.py
-src/aassr_v2/current_relational_mixture_model.py
-src/aassr_v2/current_return_critic.py
-src/aassr_v2/current_critic_support.py
-src/aassr_v2/current_planner.py
-src/aassr_v2/current_confidence_gate.py
-```
-
-실험 runner:
-
-```text
-scripts/run_pentest_current_generation_main.py
-scripts/run_repaired_imagination_final.py
-scripts/run_dreamerv3_current_baseline.py
-scripts/assemble_pentest_current_generation_suite.py
-```
-
-다음: **[Experiments](Experiments)**
+새 구조에서 현재 주장 가능한 것은 **코드 경계와 계약의 분리**다. 기존 10k 성능 수치는 이전 pentest runtime의 historical evidence이며 새 Core의 성능으로 이전하지 않는다. localhost 실제 I/O와 새 학습 성능은 별도로 검증한다.
