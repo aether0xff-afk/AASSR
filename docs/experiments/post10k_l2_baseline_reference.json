@@ -1,0 +1,25 @@
+{
+  "version": "post10k-l2-baseline-reference-v1",
+  "checkpoint_git_commit": "500ff175ca089fdf6bd4e822a1fdabdef7b1b69e",
+  "scenario_seeds": [92001, 92002, 92003, 92004, 92005, 92006, 92007, 92008],
+  "baseline": {
+    "alias_states": 435,
+    "episodes": 8,
+    "filter_events": 0,
+    "mean_aseq_guards": 78.25,
+    "mean_requests": 101.0,
+    "mean_transitions": 101.0,
+    "mean_unique_unknown_concrete": 0.375,
+    "mean_unique_unknown_structural": 0.125,
+    "mean_unknown_attempts": 1.125,
+    "shadow_disagreements": 0,
+    "shadow_plans": 0,
+    "stalls": 0,
+    "success_rate": 0.0,
+    "successes": 0,
+    "truncations": 8
+  },
+  "source": "user-run post10k checkpoint diagnostic on frozen seed-7 10k checkpoint",
+  "stage": "l2_profile_choices",
+  "extra_profile_count": 4
+}
