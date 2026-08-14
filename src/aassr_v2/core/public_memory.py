@@ -73,26 +73,44 @@ class EpisodicCoreExperienceMemory(CoreExperienceMemory):
 
 
 class CorePublicKnowledge:
-    """Generic memory of publicly observed typed values."""
+    """Generic memory of publicly observed typed values and value spaces.
+
+    ``value_space`` is a mechanical compatibility namespace supplied by the
+    Plugin schema.  It says that two values can fill the same kind of protocol
+    slot; it does not say whether either value is useful for solving the task.
+    """
 
     def __init__(self, *, per_kind_capacity: int = 512) -> None:
         self.per_kind_capacity = int(per_kind_capacity)
-        self._values: dict[ValueKind, dict[str, Any]] = {
-            kind: {} for kind in ValueKind
-        }
+        self._values: dict[
+            tuple[ValueKind, str | None],
+            dict[str, Any],
+        ] = {}
         self._semantic_evidence: set[str] = set()
         self.revision = 0
 
     def clear(self) -> None:
-        for bucket in self._values.values():
-            bucket.clear()
+        self._values.clear()
         self._semantic_evidence.clear()
         self.revision = 0
 
-    def _remember_value(self, kind: ValueKind, value: Any) -> None:
+    def _bucket(
+        self,
+        kind: ValueKind,
+        value_space: str | None,
+    ) -> dict[str, Any]:
+        return self._values.setdefault((kind, value_space), {})
+
+    def _remember_value(
+        self,
+        kind: ValueKind,
+        value: Any,
+        *,
+        value_space: str | None,
+    ) -> None:
         if value is None:
             return
-        bucket = self._values[kind]
+        bucket = self._bucket(kind, value_space)
         key = _stable_json(value)
         if key in bucket:
             return
@@ -115,7 +133,11 @@ class CorePublicKnowledge:
                     materialized = (raw,)
                 if field.item_kind is not None:
                     for item in materialized:
-                        self._remember_value(field.item_kind, item)
+                        self._remember_value(
+                            field.item_kind,
+                            item,
+                            value_space=field.value_space,
+                        )
             elif field.kind in {
                 ValueKind.BOOLEAN,
                 ValueKind.SCALAR,
@@ -123,25 +145,59 @@ class CorePublicKnowledge:
                 ValueKind.ENTITY,
                 ValueKind.TEXT,
             }:
-                self._remember_value(field.kind, raw)
+                self._remember_value(
+                    field.kind,
+                    raw,
+                    value_space=field.value_space,
+                )
 
         self._semantic_evidence.update(_evidence_tokens(schema, observation))
         if len(self._semantic_evidence) > before:
             self.revision += 1
 
-    def values(self, kind: ValueKind, *, limit: int) -> tuple[Any, ...]:
-        bucket = self._values[kind]
+    def _merged_values(
+        self,
+        kind: ValueKind,
+        *,
+        value_space: str | None,
+    ) -> dict[str, Any]:
+        merged: dict[str, Any] = {}
+        for (stored_kind, stored_space), bucket in self._values.items():
+            if stored_kind is not kind:
+                continue
+            if value_space is not None and stored_space != value_space:
+                continue
+            merged.update(bucket)
+        return merged
+
+    def values(
+        self,
+        kind: ValueKind,
+        *,
+        limit: int,
+        value_space: str | None = None,
+    ) -> tuple[Any, ...]:
+        bucket = self._merged_values(kind, value_space=value_space)
         keys = sorted(bucket)
         return tuple(bucket[key] for key in keys[: max(1, int(limit))])
 
-    def all_values(self, kind: ValueKind) -> tuple[Any, ...]:
-        bucket = self._values[kind]
+    def all_values(
+        self,
+        kind: ValueKind,
+        *,
+        value_space: str | None = None,
+    ) -> tuple[Any, ...]:
+        bucket = self._merged_values(kind, value_space=value_space)
         return tuple(bucket[key] for key in sorted(bucket))
 
     def structural_vector(self, size: int) -> tuple[float, ...]:
         vector = [0.0] * int(size)
-        for kind, bucket in self._values.items():
-            count = len(bucket)
+        for kind in ValueKind:
+            count = sum(
+                len(bucket)
+                for (stored_kind, _), bucket in self._values.items()
+                if stored_kind is kind
+            )
             _add_hashed(
                 vector,
                 f"public-knowledge:{kind.value}:present",
@@ -151,6 +207,19 @@ class CorePublicKnowledge:
                 vector,
                 f"public-knowledge:{kind.value}:count",
                 min(1.0, count / 64.0),
+            )
+        for (kind, value_space), bucket in self._values.items():
+            if value_space is None:
+                continue
+            _add_hashed(
+                vector,
+                f"public-knowledge-space:{kind.value}:{value_space}:present",
+                float(bool(bucket)),
+            )
+            _add_hashed(
+                vector,
+                f"public-knowledge-space:{kind.value}:{value_space}:count",
+                min(1.0, len(bucket) / 64.0),
             )
         _add_hashed(
             vector,
@@ -164,8 +233,15 @@ class CorePublicKnowledge:
             "revision": self.revision,
             "semantic_evidence": len(self._semantic_evidence),
         }
-        for kind, bucket in self._values.items():
-            result[f"values:{kind.value}"] = len(bucket)
+        for kind in ValueKind:
+            result[f"values:{kind.value}"] = sum(
+                len(bucket)
+                for (stored_kind, _), bucket in self._values.items()
+                if stored_kind is kind
+            )
+        for (kind, value_space), bucket in self._values.items():
+            if value_space is not None:
+                result[f"space:{kind.value}:{value_space}"] = len(bucket)
         return MappingProxyType(result)
 
 
@@ -233,6 +309,7 @@ class MemoryBackedRepresentation(SchemaDrivenRepresentation):
         *,
         kind: ValueKind,
         enum_values: Sequence[str] = (),
+        value_space: str | None = None,
     ) -> tuple[Any, ...]:
         merged: dict[str, Any] = {}
         for value in enum_values:
@@ -243,6 +320,8 @@ class MemoryBackedRepresentation(SchemaDrivenRepresentation):
                 field = fields.get(name)
                 if field is None:
                     continue
+                if value_space is not None and field.value_space != value_space:
+                    continue
                 if field.kind is kind:
                     merged[_stable_json(raw)] = raw
                 elif field.kind is ValueKind.SET and field.item_kind is kind:
@@ -252,7 +331,10 @@ class MemoryBackedRepresentation(SchemaDrivenRepresentation):
                         materialized = (raw,)
                     for item in materialized:
                         merged[_stable_json(item)] = item
-            for value in self.public_knowledge.all_values(kind):
+            for value in self.public_knowledge.all_values(
+                kind,
+                value_space=value_space,
+            ):
                 merged[_stable_json(value)] = value
         return tuple(merged[key] for key in sorted(merged))
 
@@ -262,6 +344,7 @@ class MemoryBackedRepresentation(SchemaDrivenRepresentation):
         *,
         kind: ValueKind,
         enum_values: Sequence[str],
+        value_space: str | None,
         limit: int,
         label: str,
     ) -> tuple[Any, ...]:
@@ -269,6 +352,7 @@ class MemoryBackedRepresentation(SchemaDrivenRepresentation):
             observation,
             kind=kind,
             enum_values=enum_values,
+            value_space=value_space,
         )
         limit = max(1, int(limit))
         if len(values) <= limit:
@@ -286,14 +370,16 @@ class MemoryBackedRepresentation(SchemaDrivenRepresentation):
         *,
         kind: ValueKind,
         enum_values: Sequence[str] = (),
+        value_space: str | None = None,
         limit: int = 8,
     ) -> tuple[Any, ...]:
         return self._sample_candidate_values(
             observation,
             kind=kind,
             enum_values=enum_values,
+            value_space=value_space,
             limit=limit,
-            label=f"kind:{kind.value}",
+            label=f"kind:{kind.value}:space:{value_space or '*'}",
         )
 
     @staticmethod
@@ -329,8 +415,12 @@ class MemoryBackedRepresentation(SchemaDrivenRepresentation):
                         observation,
                         kind=parameter.kind,
                         enum_values=parameter.enum_values,
+                        value_space=parameter.value_space,
                         limit=per_parameter_limit,
-                        label=f"{spec.action_id}:{parameter.name}",
+                        label=(
+                            f"{spec.action_id}:{parameter.name}:"
+                            f"space:{parameter.value_space or '*'}"
+                        ),
                     )
                 )
                 if not parameter.required:
