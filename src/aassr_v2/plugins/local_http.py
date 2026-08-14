@@ -112,6 +112,10 @@ class LocalHttpPlugin:
     Reward/termination transport headers are consumed as standardized environment
     control signals and are deliberately removed from the learner-visible header
     observation. This keeps benchmark instrumentation separate from world data.
+
+    Mechanical ``value_space`` labels only express protocol compatibility: URL
+    observations can fill URL parameters and form-payload templates can fill a
+    request body. They do not mark any URL/payload as good, bad, target, or decoy.
     """
 
     def __init__(self, config: LocalHttpConfig | str) -> None:
@@ -138,30 +142,35 @@ class LocalHttpPlugin:
                     "current_url",
                     ValueKind.ENTITY,
                     TemporalKind.STATE,
+                    value_space="url",
                     description="현재 공개 URL",
                 ),
                 ObservationField(
                     "status",
                     ValueKind.CATEGORICAL,
                     TemporalKind.EVENT,
+                    value_space="response-status",
                     description="공개 응답 상태 값",
                 ),
                 ObservationField(
                     "headers",
                     ValueKind.MAPPING,
                     TemporalKind.EVENT,
+                    value_space="response-headers",
                     description="공개 응답 헤더(환경 제어용 예약 헤더 제외)",
                 ),
                 ObservationField(
                     "body",
                     ValueKind.TEXT,
                     TemporalKind.EVENT,
+                    value_space="response-body",
                     description="공개 응답 본문",
                 ),
                 ObservationField(
                     "cookies",
                     ValueKind.MAPPING,
                     TemporalKind.STATE,
+                    value_space="cookie-jar",
                     description="클라이언트가 보유한 공개 쿠키",
                 ),
                 ObservationField(
@@ -169,6 +178,7 @@ class LocalHttpPlugin:
                     ValueKind.SET,
                     TemporalKind.STATE,
                     item_kind=ValueKind.ENTITY,
+                    value_space="url",
                     description="현재 응답에서 기계적으로 발견한 URL 집합",
                 ),
                 ObservationField(
@@ -176,12 +186,14 @@ class LocalHttpPlugin:
                     ValueKind.SET,
                     TemporalKind.STATE,
                     item_kind=ValueKind.TEXT,
+                    value_space="form-payload",
                     description="현재 응답 form input 이름으로 만든 빈 payload 형식",
                 ),
                 ObservationField(
                     "latency_ms",
                     ValueKind.SCALAR,
                     TemporalKind.MEASUREMENT,
+                    value_space="round-trip-ms",
                     description="클라이언트에서 측정한 왕복 시간",
                 ),
             ),
@@ -193,17 +205,20 @@ class LocalHttpPlugin:
                             "method",
                             ValueKind.CATEGORICAL,
                             enum_values=("GET", "POST"),
+                            value_space="http-method",
                             description="요청 method",
                         ),
                         ActionParameter(
                             "url",
                             ValueKind.ENTITY,
+                            value_space="url",
                             description="요청 대상 URL",
                         ),
                         ActionParameter(
                             "body",
                             ValueKind.TEXT,
                             required=False,
+                            value_space="form-payload",
                             description="선택적 요청 body",
                         ),
                     ),
