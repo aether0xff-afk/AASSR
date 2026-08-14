@@ -165,22 +165,59 @@ Mechanism counters:
 
 ## Iteration 5 — hand off from forced probing after positive read-profile discovery
 
+### Changed variable
+
+Return to Iteration 3 as the comparison baseline; Iteration 4 is rejected and removed. Before any public `observed_profile_role:*:read` fact exists, keep Iteration 3 behavior. After a public read-profile role is observed, stop only the forced-probe priority scaffold and return action selection to the canonical frozen Policy.
+
+### Result
+
+Iteration 5 was byte-for-byte identical to Iteration 3 on the aggregate metrics:
+
+| Metric | Iteration 3 | Iteration 5 | Delta |
+| --- | ---: | ---: | ---: |
+| Success | 1/8 | 1/8 | 0 |
+| Success rate | 0.125 | 0.125 | 0 |
+| Failures | 0 | 0 | 0 |
+| Truncations | 7 | 7 | 0 |
+| Mean transitions | 90.75 | 90.75 | 0 |
+| Mean ASEQ guards | 64.375 | 64.375 | 0 |
+| Mean unknown attempts | 7.875 | 7.875 | 0 |
+| Alias states | 353 | 353 | 0 |
+
+Mechanism counters:
+
+- 63 probe opportunities
+- 62 forced probe choices before read
+- 1 canonical action already in the probe class
+- `read_role_handoff_states = 0`
+
+The handoff counter is implemented in the script but is absent from the raw Counter output when zero. Therefore no state simultaneously had a public observed read role and remaining unknown probe candidates. This does **not** mean the read profile was never discovered: the one successful episode necessarily crossed that milestone. It means continuing forced probing after read discovery was not the observed remaining failure mode.
+
+### Decision
+
+**REJECT as a remaining L2 explanation.** The diagnostic scaffold was not masking a post-read explore-to-exploit handoff on these seeds. Iteration 5 is not carried forward.
+
+## Iteration 6 — preserve positive route/profile applicability before target discovery
+
 ### Hypothesis
 
-Iteration 2's forced unknown-profile probe scaffold was useful for exposing the missing negative-response memory, but it can become counterproductive after the environment has already returned a positive `observed_profile_role:*:read` fact. At that point the agent has crossed the key L2 discovery boundary, yet remaining decoy profiles can keep the diagnostic scaffold forcing additional unknown probes instead of allowing the canonical Policy to exploit the newly discovered read/workflow information.
+The current response memory recognizes a profile as role `read` only when the target-object response contains `authorization_boundary_missing`. However the same correct read profile can be used on a non-target object and return a public object-semantic response such as `object:<id>` with HTTP 200/404. That response proves the route/profile pair is applicable even though it does not yet reveal the target object or assign the final `read` role.
+
+If this positive applicability evidence is discarded, L2 can remain a coupled search problem: the agent must effectively hit both the valid read profile and the target object before it can retain a useful positive profile relation. The extra profile candidates introduced at L2 make that coupling much harder.
 
 ### Single changed variable
 
-Return to Iteration 3 as the comparison baseline; Iteration 4 is rejected and removed.
+Return to Iteration 3; Iterations 4 and 5 are rejected and removed.
 
-- Before any public `observed_profile_role:*:read` fact exists, keep Iteration 3 behavior exactly: forced unknown-profile probe priority plus negative route/profile memory.
-- After a public read-profile role is observed, stop only the forced-probe priority scaffold and return action selection to the canonical frozen Policy.
-- Negative route/profile memory remains active and unchanged.
+- Keep Iteration-2 probe priority and Iteration-3 negative route/profile memory unchanged.
+- When an unknown-profile `request_object` receives only public object-semantic evidence (`object:<id>` or `authorization_boundary_missing`), remember that concrete `(route, profile)` pair as applicable for the rest of the episode.
+- While that positive pair remains available, prioritize `request_object` actions using that pair, preserving the frozen Policy ranking among those actions.
+- Do not expose hidden profile roles, hidden target identity, oracle actions, or extra reward.
 
 ### Interpretation
 
-- Handoff fires and success rises materially over 1/8: the diagnostic scaffold was masking a positive milestone; the canonical design needs a principled explore-to-exploit transition rather than permanent candidate probing.
-- Handoff fires but success stays near 1/8: move downstream to whether target/workflow positive semantics are represented and selected correctly.
-- Handoff rarely or never fires: the remaining bottleneck is earlier — finding the valid read-profile/target combination itself.
+- Positive-evidence counters fire and success rises materially over 1/8: discarded positive route/profile applicability is a major remaining L2 defect.
+- Positive memory fires strongly but success stays near 1/8: keep the semantic defect finding, but move downstream to target/workflow use.
+- Positive evidence rarely appears: the remaining bottleneck is earlier — reaching any valid route/profile pair at all.
 
-This remains diagnostic-only; no canonical runtime code is modified.
+Diagnostic only; canonical runtime remains untouched.
