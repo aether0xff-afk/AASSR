@@ -7,6 +7,7 @@ from typing import Any, Mapping, Sequence
 
 from .plugin_contract import PluginObservation, PluginStepResult, TemporalKind, ValueKind
 from .representation import (
+    CoreExperienceMemory,
     SchemaDrivenRepresentation,
     _add_hashed,
     _bounded_scalar,
@@ -38,6 +39,35 @@ def _evidence_tokens(schema, observation: PluginObservation) -> tuple[str, ...]:
             continue
         rows.append(f"{name}:{_stable_json(raw)}")
     return tuple(rows)
+
+
+class EpisodicCoreExperienceMemory(CoreExperienceMemory):
+    """Concrete-action evidence is local unless the experiment opts to preserve it.
+
+    Neural weights and structural knowledge persist across episodes. Concrete
+    candidate IDs may be renamed or acquire different hidden meaning after a
+    reset, so candidate-local statistics must not silently leak across episodes.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.episodes = 0
+
+    def begin_episode(self, *, preserve: bool = False) -> None:
+        self.episodes += 1
+        if preserve:
+            return
+        self._by_action.clear()
+        self.revision = 0
+        self.knowledge_revision = 0
+
+    def diagnostics(self) -> Mapping[str, int]:
+        return MappingProxyType(
+            {
+                **dict(super().diagnostics()),
+                "episodes": self.episodes,
+            }
+        )
 
 
 class CorePublicKnowledge:
@@ -101,7 +131,6 @@ class CorePublicKnowledge:
                 self._remember_value(field.kind, raw)
 
         self._semantic_evidence.update(_evidence_tokens(schema, observation))
-
         if len(self._semantic_evidence) > before:
             self.revision += 1
 
@@ -142,15 +171,20 @@ class CorePublicKnowledge:
 
 
 class MemoryBackedRepresentation(SchemaDrivenRepresentation):
-    """Canonical Core representation with Core-owned public memory."""
+    """Canonical Core representation with Core-owned public and local memory."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        if kwargs.get("experience") is None:
+            kwargs["experience"] = EpisodicCoreExperienceMemory()
         super().__init__(*args, **kwargs)
         self.public_knowledge = CorePublicKnowledge()
 
     def begin_episode(self, *, preserve: bool = False) -> None:
         if not preserve:
             self.public_knowledge.clear()
+        begin = getattr(self.experience, "begin_episode", None)
+        if callable(begin):
+            begin(preserve=preserve)
 
     def observation_vector(self, observation: PluginObservation) -> tuple[float, ...]:
         current = list(super().observation_vector(observation))
@@ -193,9 +227,6 @@ class MemoryBackedRepresentation(SchemaDrivenRepresentation):
         self,
         observation: PluginObservation,
     ) -> tuple[tuple[str, str], ...]:
-        # EVENT values are evidence, not persistent world state. New event
-        # evidence changes public_knowledge.revision once; repeated identical
-        # evidence no longer defeats semantic self-loop detection.
         fields = self.schema.observation_map
         return tuple(
             (name, _stable_json(value))
