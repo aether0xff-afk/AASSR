@@ -40,15 +40,13 @@ Observed fact: L1->L2 changes only `extra_profile_count` from 0 to 4 in the tran
 - Shadow planning did produce alternative preferences: 15 shadow plans, 5 reliable disagreements with Policy. This is evidence that planning is not identically equal to Policy, but it does not prove that the alternative action is better.
 - ASEQ semantics themselves remain the intended exact semantic self-loop guard. The very high L2 guard rate is treated as a symptom of poor upstream decisions unless a later experiment proves otherwise.
 
-## Current system diagnosis before Iteration 1
+## System diagnosis before Iteration 1
 
 The environment itself is not currently classified as broken: it exposes the read-profile candidate and decoy profile candidates together through response-causal observations and does not expose which candidate is correct.
 
-The strongest current structural concern is the boundary between that environment and the rename-invariant action representation. Concrete profile candidates with the same observed role can map to identical structural action features. Policy value and information residual therefore tie for those concrete representatives. Current Policy ranking resolves an exact score tie using raw `action.signature` lexicographic order.
+Concrete profile candidates with the same observed role can map to identical structural action features. Policy value and information residual can therefore tie for concrete representatives. Current Policy ranking resolves an exact score tie using raw `action.signature` lexicographic order.
 
-That raw-signature winner is inconsistent with the intended rename-invariant abstraction: the model declares the candidates structurally equivalent, then an arbitrary concrete identifier string decides which representative is executed.
-
-This is a hypothesis, not yet the root-cause conclusion.
+This made raw-signature representative bias a reasonable first hypothesis, but not a root-cause conclusion.
 
 ## Iteration 1 — structural tie representative only
 
@@ -68,14 +66,69 @@ When the frozen Policy has an exact top-score tie among concrete actions that al
 - Prophecy
 - Critic
 - ASEQ
-- Imagination (disabled for this experiment)
+- Imagination (disabled)
 - seeds and episode cap
 
-This first test is diagnostic-only. If it helps, a later iteration may implement a principled core fix. If it does not help, it is rejected before changing representation semantics.
+### Result
 
-### Interpretation
+| Metric | Frozen baseline | Iteration 1 | Delta |
+| --- | ---: | ---: | ---: |
+| Success | 0/8 | 0/8 | 0 |
+| Mean transitions | 101.0 | 101.0 | 0 |
+| Mean ASEQ guards | 78.25 | 76.0 | -2.25 |
+| Mean unknown attempts | 1.125 | 0.0 | -1.125 |
+| Alias states | 435 | 343 | -92 |
 
-- Improvement from 0/8 and/or a material decrease in ASEQ pressure: raw-signature representative bias contributes to the L2 cliff.
-- Near-baseline 0/8 with similar ASEQ pressure: reject raw-signature tie-breaking as the primary L2 cause and move to the next single-variable representation experiment.
+Mechanism counters:
 
-Do not promote this diagnostic behavior to canonical AASSR before observing the result.
+- structural tie events: 576
+- randomized choices: 576
+- concrete actions participating across tie events: 3496
+- selections changed from the lexicographic winner: 457
+
+### Decision
+
+**REJECT as the primary L2 cause.**
+
+The intervention was strong enough to change the concrete representative on 457 decisions, but success remained 0/8 and transition exhaustion remained unchanged. ASEQ pressure fell only slightly. More importantly, unknown-profile attempts fell to zero.
+
+Therefore the main failure appears to occur **before concrete representative selection**: the frozen Policy often does not rank the unknown object-profile probe class highly enough to enter it at all. Raw-signature tie-breaking may still be undesirable implementation detail, but fixing it is not justified as the next scientific repair for the L2 cliff.
+
+Do not promote Iteration-1 behavior to canonical AASSR.
+
+## Iteration 2 — unknown object-profile probe class priority
+
+### Hypothesis
+
+At L2, the crucial new actions are `request_object` actions whose profile role is still unknown. The frozen Policy may be ranking this whole response-causal probe class below other available actions, so ASEQ spends most of the episode suppressing no-progress choices while the agent barely tests the new profile candidates.
+
+### Single changed variable
+
+During frozen evaluation only, when one or more **unknown-profile `request_object`** actions are available, choose the highest-scoring action **within that subset according to the existing frozen Policy ranking**, instead of choosing the global highest-scoring action.
+
+This changes only the priority of the unknown object-profile probe class.
+
+### Explicitly unchanged
+
+- environment and L2 stage
+- state representation
+- action representation
+- all learned weights
+- Policy scores and ordering inside the unknown subset
+- no candidate ID/answer is exposed
+- no extra tried-candidate memory is added
+- no randomization is added
+- no reward or information bonus is added
+- ASEQ unchanged
+- Prophecy unchanged
+- Critic unchanged
+- Imagination disabled
+- same seeds and transition cap
+
+### Interpretation rule
+
+- If success rises materially and unknown attempts rise, the main current bottleneck is the Policy's **class-level exploration/ranking of response-causal profile probes**, not concrete tie-breaking.
+- If unknown attempts rise strongly but success remains 0/8, then merely entering the candidate class is insufficient; the next experiment should test within-candidate relational memory/identity or downstream response learning.
+- If the intervention rarely fires, the failure lies earlier in action-surface/state construction and this hypothesis is rejected.
+
+Iteration 2 is diagnostic-only and must not be promoted to canonical AASSR without a positive result and a subsequent principled implementation test.
