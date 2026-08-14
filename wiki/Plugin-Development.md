@@ -31,6 +31,16 @@ AASSR의 새 Plugin 원칙은 간단하다.
 
 새 계약에서는 Plugin이 후보 명령 목록도 반환하지 않는다. Core가 행동 스키마와 공개 관찰값의 자료형, 그리고 Core가 직접 축적한 공개 지식을 이용해 후보를 만든다.
 
+## 제어 신호는 일반 관찰과 분리한다
+
+`reward`, `terminated`, `truncated`, `error`는 환경에서 Core로 들어가는 표준 제어 신호다. 어떤 연구 harness가 이 값을 전송하기 위해 별도 프로토콜 필드나 header를 사용하더라도, **그 전송용 값을 다시 일반 관찰 채널에 중복 노출하면 안 된다.**
+
+예를 들어 localhost 연구 harness의 `X-AASSR-Reward` header는 외부 reward로만 전달하고 일반 HTTP header 관찰에서는 제거한다. 반면 실제 서비스가 원래 공개하는 일반 header는 그대로 관찰할 수 있다.
+
+이 경계를 두는 이유는 간단하다. 연구 harness가 만든 `reward`, `terminal` 표시 이름을 learner가 직접 보고 정답 shortcut으로 사용하면 Core의 학습 능력을 검증한 것이 아니기 때문이다.
+
+`diagnostics`도 제어 신호와 별개다. diagnostics가 `external_reward`, `terminated`, `truncated` 같은 예약 key를 덮어쓸 수 없도록 계약과 테스트에서 막는다.
+
 ## 관찰값의 시간적 종류
 
 Plugin은 관찰의 의미가 아니라 기계적인 수명만 선언할 수 있다.
