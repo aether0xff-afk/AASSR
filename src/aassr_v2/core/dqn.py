@@ -5,12 +5,12 @@ from typing import Any, Mapping, Sequence
 import io
 import random
 
-from ..action_plugins import PluginOutcome
 from ..autonomous_agent_core import RunningValue
 from ..policy import PolicyMemory, ScoredAction
 from ..skills import SKILL_VERB
 from ..types import Action, StateSnapshot
 from .representation import SchemaDrivenRepresentation
+from .transition import CoreTransitionOutcome
 
 
 class CoreDynamicActionDQN:
@@ -150,7 +150,7 @@ class CoreDynamicActionDQN:
         self,
         before: StateSnapshot,
         action: Action,
-        outcome: PluginOutcome,
+        outcome: CoreTransitionOutcome,
         *,
         reward: float,
         terminal: bool | None = None,
