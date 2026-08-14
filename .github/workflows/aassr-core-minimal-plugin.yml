@@ -32,6 +32,7 @@ jobs:
           pytest -q \
             tests/test_minimal_plugin_contract.py \
             tests/test_core_episode_scope.py \
+            tests/test_core_candidate_sampling.py \
             tests/test_core_boundary_static.py \
             tests/test_local_http_plugin.py
 
