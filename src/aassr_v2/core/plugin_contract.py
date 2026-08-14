@@ -54,6 +54,11 @@ def _value_matches_kind(value: Any, kind: ValueKind) -> bool:
     return True
 
 
+def _validate_value_space(value_space: str | None, *, owner: str) -> None:
+    if value_space is not None and not str(value_space).strip():
+        raise ValueError(f"{owner} value_space must be non-empty when supplied")
+
+
 @dataclass(frozen=True, slots=True)
 class ObservationField:
     name: str
@@ -61,6 +66,7 @@ class ObservationField:
     temporal: TemporalKind = TemporalKind.STATE
     enum_values: tuple[str, ...] = ()
     item_kind: ValueKind | None = None
+    value_space: str | None = None
     description: str = ""
 
     def __post_init__(self) -> None:
@@ -72,6 +78,7 @@ class ObservationField:
             raise ValueError(f"duplicate categorical values for {self.name!r}")
         if self.kind is not ValueKind.SET and self.item_kind is not None:
             raise ValueError("item_kind is valid only for set observations")
+        _validate_value_space(self.value_space, owner=f"observation {self.name!r}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,6 +87,7 @@ class ActionParameter:
     kind: ValueKind
     required: bool = True
     enum_values: tuple[str, ...] = ()
+    value_space: str | None = None
     description: str = ""
 
     def __post_init__(self) -> None:
@@ -89,6 +97,7 @@ class ActionParameter:
             self.enum_values
         ):
             raise ValueError(f"duplicate categorical values for {self.name!r}")
+        _validate_value_space(self.value_space, owner=f"parameter {self.name!r}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -291,9 +300,12 @@ class MinimalRuntimePlugin(Protocol):
     """The complete environment-facing authority allowed to a plugin.
 
     The plugin may describe syntax, public information types, and how to execute
-    a command selected by the Core.  It does not return a strategic candidate
-    list.  It must not define state representations, semantic identities, value
-    functions, world models, planning scores, action priorities, or task heuristics.
+    a command selected by the Core.  A ``value_space`` may additionally state
+    mechanical compatibility (for example URL values may fill URL parameters).
+    It must never encode whether a value is good, bad, target, decoy, or progress.
+    The plugin does not return a strategic candidate list and must not define
+    state representations, semantic identities, value functions, world models,
+    planning scores, action priorities, or task heuristics.
     """
 
     @property
