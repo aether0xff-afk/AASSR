@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 import hashlib
 import random
+import re
 from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
@@ -23,8 +24,11 @@ from .representation import (
 )
 
 
+_TRANSFER_TEXT_TOKEN_RE = re.compile(r"[\w./:@?&=+\-]+", flags=re.UNICODE)
+
+
 def _evidence_tokens(schema, observation: PluginObservation) -> tuple[str, ...]:
-    """Normalize public evidence without treating volatile measurements as state."""
+    """Normalize exact episode evidence without volatile measurements."""
 
     rows: list[str] = []
     fields = schema.observation_map
@@ -45,6 +49,102 @@ def _evidence_tokens(schema, observation: PluginObservation) -> tuple[str, ...]:
             rows.append(f"{name}:scalar:{round(_bounded_scalar(raw), 3)}")
             continue
         rows.append(f"{name}:{_stable_json(raw)}")
+    return tuple(rows)
+
+
+def _transfer_evidence_tokens(
+    schema,
+    observation: PluginObservation,
+) -> tuple[str, ...]:
+    """Build remembered evidence features without concrete entity identity.
+
+    The exact public values can still be stored by ``CorePublicKnowledge`` for
+    command construction inside an episode.  This second channel is what the
+    transfer learners receive after the original observation disappears.  It
+    preserves public content where rename-safe and deliberately masks concrete
+    entity identifiers.
+    """
+
+    rows: list[str] = []
+    fields = schema.observation_map
+    for name, raw in sorted(observation.values.items()):
+        field = fields.get(name)
+        if field is None or field.temporal in {
+            TemporalKind.COUNTER,
+            TemporalKind.MEASUREMENT,
+        }:
+            continue
+
+        space = field.value_space or "*"
+        prefix = f"field:{name}:kind:{field.kind.value}:space:{space}"
+        if raw is None:
+            rows.append(f"{prefix}:none")
+            continue
+
+        if field.kind is ValueKind.BOOLEAN:
+            rows.append(f"{prefix}:bool:{int(bool(raw))}")
+            continue
+
+        if field.kind is ValueKind.SCALAR:
+            rows.append(f"{prefix}:scalar:{round(_bounded_scalar(raw), 3)}")
+            continue
+
+        if field.kind is ValueKind.CATEGORICAL:
+            rows.append(f"{prefix}:category:{_stable_json(raw)}")
+            continue
+
+        if field.kind is ValueKind.ENTITY:
+            rows.append(f"{prefix}:entity-present")
+            continue
+
+        if field.kind is ValueKind.TEXT:
+            text = str(raw).lower()
+            rows.append(f"{prefix}:text-present")
+            rows.append(f"{prefix}:length:{min(32, len(text) // 32)}")
+            for token in _TRANSFER_TEXT_TOKEN_RE.findall(text)[:256]:
+                rows.append(f"{prefix}:token:{token}")
+            continue
+
+        if field.kind is ValueKind.BYTES:
+            try:
+                length = len(raw)
+            except TypeError:
+                length = len(bytes(str(raw), "utf-8"))
+            rows.append(f"{prefix}:bytes-present")
+            rows.append(f"{prefix}:length:{min(32, int(length) // 32)}")
+            continue
+
+        if field.kind is ValueKind.MAPPING:
+            mapping = raw if isinstance(raw, Mapping) else {}
+            rows.append(f"{prefix}:mapping-present")
+            rows.append(f"{prefix}:count:{min(64, len(mapping))}")
+            # Values may contain volatile IDs or transport-generated data. Until
+            # mapping values have their own typed schema, remember key structure
+            # only rather than inventing domain-specific interpretation rules.
+            for key in sorted(str(key) for key in mapping)[:256]:
+                rows.append(f"{prefix}:key:{key}")
+            continue
+
+        if field.kind is ValueKind.SET:
+            try:
+                materialized = tuple(raw)
+            except TypeError:
+                materialized = (raw,)
+            rows.append(f"{prefix}:set-present")
+            rows.append(f"{prefix}:count:{min(64, len(materialized))}")
+            if field.item_kind is ValueKind.ENTITY:
+                # Count/presence transfers; concrete member names do not.
+                rows.append(f"{prefix}:entity-members")
+                continue
+            if field.item_kind is ValueKind.TEXT:
+                for item in materialized[:128]:
+                    for token in _TRANSFER_TEXT_TOKEN_RE.findall(str(item).lower())[:64]:
+                        rows.append(f"{prefix}:member-token:{token}")
+                continue
+            for item in sorted((_stable_json(item) for item in materialized))[:256]:
+                rows.append(f"{prefix}:member:{item}")
+            continue
+
     return tuple(rows)
 
 
@@ -73,25 +173,37 @@ class EpisodicCoreExperienceMemory(CoreExperienceMemory):
 
 
 class CorePublicKnowledge:
-    """Generic memory of publicly observed typed values and value spaces.
+    """Generic memory of public values plus rename-safe remembered evidence.
 
-    ``value_space`` is a mechanical compatibility namespace supplied by the
-    Plugin schema.  It says that two values can fill the same kind of protocol
-    slot; it does not say whether either value is useful for solving the task.
+    Exact values are retained only when they are useful as mechanically typed
+    command material.  A separate transfer-evidence channel preserves observed
+    BOOLEAN/CATEGORICAL/TEXT/etc. content for Policy and Prophecy while masking
+    concrete ENTITY identifiers.  This avoids both information loss and hidden
+    raw-ID transfer.
     """
 
-    def __init__(self, *, per_kind_capacity: int = 512) -> None:
+    def __init__(
+        self,
+        *,
+        per_kind_capacity: int = 512,
+        transfer_evidence_capacity: int = 4096,
+    ) -> None:
         self.per_kind_capacity = int(per_kind_capacity)
+        self.transfer_evidence_capacity = int(transfer_evidence_capacity)
+        if self.per_kind_capacity <= 0 or self.transfer_evidence_capacity <= 0:
+            raise ValueError("Core public knowledge capacities must be positive")
         self._values: dict[
             tuple[ValueKind, str | None],
             dict[str, Any],
         ] = {}
         self._semantic_evidence: set[str] = set()
+        self._transfer_evidence: dict[str, None] = {}
         self.revision = 0
 
     def clear(self) -> None:
         self._values.clear()
         self._semantic_evidence.clear()
+        self._transfer_evidence.clear()
         self.revision = 0
 
     def _bucket(
@@ -119,12 +231,29 @@ class CorePublicKnowledge:
             bucket.pop(oldest, None)
         bucket[key] = value
 
+    def _remember_transfer_evidence(self, tokens: Sequence[str]) -> None:
+        for token in tokens:
+            if token in self._transfer_evidence:
+                continue
+            if len(self._transfer_evidence) >= self.transfer_evidence_capacity:
+                oldest = next(iter(self._transfer_evidence))
+                self._transfer_evidence.pop(oldest, None)
+            self._transfer_evidence[token] = None
+
     def observe(self, schema, observation: PluginObservation) -> None:
         fields = schema.observation_map
         before = len(self._semantic_evidence)
         for name, raw in observation.values.items():
             field = fields.get(name)
             if field is None:
+                continue
+            # Historical counters/measurements are not reusable problem-solving
+            # knowledge. They remain fully visible in the *current* observation
+            # representation, but are not accumulated here.
+            if field.temporal in {
+                TemporalKind.COUNTER,
+                TemporalKind.MEASUREMENT,
+            }:
                 continue
             if field.kind is ValueKind.SET:
                 try:
@@ -152,6 +281,9 @@ class CorePublicKnowledge:
                 )
 
         self._semantic_evidence.update(_evidence_tokens(schema, observation))
+        self._remember_transfer_evidence(
+            _transfer_evidence_tokens(schema, observation)
+        )
         if len(self._semantic_evidence) > before:
             self.revision += 1
 
@@ -221,6 +353,8 @@ class CorePublicKnowledge:
                 f"public-knowledge-space:{kind.value}:{value_space}:count",
                 min(1.0, len(bucket) / 64.0),
             )
+        for token in self._transfer_evidence:
+            _add_hashed(vector, f"public-knowledge-evidence:{token}", 1.0)
         _add_hashed(
             vector,
             "public-knowledge:revision",
@@ -232,6 +366,7 @@ class CorePublicKnowledge:
         result = {
             "revision": self.revision,
             "semantic_evidence": len(self._semantic_evidence),
+            "transfer_evidence": len(self._transfer_evidence),
         }
         for kind in ValueKind:
             result[f"values:{kind.value}"] = sum(
