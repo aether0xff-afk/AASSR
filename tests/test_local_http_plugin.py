@@ -11,7 +11,10 @@ from aassr_v2.plugins.local_http import LocalHttpConfig, LocalHttpPlugin
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802
-        body = b'<a href="/next">next</a>'
+        if self.path == "/empty":
+            body = b"<p>empty page</p>"
+        else:
+            body = b'<a href="/next">next</a>'
         self.send_response(200)
         self.send_header("Content-Type", "text/html")
         self.send_header("Content-Length", str(len(body)))
@@ -22,10 +25,15 @@ class Handler(BaseHTTPRequestHandler):
         del format, args
 
 
-def test_local_plugin_is_loopback_only_and_uses_real_socket() -> None:
-    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+def _serve(handler=Handler):
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
+    return server, thread
+
+
+def test_local_plugin_is_loopback_only_and_uses_real_socket() -> None:
+    server, thread = _serve()
     try:
         port = server.server_address[1]
         plugin = LocalHttpPlugin(
@@ -55,6 +63,30 @@ def test_local_plugin_is_loopback_only_and_uses_real_socket() -> None:
         thread.join(timeout=2.0)
 
 
+def test_plugin_does_not_keep_discovery_history_between_responses() -> None:
+    server, thread = _serve()
+    try:
+        port = server.server_address[1]
+        base = f"http://127.0.0.1:{port}"
+        plugin = LocalHttpPlugin(base)
+        plugin.reset()
+        first = plugin.step(
+            ActionCommand("request", {"method": "GET", "url": f"{base}/"})
+        )
+        assert f"{base}/next" in set(first.observation.values["links"])
+
+        second = plugin.step(
+            ActionCommand("request", {"method": "GET", "url": f"{base}/empty"})
+        )
+        # The adapter reports only what the current response exposes. Remembering
+        # /next for later decisions is a Core responsibility.
+        assert tuple(second.observation.values["links"]) == ()
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2.0)
+
+
 def test_local_plugin_refuses_non_loopback_target() -> None:
     with pytest.raises(ValueError, match="loopback-only"):
         LocalHttpPlugin("https://example.com/")
@@ -71,9 +103,7 @@ class ExternalRedirectHandler(BaseHTTPRequestHandler):
 
 
 def test_local_plugin_blocks_external_redirect_before_following_it() -> None:
-    server = ThreadingHTTPServer(("127.0.0.1", 0), ExternalRedirectHandler)
-    thread = Thread(target=server.serve_forever, daemon=True)
-    thread.start()
+    server, thread = _serve(ExternalRedirectHandler)
     try:
         port = server.server_address[1]
         plugin = LocalHttpPlugin(f"http://127.0.0.1:{port}")
