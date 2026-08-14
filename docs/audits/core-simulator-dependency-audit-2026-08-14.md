@@ -189,6 +189,39 @@ CI의 Core boundary audit가 이 금지 조건에서도 통과했다.
 
 이 변경은 Skill에 도메인 규칙을 넣는 것이 아니라, **Core가 이미 학습한 Policy를 사용해 structural Skill을 현재 concrete 세계에 grounding**하는 것이다.
 
+### 16. Core Knowledge가 "무엇을 봤는지"보다 "몇 종류를 봤는지"만 학습 표현에 남겼다
+
+`CorePublicKnowledge`는 공개 값을 정확히 기억해 이후 행동 후보를 다시 만들 수 있었지만, Policy/Prophecy가 받는 `structural_vector()`에는 주로 `ValueKind`/`value_space`별 존재 여부와 개수, revision만 들어갔다. 따라서 한 EVENT가 현재 관찰에서 사라진 뒤에는 후보 생성에는 과거 값이 남아 있어도, 학습 모델은 "어떤 공개 범주/텍스트 증거를 봤는지"를 충분히 구분하지 못할 수 있었다.
+
+이는 과거 pentest adapter에서 공개 응답 의미가 다음 판단까지 충분히 전달되지 않던 문제를, 더 일반적인 형태로 새 Core에서도 다시 만들 위험이 있었다.
+
+**판정:** canonical Knowledge는 존재하지만 학습 모델로 전달되는 정보량이 지나치게 거친 구조 결함.
+
+**수정:** `CorePublicKnowledge`를 두 채널로 분리했다.
+
+1. **정확한 episode-local 공개 값**
+   - Core가 실제 command 후보를 만들 때 사용
+   - `value_space`를 보존
+   - concrete ENTITY 값도 실행을 위해 보관 가능
+
+2. **학습용 remembered transfer evidence**
+   - BOOLEAN/CATEGORICAL/SCALAR/TEXT 등 공개 내용의 구조적 증거를 보존
+   - TEXT는 token 단위의 일반 feature로 기억
+   - MAPPING은 typed value schema가 더 생기기 전까지 key 구조만 기억
+   - ENTITY와 `SET[ENTITY]`는 concrete ID를 넣지 않고 presence/count만 기억
+   - COUNTER/MEASUREMENT는 현재 관찰에는 계속 보이지만 장기 Knowledge로 누적하지 않음
+
+따라서 "과거에 어떤 공개 증거를 봤는가"가 current observation에서 사라진 뒤에도 Policy/Prophecy 입력에 남으면서, concrete entity ID를 그대로 transfer feature로 넣지는 않는다.
+
+회귀 테스트는 다음을 확인한다.
+
+- 같은 개수의 CATEGORICAL/TEXT 지식이라도 내용이 다르면 remembered Knowledge vector가 달라짐
+- concrete ENTITY 이름만 rename된 경우 learned transfer Knowledge vector는 동일함
+- COUNTER/MEASUREMENT 이력이 persistent Knowledge에 누적되지 않음
+- COUNTER/MEASUREMENT의 **현재 값**은 현재 state representation에는 계속 보임
+
+GitHub Actions run `31807142658`에서 이 변경을 포함한 `boundary`와 `core-runtime-cpu` 두 job이 모두 성공했다.
+
 ## 새 경계에서 유지한 것
 
 - ASEQ의 정확한 `S → A → S` 반복 억제 의미
@@ -210,6 +243,9 @@ CI의 Core boundary audit가 이 금지 조건에서도 통과했다.
 - localhost harness control header가 learner observation에 노출되지 않음
 - 같은 `ValueKind`라도 다른 `value_space` 값이 행동 슬롯에서 섞이지 않음
 - Core 공개 기억도 기계적 `value_space`를 보존함
+- remembered CATEGORICAL/TEXT 공개 증거 내용이 학습 표현에 남음
+- concrete ENTITY rename이 remembered transfer vector를 바꾸지 않음
+- counter/measurement 이력이 persistent Knowledge에 쌓이지 않음
 - Core가 공개 typed value를 기억해 다음 후보 생성에 사용할 수 있음
 - episode reset 시 Core 공개 기억이 초기화됨
 - concrete 후보별 경험이 기본적으로 episode-local임
@@ -222,7 +258,7 @@ CI의 Core boundary audit가 이 금지 조건에서도 통과했다.
 - 외부 redirect 차단
 - Plugin이 이전 페이지의 발견 link를 기억하지 않음
 
-2026-08-14의 `value_space`, Core-owned transition, Skill grounding 수정 이후에도 `aassr-core-minimal-plugin`의 `boundary`와 `core-runtime-cpu` 두 job이 모두 통과했다.
+현재까지의 마지막 단일 변경인 remembered Knowledge content 보존까지 포함해 `aassr-core-minimal-plugin`의 `boundary`와 `core-runtime-cpu` 두 job이 모두 통과했다.
 
 ## 실제 loopback 학습 smoke
 
