@@ -10,7 +10,6 @@ import re
 from types import MappingProxyType
 from typing import Any, Iterable, Mapping, Sequence
 
-from ..action_plugins import PluginOutcome
 from ..neural_delta_prophecy import StateCodec
 from ..types import Action, StateSnapshot
 from .plugin_contract import (
@@ -23,6 +22,7 @@ from .plugin_contract import (
     ValueKind,
     validate_step_result,
 )
+from .transition import CoreTransitionOutcome
 
 
 _TOKEN_RE = re.compile(r"[\w./:@?&=+\-]+", flags=re.UNICODE)
@@ -688,7 +688,7 @@ class PluginEnvironmentAdapter:
             raise RuntimeError("environment adapter has not been reset")
         return self._snapshot
 
-    def step(self, action: Action) -> PluginOutcome:
+    def step(self, action: Action) -> CoreTransitionOutcome:
         if self._result is None or self._snapshot is None:
             raise RuntimeError("environment adapter has not been reset")
         before_result = self._result
@@ -710,7 +710,7 @@ class PluginEnvironmentAdapter:
             for item in after.available_actions
             if item.signature not in before_signatures
         )
-        outcome = PluginOutcome(
+        outcome = CoreTransitionOutcome(
             snapshot=after,
             added_facts=after.facts - before.facts,
             removed_facts=before.facts - after.facts,
