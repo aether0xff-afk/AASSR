@@ -15,17 +15,14 @@ from ..neural_delta_prophecy import NeuralDeltaConfig
 from ..semantic_control import SemanticSelfLoopASEQ
 from ..skills import SKILL_VERB
 from ..types import Action, Prediction, StateSnapshot, TransitionTrace
-from .manifest import CORE_VERSION, PLUGIN_CONTRACT_VERSION
-from .dqn import CoreDynamicActionDQN, CorePolicy
-from .prophecy_model import CoreHoldoutCalibratedProphecy, SchemaDrivenNeuralProphecy
 from .critic import SignedCoreGRUCritic, build_signed_core_critic
-from .skills_core import CoreRelationalSkillLibrary, CoreSkillAwareProphecy
+from .dqn import CoreDynamicActionDQN, CorePolicy
+from .manifest import CORE_VERSION, PLUGIN_CONTRACT_VERSION
 from .plugin_contract import MinimalRuntimePlugin, validate_minimal_plugin
-from .representation import (
-    CoreRepresentationConfig,
-    PluginEnvironmentAdapter,
-    SchemaDrivenRepresentation,
-)
+from .prophecy_model import CoreHoldoutCalibratedProphecy, SchemaDrivenNeuralProphecy
+from .public_memory import MemoryBackedRepresentation
+from .representation import CoreRepresentationConfig, PluginEnvironmentAdapter
+from .skills_core import CoreRelationalSkillLibrary, CoreSkillAwareProphecy
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,12 +72,7 @@ class _PendingDQNTransition:
 
 
 class AASSRCoreRuntime:
-    """Environment-neutral AASSR runtime using only the minimal plugin contract.
-
-    No method in this class knows an environment-specific command, observation
-    field, response class, or simulator state. All task meaning must be learned
-    from public transitions.
-    """
+    """Environment-neutral AASSR runtime over the minimal plugin contract."""
 
     def __init__(
         self,
@@ -98,17 +90,14 @@ class AASSRCoreRuntime:
         self.device = str(device)
         self.requested_imagination = bool(use_imagination)
 
-        self.representation = SchemaDrivenRepresentation(
+        self.representation = MemoryBackedRepresentation(
             plugin.schema,
             config=CoreRepresentationConfig(
                 state_size=self.config.state_size,
                 action_feature_size=self.config.action_feature_size,
             ),
         )
-        self.environment = PluginEnvironmentAdapter(
-            plugin,
-            self.representation,
-        )
+        self.environment = PluginEnvironmentAdapter(plugin, self.representation)
 
         self.dqn = CoreDynamicActionDQN(
             self.seed ^ 0xD1A6,
@@ -174,6 +163,7 @@ class AASSRCoreRuntime:
         self.agent.base_prophecy = self.prophecy
         self.agent.prophecy = self.prophecy
         self.agent.planner.prophecy = self.prophecy
+
         self.critic: SignedCoreGRUCritic = build_signed_core_critic(
             self.representation,
             seed=self.seed ^ 0x43524954,
@@ -186,7 +176,7 @@ class AASSRCoreRuntime:
         )
         self.knowledge = KnowledgeStore()
         self._episode_traces: list[TransitionTrace] = []
-        self._critic_trajectory: list[Any] = []
+        self._critic_trajectory: list[tuple[StateSnapshot, Action, StateSnapshot, float]] = []
         self._selected_skill_steps: list[tuple[StateSnapshot, Action, int]] = []
         self._critic_counts: Counter[str] = Counter()
         self._step_index = 0
@@ -209,6 +199,9 @@ class AASSRCoreRuntime:
         )
 
     def begin_episode(self, *, seed: int | None = None) -> StateSnapshot:
+        self.representation.begin_episode(
+            preserve=self.config.preserve_knowledge_across_episodes
+        )
         if not self.config.preserve_knowledge_across_episodes:
             self.knowledge = KnowledgeStore()
         self.aseq.reset_episode()
@@ -226,10 +219,7 @@ class AASSRCoreRuntime:
     ) -> tuple[StateSnapshot, object, int, bool]:
         semantic = self.representation.semantic_state_identity(state)
         augmented = self.skills.augment_state(state)
-        filtered, guarded, fallback = self.aseq.filter_state(
-            augmented,
-            semantic,
-        )
+        filtered, guarded, fallback = self.aseq.filter_state(augmented, semantic)
         return filtered, semantic, guarded, fallback
 
     def _select(
@@ -240,16 +230,9 @@ class AASSRCoreRuntime:
         training: bool,
     ) -> CoreDecision:
         selection, semantic, guarded, fallback = self._selection_state(state)
-
         original = self.agent.config
-        allow_imagination = (
-            self.requested_imagination
-            and self.critic_reliably_ready
-        )
-        self.agent.config = replace(
-            original,
-            use_imagination=allow_imagination,
-        )
+        allow_imagination = self.requested_imagination and self.critic_reliably_ready
+        self.agent.config = replace(original, use_imagination=allow_imagination)
         try:
             decision = self.agent.select_action(
                 selection,
@@ -275,11 +258,7 @@ class AASSRCoreRuntime:
             all_guarded_fallback=fallback,
         )
 
-    def _apply_knowledge(
-        self,
-        trace_id: str,
-        outcome: Any,
-    ) -> None:
+    def _apply_knowledge(self, trace_id: str, outcome: Any) -> None:
         unlocked = tuple(getattr(outcome, "unlocked_actions", ()))
         enabled = tuple(item.signature for item in unlocked)
         entries = tuple(
@@ -340,14 +319,14 @@ class AASSRCoreRuntime:
             action,
             samples=1,
         )
-        confidence = max(
-            (
-                0.0
-                if "unseen" in item.source.lower()
-                else float(item.probability)
+        confidence = (
+            max(
+                0.0 if "unseen" in item.source.lower() else float(item.probability)
+                for item in predictions
             )
-            for item in predictions
-        ) if predictions else 0.0
+            if predictions
+            else 0.0
+        )
 
         outcome = self.environment.step(action)
         after = outcome.snapshot
@@ -386,14 +365,7 @@ class AASSRCoreRuntime:
                 reward=reward,
                 terminal=terminal,
             )
-            self._critic_trajectory.append(
-                (
-                    before,
-                    action,
-                    after,
-                    confidence,
-                )
-            )
+            self._critic_trajectory.append((before, action, after, confidence))
 
         self._episode_traces.append(trace)
         self._episode_return += reward
@@ -410,11 +382,7 @@ class AASSRCoreRuntime:
         if primitive_budget is not None and primitive_budget <= 0:
             raise ValueError("primitive_budget must be positive")
         raw_before = self.environment.snapshot()
-        decision = self._select(
-            raw_before,
-            episode=episode,
-            training=training,
-        )
+        decision = self._select(raw_before, episode=episode, training=training)
         selected = decision.action
         executed: list[Action] = []
         traces: list[TransitionTrace] = []
@@ -423,11 +391,7 @@ class AASSRCoreRuntime:
             skill_id = str(selected.target)
             if training:
                 self._selected_skill_steps.append(
-                    (
-                        raw_before,
-                        selected,
-                        len(self._episode_traces),
-                    )
+                    (raw_before, selected, len(self._episode_traces))
                 )
             primitive_indices: Iterable[int] = range(
                 self.skills.template_length(skill_id)
@@ -442,11 +406,10 @@ class AASSRCoreRuntime:
             if self.environment.terminal:
                 break
             if selected.verb_name == SKILL_VERB:
-                current = self.environment.snapshot()
                 primitive = self.skills.resolve_primitive(
                     skill_id,
                     index,
-                    current,
+                    self.environment.snapshot(),
                 )
                 if primitive is None:
                     if training:
@@ -455,10 +418,7 @@ class AASSRCoreRuntime:
             else:
                 primitive = selected
 
-            trace = self._execute_primitive(
-                primitive,
-                training=training,
-            )
+            trace = self._execute_primitive(primitive, training=training)
             executed.append(primitive)
             traces.append(trace)
             if trace.error:
@@ -468,11 +428,7 @@ class AASSRCoreRuntime:
 
         raw_after = self.environment.snapshot()
         semantic_after = self.representation.semantic_state_identity(raw_after)
-        self.aseq.observe(
-            decision.semantic_state,
-            selected,
-            semantic_after,
-        )
+        self.aseq.observe(decision.semantic_state, selected, semantic_after)
 
         return CoreStep(
             decision=decision,
@@ -492,18 +448,10 @@ class AASSRCoreRuntime:
         if training:
             self._flush_pending_dqn(terminal=True)
             trajectory = tuple(
-                CriticTransition(
-                    before,
-                    action,
-                    after,
-                    confidence,
-                )
+                CriticTransition(before, action, after, confidence)
                 for before, action, after, confidence in self._critic_trajectory
             )
-            self.critic.observe_episode(
-                trajectory,
-                final_return=value,
-            )
+            self.critic.observe_episode(trajectory, final_return=value)
             self._critic_counts["episodes"] += 1
             bucket = round(max(-1.0, min(1.0, float(value))), 3)
             self._critic_counts[f"return:{bucket:+.3f}"] += 1
@@ -519,10 +467,7 @@ class AASSRCoreRuntime:
                 self._critic_counts["zero"] += 1
 
             for state, action, trace_index in self._selected_skill_steps:
-                remaining = max(
-                    0,
-                    len(self._episode_traces) - trace_index - 1,
-                )
+                remaining = max(0, len(self._episode_traces) - trace_index - 1)
                 self.policy.observe_return(
                     state,
                     action,
@@ -553,15 +498,9 @@ class AASSRCoreRuntime:
             state = self.environment.snapshot()
             if not state.available_actions:
                 break
-            self.step(
-                episode=episode,
-                training=training,
-            )
+            self.step(episode=episode, training=training)
         value = self._episode_return
-        self.finish_episode(
-            final_return=value,
-            training=training,
-        )
+        self.finish_episode(final_return=value, training=training)
         return value
 
     def diagnostics(self) -> dict[str, Any]:
@@ -580,6 +519,9 @@ class AASSRCoreRuntime:
                 "state_size": self.representation.state_size,
                 "action_feature_size": self.representation.action_feature_size,
                 **dict(self.representation.experience.diagnostics()),
+                "public_knowledge": dict(
+                    self.representation.public_knowledge.diagnostics()
+                ),
             },
             "policy": self.policy.diagnostics(),
             "prophecy": {
@@ -596,9 +538,7 @@ class AASSRCoreRuntime:
             },
             "imagination": {
                 "requested": self.requested_imagination,
-                "valid_treatment": (
-                    self._imagination_diagnostics["runs"] > 0
-                ),
+                "valid_treatment": self._imagination_diagnostics["runs"] > 0,
                 **dict(self._imagination_diagnostics),
             },
             "aseq": self.aseq.diagnostics(),
@@ -622,7 +562,5 @@ def build_aassr_core(
         seed=int(seed),
         device=device,
         use_imagination=bool(use_imagination),
-        config=CoreRuntimeConfig(
-            train_transitions=int(train_transitions),
-        ),
+        config=CoreRuntimeConfig(train_transitions=int(train_transitions)),
     )
