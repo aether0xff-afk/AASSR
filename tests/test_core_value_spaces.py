@@ -6,6 +6,7 @@ from aassr_v2.core import (
     ObservationField,
     PluginObservation,
     PluginSchema,
+    TemporalKind,
     ValueKind,
 )
 from aassr_v2.core.public_memory import MemoryBackedRepresentation
@@ -73,6 +74,29 @@ def _pairs(representation, observation):
             total_limit=64,
         )
     }
+
+
+def test_value_space_extension_preserves_historical_positional_fields() -> None:
+    field = ObservationField(
+        "legacy",
+        ValueKind.SET,
+        TemporalKind.STATE,
+        (),
+        ValueKind.ENTITY,
+        "legacy description",
+    )
+    parameter = ActionParameter(
+        "legacy",
+        ValueKind.TEXT,
+        False,
+        (),
+        "legacy parameter description",
+    )
+
+    assert field.description == "legacy description"
+    assert field.value_space is None
+    assert parameter.description == "legacy parameter description"
+    assert parameter.value_space is None
 
 
 def test_same_python_kind_does_not_cross_mechanical_value_spaces() -> None:
