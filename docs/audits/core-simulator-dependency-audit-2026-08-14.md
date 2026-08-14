@@ -95,6 +95,24 @@ Core가 직접 후보를 만들도록 옮긴 뒤에도, 후보가 너무 많을 
 
 **수정:** bounded candidate surface는 Core가 episode/evidence 기반 seed로 표본화한다. 표본화 seed에 concrete 후보 이름을 넣지 않고 후보 수/구조만 사용한다. 같은 episode의 같은 공개 evidence에서는 후보 표면이 안정적으로 유지되며, 사전순 앞부분을 고르는 방식은 제거했다.
 
+### 11. Plugin diagnostics가 Core 제어 신호를 덮어쓸 수 있었다
+
+`PluginEnvironmentAdapter`의 호환 `raw` 경로에는 Core가 만든 `external_reward`, `terminated`, `truncated`와 Plugin diagnostics가 함께 들어간다. 기존 형태에서는 diagnostics의 같은 이름 key가 뒤에서 병합될 경우 Core가 만든 제어 신호를 덮어쓸 수 있었다.
+
+이 문제는 task 의미를 해석하는 문제와 별개다. Plugin에게 디버그 정보를 허용하더라도 학습 보상과 episode 경계를 바꿀 권한까지 생기면 최소 계약이 깨진다.
+
+**판정:** Plugin → Core 제어 경계 결함.
+
+**수정:**
+
+- `external_reward`, `terminated`, `truncated`를 Plugin diagnostics의 예약 금지 key로 지정
+- `reward`는 유한한 실수만 허용
+- `terminated`, `truncated`, `error`는 실제 bool만 허용
+- `error_code`는 문자열 또는 `None`만 허용
+- 별도 regression test를 CI gate에 추가
+
+이 수정은 의미 판단을 Plugin에 주지 않고 오히려 Plugin 권한을 더 축소한다.
+
 ## 새 경계에서 유지한 것
 
 - ASEQ의 정확한 `S → A → S` 반복 억제 의미
@@ -110,6 +128,8 @@ Core가 직접 후보를 만들도록 옮긴 뒤에도, 후보가 너무 많을 
 - Core direct/transitive environment import 차단
 - Plugin 권한 초과 차단
 - Plugin observation에 전략적 action-candidate channel이 없음
+- Plugin diagnostics가 reward/termination 제어 신호를 덮어쓰지 못함
+- 비정상/비유한 reward와 잘못된 제어 flag 형식 차단
 - Core가 공개 typed value를 기억해 다음 후보 생성에 사용할 수 있음
 - episode reset 시 Core 공개 기억이 초기화됨
 - concrete 후보별 경험이 기본적으로 episode-local임
@@ -120,6 +140,8 @@ Core가 직접 후보를 만들도록 옮긴 뒤에도, 후보가 너무 많을 
 - loopback 실제 socket I/O
 - 외부 redirect 차단
 - Plugin이 이전 페이지의 발견 link를 기억하지 않음
+
+2026-08-14의 control-boundary hardening 이후 `aassr-core-minimal-plugin` push CI에서 `boundary`와 `core-runtime-cpu` 두 job이 모두 통과했다.
 
 ## 실제 loopback 학습 smoke
 
